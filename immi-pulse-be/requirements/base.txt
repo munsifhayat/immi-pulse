@@ -1,0 +1,33 @@
+# Framework
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic-settings>=2.2
+
+# Database
+sqlalchemy>=2.0
+asyncpg>=0.27
+alembic>=1.13
+greenlet>=3.0
+
+# AWS
+boto3>=1.34
+strands-agents>=0.1.0
+
+# Microsoft
+msal>=1.25.0
+httpx>=0.25.0
+
+# Security
+cryptography>=41.0
+
+# Document Processing
+pdfplumber>=0.10
+openpyxl>=3.1
+python-docx>=1.0
+
+# Scheduling
+apscheduler>=3.10
+
+# Utilities
+python-multipart>=0.0.6
+python-dateutil>=2.8

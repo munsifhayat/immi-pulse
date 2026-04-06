@@ -1,0 +1,2 @@
+web: PYTHONPATH=src python -m app.core.server
+release: PYTHONPATH=src alembic upgrade heads
