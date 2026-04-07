@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/motion";
 import { useState } from "react";
-import { GradientMesh } from "@/components/public/gradient-mesh";
+import { HeroVisual } from "@/components/public/hero-visual";
 
 /* Reusable subtle grid SVG for section backgrounds */
 function GridBg({
@@ -261,7 +261,7 @@ export default function HomePage() {
               </motion.div>
             </div>
 
-            {/* Right — Interactive portrait with floating UI cards */}
+            {/* Right — Interactive 3D dashboard preview */}
             <motion.div
               variants={fadeUp}
               initial="hidden"
@@ -269,71 +269,7 @@ export default function HomePage() {
               custom={1}
               className="relative hidden min-h-[560px] lg:flex lg:items-center lg:justify-center"
             >
-              {/* Abstract 3D geometric backdrop */}
-              <GradientMesh />
-
-              {/* Card — Case Review (left-center, overlapping portrait) */}
-              <motion.div
-                initial={{ opacity: 0, x: -24 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.7, duration: 0.5 }}
-                className="absolute left-[-20px] top-[30%] z-20 w-[240px] rounded-xl border border-border bg-white p-4 shadow-lg shadow-black/5"
-              >
-                <p className="text-[14px] font-semibold text-navy">
-                  IMMI-PULSE Case Review
-                </p>
-                <div className="mt-2 space-y-1">
-                  <p className="text-[13px] font-medium text-navy">
-                    Subclass 482
-                  </p>
-                  <p className="text-[12px] text-gray-text">
-                    10/03/2025, 14:22:08
-                  </p>
-                </div>
-                <div className="mt-3 rounded-md bg-purple/10 px-3 py-1.5">
-                  <p className="text-[12px] font-medium text-purple">
-                    Awaiting Support Documents
-                  </p>
-                </div>
-              </motion.div>
-
-              {/* Card — Client Profile (top-right, overlapping portrait) */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.9, duration: 0.5 }}
-                className="absolute right-[-10px] top-[8%] z-20 w-[200px] rounded-xl border border-purple/20 bg-white p-4 shadow-lg shadow-black/5"
-              >
-                <p className="text-[15px] font-semibold text-navy">
-                  Client Profile
-                </p>
-                <p className="mt-1 text-[13px] text-gray-text">20 documents</p>
-                <p className="text-[12px] text-gray-text">
-                  Created by Migration Agent
-                </p>
-              </motion.div>
-
-              {/* Card — Files Panel (bottom-right) */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.1, duration: 0.5 }}
-                className="absolute bottom-[8%] right-[-10px] z-20 w-[220px] rounded-xl border border-border bg-white p-4 shadow-lg shadow-black/5"
-              >
-                <p className="text-[14px] font-semibold text-navy">Files</p>
-                <div className="mt-2 flex gap-3 border-b border-border pb-2 text-[12px]">
-                  <span className="border-b-2 border-purple pb-1 font-medium text-purple">
-                    All
-                  </span>
-                  <span className="text-gray-text">Documents</span>
-                  <span className="text-gray-text">Summaries</span>
-                </div>
-                <div className="mt-2 space-y-1.5 text-[12px] text-gray-text">
-                  <p>Copy of Passport</p>
-                  <p>Copy of Education Credentials</p>
-                  <p>Original Birth Certificate with Transl{"\u2026"}</p>
-                </div>
-              </motion.div>
+              <HeroVisual />
             </motion.div>
           </div>
         </div>
