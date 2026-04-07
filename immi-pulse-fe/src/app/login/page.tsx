@@ -1,19 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import dynamic from "next/dynamic";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
-
-const CityBackground = dynamic(
-  () =>
-    import("@/components/landing/MeshBackground").then((m) => m.MeshBackground),
-  { ssr: false }
-);
 
 export default function LoginPage() {
   const { login, isLoading: authLoading } = useAuth();
@@ -51,7 +44,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-[#030f0e]">
+    <div className="relative min-h-dvh overflow-hidden bg-white">
+      {/* Subtle gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-50/80 via-white to-purple-50/40" />
+      <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
+      <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
+
       <AnimatePresence mode="wait">
         {!showSignIn ? (
           <motion.div
@@ -62,21 +60,45 @@ export default function LoginPage() {
             transition={{ duration: 0.35 }}
             className="relative min-h-dvh"
           >
-            {/* Mesh background */}
-            <div className="absolute inset-0 z-0">
-              <CityBackground variant="hero" />
-            </div>
-
             {/* Content */}
-            <div className="relative z-20 flex min-h-dvh flex-col items-center px-6 pt-[26vh] text-center sm:pt-[28vh]">
+            <div className="relative z-10 flex min-h-dvh flex-col items-center px-6 pt-[26vh] text-center sm:pt-[28vh]">
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.04, duration: 0.5 }}
-                className="mb-4"
+                className="mb-6"
               >
-                <span className="inline-block rounded-full border border-white/[0.08] bg-white/[0.04] px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.15em] text-white/40">
-                  AI First Property Platform
+                {/* Logo */}
+                <svg
+                  width="48"
+                  height="48"
+                  viewBox="0 0 32 32"
+                  fill="none"
+                  className="mx-auto mb-6"
+                  aria-hidden="true"
+                >
+                  <rect width="32" height="32" rx="7" fill="url(#login-logo-grad)" />
+                  <path
+                    d="M9 22V10h2.5v12H9zm5 0V10h2.5v12H14zm5 0V10h2.5v5L24 10h3l-3.5 5.5L27 22h-3l-2.5-5-2 3v2h-0.5z"
+                    fill="white"
+                  />
+                  <defs>
+                    <linearGradient
+                      id="login-logo-grad"
+                      x1="0"
+                      y1="0"
+                      x2="32"
+                      y2="32"
+                      gradientUnits="userSpaceOnUse"
+                    >
+                      <stop stopColor="#7C5CFC" />
+                      <stop offset="1" stopColor="#5B3ADB" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+
+                <span className="inline-block rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.15em] text-primary">
+                  AI-Powered Immigration Platform
                 </span>
               </motion.div>
 
@@ -84,20 +106,20 @@ export default function LoginPage() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.08, duration: 0.5 }}
-                className="mb-4 text-5xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl"
+                className="mb-4 font-heading text-5xl font-extrabold tracking-tight text-navy sm:text-6xl lg:text-7xl"
               >
-                Property Pulse
+                IMMI PULSE
               </motion.h1>
 
               <motion.p
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.16, duration: 0.5 }}
-                className="mb-10 max-w-lg text-lg leading-relaxed text-white/40 sm:mb-12 sm:text-xl"
+                className="mb-10 max-w-lg text-lg leading-relaxed text-gray-text sm:mb-12 sm:text-xl"
               >
-                Intelligent email processing for property managers.
+                AI-powered immigration intelligence for
                 <br className="hidden sm:block" />
-                Classify, prioritise, and act automatically.
+                Australian consultants. Manage, classify &amp; validate.
               </motion.p>
 
               <motion.div
@@ -109,7 +131,7 @@ export default function LoginPage() {
                 <Button
                   size="lg"
                   onClick={() => setShowSignIn(true)}
-                  className="group relative h-12 cursor-pointer gap-2 rounded-xl bg-white px-8 text-base font-semibold text-[#030f0e] shadow-[0_0_48px_rgba(45,212,191,0.1)] transition-all duration-300 hover:bg-white hover:shadow-[0_0_64px_rgba(45,212,191,0.16)]"
+                  className="group relative h-12 cursor-pointer gap-2 rounded-xl bg-primary px-8 text-base font-semibold text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:bg-purple-deep hover:shadow-xl hover:shadow-primary/30"
                 >
                   Get Started
                   <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
@@ -122,7 +144,7 @@ export default function LoginPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.35, duration: 0.5 }}
-              className="absolute bottom-4 right-5 z-30 text-[11px] text-white/15"
+              className="absolute bottom-4 right-5 z-30 text-[11px] text-gray-text/30"
             >
               v{process.env.NEXT_PUBLIC_APP_VERSION}
             </motion.p>
@@ -136,103 +158,124 @@ export default function LoginPage() {
             transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
             className="relative flex min-h-dvh flex-col"
           >
-            <div className="absolute inset-0">
-              <CityBackground variant="fullscreen" />
-            </div>
-            <div
-              className="pointer-events-none absolute inset-0 opacity-[0.015]"
-              style={{
-                backgroundImage: `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
-                backgroundSize: "80px 80px",
-              }}
-            />
             <div className="relative z-10 flex min-h-dvh items-center justify-center px-6 py-10">
-              <div className="mx-auto box-border size-[min(92vw,min(88dvh,760px))] shrink-0">
-                <div className="flex h-full min-h-0 flex-col justify-center overflow-y-auto rounded-2xl border border-white/[0.06] bg-white/[0.03] p-8 shadow-[0_8px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:p-10">
-                <div className="mb-8 text-center sm:mb-10">
-                  <h2 className="text-2xl font-bold text-white">Welcome back</h2>
-                  <p className="mt-2 text-sm text-white/30">Sign in to your Property Pulse account</p>
-                </div>
-
-                <form onSubmit={handleSubmit} className="flex flex-col gap-5 sm:gap-6">
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+              <div className="w-full max-w-md">
+                <div className="rounded-2xl border border-border/60 bg-white p-8 shadow-xl shadow-black/5 sm:p-10">
+                  {/* Header */}
+                  <div className="mb-8 text-center sm:mb-10">
+                    <svg
+                      width="36"
+                      height="36"
+                      viewBox="0 0 32 32"
+                      fill="none"
+                      className="mx-auto mb-4"
+                      aria-hidden="true"
                     >
-                      {error}
-                    </motion.div>
-                  )}
-
-                  <div className="flex flex-col gap-2.5">
-                    <Label htmlFor="email" className="text-[13px] font-medium text-white/45">
-                      Email
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      autoFocus
-                      className="h-12 rounded-xl border-white/[0.06] bg-white/[0.04] px-4 text-[15px] text-white placeholder:text-white/20 focus-visible:border-teal-400/20 focus-visible:ring-teal-400/10"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-2.5">
-                    <Label htmlFor="password" className="text-[13px] font-medium text-white/45">
-                      Password
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Enter your password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className="h-12 rounded-xl border-white/[0.06] bg-white/[0.04] px-4 pr-11 text-[15px] text-white placeholder:text-white/20 focus-visible:border-teal-400/20 focus-visible:ring-teal-400/10"
+                      <rect width="32" height="32" rx="7" fill="url(#login-form-grad)" />
+                      <path
+                        d="M9 22V10h2.5v12H9zm5 0V10h2.5v12H14zm5 0V10h2.5v5L24 10h3l-3.5 5.5L27 22h-3l-2.5-5-2 3v2h-0.5z"
+                        fill="white"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-white/20 transition-colors hover:text-white/50"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
+                      <defs>
+                        <linearGradient
+                          id="login-form-grad"
+                          x1="0"
+                          y1="0"
+                          x2="32"
+                          y2="32"
+                          gradientUnits="userSpaceOnUse"
+                        >
+                          <stop stopColor="#7C5CFC" />
+                          <stop offset="1" stopColor="#5B3ADB" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    <h2 className="text-2xl font-bold text-navy">Welcome back</h2>
+                    <p className="mt-2 text-sm text-gray-text">
+                      Sign in to your IMMI PULSE account
+                    </p>
                   </div>
 
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="mt-2 h-12 w-full cursor-pointer rounded-xl bg-white text-[15px] font-semibold text-[#030f0e] transition-all duration-200 hover:bg-white/90 disabled:opacity-50"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Signing in...
-                      </>
-                    ) : (
-                      "Sign in"
+                  {/* Form */}
+                  <form onSubmit={handleSubmit} className="flex flex-col gap-5 sm:gap-6">
+                    {error && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+                      >
+                        {error}
+                      </motion.div>
                     )}
-                  </Button>
-                </form>
 
-                <div className="mt-8 text-center">
-                  <button
-                    type="button"
-                    onClick={() => setShowSignIn(false)}
-                    className="cursor-pointer text-sm text-white/20 transition-colors hover:text-white/40"
-                  >
-                    Back to home
-                  </button>
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="email" className="text-[13px] font-medium text-navy">
+                        Email
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="you@company.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        autoFocus
+                        className="h-12 rounded-xl border-border bg-gray-light/50 px-4 text-[15px] text-navy placeholder:text-gray-text/40 focus-visible:border-primary focus-visible:ring-primary/20"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="password" className="text-[13px] font-medium text-navy">
+                        Password
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter your password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          className="h-12 rounded-xl border-border bg-gray-light/50 px-4 pr-11 text-[15px] text-navy placeholder:text-gray-text/40 focus-visible:border-primary focus-visible:ring-primary/20"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-text/40 transition-colors hover:text-gray-text"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="mt-2 h-12 w-full cursor-pointer rounded-xl bg-primary text-[15px] font-semibold text-white shadow-lg shadow-primary/25 transition-all duration-200 hover:bg-purple-deep disabled:opacity-50"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        "Sign in"
+                      )}
+                    </Button>
+                  </form>
+
+                  <div className="mt-8 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowSignIn(false)}
+                      className="cursor-pointer text-sm text-gray-text/60 transition-colors hover:text-gray-text"
+                    >
+                      Back to home
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -9,9 +9,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 const titles: Record<string, string> = {
   "/dashboard": "Overview",
+  "/dashboard/clients": "Clients",
+  "/dashboard/cases": "Cases",
   "/dashboard/inbox": "Inbox",
   "/dashboard/agent-board": "AI Pipeline",
-  "/dashboard/compliance": "Compliance Shield",
+  "/dashboard/documents": "Documents",
   "/dashboard/activity": "Activity",
   "/dashboard/settings": "Settings",
 };

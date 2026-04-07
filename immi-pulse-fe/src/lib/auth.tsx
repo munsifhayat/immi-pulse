@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 
 const LOGIN_URL = "https://tdop.highcode.au/api/v1/user/login";
-const TOKEN_KEY = "pp_token";
-const USER_KEY = "pp_user";
+const TOKEN_KEY = "ip_token";
+const USER_KEY = "ip_user";
 
 export interface User {
   id: number;

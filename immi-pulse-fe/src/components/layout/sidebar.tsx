@@ -6,12 +6,13 @@ import {
   LayoutDashboard,
   Inbox,
   BrainCircuit,
-  ShieldCheck,
+  Users,
+  FolderKanban,
+  FileCheck,
   Activity,
   Settings,
   LogOut,
   ChevronsUpDown,
-  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -26,9 +27,11 @@ import {
 
 const navigation = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Clients", href: "/dashboard/clients", icon: Users },
+  { name: "Cases", href: "/dashboard/cases", icon: FolderKanban },
   { name: "Inbox", href: "/dashboard/inbox", icon: Inbox },
   { name: "AI Pipeline", href: "/dashboard/agent-board", icon: BrainCircuit },
-  { name: "Compliance", href: "/dashboard/compliance", icon: ShieldCheck },
+  { name: "Documents", href: "/dashboard/documents", icon: FileCheck },
   { name: "Activity", href: "/dashboard/activity", icon: Activity },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
@@ -46,11 +49,35 @@ export function Sidebar() {
       {/* Brand */}
       <div className="flex h-14 items-center gap-2.5 border-b border-border px-5">
         <Link href="/dashboard" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 shadow-sm">
-            <Building2 className="h-4 w-4 text-primary" strokeWidth={2} />
-          </div>
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 32 32"
+            fill="none"
+            className="shrink-0"
+            aria-hidden="true"
+          >
+            <rect width="32" height="32" rx="7" fill="url(#sidebar-logo-grad)" />
+            <path
+              d="M9 22V10h2.5v12H9zm5 0V10h2.5v12H14zm5 0V10h2.5v5L24 10h3l-3.5 5.5L27 22h-3l-2.5-5-2 3v2h-0.5z"
+              fill="white"
+            />
+            <defs>
+              <linearGradient
+                id="sidebar-logo-grad"
+                x1="0"
+                y1="0"
+                x2="32"
+                y2="32"
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop stopColor="#7C5CFC" />
+                <stop offset="1" stopColor="#5B3ADB" />
+              </linearGradient>
+            </defs>
+          </svg>
           <div className="flex flex-col">
-            <span className="text-sm font-bold tracking-tight text-foreground">Property Pulse</span>
+            <span className="text-sm font-bold tracking-tight text-foreground">IMMI-PULSE</span>
           </div>
         </Link>
       </div>

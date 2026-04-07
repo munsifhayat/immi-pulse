@@ -7,8 +7,23 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-plus-jakarta);
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-outfit);
   --font-mono: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+
+  /* IMMI-PULSE Brand Colors */
+  --color-navy: var(--navy);
+  --color-navy-light: var(--navy-light);
+  --color-purple: var(--purple);
+  --color-purple-light: var(--purple-light);
+  --color-purple-deep: var(--purple-deep);
+  --color-purple-muted: var(--purple-muted);
+  --color-gray-text: var(--gray-text);
+  --color-gray-light: var(--gray-light);
+  --color-teal: var(--teal);
+  --color-teal-light: var(--teal-light);
+
+  /* shadcn semantic tokens */
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -50,79 +65,98 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  /* Teal / Slate — property management palette */
-  --background: oklch(0.985 0.002 200);
-  --foreground: oklch(0.14 0.02 230);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.14 0.02 230);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.14 0.02 230);
-  --primary: oklch(0.52 0.14 175);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.965 0.006 200);
-  --secondary-foreground: oklch(0.24 0.02 230);
-  --muted: oklch(0.96 0.006 200);
-  --muted-foreground: oklch(0.48 0.015 230);
-  --accent: oklch(0.965 0.006 200);
-  --accent-foreground: oklch(0.24 0.02 230);
+  --radius: 0.5rem;
+
+  /* ── IMMI-PULSE Brand Palette ── */
+  --navy: #0F1117;
+  --navy-light: #1E293B;
+  --purple: #7C5CFC;
+  --purple-light: #BDB4FE;
+  --purple-deep: #5B3ADB;
+  --purple-muted: #D9D6FE;
+  --gray-text: #4B5563;
+  --gray-light: #F7F8FA;
+  --teal: #1B7B6F;
+  --teal-light: #2DD4BF;
+
+  /* ── Semantic — Light ── */
+  --background: #FFFFFF;
+  --foreground: #0F1117;
+  --card: #FFFFFF;
+  --card-foreground: #0F1117;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F1117;
+  --primary: #7C5CFC;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F7F8FA;
+  --secondary-foreground: #1E293B;
+  --muted: #F7F8FA;
+  --muted-foreground: #4B5563;
+  --accent: #F7F8FA;
+  --accent-foreground: #1E293B;
   --destructive: oklch(0.577 0.245 27.325);
-  --success: oklch(0.62 0.19 145);
-  --warning: oklch(0.75 0.18 75);
-  --border: oklch(0.92 0.006 200);
-  --input: oklch(0.92 0.006 200);
-  --ring: oklch(0.52 0.14 175);
+  --success: #1B7B6F;
+  --warning: #F59E0B;
+  --border: #E8E8ED;
+  --input: #E8E8ED;
+  --ring: #7C5CFC;
+
   /* Charts */
-  --chart-1: oklch(0.60 0.15 175);
-  --chart-2: oklch(0.65 0.13 260);
-  --chart-3: oklch(0.78 0.14 85);
-  --chart-4: oklch(0.58 0.16 310);
-  --chart-5: oklch(0.72 0.16 30);
-  --sidebar: oklch(0.995 0.002 200);
-  --sidebar-foreground: oklch(0.14 0.02 230);
-  --sidebar-primary: oklch(0.52 0.14 175);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.96 0.01 185);
-  --sidebar-accent-foreground: oklch(0.24 0.02 230);
-  --sidebar-border: oklch(0.93 0.006 200);
-  --sidebar-ring: oklch(0.52 0.14 175);
+  --chart-1: #7C5CFC;
+  --chart-2: #1B7B6F;
+  --chart-3: #F59E0B;
+  --chart-4: #0F1117;
+  --chart-5: #BDB4FE;
+
+  /* Sidebar — console */
+  --sidebar: #FAFAFA;
+  --sidebar-foreground: #0F1117;
+  --sidebar-primary: #7C5CFC;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F7F8FA;
+  --sidebar-accent-foreground: #1E293B;
+  --sidebar-border: #E8E8ED;
+  --sidebar-ring: #7C5CFC;
 }
 
 .dark {
-  --background: oklch(0.12 0.02 230);
-  --foreground: oklch(0.96 0.005 200);
-  --card: oklch(0.16 0.018 228);
-  --card-foreground: oklch(0.96 0.005 200);
-  --popover: oklch(0.16 0.018 228);
-  --popover-foreground: oklch(0.96 0.005 200);
-  --primary: oklch(0.62 0.14 175);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.20 0.018 228);
-  --secondary-foreground: oklch(0.96 0.005 200);
-  --muted: oklch(0.20 0.018 228);
-  --muted-foreground: oklch(0.60 0.012 220);
-  --accent: oklch(0.20 0.018 228);
-  --accent-foreground: oklch(0.96 0.005 200);
+  --background: #0A0E1A;
+  --foreground: #F0F2F5;
+  --card: #111827;
+  --card-foreground: #F0F2F5;
+  --popover: #111827;
+  --popover-foreground: #F0F2F5;
+  --primary: #BDB4FE;
+  --primary-foreground: #0F1117;
+  --secondary: #1E293B;
+  --secondary-foreground: #F0F2F5;
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
+  --accent: #1E293B;
+  --accent-foreground: #F0F2F5;
   --destructive: oklch(0.704 0.191 22.216);
-  --success: oklch(0.68 0.17 145);
-  --warning: oklch(0.80 0.16 75);
-  --border: oklch(0.24 0.016 228);
-  --input: oklch(0.24 0.016 228);
-  --ring: oklch(0.62 0.14 175);
+  --success: #2DD4BF;
+  --warning: #F59E0B;
+  --border: #1E293B;
+  --input: #1E293B;
+  --ring: #BDB4FE;
+
   /* Charts */
-  --chart-1: oklch(0.72 0.14 175);
-  --chart-2: oklch(0.72 0.12 260);
-  --chart-3: oklch(0.82 0.13 85);
-  --chart-4: oklch(0.70 0.14 310);
-  --chart-5: oklch(0.78 0.14 30);
-  --sidebar: oklch(0.14 0.018 230);
-  --sidebar-foreground: oklch(0.96 0.005 200);
-  --sidebar-primary: oklch(0.62 0.14 175);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.20 0.018 228);
-  --sidebar-accent-foreground: oklch(0.96 0.005 200);
-  --sidebar-border: oklch(0.24 0.016 228);
-  --sidebar-ring: oklch(0.62 0.14 175);
+  --chart-1: #BDB4FE;
+  --chart-2: #2DD4BF;
+  --chart-3: #F59E0B;
+  --chart-4: #64B5F6;
+  --chart-5: #7C5CFC;
+
+  /* Sidebar */
+  --sidebar: #0A0E1A;
+  --sidebar-foreground: #F0F2F5;
+  --sidebar-primary: #BDB4FE;
+  --sidebar-primary-foreground: #0F1117;
+  --sidebar-accent: #1E293B;
+  --sidebar-accent-foreground: #F0F2F5;
+  --sidebar-border: #1E293B;
+  --sidebar-ring: #BDB4FE;
 }
 
 @layer base {
@@ -131,5 +165,33 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-inter), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-outfit), system-ui, sans-serif;
+    text-wrap: balance;
+  }
+}
+
+/* ── Marquee animation for trust logos ── */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
   }
 }
