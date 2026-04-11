@@ -17,6 +17,8 @@ import {
   CheckCircle2,
   XCircle,
   Minus,
+  Plus,
+  Rocket,
 } from "lucide-react";
 import { clientsService } from "@/lib/api/clients.service";
 import type { Client, Case, ClientJourney } from "@/lib/types/immigration";
@@ -174,9 +176,19 @@ export default function ClientDetailPage() {
               </div>
             </div>
           </div>
-          <Badge className="bg-primary/10 text-primary border-primary/30 hover:bg-primary/10">
-            Demo Data
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              className="gap-2"
+              onClick={() => router.push(`/dashboard/clients/${clientId}/journey/new`)}
+            >
+              <Rocket className="h-4 w-4" />
+              Start New Journey
+            </Button>
+            <Badge className="bg-primary/10 text-primary border-primary/30 hover:bg-primary/10">
+              Demo Data
+            </Badge>
+          </div>
         </div>
       </motion.div>
 
