@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { FolderKanban, Plus, Filter } from "lucide-react";
-import { casesService } from "@/lib/api/cases.service";
+import { FolderKanban, Plus, Filter, Loader2 } from "lucide-react";
 import { visaSubclasses } from "@/lib/mock-data/immigration-mock";
-import type { Case, CaseStage } from "@/lib/types/immigration";
+import { useCases, useCreateCase } from "@/lib/api/hooks/cases";
+import type { CaseOut, CaseStage } from "@/lib/types/immigration";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,37 +39,38 @@ import { fadeUp, stagger } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 // ── Stage labels & colors ───────────────────────────────────
+// Keys mirror backend CASE_STAGES and frontend CaseStage in immigration.ts.
 const stageColors: Record<string, string> = {
-  intake: "bg-slate-100 text-slate-700",
+  inquiry: "bg-slate-100 text-slate-700",
   consultation: "bg-blue-100 text-blue-700",
-  checklist_sent: "bg-amber-100 text-amber-700",
-  documents_collecting: "bg-amber-100 text-amber-700",
-  documents_reviewing: "bg-purple-100 text-purple-700",
-  lodgement_ready: "bg-teal-100 text-teal-700",
-  lodged: "bg-cyan-100 text-cyan-700",
-  granted: "bg-emerald-100 text-emerald-700",
-  refused: "bg-red-100 text-red-700",
-  withdrawn: "bg-gray-100 text-gray-700",
+  visa_pathway: "bg-indigo-100 text-indigo-700",
+  checklist: "bg-amber-100 text-amber-700",
+  document_collection: "bg-amber-100 text-amber-700",
+  document_review: "bg-purple-100 text-purple-700",
+  application_prep: "bg-teal-100 text-teal-700",
+  lodgement: "bg-cyan-100 text-cyan-700",
+  post_lodgement: "bg-sky-100 text-sky-700",
+  decision: "bg-emerald-100 text-emerald-700",
 };
 
 const stageLabels: Record<string, string> = {
-  intake: "Intake",
+  inquiry: "Inquiry",
   consultation: "Consultation",
-  checklist_sent: "Checklist Sent",
-  documents_collecting: "Collecting Docs",
-  documents_reviewing: "Reviewing Docs",
-  lodgement_ready: "Ready to Lodge",
-  lodged: "Lodged",
-  granted: "Granted",
-  refused: "Refused",
-  withdrawn: "Withdrawn",
+  visa_pathway: "Visa Pathway",
+  checklist: "Checklist",
+  document_collection: "Collecting Docs",
+  document_review: "Reviewing Docs",
+  application_prep: "Application Prep",
+  lodgement: "Lodged",
+  post_lodgement: "Post-Lodgement",
+  decision: "Decision",
 };
 
 // ── Priority badge colors ───────────────────────────────────
 const priorityColors: Record<string, string> = {
   urgent: "bg-red-100 text-red-700",
   high: "bg-orange-100 text-orange-700",
-  medium: "bg-blue-100 text-blue-700",
+  normal: "bg-blue-100 text-blue-700",
   low: "bg-gray-100 text-gray-700",
 };
 
@@ -88,46 +90,91 @@ function formatRelativeTime(dateStr: string): string {
   return `${diffMonths}mo ago`;
 }
 
-function getInitials(first: string, last: string): string {
-  return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
+function getInitials(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
+// Placeholder progress derivation — weights stage index over the 10 steps.
+// Replaced when checklist-item tracking ships.
+const STAGE_ORDER: CaseStage[] = [
+  "inquiry",
+  "consultation",
+  "visa_pathway",
+  "checklist",
+  "document_collection",
+  "document_review",
+  "application_prep",
+  "lodgement",
+  "post_lodgement",
+  "decision",
+];
+
+function getChecklistProgress(c: CaseOut): number {
+  const idx = STAGE_ORDER.indexOf(c.stage);
+  if (idx < 0) return 0;
+  return Math.round(((idx + 1) / STAGE_ORDER.length) * 100);
 }
 
 // ── Page ────────────────────────────────────────────────────
 export default function CasesPage() {
-  const [cases, setCases] = useState<Case[]>([]);
+  const router = useRouter();
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [visaFilter, setVisaFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
 
-  useEffect(() => {
-    casesService.getCases().then(setCases);
-  }, []);
+  // ── New Case dialog state ──
+  const [newCaseOpen, setNewCaseOpen] = useState(false);
+  const [newCaseName, setNewCaseName] = useState("");
+  const [newCaseEmail, setNewCaseEmail] = useState("");
+  const [newCaseVisa, setNewCaseVisa] = useState<string>("");
+
+  const casesQuery = useCases({
+    stage: stageFilter === "all" ? undefined : (stageFilter as CaseStage),
+    priority:
+      priorityFilter === "all" ? undefined : (priorityFilter as CaseOut["priority"]),
+    visa_subclass: visaFilter === "all" ? undefined : visaFilter,
+  });
+  const createCase = useCreateCase();
+
+  const cases = useMemo<CaseOut[]>(() => casesQuery.data ?? [], [casesQuery.data]);
 
   const filteredCases = useMemo(() => {
-    return cases
-      .filter((c) => {
-        if (stageFilter !== "all" && c.stage !== stageFilter) return false;
-        if (visaFilter !== "all" && c.visa_subclass !== visaFilter) return false;
-        if (priorityFilter !== "all" && c.priority !== priorityFilter)
-          return false;
-        return true;
-      })
-      .sort(
-        (a, b) =>
-          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-      );
-  }, [cases, stageFilter, visaFilter, priorityFilter]);
+    return [...cases].sort(
+      (a, b) =>
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    );
+  }, [cases]);
 
   // ── Stats ───────────────────────────────────────────────
   const stats = useMemo(() => {
-    const active = cases.filter(
-      (c) => !["granted", "refused", "withdrawn"].includes(c.stage)
+    const active = cases.filter((c) => c.stage !== "decision").length;
+    const lodged = cases.filter(
+      (c) => c.stage === "lodgement" || c.stage === "post_lodgement"
     ).length;
-    const lodged = cases.filter((c) => c.stage === "lodged").length;
-    const granted = cases.filter((c) => c.stage === "granted").length;
+    const granted = cases.filter((c) => c.stage === "decision").length;
     const flagged = cases.filter((c) => c.documents_pending > 0).length;
     return { active, lodged, granted, flagged };
   }, [cases]);
+
+  const handleCreateCase = async () => {
+    if (!newCaseName.trim()) return;
+    const visaSub = visaSubclasses.find((v) => v.code === newCaseVisa);
+    await createCase.mutateAsync({
+      client_name: newCaseName.trim(),
+      client_email: newCaseEmail.trim() || undefined,
+      visa_subclass: visaSub?.code,
+      visa_name: visaSub?.name,
+      stage: "inquiry",
+      priority: "normal",
+    });
+    setNewCaseName("");
+    setNewCaseEmail("");
+    setNewCaseVisa("");
+    setNewCaseOpen(false);
+  };
 
   const statItems = [
     {
@@ -183,13 +230,24 @@ export default function CasesPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge
-            variant="secondary"
-            className="bg-purple-100 text-purple-700 border-purple-200"
-          >
-            Demo Data
-          </Badge>
-          <Dialog>
+          {casesQuery.isLoading && (
+            <Badge
+              variant="secondary"
+              className="bg-blue-50 text-blue-700 border-blue-200 gap-1"
+            >
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Loading
+            </Badge>
+          )}
+          {casesQuery.isError && (
+            <Badge
+              variant="secondary"
+              className="bg-red-50 text-red-700 border-red-200"
+            >
+              API error
+            </Badge>
+          )}
+          <Dialog open={newCaseOpen} onOpenChange={setNewCaseOpen}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-1.5">
                 <Plus className="h-4 w-4" />
@@ -198,19 +256,71 @@ export default function CasesPage() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create New Case</DialogTitle>
+                <DialogTitle>Create new case</DialogTitle>
                 <DialogDescription>
-                  New case creation is coming soon. This will allow you to link a
-                  client, select a visa subclass, and generate a checklist
-                  automatically using AI.
+                  Create a case manually. It will start in the Inquiry stage so
+                  you can send the client a portal link and collect documents.
                 </DialogDescription>
               </DialogHeader>
-              <div className="flex justify-end pt-4">
+              <div className="space-y-4 py-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Client name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                    placeholder="Priya Sharma"
+                    value={newCaseName}
+                    onChange={(e) => setNewCaseName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Client email
+                  </label>
+                  <input
+                    type="email"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                    placeholder="priya@example.com"
+                    value={newCaseEmail}
+                    onChange={(e) => setNewCaseEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Visa subclass
+                  </label>
+                  <Select value={newCaseVisa} onValueChange={setNewCaseVisa}>
+                    <SelectTrigger className="w-full h-9 text-[13px]">
+                      <SelectValue placeholder="Select a visa subclass" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {visaSubclasses.map((v) => (
+                        <SelectItem key={v.code} value={v.code}>
+                          {v.code} — {v.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
                 <DialogClose asChild>
                   <Button variant="outline" size="sm">
-                    Close
+                    Cancel
                   </Button>
                 </DialogClose>
+                <Button
+                  size="sm"
+                  disabled={!newCaseName.trim() || createCase.isPending}
+                  onClick={handleCreateCase}
+                >
+                  {createCase.isPending && (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  )}
+                  Create case
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -286,7 +396,7 @@ export default function CasesPage() {
             <SelectItem value="all">All Priorities</SelectItem>
             <SelectItem value="urgent">Urgent</SelectItem>
             <SelectItem value="high">High</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
+            <SelectItem value="normal">Normal</SelectItem>
             <SelectItem value="low">Low</SelectItem>
           </SelectContent>
         </Select>
@@ -337,20 +447,18 @@ export default function CasesPage() {
                   <TableRow
                     key={c.id}
                     className="cursor-pointer transition-colors hover:bg-muted/40"
+                    onClick={() => router.push(`/dashboard/cases/${c.id}`)}
                   >
                     {/* Client */}
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                            {getInitials(
-                              c.client.first_name,
-                              c.client.last_name
-                            )}
+                            {getInitials(c.client_name)}
                           </AvatarFallback>
                         </Avatar>
                         <span className="text-[13px] font-medium text-foreground">
-                          {c.client.first_name} {c.client.last_name}
+                          {c.client_name}
                         </span>
                       </div>
                     </TableCell>
@@ -391,19 +499,18 @@ export default function CasesPage() {
                       </span>
                     </TableCell>
 
-                    {/* Checklist progress */}
+                    {/* Checklist progress — derived placeholder until the
+                        backend tracks checklist items in Phase 2+. */}
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-20 rounded-full bg-muted/60">
                           <div
                             className="h-full rounded-full bg-primary transition-all duration-300"
-                            style={{
-                              width: `${c.checklist_progress}%`,
-                            }}
+                            style={{ width: `${getChecklistProgress(c)}%` }}
                           />
                         </div>
                         <span className="text-[12px] font-medium text-muted-foreground">
-                          {c.checklist_progress}%
+                          {getChecklistProgress(c)}%
                         </span>
                       </div>
                     </TableCell>

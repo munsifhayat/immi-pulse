@@ -1,3 +1,5 @@
+// Legacy mock-backed service. Being replaced by src/lib/api/hooks/cases.ts
+// in Phase 2 as the cases page is wired to the real backend.
 import { mockCases } from "@/lib/mock-data/immigration-mock";
 import type { CaseStage, CasePriority } from "@/lib/types/immigration";
 

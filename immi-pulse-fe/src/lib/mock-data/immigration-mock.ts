@@ -137,7 +137,7 @@ export const mockClients: Client[] = [
 ];
 
 // ── Cases ──
-export const mockCases: Case[] = [
+const rawCases: Array<Omit<Case, "client_name" | "source">> = [
   {
     id: "cs-001",
     client_id: "cl-001",
@@ -145,7 +145,7 @@ export const mockCases: Case[] = [
     consultant_id: "con-001",
     visa_subclass: "186",
     visa_name: "Employer Nomination Scheme",
-    stage: "documents_reviewing",
+    stage: "document_review",
     priority: "high",
     created_at: daysAgo(40),
     updated_at: hoursAgo(3),
@@ -161,7 +161,7 @@ export const mockCases: Case[] = [
     consultant_id: "con-001",
     visa_subclass: "482",
     visa_name: "Temporary Skill Shortage",
-    stage: "granted",
+    stage: "decision",
     priority: "low",
     created_at: daysAgo(120),
     updated_at: daysAgo(30),
@@ -178,8 +178,8 @@ export const mockCases: Case[] = [
     consultant_id: "con-001",
     visa_subclass: "189",
     visa_name: "Skilled Independent",
-    stage: "lodged",
-    priority: "medium",
+    stage: "lodgement",
+    priority: "normal",
     created_at: daysAgo(25),
     updated_at: daysAgo(5),
     lodgement_date: daysAgo(5),
@@ -195,8 +195,8 @@ export const mockCases: Case[] = [
     consultant_id: "con-001",
     visa_subclass: "820",
     visa_name: "Partner (Temporary)",
-    stage: "documents_collecting",
-    priority: "medium",
+    stage: "document_collection",
+    priority: "normal",
     created_at: daysAgo(55),
     updated_at: daysAgo(2),
     notes_count: 4,
@@ -227,8 +227,8 @@ export const mockCases: Case[] = [
     consultant_id: "con-001",
     visa_subclass: "190",
     visa_name: "Skilled Nominated",
-    stage: "checklist_sent",
-    priority: "medium",
+    stage: "checklist",
+    priority: "normal",
     created_at: daysAgo(12),
     updated_at: daysAgo(1),
     notes_count: 2,
@@ -243,7 +243,7 @@ export const mockCases: Case[] = [
     consultant_id: "con-001",
     visa_subclass: "500",
     visa_name: "Student Visa",
-    stage: "lodgement_ready",
+    stage: "application_prep",
     priority: "low",
     created_at: daysAgo(22),
     updated_at: hoursAgo(8),
@@ -259,7 +259,7 @@ export const mockCases: Case[] = [
     consultant_id: "con-001",
     visa_subclass: "600",
     visa_name: "Visitor Visa",
-    stage: "refused",
+    stage: "decision",
     priority: "low",
     created_at: daysAgo(90),
     updated_at: daysAgo(60),
@@ -276,7 +276,7 @@ export const mockCases: Case[] = [
     consultant_id: "con-001",
     visa_subclass: "482",
     visa_name: "Temporary Skill Shortage",
-    stage: "intake",
+    stage: "inquiry",
     priority: "urgent",
     created_at: hoursAgo(6),
     updated_at: hoursAgo(2),
@@ -292,8 +292,8 @@ export const mockCases: Case[] = [
     consultant_id: "con-001",
     visa_subclass: "491",
     visa_name: "Skilled Work Regional",
-    stage: "lodged",
-    priority: "medium",
+    stage: "lodgement",
+    priority: "normal",
     created_at: daysAgo(35),
     updated_at: daysAgo(10),
     lodgement_date: daysAgo(10),
@@ -304,8 +304,14 @@ export const mockCases: Case[] = [
   },
 ];
 
+export const mockCases: Case[] = rawCases.map((c) => ({
+  ...c,
+  client_name: `${c.client.first_name} ${c.client.last_name}`,
+  source: "email" as const,
+}));
+
 // ── Documents ──
-export const mockDocuments: CaseDocument[] = [
+const rawDocuments: Array<Omit<CaseDocument, "uploaded_by_type">> = [
   {
     id: "doc-001",
     case_id: "cs-001",
@@ -437,6 +443,11 @@ export const mockDocuments: CaseDocument[] = [
     ai_validation: { passed: true, issues: [], confidence: 0.97 },
   },
 ];
+
+export const mockDocuments: CaseDocument[] = rawDocuments.map((d) => ({
+  ...d,
+  uploaded_by_type: "client" as const,
+}));
 
 // ── Dashboard Stats ──
 export const mockDashboardStats: DashboardStats = {

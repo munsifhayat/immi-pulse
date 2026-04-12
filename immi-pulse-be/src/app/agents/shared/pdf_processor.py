@@ -65,3 +65,25 @@ def extract_docx_text(content: bytes, max_chars: int = 5000) -> Optional[str]:
     except Exception as e:
         logger.error(f"DOCX extraction failed: {e}")
         return None
+
+
+def extract_text_from_attachment(
+    filename: str,
+    content: bytes,
+    max_chars: int = 20000,
+) -> Optional[str]:
+    """Dispatch by filename extension. Returns None if the type isn't supported."""
+    name = (filename or "").lower()
+    if name.endswith(".pdf"):
+        return extract_pdf_text(content, max_chars=max_chars)
+    if name.endswith(".xlsx") or name.endswith(".xlsm") or name.endswith(".xls"):
+        return extract_excel_text(content, max_chars=max_chars)
+    if name.endswith(".docx") or name.endswith(".doc"):
+        return extract_docx_text(content, max_chars=max_chars)
+    # Plain text and markdown — best effort decode.
+    if name.endswith(".txt") or name.endswith(".md"):
+        try:
+            return content.decode("utf-8", errors="replace")[:max_chars]
+        except Exception:
+            return None
+    return None

@@ -1,18 +1,21 @@
 // ── Core Domain Types for IMMI-PULSE Immigration Platform ──
 
+// CaseStage and JourneyStageKey are unified — a case's stage is the same
+// concept as the journey wizard's current step. Values must stay in sync
+// with backend CASE_STAGES in src/app/agents/immigration/cases/models.py.
 export type CaseStage =
-  | "intake"
+  | "inquiry"
   | "consultation"
-  | "checklist_sent"
-  | "documents_collecting"
-  | "documents_reviewing"
-  | "lodgement_ready"
-  | "lodged"
-  | "granted"
-  | "refused"
-  | "withdrawn";
+  | "visa_pathway"
+  | "checklist"
+  | "document_collection"
+  | "document_review"
+  | "application_prep"
+  | "lodgement"
+  | "post_lodgement"
+  | "decision";
 
-export type CasePriority = "low" | "medium" | "high" | "urgent";
+export type CasePriority = "low" | "normal" | "high" | "urgent";
 export type DocumentStatus = "pending" | "validated" | "flagged" | "rejected";
 
 // ── Client ──
@@ -33,37 +36,76 @@ export interface Client {
 }
 
 // ── Case ──
-export interface Case {
+export type CaseSource = "email" | "manual" | "web_form";
+
+// Matches backend CaseOut (src/app/agents/immigration/cases/schemas.py) one
+// to one. Raw wire format — hooks may decorate responses with a nested
+// `client` object for legacy pages that still consume mock data.
+export interface CaseOut {
   id: string;
-  client_id: string;
-  client: Client;
-  consultant_id: string;
-  visa_subclass: string;
-  visa_name: string;
+  client_name: string;
+  client_email?: string | null;
+  client_phone?: string | null;
+  consultant_id?: string | null;
+  visa_subclass?: string | null;
+  visa_name?: string | null;
   stage: CaseStage;
   priority: CasePriority;
-  created_at: string;
-  updated_at: string;
-  lodgement_date?: string;
-  decision_date?: string;
-  notes_count: number;
+  source: CaseSource;
+  source_message_id?: string | null;
+  lodgement_date?: string | null;
+  decision_date?: string | null;
+  notes?: string | null;
   documents_count: number;
   documents_pending: number;
-  checklist_progress: number; // 0-100
+  created_at: string;
+  updated_at: string;
+}
+
+// UI shape used across the console dashboard. Superset of CaseOut that
+// also carries legacy mock-only fields (client_id, nested client, and the
+// derived checklist_progress / notes_count aggregates). New pages should
+// prefer CaseOut directly.
+export interface Case extends CaseOut {
+  client_id: string;
+  client: Client;
+  notes_count: number;
+  checklist_progress: number;
 }
 
 // ── Document ──
-export interface CaseDocument {
+// ai_analysis is the raw JSON returned by the document analyzer.
+export interface CaseDocumentAiAnalysis {
+  document_type?: string;
+  confidence?: number;
+  status?: DocumentStatus;
+  flags?: string[];
+  suggestions?: string[];
+}
+
+// Mirrors backend CaseDocumentOut one to one.
+export interface CaseDocumentOut {
   id: string;
   case_id: string;
+  document_type?: string | null;
+  file_name: string;
+  file_size?: number | null;
+  content_type?: string | null;
+  uploaded_by_type: "client" | "consultant";
+  uploaded_at: string;
+  status: DocumentStatus;
+  ai_analysis?: CaseDocumentAiAnalysis | null;
+  reviewed_at?: string | null;
+  review_notes?: string | null;
+}
+
+// UI superset — keeps the legacy case_ref + ai_validation fields that the
+// existing documents dashboard page still consumes from mock data.
+export interface CaseDocument extends CaseDocumentOut {
   case_ref?: {
     client_name: string;
     visa_subclass: string;
   };
-  document_type: string;
-  file_name: string;
-  uploaded_at: string;
-  status: DocumentStatus;
   ai_validation?: {
     passed: boolean;
     issues: string[];
@@ -149,17 +191,8 @@ export interface InboxEmail {
 }
 
 // ── Client Journey ──
-export type JourneyStageKey =
-  | "inquiry"
-  | "consultation"
-  | "visa_pathway"
-  | "checklist"
-  | "document_collection"
-  | "document_review"
-  | "application_prep"
-  | "lodgement"
-  | "post_lodgement"
-  | "decision";
+// Alias — journey stages ARE case stages. Kept for readability at call sites.
+export type JourneyStageKey = CaseStage;
 
 export type JourneyStepStatus =
   | "completed"

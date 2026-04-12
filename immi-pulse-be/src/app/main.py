@@ -18,8 +18,8 @@ def create_app() -> FastAPI:
     configure_logging()
 
     app = FastAPI(
-        title="Property Pulse API",
-        description="AI-powered email processing and automation for property management.",
+        title="IMMI-PULSE API",
+        description="AI-powered immigration consulting platform.",
         version="0.1.0",
         servers=[
             {"url": "http://localhost:8000", "description": "Development"},
@@ -34,10 +34,10 @@ def create_app() -> FastAPI:
         openapi_tags=[
             {"name": "System", "description": "Health and configuration"},
             {"name": "Microsoft Integration", "description": "Microsoft 365 connection management"},
-            {"name": "Invoice Agent", "description": "Invoice detection and folder management"},
-            {"name": "P1 Classifier", "description": "Priority classification and SLA tracking"},
-            {"name": "Emergent Work", "description": "Out-of-scope work detection"},
-            {"name": "Compliance", "description": "Compliance radar and obligation tracking"},
+            {"name": "Cases", "description": "Case management (consultant-facing)"},
+            {"name": "Client Portal", "description": "Secure document upload portal (no auth)"},
+            {"name": "Marketplace", "description": "Agents directory, applications, and approvals"},
+            {"name": "Community", "description": "Threads, comments, and moderation"},
             {"name": "Activity", "description": "Agent activity log and metrics"},
         ],
     )
@@ -92,12 +92,6 @@ def create_app() -> FastAPI:
             "status": "ok",
             "app": settings.app_name,
             "environment": settings.environment,
-            "agents": {
-                "invoice": True,
-                "p1_classifier": True,
-                "emergent_work": True,
-                "compliance": True,
-            },
         }
 
     @app.get(f"{settings.api_v1_prefix}/config", tags=["System"])
@@ -105,10 +99,6 @@ def create_app() -> FastAPI:
         return {
             "monitored_mailboxes": settings.monitored_mailbox_list,
             "excluded_mailboxes": settings.excluded_mailbox_list,
-            "invoice_folder_name": settings.invoice_folder_name,
-            "maintenance_inbox": settings.maintenance_inbox,
-            "p1_summary_time": settings.p1_summary_time,
-            "emergent_work_interval_hours": settings.emergent_work_interval_hours,
             "timezone": settings.timezone,
             "microsoft_configured": settings.microsoft_app_configured,
             "aws_configured": bool(
@@ -126,18 +116,16 @@ def create_app() -> FastAPI:
     app.include_router(microsoft_router, prefix=settings.api_v1_prefix)
     app.include_router(webhook_router, prefix=settings.api_v1_prefix)
 
-    # Agent routers
-    from app.agents.invoice.router import router as invoice_router
-    app.include_router(invoice_router, prefix=settings.api_v1_prefix)
+    # Immigration domain — cases + client portal + marketplace + community
+    from app.agents.immigration.cases.router import router as cases_router
+    from app.agents.immigration.cases.portal_router import router as client_portal_router
+    from app.agents.immigration.community.router import router as community_router
+    from app.agents.immigration.marketplace.router import router as marketplace_router
 
-    from app.agents.p1_classifier.router import router as p1_router
-    app.include_router(p1_router, prefix=settings.api_v1_prefix)
-
-    from app.agents.emergent_work.router import router as emergent_work_router
-    app.include_router(emergent_work_router, prefix=settings.api_v1_prefix)
-
-    from app.agents.compliance.router import router as compliance_router
-    app.include_router(compliance_router, prefix=settings.api_v1_prefix)
+    app.include_router(cases_router, prefix=settings.api_v1_prefix)
+    app.include_router(client_portal_router, prefix=settings.api_v1_prefix)
+    app.include_router(marketplace_router, prefix=settings.api_v1_prefix)
+    app.include_router(community_router, prefix=settings.api_v1_prefix)
 
     # Activity log & metrics
     from app.agents.shared.activity_router import router as activity_router
