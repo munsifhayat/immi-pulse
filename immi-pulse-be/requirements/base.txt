@@ -19,6 +19,9 @@ httpx>=0.25.0
 
 # Security
 cryptography>=41.0
+bcrypt>=4.1
+itsdangerous>=2.2
+PyJWT>=2.8
 
 # Document Processing
 pdfplumber>=0.10

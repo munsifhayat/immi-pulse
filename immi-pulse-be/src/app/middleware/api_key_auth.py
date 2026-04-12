@@ -29,6 +29,9 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
 
     PUBLIC_PREFIXES = (
         "/api/v1/webhooks/",
+        "/api/v1/client-portal/",
+        "/api/v1/marketplace/public/",
+        "/api/v1/community/public/",
     )
 
     async def dispatch(self, request: Request, call_next):

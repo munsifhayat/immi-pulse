@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # --- App ---
-    app_name: str = "Property Pulse"
+    app_name: str = "IMMI-PULSE"
     environment: str = "development"
     api_key: str = "change-me"
     debug: bool = False
@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
 
     # --- Database ---
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/property_pulse"
+    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/immi_pulse"
     db_pool_size: int = 5
     db_max_overflow: int = 10
     db_pool_timeout: int = 10
@@ -41,6 +41,19 @@ class Settings(BaseSettings):
     bedrock_analyzer_model: str = "anthropic.claude-3-5-haiku-20241022-v1:0"
     bedrock_drafter_model: str = "anthropic.claude-sonnet-4-6"
 
+    # --- AWS S3 (document storage) ---
+    aws_s3_bucket: str | None = None
+    aws_s3_region: str | None = None  # Defaults to aws_region when unset
+    local_upload_dir: str = "./uploads"
+
+    # --- Client Portal Auth ---
+    # Secrets must be overridden via .env in any non-dev environment.
+    portal_secret_key: str = "change-me-portal-secret-at-least-32-chars-long"
+    portal_token_max_age_days: int = 7
+    portal_session_jwt_secret: str = "change-me-session-jwt-secret-at-least-32-chars"
+    portal_session_ttl_minutes: int = 15
+    portal_pin_max_attempts: int = 5
+
     # --- Microsoft 365 ---
     microsoft_client_id: str | None = None
     microsoft_client_secret: str | None = None
@@ -66,8 +79,6 @@ class Settings(BaseSettings):
     encryption_key: str = "change-me-encryption-key"
 
     # --- Scheduler ---
-    p1_summary_time: str = "16:00"
-    emergent_work_interval_hours: int = 2
     timezone: str = "Australia/Sydney"
     polling_interval_minutes: int = 5
     polling_lookback_minutes: int = 10
@@ -75,9 +86,6 @@ class Settings(BaseSettings):
     # --- Mailbox Config ---
     monitored_mailboxes: str = ""
     excluded_mailboxes: str = ""
-    invoice_folder_name: str = "Invoice Folder #1"
-    maintenance_inbox: str = ""
-    invoice_auto_move_enabled: bool = False
 
     # --- Webhook ---
     public_webhook_base_url: str | None = None
@@ -103,7 +111,7 @@ class Settings(BaseSettings):
             return []
         return [m.strip().lower() for m in self.excluded_mailboxes.split(",") if m.strip()]
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra="ignore")
 
 
 @lru_cache
