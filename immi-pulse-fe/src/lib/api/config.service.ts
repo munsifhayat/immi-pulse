@@ -3,10 +3,6 @@ import apiClient from "./client";
 export interface AppConfig {
   monitored_mailboxes: string[];
   excluded_mailboxes: string[];
-  invoice_folder_name: string;
-  maintenance_inbox: string;
-  p1_summary_time: string;
-  emergent_work_interval_hours: number;
   timezone: string;
   microsoft_configured: boolean;
   aws_configured: boolean;

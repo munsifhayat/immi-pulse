@@ -104,11 +104,14 @@ async def get_metrics(db: AsyncSession = Depends(get_db)):
 
 @router.get("/agents/status")
 async def get_agent_status(db: AsyncSession = Depends(get_db)):
-    """Get the status and last activity time for each agent."""
-    agents = ["invoice", "p1_classifier", "emergent_work"]
+    """Status and last activity per agent — distinct agent_name values in the activity log."""
+    distinct_agents = await db.execute(
+        select(AgentActivityLog.agent_name).distinct()
+    )
+    agent_names = [row[0] for row in distinct_agents.all() if row[0]]
+
     result = {}
-    for agent_name in agents:
-        # Last activity
+    for agent_name in agent_names:
         last = await db.execute(
             select(AgentActivityLog)
             .where(AgentActivityLog.agent_name == agent_name)
@@ -117,14 +120,12 @@ async def get_agent_status(db: AsyncSession = Depends(get_db)):
         )
         last_entry = last.scalar_one_or_none()
 
-        # Total processed
         total = await db.scalar(
             select(func.count())
             .select_from(AgentActivityLog)
             .where(AgentActivityLog.agent_name == agent_name)
         )
 
-        # Error count
         errors = await db.scalar(
             select(func.count())
             .select_from(AgentActivityLog)
