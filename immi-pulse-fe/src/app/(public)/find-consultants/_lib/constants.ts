@@ -1,12 +1,12 @@
 export const CITIES = [
-  { name: "Sydney", state: "NSW", consultantCount: 6, tagline: "Australia's global city" },
-  { name: "Melbourne", state: "VIC", consultantCount: 6, tagline: "Cultural capital" },
-  { name: "Brisbane", state: "QLD", consultantCount: 4, tagline: "Sunshine State hub" },
-  { name: "Perth", state: "WA", consultantCount: 3, tagline: "Gateway to the west" },
-  { name: "Adelaide", state: "SA", consultantCount: 3, tagline: "Festival city" },
-  { name: "Canberra", state: "ACT", consultantCount: 2, tagline: "The national capital" },
-  { name: "Hobart", state: "TAS", consultantCount: 2, tagline: "Island gateway" },
-  { name: "Darwin", state: "NT", consultantCount: 1, tagline: "Top End frontier" },
+  { name: "Sydney", state: "NSW", tagline: "Australia's global city" },
+  { name: "Melbourne", state: "VIC", tagline: "Cultural capital" },
+  { name: "Brisbane", state: "QLD", tagline: "Sunshine State hub" },
+  { name: "Perth", state: "WA", tagline: "Gateway to the west" },
+  { name: "Adelaide", state: "SA", tagline: "Festival city" },
+  { name: "Canberra", state: "ACT", tagline: "The national capital" },
+  { name: "Hobart", state: "TAS", tagline: "Island gateway" },
+  { name: "Darwin", state: "NT", tagline: "Top End frontier" },
 ] as const;
 
 export const VISA_TYPES = [

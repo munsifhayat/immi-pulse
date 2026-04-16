@@ -318,6 +318,43 @@ class CommunityService:
             return await db.get(CommunityComment, report.target_id)
         return None
 
+    # --- Stats ----------------------------------------------------------------
+
+    @staticmethod
+    async def get_stats(db: AsyncSession) -> dict:
+        total_spaces = await db.scalar(
+            select(func.count()).select_from(CommunitySpace)
+        )
+        total_threads = await db.scalar(
+            select(func.count())
+            .select_from(CommunityThread)
+            .where(CommunityThread.status == "active")
+        )
+        total_comments = await db.scalar(
+            select(func.count())
+            .select_from(CommunityComment)
+            .where(CommunityComment.status == "active")
+        )
+        return {
+            "total_spaces": int(total_spaces or 0),
+            "total_threads": int(total_threads or 0),
+            "total_comments": int(total_comments or 0),
+        }
+
+    # --- Recent threads (cross-space) ----------------------------------------
+
+    @staticmethod
+    async def list_recent_threads(
+        db: AsyncSession, *, limit: int = 10
+    ) -> list[CommunityThread]:
+        result = await db.execute(
+            select(CommunityThread)
+            .where(CommunityThread.status == "active")
+            .order_by(CommunityThread.created_at.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
     # --- Thread count reconciliation ---------------------------------------
 
     @staticmethod

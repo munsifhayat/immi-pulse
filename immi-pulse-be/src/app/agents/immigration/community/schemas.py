@@ -134,4 +134,13 @@ class ModerationActionRequest(BaseModel):
     note: Optional[str] = Field(default=None, max_length=1000)
 
 
+# --- Stats -------------------------------------------------------------------
+
+
+class CommunityStatsOut(BaseModel):
+    total_spaces: int
+    total_threads: int
+    total_comments: int
+
+
 ThreadWithCommentsOut.model_rebuild()

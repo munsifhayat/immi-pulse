@@ -8,13 +8,15 @@ import {
   MiniMap,
   useNodesState,
   useEdgesState,
+  type Node,
+  type Edge,
   type NodeMouseHandler,
   type NodeTypes,
   Panel,
 } from "@xyflow/react";
 import "@xyflow/react/dist/base.css";
 
-import { initialNodes, initialEdges, type AgentMetadata } from "./board-data";
+import type { AgentMetadata } from "./board-data";
 import { DetailPanel } from "./detail-panel";
 
 import EmailInputNode from "./nodes/email-input-node";
@@ -46,13 +48,39 @@ const miniMapNodeColor = (node: { data: Record<string, unknown> }) => {
     amber: "#f59e0b",
     teal: "#14b8a6",
     emerald: "#10b981",
+    pink: "#ec4899",
+    indigo: "#6366f1",
     gray: "#9ca3af",
   };
   const color = (node.data as Record<string, unknown>).color as string;
   return colorMap[color] || "#9ca3af";
 };
 
-export function AgentBoard() {
+export interface LegendEntry {
+  /** CSS stroke color (or use dashStyle for patterns) */
+  color?: string;
+  /** Optional inline CSS backgroundImage string for dashed/dotted patterns */
+  dashStyle?: string;
+  label: string;
+}
+
+export interface AgentBoardProps {
+  /** React Flow nodes for this board */
+  nodes: Node<AgentMetadata>[];
+  /** React Flow edges for this board */
+  edges: Edge[];
+  /** Legend entries rendered in the top-left panel */
+  legend?: LegendEntry[];
+  /** Legend title, e.g. "Marketplace Flow" */
+  legendTitle?: string;
+}
+
+export function AgentBoard({
+  nodes: initialNodes,
+  edges: initialEdges,
+  legend,
+  legendTitle = "Pipeline Legend",
+}: AgentBoardProps) {
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
   const [selectedMeta, setSelectedMeta] = useState<AgentMetadata | null>(null);
@@ -90,44 +118,32 @@ export function AgentBoard() {
         />
 
         {/* Legend */}
-        <Panel position="top-left">
-          <div className="rounded-lg border bg-card/95 backdrop-blur-sm p-3 shadow-sm space-y-2 text-xs">
-            <p className="font-semibold text-sm mb-2">Pipeline Legend</p>
-            <div className="flex items-center gap-2">
-              <div className="h-0.5 w-6 bg-violet-500 rounded" />
-              <span className="text-muted-foreground">
-                Unified pipeline (animated)
-              </span>
+        {legend && legend.length > 0 && (
+          <Panel position="top-left">
+            <div className="rounded-lg border bg-card/95 backdrop-blur-sm p-3 shadow-sm space-y-2 text-xs">
+              <p className="font-semibold text-sm mb-2">{legendTitle}</p>
+              {legend.map((entry) => (
+                <div key={entry.label} className="flex items-center gap-2">
+                  <div
+                    className="h-0.5 w-6 rounded"
+                    style={
+                      entry.dashStyle
+                        ? { backgroundImage: entry.dashStyle }
+                        : { backgroundColor: entry.color ?? "#94a3b8" }
+                    }
+                  />
+                  <span className="text-muted-foreground">{entry.label}</span>
+                </div>
+              ))}
             </div>
-            <div className="flex items-center gap-2">
-              <div
-                className="h-0.5 w-6 rounded"
-                style={{
-                  backgroundImage:
-                    "repeating-linear-gradient(90deg, #94a3b8 0, #94a3b8 4px, transparent 4px, transparent 8px)",
-                }}
-              />
-              <span className="text-muted-foreground">Legacy fallback</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div
-                className="h-0.5 w-6 rounded"
-                style={{
-                  backgroundImage:
-                    "repeating-linear-gradient(90deg, #14b8a6 0, #14b8a6 3px, transparent 3px, transparent 6px)",
-                }}
-              />
-              <span className="text-muted-foreground">Scheduler trigger</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-0.5 w-6 bg-emerald-500 rounded" />
-              <span className="text-muted-foreground">Database write</span>
-            </div>
-          </div>
-        </Panel>
+          </Panel>
+        )}
       </ReactFlow>
 
-      <DetailPanel metadata={selectedMeta} onClose={() => setSelectedMeta(null)} />
+      <DetailPanel
+        metadata={selectedMeta}
+        onClose={() => setSelectedMeta(null)}
+      />
     </div>
   );
 }

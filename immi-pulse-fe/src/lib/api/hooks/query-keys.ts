@@ -20,8 +20,10 @@ export const queryKeys = {
   },
   community: {
     all: ["community"] as const,
+    stats: () => [...queryKeys.community.all, "stats"] as const,
     spaces: () => [...queryKeys.community.all, "spaces"] as const,
     space: (slug: string) => [...queryKeys.community.all, "space", slug] as const,
+    recentThreads: () => [...queryKeys.community.all, "recent-threads"] as const,
     threads: (spaceSlug: string, sort?: string) =>
       [...queryKeys.community.all, "threads", spaceSlug, sort ?? "new"] as const,
     thread: (id: string) => [...queryKeys.community.all, "thread", id] as const,

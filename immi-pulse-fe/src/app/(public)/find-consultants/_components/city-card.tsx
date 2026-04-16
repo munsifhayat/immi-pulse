@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 interface CityCardProps {
   name: string;
   state: string;
-  consultantCount: number;
   tagline: string;
   isActive: boolean;
   onClick: () => void;
@@ -26,7 +25,6 @@ const cityAccents: Record<string, string> = {
 export function CityCard({
   name,
   state,
-  consultantCount,
   tagline,
   isActive,
   onClick,
@@ -54,7 +52,7 @@ export function CityCard({
       <div className="mt-auto flex items-center gap-1.5 pt-3">
         <MapPin className="h-3 w-3 text-purple" aria-hidden="true" />
         <span className="text-[12px] font-medium text-purple">
-          {consultantCount} {consultantCount === 1 ? "consultant" : "consultants"}
+          Browse consultants
         </span>
       </div>
     </button>

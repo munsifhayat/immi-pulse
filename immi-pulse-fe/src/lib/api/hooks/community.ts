@@ -3,6 +3,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/lib/api/client";
 import { queryKeys } from "@/lib/api/hooks/query-keys";
+import {
+  MOCK_COMMUNITY_SPACES,
+  MOCK_COMMUNITY_STATS,
+  MOCK_RECENT_THREADS,
+} from "@/lib/api/mock-data";
 
 export type ThreadStatus = "active" | "hidden" | "removed";
 export type ReportTargetType = "thread" | "comment";
@@ -81,6 +86,12 @@ export interface CreateThreadPayload {
   author_display_name?: string;
 }
 
+export interface CommunityStatsOut {
+  total_spaces: number;
+  total_threads: number;
+  total_comments: number;
+}
+
 export interface CreateCommentPayload {
   body: string;
   parent_comment_id?: string;
@@ -90,14 +101,51 @@ export interface CreateCommentPayload {
 
 // --- Queries ---------------------------------------------------------------
 
+export function useCommunityStats() {
+  return useQuery({
+    queryKey: queryKeys.community.stats(),
+    queryFn: async () => {
+      try {
+        const { data } = await apiClient.get<CommunityStatsOut>(
+          "/community/public/stats"
+        );
+        return data;
+      } catch {
+        return MOCK_COMMUNITY_STATS;
+      }
+    },
+  });
+}
+
+export function useRecentThreads(limit: number = 10) {
+  return useQuery({
+    queryKey: queryKeys.community.recentThreads(),
+    queryFn: async () => {
+      try {
+        const { data } = await apiClient.get<ThreadOut[]>(
+          "/community/public/threads/recent",
+          { params: { limit } }
+        );
+        return data;
+      } catch {
+        return MOCK_RECENT_THREADS.slice(0, limit);
+      }
+    },
+  });
+}
+
 export function useCommunitySpaces() {
   return useQuery({
     queryKey: queryKeys.community.spaces(),
     queryFn: async () => {
-      const { data } = await apiClient.get<CommunitySpaceOut[]>(
-        "/community/public/spaces"
-      );
-      return data;
+      try {
+        const { data } = await apiClient.get<CommunitySpaceOut[]>(
+          "/community/public/spaces"
+        );
+        return data;
+      } catch {
+        return MOCK_COMMUNITY_SPACES;
+      }
     },
   });
 }

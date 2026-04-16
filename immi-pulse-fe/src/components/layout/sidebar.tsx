@@ -30,7 +30,7 @@ const navigation = [
   { name: "Clients", href: "/dashboard/clients", icon: Users },
   { name: "Cases", href: "/dashboard/cases", icon: FolderKanban },
   { name: "Inbox", href: "/dashboard/inbox", icon: Inbox },
-  { name: "AI Pipeline", href: "/dashboard/agent-board", icon: BrainCircuit },
+  { name: "Product Board", href: "/dashboard/agent-board", icon: BrainCircuit },
   { name: "Documents", href: "/dashboard/documents", icon: FileCheck },
   { name: "Activity", href: "/dashboard/activity", icon: Activity },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },

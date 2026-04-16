@@ -17,6 +17,7 @@ from app.agents.immigration.community.models import CommunitySpace, CommunityThr
 from app.agents.immigration.community.schemas import (
     CommentOut,
     CommunitySpaceOut,
+    CommunityStatsOut,
     CreateCommentRequest,
     CreateCommunitySpaceRequest,
     CreateThreadRequest,
@@ -56,6 +57,26 @@ async def _thread_out(db: AsyncSession, thread: CommunityThread) -> ThreadOut:
     payload["space_slug"] = space.slug if space else None
     payload["space_name"] = space.name if space else None
     return ThreadOut(**payload)
+
+
+# --- Public: stats ----------------------------------------------------------
+
+
+@router.get("/public/stats", response_model=CommunityStatsOut)
+async def get_community_stats(db: AsyncSession = Depends(get_db)):
+    return await CommunityService.get_stats(db)
+
+
+# --- Public: recent threads (cross-space, for homepage) --------------------
+
+
+@router.get("/public/threads/recent", response_model=list[ThreadOut])
+async def list_recent_threads(
+    limit: int = Query(10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+):
+    threads = await CommunityService.list_recent_threads(db, limit=limit)
+    return [await _thread_out(db, t) for t in threads]
 
 
 # --- Public: spaces ---------------------------------------------------------

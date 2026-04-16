@@ -26,17 +26,17 @@ SPACES = [
         "slug": "skilled-migration",
         "name": "Skilled Migration",
         "description": (
-            "Discuss 189, 190, and 491 visa pathways, points tests, EOI "
-            "strategies, and state nominations."
+            "Subclass 189, 190, 491 and 191 visa pathways — points test, "
+            "EOI strategies, skills assessments, and state nominations."
         ),
         "icon": "briefcase",
     },
     {
         "slug": "partner-visas",
-        "name": "Partner Visas",
+        "name": "Partner & Spouse Visas",
         "description": (
-            "Share experiences with 820/801 applications, evidence "
-            "requirements, and processing timelines."
+            "Subclass 820/801, 309/100 and 300 applications — relationship "
+            "evidence, processing timelines, and bridging visa rights."
         ),
         "icon": "heart",
     },
@@ -44,8 +44,8 @@ SPACES = [
         "slug": "student-visas",
         "name": "Student Visas",
         "description": (
-            "Student visa 500 discussions — work hours, course changes, "
-            "CoE requirements, and graduate pathways."
+            "Subclass 500 and 590 discussions — Genuine Student requirement, "
+            "work hours, CoE transfers, and course changes."
         ),
         "icon": "graduation-cap",
     },
@@ -53,26 +53,62 @@ SPACES = [
         "slug": "employer-sponsored",
         "name": "Employer Sponsored",
         "description": (
-            "482 and 186 visa discussions — employer nominations, labour "
-            "market testing, and transition pathways."
+            "Subclass 482, 186 and 494 visas — employer nominations, TSMIT "
+            "thresholds, labour market testing, and transition pathways."
         ),
         "icon": "building",
     },
     {
-        "slug": "family-parent",
-        "name": "Family & Parent Visas",
+        "slug": "graduate-post-study",
+        "name": "Graduate & Post-Study",
         "description": (
-            "Parent visa 143/103/173 and family stream discussions — "
-            "costs, wait times, and documentation."
+            "Subclass 485 and 476 visas — post-study work rights, duration "
+            "changes, skills assessments, and PR pathway planning."
+        ),
+        "icon": "award",
+    },
+    {
+        "slug": "visitor-tourist",
+        "name": "Visitor & Tourist",
+        "description": (
+            "Subclass 600, 601 and 651 visas — tourist applications, family "
+            "visits, refusals, and genuine intent documentation."
+        ),
+        "icon": "plane",
+    },
+    {
+        "slug": "working-holiday",
+        "name": "Working Holiday",
+        "description": (
+            "Subclass 417 and 462 visas — regional work requirements, "
+            "second/third year extensions, and employer issues."
+        ),
+        "icon": "backpack",
+    },
+    {
+        "slug": "family-parent",
+        "name": "Parent & Family Visas",
+        "description": (
+            "Subclass 143, 173, 103 and 804 parent visas plus child and "
+            "carer streams — costs, wait times, and balance of family test."
         ),
         "icon": "users",
+    },
+    {
+        "slug": "citizenship-pr",
+        "name": "Citizenship & PR Pathways",
+        "description": (
+            "Australian citizenship applications, residence requirements, "
+            "citizenship test, and permanent residency pathway planning."
+        ),
+        "icon": "flag",
     },
     {
         "slug": "general",
         "name": "General Discussion",
         "description": (
-            "Open discussions on Australian immigration, settling in, "
-            "life after visa grant, and general Q&A."
+            "Bridging visas, visa refusals, AAT appeals, settling in "
+            "Australia, and anything that doesn't fit another space."
         ),
         "icon": "message-circle",
     },

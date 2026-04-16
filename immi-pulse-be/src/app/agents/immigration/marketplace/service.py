@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.immigration.marketplace.models import AgentProfile
 from app.agents.immigration.marketplace.schemas import (
+    AdminAddAgentRequest,
     ApplyAgentProfileRequest,
     UpdateAgentProfileRequest,
 )
@@ -67,9 +68,10 @@ class AgentProfileService:
                 | func.lower(AgentProfile.bio).like(like)
             )
 
-        # Platinum sorts to the top always; then the requested sort.
+        # highly_recommended sorts to the top always; then the requested sort.
         order_clauses = [
-            (AgentProfile.tier == "platinum").desc(),
+            (AgentProfile.tier == "highly_recommended").desc(),
+            (AgentProfile.tier == "recommended").desc(),
             AgentProfile.featured.desc(),
         ]
         if sort == "experience":
@@ -119,9 +121,13 @@ class AgentProfileService:
             profile = AgentProfile(
                 id=uuid.uuid4(),
                 user_id=user.id,
+                listing_type=payload.listing_type,
                 omara_number=payload.omara_number,
                 firm_name=payload.firm_name,
                 bio=payload.bio,
+                website=payload.website,
+                phone=payload.phone,
+                role=payload.role,
                 city=payload.city,
                 state=payload.state,
                 specializations=payload.specializations,
@@ -134,9 +140,13 @@ class AgentProfileService:
             )
             db.add(profile)
         else:
+            profile.listing_type = payload.listing_type
             profile.omara_number = payload.omara_number
             profile.firm_name = payload.firm_name
             profile.bio = payload.bio
+            profile.website = payload.website
+            profile.phone = payload.phone
+            profile.role = payload.role
             profile.city = payload.city
             profile.state = payload.state
             profile.specializations = payload.specializations
@@ -194,11 +204,19 @@ class AgentProfileService:
         return list(result.scalars().all())
 
     @staticmethod
+    async def list_all(db: AsyncSession) -> list[AgentProfile]:
+        """Return every profile regardless of status (admin overview)."""
+        result = await db.execute(
+            select(AgentProfile).order_by(AgentProfile.created_at.desc())
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
     async def approve(
         db: AsyncSession,
         profile: AgentProfile,
         *,
-        tier: str = "basic",
+        tier: str = "verified",
         featured: bool = False,
         approved_by: Optional[UUID] = None,
     ) -> AgentProfile:
@@ -230,6 +248,74 @@ class AgentProfileService:
         db: AsyncSession, profile: AgentProfile, *, tier: str
     ) -> AgentProfile:
         profile.tier = tier
+        await db.flush()
+        return profile
+
+    @staticmethod
+    async def admin_add(
+        db: AsyncSession,
+        payload: AdminAddAgentRequest,
+    ) -> AgentProfile:
+        """Admin directly adds a consultant — auto-approved, skips the queue."""
+        user = await AgentProfileService._get_or_create_user(
+            db,
+            email=payload.email,
+            first_name=payload.first_name,
+            last_name=payload.last_name,
+        )
+
+        existing = await db.execute(
+            select(AgentProfile).where(AgentProfile.user_id == user.id)
+        )
+        profile = existing.scalar_one_or_none()
+
+        now = datetime.now(timezone.utc)
+        if profile is None:
+            profile = AgentProfile(
+                id=uuid.uuid4(),
+                user_id=user.id,
+                listing_type=payload.listing_type,
+                omara_number=payload.omara_number,
+                firm_name=payload.firm_name,
+                bio=payload.bio,
+                website=payload.website,
+                phone=payload.phone,
+                role=payload.role,
+                city=payload.city,
+                state=payload.state,
+                specializations=payload.specializations,
+                languages=payload.languages,
+                years_experience=payload.years_experience,
+                consultation_fee=payload.consultation_fee,
+                response_time_hours=payload.response_time_hours,
+                tier=payload.tier,
+                featured=payload.featured,
+                status="approved",
+                submitted_at=now,
+                approved_at=now,
+            )
+            db.add(profile)
+        else:
+            # Update existing profile fields and auto-approve.
+            profile.listing_type = payload.listing_type
+            profile.omara_number = payload.omara_number
+            profile.firm_name = payload.firm_name
+            profile.bio = payload.bio
+            profile.website = payload.website
+            profile.phone = payload.phone
+            profile.role = payload.role
+            profile.city = payload.city
+            profile.state = payload.state
+            profile.specializations = payload.specializations
+            profile.languages = payload.languages
+            profile.years_experience = payload.years_experience
+            profile.consultation_fee = payload.consultation_fee
+            profile.response_time_hours = payload.response_time_hours
+            profile.tier = payload.tier
+            profile.featured = payload.featured
+            profile.status = "approved"
+            profile.approved_at = now
+
         await db.flush()
         return profile
 
@@ -273,9 +359,13 @@ class AgentProfileService:
         return {
             "id": profile.id,
             "user_id": profile.user_id,
+            "listing_type": profile.listing_type,
             "firm_name": profile.firm_name,
             "omara_number": profile.omara_number,
             "bio": profile.bio,
+            "website": profile.website,
+            "phone": profile.phone,
+            "role": profile.role,
             "city": profile.city,
             "state": profile.state,
             "specializations": profile.specializations,

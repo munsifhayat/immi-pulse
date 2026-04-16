@@ -9,7 +9,8 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from app.db.base import Base
 
 AGENT_PROFILE_STATUSES = ("pending_review", "approved", "rejected", "suspended")
-AGENT_PROFILE_TIERS = ("basic", "platinum")
+AGENT_PROFILE_TIERS = ("verified", "recommended", "highly_recommended")
+LISTING_TYPES = ("individual", "company")
 
 
 class AgentProfile(Base):
@@ -33,9 +34,13 @@ class AgentProfile(Base):
     )
 
     # Identity
+    listing_type = Column(String, nullable=False, default="individual")  # individual | company
     firm_name = Column(String, nullable=True)
     omara_number = Column(String, nullable=False, index=True)
     bio = Column(Text, nullable=True)
+    website = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    role = Column(String, nullable=True)  # e.g. "Principal Agent", "Migration Lawyer"
 
     # Location
     city = Column(String, nullable=True, index=True)
@@ -49,7 +54,7 @@ class AgentProfile(Base):
     response_time_hours = Column(Integer, nullable=True)
 
     # Tier & status
-    tier = Column(String, nullable=False, default="basic", index=True)
+    tier = Column(String, nullable=False, default="verified", index=True)
     status = Column(String, nullable=False, default="pending_review", index=True)
     featured = Column(Boolean, nullable=False, default=False)
     avatar_color = Column(String, nullable=True)

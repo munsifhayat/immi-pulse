@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.immigration.marketplace.schemas import (
+    AdminAddAgentRequest,
     AgentProfileOut,
     ApplyAgentProfileRequest,
     ApplyAgentProfileResponse,
@@ -124,6 +125,16 @@ async def list_pending_agent_profiles(db: AsyncSession = Depends(get_db)):
     ]
 
 
+@router.get("/admin/all", response_model=list[AgentProfileOut])
+async def list_all_agent_profiles(db: AsyncSession = Depends(get_db)):
+    """Admin overview of all profiles regardless of status."""
+    profiles = await AgentProfileService.list_all(db)
+    return [
+        AgentProfileOut.model_validate(await AgentProfileService.hydrate(db, p))
+        for p in profiles
+    ]
+
+
 @router.post("/admin/{profile_id}/approve", response_model=AgentProfileOut)
 async def approve_agent_profile(
     profile_id: UUID,
@@ -170,6 +181,24 @@ async def set_agent_profile_tier(
     if profile is None:
         raise HTTPException(status_code=404, detail="Agent profile not found")
     await AgentProfileService.set_tier(db, profile, tier=payload.tier)
+    await db.commit()
+    await db.refresh(profile)
+    return AgentProfileOut.model_validate(
+        await AgentProfileService.hydrate(db, profile)
+    )
+
+
+@router.post(
+    "/admin/add",
+    response_model=AgentProfileOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def admin_add_agent(
+    payload: AdminAddAgentRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin directly adds a consultant — auto-approved, skips the queue."""
+    profile = await AgentProfileService.admin_add(db, payload)
     await db.commit()
     await db.refresh(profile)
     return AgentProfileOut.model_validate(

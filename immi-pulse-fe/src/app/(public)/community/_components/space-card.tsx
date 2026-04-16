@@ -1,12 +1,42 @@
 "use client";
 
-import type { CommunitySpace } from "../_lib/types";
+import Link from "next/link";
+import {
+  Briefcase,
+  Heart,
+  GraduationCap,
+  Building2,
+  Award,
+  Plane,
+  Backpack,
+  Users,
+  Flag,
+  MessageCircle,
+  type LucideIcon,
+} from "lucide-react";
+import type { CommunitySpaceOut } from "@/lib/api/hooks/community";
 
-export function SpaceCard({ space }: { space: CommunitySpace }) {
-  const Icon = space.icon;
+const iconMap: Record<string, LucideIcon> = {
+  briefcase: Briefcase,
+  heart: Heart,
+  "graduation-cap": GraduationCap,
+  building: Building2,
+  award: Award,
+  plane: Plane,
+  backpack: Backpack,
+  users: Users,
+  flag: Flag,
+  "message-circle": MessageCircle,
+};
+
+export function SpaceCard({ space }: { space: CommunitySpaceOut }) {
+  const Icon = iconMap[space.icon ?? ""] ?? MessageCircle;
 
   return (
-    <div className="rounded-2xl border border-border bg-white p-7 transition-all duration-300 hover:border-purple/20 hover:shadow-lg hover:shadow-purple/5">
+    <Link
+      href={`/community/${space.slug}`}
+      className="block rounded-2xl border border-border bg-white p-7 transition-all duration-300 hover:border-purple/20 hover:shadow-lg hover:shadow-purple/5"
+    >
       <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple/10">
         <Icon className="h-5 w-5 text-purple" aria-hidden="true" />
       </div>
@@ -17,12 +47,10 @@ export function SpaceCard({ space }: { space: CommunitySpace }) {
         {space.description}
       </p>
       <div className="mt-4 flex items-center gap-3 text-[12px] text-gray-text/70">
-        <span>{space.memberCount.toLocaleString()} members</span>
-        <span className="text-border">&bull;</span>
-        <span>{space.threadCount.toLocaleString()} threads</span>
-        <span className="text-border">&bull;</span>
-        <span className="text-teal">{space.latestActivity}</span>
+        <span>
+          {space.thread_count} {space.thread_count === 1 ? "thread" : "threads"}
+        </span>
       </div>
-    </div>
+    </Link>
   );
 }

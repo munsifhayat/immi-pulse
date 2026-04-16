@@ -4,16 +4,28 @@ import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
-import { useApplyAsAgent } from "@/lib/api/hooks/marketplace";
+import { useApplyAsAgent, type ListingType } from "@/lib/api/hooks/marketplace";
 import { VISA_TYPES, LANGUAGES, CITIES } from "../_lib/constants";
 import { fadeUp, stagger } from "@/lib/motion";
+
+const ROLES = [
+  "Principal Agent",
+  "Senior Consultant",
+  "Migration Lawyer",
+  "Registered Agent",
+  "Immigration Advisor",
+] as const;
 
 interface FormState {
   first_name: string;
   last_name: string;
   email: string;
   omara_number: string;
+  listing_type: ListingType;
   firm_name: string;
+  role: string;
+  website: string;
+  phone: string;
   city: string;
   state: string;
   years_experience: string;
@@ -29,7 +41,11 @@ const initialForm: FormState = {
   last_name: "",
   email: "",
   omara_number: "",
+  listing_type: "individual",
   firm_name: "",
+  role: "",
+  website: "",
+  phone: "",
   city: "",
   state: "",
   years_experience: "",
@@ -74,7 +90,11 @@ export default function AgentApplyPage() {
         last_name: form.last_name,
         email: form.email,
         omara_number: form.omara_number,
+        listing_type: form.listing_type,
         firm_name: form.firm_name || undefined,
+        role: form.role || undefined,
+        website: form.website || undefined,
+        phone: form.phone || undefined,
         city: form.city || undefined,
         state: form.state || undefined,
         bio: form.bio || undefined,
@@ -112,11 +132,13 @@ export default function AgentApplyPage() {
           <CheckCircle2 className="h-8 w-8 text-emerald-600" />
         </div>
         <h1 className="mt-6 font-heading text-3xl font-semibold tracking-tight text-navy">
-          Application submitted
+          Application Received
         </h1>
-        <p className="mt-3 text-gray-text">
-          Thanks, {form.first_name}. We&apos;ll verify your OMARA number against
-          the public register and get back to you within 2 business days.
+        <p className="mt-3 max-w-md text-[15px] leading-relaxed text-gray-text">
+          Thanks, {form.first_name}. Your application is now in our review
+          queue. We&apos;ll verify your OMARA number against the official
+          register, review your credentials, and validate your practice
+          details. You&apos;ll hear from us within 2 business days.
         </p>
         <Link
           href="/find-consultants"
@@ -149,8 +171,9 @@ export default function AgentApplyPage() {
           List your practice
         </h1>
         <p className="mt-3 max-w-2xl text-[17px] leading-relaxed text-gray-text">
-          Join IMMI-PULSE and reach thousands of visa applicants. Every listing
-          is manually verified against the OMARA register before going live.
+          Join IMMI-PULSE and reach visa applicants across Australia. Every
+          listing goes through OMARA verification, credential review, and
+          practice validation before going live.
         </p>
       </motion.div>
 
@@ -160,6 +183,26 @@ export default function AgentApplyPage() {
         onSubmit={handleSubmit}
         className="mt-10 space-y-8 rounded-3xl border border-border bg-white p-8 shadow-sm"
       >
+        {/* Listing type toggle */}
+        <Section title="Listing type">
+          <div className="flex gap-3">
+            {(["individual", "company"] as const).map((type) => (
+              <button
+                type="button"
+                key={type}
+                onClick={() => update("listing_type", type)}
+                className={
+                  form.listing_type === type
+                    ? "flex-1 rounded-lg border-2 border-purple bg-purple/5 px-4 py-3 text-[14px] font-medium text-purple"
+                    : "flex-1 rounded-lg border-2 border-border bg-white px-4 py-3 text-[14px] font-medium text-navy hover:border-purple/30"
+                }
+              >
+                {type === "individual" ? "Individual Consultant" : "Company / Firm"}
+              </button>
+            ))}
+          </div>
+        </Section>
+
         <Section title="Contact">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="First name *">
@@ -196,17 +239,49 @@ export default function AgentApplyPage() {
                 className={inputClass}
               />
             </Field>
+            <Field label="Phone">
+              <input
+                type="tel"
+                placeholder="e.g. +61 400 123 456"
+                value={form.phone}
+                onChange={(e) => update("phone", e.target.value)}
+                className={inputClass}
+              />
+            </Field>
+            <Field label="Website">
+              <input
+                type="url"
+                placeholder="e.g. https://yourfirm.com.au"
+                value={form.website}
+                onChange={(e) => update("website", e.target.value)}
+                className={inputClass}
+              />
+            </Field>
           </div>
         </Section>
 
         <Section title="Practice">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Firm name">
+            <Field label="Firm / company name">
               <input
                 value={form.firm_name}
                 onChange={(e) => update("firm_name", e.target.value)}
                 className={inputClass}
               />
+            </Field>
+            <Field label="Role">
+              <select
+                value={form.role}
+                onChange={(e) => update("role", e.target.value)}
+                className={inputClass}
+              >
+                <option value="">Select your role</option>
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field label="Years of experience">
               <input
@@ -240,6 +315,7 @@ export default function AgentApplyPage() {
               <input
                 type="number"
                 min="0"
+                placeholder="0 for free consultation"
                 value={form.consultation_fee}
                 onChange={(e) => update("consultation_fee", e.target.value)}
                 className={inputClass}
@@ -323,7 +399,7 @@ export default function AgentApplyPage() {
         <div className="flex items-center justify-between border-t border-border/60 pt-6">
           <p className="flex items-center gap-1.5 text-[11px] text-gray-text">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-            We manually verify every OMARA number before listing.
+            Every application is verified against the OMARA register before listing.
           </p>
           <button
             type="submit"

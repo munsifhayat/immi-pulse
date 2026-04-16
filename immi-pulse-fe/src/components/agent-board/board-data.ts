@@ -39,6 +39,8 @@ export interface AgentMetadata {
   plainDescription: string;
   /** Step-by-step explanation of how this component works */
   howItWorks: string[];
+  /** Short pill labels rendered on the node card (overrides AI-specific defaults) */
+  badges?: string[];
   roles: string[];
   aiModel?: AIModelInfo;
   inputs?: string[];

@@ -6,10 +6,10 @@ import { motion } from "framer-motion";
 import {
   Search,
   ShieldCheck,
-  Star,
   Heart,
   ArrowRight,
   Users,
+  Star,
 } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/motion";
 import { CITIES } from "./_lib/constants";
@@ -69,7 +69,7 @@ const trustPoints = [
   {
     icon: ShieldCheck,
     title: "OMARA Verified",
-    desc: "Every consultant is verified against the OMARA register. Only licensed migration agents appear in our directory.",
+    desc: "Every consultant goes through OMARA registration verification, credential review, and practice validation. Only fully vetted migration agents appear in our directory.",
   },
   {
     icon: Star,
@@ -158,7 +158,7 @@ export default function FindConsultantsPage() {
               </Link>
             </motion.div>
 
-            {/* Trust stats */}
+            {/* Trust signals */}
             <motion.div
               variants={fadeUp}
               initial="hidden"
@@ -167,24 +167,24 @@ export default function FindConsultantsPage() {
               className="mt-10 flex flex-wrap items-center gap-8 text-[14px]"
             >
               <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-purple" />
+                <ShieldCheck className="h-4 w-4 text-purple" />
                 <span className="text-gray-text">
-                  <span className="font-semibold text-navy">200+</span>{" "}
-                  Verified Consultants
+                  <span className="font-semibold text-navy">OMARA</span>{" "}
+                  Verified Only
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-teal" />
+                <Users className="h-4 w-4 text-teal" />
                 <span className="text-gray-text">
                   <span className="font-semibold text-navy">8</span> Major
                   Cities
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                <Heart className="h-4 w-4 text-purple" />
                 <span className="text-gray-text">
-                  <span className="font-semibold text-navy">4.8</span> Average
-                  Rating
+                  <span className="font-semibold text-navy">Free</span> to
+                  Browse
                 </span>
               </div>
             </motion.div>
@@ -222,7 +222,6 @@ export default function FindConsultantsPage() {
                 <CityCard
                   name={city.name}
                   state={city.state}
-                  consultantCount={city.consultantCount}
                   tagline={city.tagline}
                   isActive={activeCity === city.name}
                   onClick={() =>
@@ -303,13 +302,22 @@ export default function FindConsultantsPage() {
               Join IMMI-PULSE and reach thousands of visa applicants. List your
               practice, manage your caseload with AI, and grow your client base.
             </p>
-            <Link
-              href="/for-consultants"
-              className="mt-8 inline-flex items-center gap-2 rounded-lg border-2 border-white bg-white px-7 py-3.5 text-[16px] font-medium text-purple transition-colors hover:bg-white/90"
-            >
-              List Your Practice
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <Link
+                href="/find-consultants/apply"
+                className="inline-flex items-center gap-2 rounded-lg border-2 border-white bg-white px-7 py-3.5 text-[16px] font-medium text-purple transition-colors hover:bg-white/90"
+              >
+                Register Your Practice
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/for-consultants"
+                className="inline-flex items-center gap-2 rounded-lg border-2 border-white/30 px-7 py-3.5 text-[16px] font-medium text-white transition-colors hover:border-white/60 hover:bg-white/10"
+              >
+                Explore AI Platform
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
         </div>
       </section>

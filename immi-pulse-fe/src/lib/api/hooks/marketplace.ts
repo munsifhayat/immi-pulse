@@ -1,26 +1,41 @@
 // React Query hooks for the Agents Marketplace.
-// Public listing + detail use apiClient (console X-API-Key) in MVP —
-// rotate to an unauthenticated public client once we strip the header
-// for marketplace public routes on the frontend too.
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/lib/api/client";
 import { queryKeys } from "@/lib/api/hooks/query-keys";
+import { MOCK_AGENTS } from "@/lib/api/mock-data";
 
-export type AgentProfileTier = "basic" | "platinum";
+export type AgentProfileTier = "verified" | "recommended" | "highly_recommended";
 export type AgentProfileStatus =
   | "pending_review"
   | "approved"
   | "rejected"
   | "suspended";
+export type ListingType = "individual" | "company";
+
+export const TIER_LABELS: Record<AgentProfileTier, string> = {
+  verified: "Verified",
+  recommended: "Recommended",
+  highly_recommended: "Highly Recommended",
+};
+
+export const TIER_ORDER: AgentProfileTier[] = [
+  "verified",
+  "recommended",
+  "highly_recommended",
+];
 
 // Mirrors backend AgentProfileOut.
 export interface AgentProfileOut {
   id: string;
   user_id: string;
+  listing_type: ListingType;
   firm_name?: string | null;
   omara_number: string;
   bio?: string | null;
+  website?: string | null;
+  phone?: string | null;
+  role?: string | null;
   city?: string | null;
   state?: string | null;
   specializations?: string[] | null;
@@ -58,9 +73,13 @@ export interface ApplyAgentProfilePayload {
   email: string;
   first_name: string;
   last_name: string;
+  listing_type?: ListingType;
   firm_name?: string;
   omara_number: string;
   bio?: string;
+  website?: string;
+  phone?: string;
+  role?: string;
   city?: string;
   state?: string;
   specializations?: string[];
@@ -70,17 +89,57 @@ export interface ApplyAgentProfilePayload {
   response_time_hours?: number;
 }
 
+export interface AdminAddAgentPayload {
+  email: string;
+  first_name: string;
+  last_name: string;
+  listing_type?: ListingType;
+  firm_name?: string;
+  omara_number: string;
+  bio?: string;
+  website?: string;
+  phone?: string;
+  role?: string;
+  city?: string;
+  state?: string;
+  specializations?: string[];
+  languages?: string[];
+  years_experience?: number;
+  consultation_fee?: number;
+  response_time_hours?: number;
+  tier?: AgentProfileTier;
+  featured?: boolean;
+}
+
 // --- Public queries --------------------------------------------------------
 
 export function useMarketplaceAgents(filters: MarketplaceFilters = {}) {
   return useQuery({
     queryKey: queryKeys.marketplace.agents(filters as Record<string, unknown>),
     queryFn: async () => {
-      const { data } = await apiClient.get<AgentProfileOut[]>(
-        "/marketplace/public/agents",
-        { params: filters }
-      );
-      return data;
+      try {
+        const { data } = await apiClient.get<AgentProfileOut[]>(
+          "/marketplace/public/agents",
+          { params: filters }
+        );
+        return data;
+      } catch {
+        // Filter mock agents client-side for demo
+        let agents = [...MOCK_AGENTS];
+        if (filters.city) agents = agents.filter((a) => a.city === filters.city);
+        if (filters.language) agents = agents.filter((a) => a.languages?.includes(filters.language!));
+        if (filters.tier) agents = agents.filter((a) => a.tier === filters.tier);
+        if (filters.search) {
+          const q = filters.search.toLowerCase();
+          agents = agents.filter(
+            (a) =>
+              a.display_name?.toLowerCase().includes(q) ||
+              a.firm_name?.toLowerCase().includes(q) ||
+              a.bio?.toLowerCase().includes(q)
+          );
+        }
+        return agents;
+      }
     },
   });
 }
@@ -92,10 +151,16 @@ export function useAgentProfile(profileId: string | undefined) {
       : ["marketplace", "agent", "none"],
     enabled: !!profileId,
     queryFn: async () => {
-      const { data } = await apiClient.get<AgentProfileOut>(
-        `/marketplace/public/agents/${profileId}`
-      );
-      return data;
+      try {
+        const { data } = await apiClient.get<AgentProfileOut>(
+          `/marketplace/public/agents/${profileId}`
+        );
+        return data;
+      } catch {
+        const agent = MOCK_AGENTS.find((a) => a.id === profileId);
+        if (!agent) throw new Error("Agent not found");
+        return agent;
+      }
     },
   });
 }
@@ -142,7 +207,7 @@ export function useApproveAgentProfile() {
     }) => {
       const { data } = await apiClient.post<AgentProfileOut>(
         `/marketplace/admin/${payload.profile_id}/approve`,
-        { tier: payload.tier ?? "basic", featured: payload.featured ?? false }
+        { tier: payload.tier ?? "verified", featured: payload.featured ?? false }
       );
       return data;
     },
@@ -178,6 +243,22 @@ export function useSetAgentProfileTier() {
       const { data } = await apiClient.post<AgentProfileOut>(
         `/marketplace/admin/${payload.profile_id}/set-tier`,
         { tier: payload.tier }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.marketplace.all });
+    },
+  });
+}
+
+export function useAdminAddAgent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: AdminAddAgentPayload) => {
+      const { data } = await apiClient.post<AgentProfileOut>(
+        "/marketplace/admin/add",
+        payload
       );
       return data;
     },

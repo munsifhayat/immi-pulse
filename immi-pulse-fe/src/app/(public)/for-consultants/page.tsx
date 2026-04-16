@@ -13,6 +13,10 @@ import {
   CheckCircle2,
   Zap,
   Shield,
+  Users,
+  Globe,
+  Star,
+  BadgeCheck,
 } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/motion";
 
@@ -74,11 +78,27 @@ const workflowSteps = [
   { label: "Lodgement Ready", desc: "Case complete" },
 ];
 
-const stats = [
-  { value: "80%", label: "less time on admin" },
-  { value: "8", label: "visa subclasses" },
-  { value: "5min", label: "avg intake time" },
-  { value: "24/7", label: "AI processing" },
+const marketplaceBenefits = [
+  {
+    icon: Globe,
+    title: "Reach More Clients",
+    desc: "Visa applicants across Australia search our directory to find verified agents. Get discovered by people actively looking for help.",
+  },
+  {
+    icon: BadgeCheck,
+    title: "OMARA Verified Badge",
+    desc: "Every listing goes through OMARA registration check, credential review, and practice validation. Applicants trust our directory because we've done the due diligence.",
+  },
+  {
+    icon: Star,
+    title: "Build Your Reputation",
+    desc: "Showcase your specializations, languages, and experience. Let your expertise speak for itself.",
+  },
+  {
+    icon: Users,
+    title: "Free to List",
+    desc: "There's no cost to register. Submit your details, get verified, and start appearing in our directory.",
+  },
 ];
 
 export default function ForConsultantsPage() {
@@ -106,7 +126,10 @@ export default function ForConsultantsPage() {
               custom={1}
               className="mt-8 font-heading text-[clamp(2.5rem,5vw,3.75rem)] font-normal leading-[1.1] tracking-[-1.5px] text-navy"
             >
-              Your AI Immigration Associate
+              Grow Your Practice with{" "}
+              <span className="bg-gradient-to-r from-purple to-purple-deep bg-clip-text text-transparent">
+                IMMI-PULSE
+              </span>
             </motion.h1>
 
             <motion.p
@@ -116,50 +139,185 @@ export default function ForConsultantsPage() {
               custom={2}
               className="mx-auto mt-6 max-w-2xl text-[18px] leading-relaxed text-gray-text"
             >
-              Stop spending hours on email triage, manual checklists, and document
-              chasing. IMMI-PULSE handles the heavy lifting so you can focus on
-              advising your clients.
+              Whether you want AI to manage your caseload or simply need more
+              clients finding you — IMMI-PULSE has you covered.
             </motion.p>
-
-            <motion.div
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              custom={3}
-              className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
-            >
-              <Link
-                href="/get-started"
-                className="flex items-center gap-2.5 rounded-lg bg-purple px-7 py-3.5 text-[16px] font-medium text-white transition-colors duration-200 hover:bg-purple-deep focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-2 focus-visible:outline-none"
-              >
-                Start Free Trial
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
-              <Link
-                href="/pricing"
-                className="flex items-center gap-2 rounded-lg border border-border px-7 py-3.5 text-[16px] font-medium text-navy transition-colors duration-200 hover:bg-gray-light focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-2 focus-visible:outline-none"
-              >
-                View Pricing
-              </Link>
-            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* ═══ STATS BAR ═══ */}
-      <section className="border-y border-border bg-gray-light/50 py-12">
+      {/* ═══ TWO PATHS ═══ */}
+      <section className="border-y border-border bg-gray-light/50 py-20">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center"
+          >
+            <span className="text-[13px] font-semibold uppercase tracking-wider text-purple">
+              Choose Your Path
+            </span>
+            <h2 className="mt-2 text-balance font-heading text-[clamp(1.75rem,3.5vw,2.75rem)] font-normal tracking-[-1px] text-navy">
+              Two Ways to Benefit
+            </h2>
+          </motion.div>
+
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-60px" }}
+            className="mt-12 grid gap-8 md:grid-cols-2"
+          >
+            {/* Path 1: Platform / Product */}
+            <motion.div
+              variants={fadeUp}
+              custom={0}
+              className="relative flex flex-col overflow-hidden rounded-3xl border-2 border-purple/20 bg-white p-8 transition-all duration-300 hover:border-purple/40 hover:shadow-xl hover:shadow-purple/10 md:p-10"
+            >
+              <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-purple/[0.04] blur-2xl" />
+              <div className="relative">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-purple to-purple-deep text-white shadow-lg shadow-purple/20">
+                  <Brain className="h-7 w-7" aria-hidden="true" />
+                </div>
+                <span className="mt-4 inline-block rounded-full bg-purple/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-purple">
+                  AI Platform
+                </span>
+                <h3 className="mt-4 font-heading text-2xl font-semibold text-navy">
+                  Manage Your Practice with AI
+                </h3>
+                <p className="mt-3 text-[16px] leading-relaxed text-gray-text">
+                  Automate email intake, visa classification, document
+                  validation, and checklist generation. Spend less time on admin
+                  and more time advising clients.
+                </p>
+                <ul className="mt-6 space-y-3">
+                  {[
+                    "AI email triage & case matching",
+                    "Auto-generated visa checklists",
+                    "Document validation with OCR",
+                    "Full case lifecycle tracking",
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-2.5 text-[15px] text-gray-text">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-purple" aria-hidden="true" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="mt-auto pt-8">
+                <Link
+                  href="/login"
+                  className="flex w-full items-center justify-center gap-2.5 rounded-lg bg-purple px-7 py-3.5 text-[16px] font-medium text-white transition-colors duration-200 hover:bg-purple-deep"
+                >
+                  Start Free Trial
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </div>
+            </motion.div>
+
+            {/* Path 2: Marketplace Listing */}
+            <motion.div
+              variants={fadeUp}
+              custom={1}
+              className="relative flex flex-col overflow-hidden rounded-3xl border-2 border-teal/20 bg-white p-8 transition-all duration-300 hover:border-teal/40 hover:shadow-xl hover:shadow-teal/10 md:p-10"
+            >
+              <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-teal/[0.04] blur-2xl" />
+              <div className="relative">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-teal to-teal-light text-white shadow-lg shadow-teal/20">
+                  <Globe className="h-7 w-7" aria-hidden="true" />
+                </div>
+                <span className="mt-4 inline-block rounded-full bg-teal/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-teal">
+                  Marketplace
+                </span>
+                <h3 className="mt-4 font-heading text-2xl font-semibold text-navy">
+                  Get Listed in Our Directory
+                </h3>
+                <p className="mt-3 text-[16px] leading-relaxed text-gray-text">
+                  Join our verified consultant directory and let visa applicants
+                  find you. Submit your details, and our team will verify your
+                  OMARA registration, review your credentials, and validate
+                  your practice before your profile goes live.
+                </p>
+                <ul className="mt-6 space-y-3">
+                  {[
+                    "Verified OMARA badge on your profile",
+                    "Showcase specializations & languages",
+                    "Appear in city & visa type searches",
+                    "Completely free to list",
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-2.5 text-[15px] text-gray-text">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal" aria-hidden="true" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="mt-auto pt-8">
+                <Link
+                  href="/find-consultants/apply"
+                  className="flex w-full items-center justify-center gap-2.5 rounded-lg border-2 border-teal bg-teal px-7 py-3.5 text-[16px] font-medium text-white transition-colors duration-200 hover:bg-teal/90"
+                >
+                  Register Your Practice
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ═══ MARKETPLACE BENEFITS ═══ */}
+      <section className="py-24">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <motion.div
             variants={stagger}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true }}
-            className="grid grid-cols-2 gap-8 md:grid-cols-4"
+            viewport={{ once: true, margin: "-80px" }}
+            className="text-center"
           >
-            {stats.map((stat, i) => (
-              <motion.div key={stat.label} variants={fadeUp} custom={i} className="text-center">
-                <p className="font-heading text-4xl font-light tabular-nums tracking-[-1px] text-navy">{stat.value}</p>
-                <p className="mt-1 text-[15px] text-gray-text">{stat.label}</p>
+            <motion.p
+              variants={fadeUp}
+              custom={0}
+              className="text-[13px] font-semibold uppercase tracking-wider text-teal"
+            >
+              Marketplace
+            </motion.p>
+            <motion.h2
+              variants={fadeUp}
+              custom={1}
+              className="mt-3 font-heading text-[clamp(2rem,4vw,3rem)] font-normal tracking-[-1px] text-navy"
+            >
+              Why List on IMMI-PULSE?
+            </motion.h2>
+          </motion.div>
+
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-60px" }}
+            className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
+          >
+            {marketplaceBenefits.map((benefit, i) => (
+              <motion.div
+                key={benefit.title}
+                variants={fadeUp}
+                custom={i}
+                className="rounded-2xl border border-border bg-white p-7 transition-all duration-300 hover:border-teal/20 hover:shadow-lg hover:shadow-teal/5"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal/10 text-teal">
+                  <benefit.icon className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <h3 className="mt-4 font-heading text-[17px] font-semibold text-navy">
+                  {benefit.title}
+                </h3>
+                <p className="mt-2 text-[15px] leading-relaxed text-gray-text">
+                  {benefit.desc}
+                </p>
               </motion.div>
             ))}
           </motion.div>
@@ -167,7 +325,7 @@ export default function ForConsultantsPage() {
       </section>
 
       {/* ═══ PAIN POINTS ═══ */}
-      <section className="py-28 lg:py-36">
+      <section className="bg-gray-light/50 py-28 lg:py-36">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <motion.div
             variants={stagger}
@@ -204,7 +362,7 @@ export default function ForConsultantsPage() {
                 key={point.title}
                 variants={fadeUp}
                 custom={i}
-                className="rounded-2xl border border-destructive/10 bg-destructive/[0.02] p-8"
+                className="rounded-2xl border border-destructive/10 bg-white p-8"
               >
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
                   <point.icon className="h-5 w-5" aria-hidden="true" />
@@ -229,7 +387,7 @@ export default function ForConsultantsPage() {
       </section>
 
       {/* ═══ PLATFORM FEATURES ═══ */}
-      <section className="bg-gray-light/50 py-28 lg:py-36">
+      <section className="py-28 lg:py-36">
         <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
           <motion.div
             variants={stagger}
@@ -243,7 +401,7 @@ export default function ForConsultantsPage() {
               custom={0}
               className="text-[13px] font-semibold uppercase tracking-wider text-purple"
             >
-              The Solution
+              AI Platform
             </motion.p>
             <motion.h2
               variants={fadeUp}
@@ -298,7 +456,7 @@ export default function ForConsultantsPage() {
       </section>
 
       {/* ═══ WORKFLOW ═══ */}
-      <section className="py-28 lg:py-36">
+      <section className="bg-gray-light/50 py-28 lg:py-36">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <motion.div
             variants={stagger}
@@ -359,7 +517,7 @@ export default function ForConsultantsPage() {
       </section>
 
       {/* ═══ CTA ═══ */}
-      <section className="pb-28 lg:pb-36">
+      <section className="py-28 lg:py-36">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
@@ -374,19 +532,28 @@ export default function ForConsultantsPage() {
             <div className="relative">
               <Zap className="mx-auto h-8 w-8 text-white/50" aria-hidden="true" />
               <h2 className="mt-6 font-heading text-[clamp(2rem,4vw,3rem)] font-normal tracking-[-1px] text-white">
-                Start Your Free Trial Today
+                Ready to Get Started?
               </h2>
               <p className="mx-auto mt-4 max-w-lg text-lg text-white/70">
-                No credit card required. Set up in under 5 minutes.
-                See the difference AI makes in your first case.
+                Try our AI platform free, or register to appear in our consultant
+                directory — your choice.
               </p>
-              <Link
-                href="/get-started"
-                className="mt-10 inline-flex items-center gap-2.5 rounded-lg bg-white px-8 py-3.5 text-[16px] font-semibold text-navy transition-all duration-200 hover:shadow-xl focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-purple-deep focus-visible:outline-none"
-              >
-                Get Started Free
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
+              <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2.5 rounded-lg bg-white px-8 py-3.5 text-[16px] font-semibold text-navy transition-all duration-200 hover:shadow-xl"
+                >
+                  Start Free Trial
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+                <Link
+                  href="/find-consultants/apply"
+                  className="inline-flex items-center gap-2.5 rounded-lg border-2 border-white/30 px-8 py-3.5 text-[16px] font-semibold text-white transition-all duration-200 hover:border-white/60 hover:bg-white/10"
+                >
+                  Get Listed Free
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </div>
             </div>
           </motion.div>
         </div>
