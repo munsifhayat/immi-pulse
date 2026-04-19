@@ -38,6 +38,39 @@ export interface Client {
 // ── Case ──
 export type CaseSource = "email" | "manual" | "web_form";
 
+// ── AI summary + Checklist (from backend metadata_json) ──
+export interface CaseAISummary {
+  summary: string;
+  key_points: string[];
+  proposed_visa_subclass?: string | null;
+  proposed_visa_name?: string | null;
+  confidence?: number | null;
+  reasoning?: string | null;
+  extracted_details: Record<string, unknown>;
+  source_email?: {
+    from?: string;
+    subject?: string;
+    received_at?: string;
+  } | null;
+}
+
+export type ChecklistItemStatus =
+  | "pending"
+  | "uploaded"
+  | "validated"
+  | "flagged";
+
+export interface CaseChecklistItem {
+  id: string;
+  label: string;
+  description?: string | null;
+  document_type: string;
+  required: boolean;
+  status: ChecklistItemStatus;
+  document_id?: string | null;
+  notes?: string | null;
+}
+
 // Matches backend CaseOut (src/app/agents/immigration/cases/schemas.py) one
 // to one. Raw wire format — hooks may decorate responses with a nested
 // `client` object for legacy pages that still consume mock data.
@@ -58,6 +91,8 @@ export interface CaseOut {
   notes?: string | null;
   documents_count: number;
   documents_pending: number;
+  ai_summary?: CaseAISummary | null;
+  checklist?: CaseChecklistItem[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -188,6 +223,42 @@ export interface InboxEmail {
   linked_client_name?: string;
   is_read: boolean;
   has_attachments: boolean;
+}
+
+// ── Demo inbox (lawyer showcase) — mirrors backend /demo/inbox ──
+export interface DemoInboxClassification {
+  category: string;
+  is_immigration_inquiry: boolean;
+  urgency: "low" | "normal" | "high" | "urgent";
+  confidence: number;
+}
+
+export interface DemoCaseDefaults {
+  client_name: string;
+  client_email?: string | null;
+  client_phone?: string | null;
+  visa_subclass?: string | null;
+  visa_name?: string | null;
+  stage: CaseStage;
+  priority: CasePriority;
+  source: CaseSource;
+  notes?: string | null;
+}
+
+export interface DemoInboxEmail {
+  id: string;
+  from_name: string;
+  from_email: string;
+  subject: string;
+  preview: string;
+  body: string;
+  received_at: string;
+  has_attachments: boolean;
+  is_read: boolean;
+  classification?: DemoInboxClassification | null;
+  ai_summary?: CaseAISummary | null;
+  case_defaults?: DemoCaseDefaults | null;
+  linked_case_id?: string | null;
 }
 
 // ── Client Journey ──

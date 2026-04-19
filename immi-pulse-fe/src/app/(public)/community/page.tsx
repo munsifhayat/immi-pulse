@@ -16,6 +16,7 @@ import {
 import { SpaceCard } from "./_components/space-card";
 import { ThreadPreview } from "./_components/thread-preview";
 import { CommunitySidebar } from "./_components/community-sidebar";
+import { ProcessingTimes } from "./_components/processing-times";
 
 /* Reusable subtle grid SVG */
 function GridBg({
@@ -176,6 +177,9 @@ export default function CommunityPage() {
           </div>
         </section>
       )}
+
+      {/* ═══════════════ PROCESSING TIMES ═══════════════ */}
+      <ProcessingTimes />
 
       {/* ═══════════════ SPACES GRID ═══════════════ */}
       <section id="spaces" className="py-24">

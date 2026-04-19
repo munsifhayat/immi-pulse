@@ -6,10 +6,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/lib/api/client";
 import { queryKeys } from "@/lib/api/hooks/query-keys";
 import type {
+  CaseChecklistItem,
   CaseDocumentOut,
   CaseOut,
   CasePriority,
   CaseStage,
+  ChecklistItemStatus,
 } from "@/lib/types/immigration";
 
 export interface CaseFilters {
@@ -191,6 +193,50 @@ export function useReviewDocument(caseId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.cases.documents(caseId) });
       qc.invalidateQueries({ queryKey: queryKeys.cases.timeline(caseId) });
+    },
+  });
+}
+
+// --- Checklist -------------------------------------------------------------
+
+export function useGenerateChecklist(caseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (opts: { visa_subclass?: string } = {}) => {
+      const { data } = await apiClient.post<CaseChecklistItem[]>(
+        `/cases/${caseId}/generate-checklist`,
+        { visa_subclass: opts.visa_subclass }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.cases.detail(caseId) });
+      qc.invalidateQueries({ queryKey: queryKeys.cases.timeline(caseId) });
+    },
+  });
+}
+
+export function useUpdateChecklistItem(caseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      item_id: string;
+      status?: ChecklistItemStatus;
+      document_id?: string;
+      notes?: string;
+    }) => {
+      const { data } = await apiClient.patch<CaseChecklistItem>(
+        `/cases/${caseId}/checklist/${payload.item_id}`,
+        {
+          status: payload.status,
+          document_id: payload.document_id,
+          notes: payload.notes,
+        }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.cases.detail(caseId) });
     },
   });
 }

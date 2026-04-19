@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.immigration.cases.schemas import (
     CaseDocumentOut,
+    ChecklistItem,
     PortalCaseOut,
     PortalVerifyRequest,
     PortalVerifyResponse,
@@ -97,6 +98,8 @@ async def get_portal_case(
     if case is None:
         raise HTTPException(status_code=404, detail="Case not found")
     documents = await CaseService.list_documents(db, case_id)
+    checklist_data = (case.metadata_json or {}).get("checklist") or []
+    checklist = [ChecklistItem.model_validate(item) for item in checklist_data] or None
     return PortalCaseOut(
         id=case.id,
         client_name=case.client_name,
@@ -104,6 +107,7 @@ async def get_portal_case(
         visa_name=case.visa_name,
         stage=case.stage,
         documents=[CaseDocumentOut.model_validate(d) for d in documents],
+        checklist=checklist,
     )
 
 

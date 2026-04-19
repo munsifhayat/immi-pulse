@@ -5,7 +5,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import portalClient, { PORTAL_SESSION_STORAGE_KEY } from "@/lib/api/portal-client";
 import { queryKeys } from "@/lib/api/hooks/query-keys";
-import type { CaseDocumentOut, CaseStage } from "@/lib/types/immigration";
+import type {
+  CaseChecklistItem,
+  CaseDocumentOut,
+  CaseStage,
+} from "@/lib/types/immigration";
 
 export interface PortalCase {
   id: string;
@@ -14,6 +18,7 @@ export interface PortalCase {
   visa_name?: string | null;
   stage: CaseStage;
   documents: CaseDocumentOut[];
+  checklist?: CaseChecklistItem[] | null;
 }
 
 export interface PortalVerifyResponse {

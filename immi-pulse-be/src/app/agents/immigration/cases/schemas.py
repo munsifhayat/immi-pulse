@@ -40,6 +40,30 @@ assert set(DOCUMENT_STATUSES) == set(DocumentStatusLiteral.__args__)
 # --- Case CRUD ---------------------------------------------------------------
 
 
+class CaseAISummary(BaseModel):
+    """AI-generated summary of the inbound email / inquiry."""
+
+    summary: str
+    key_points: list[str] = Field(default_factory=list)
+    proposed_visa_subclass: Optional[str] = None
+    proposed_visa_name: Optional[str] = None
+    confidence: Optional[float] = None
+    reasoning: Optional[str] = None
+    extracted_details: dict[str, Any] = Field(default_factory=dict)
+    source_email: Optional[dict[str, Any]] = None
+
+
+class ChecklistItem(BaseModel):
+    id: str
+    label: str
+    description: Optional[str] = None
+    document_type: str
+    required: bool = True
+    status: Literal["pending", "uploaded", "validated", "flagged"] = "pending"
+    document_id: Optional[UUID] = None
+    notes: Optional[str] = None
+
+
 class CreateCaseRequest(BaseModel):
     client_name: str
     client_email: Optional[str] = None
@@ -50,6 +74,8 @@ class CreateCaseRequest(BaseModel):
     priority: CasePriorityLiteral = "normal"
     source: CaseSourceLiteral = "manual"
     notes: Optional[str] = None
+    ai_summary: Optional[CaseAISummary] = None
+    checklist: Optional[list[ChecklistItem]] = None
 
 
 class UpdateCaseRequest(BaseModel):
@@ -83,6 +109,8 @@ class CaseOut(BaseModel):
     notes: Optional[str] = None
     documents_count: int = 0
     documents_pending: int = 0
+    ai_summary: Optional[CaseAISummary] = None
+    checklist: Optional[list[ChecklistItem]] = None
     created_at: datetime
     updated_at: datetime
 
@@ -181,5 +209,22 @@ class PortalCaseOut(BaseModel):
     visa_name: Optional[str] = None
     stage: CaseStageLiteral
     documents: list[CaseDocumentOut]
+    checklist: Optional[list[ChecklistItem]] = None
 
     model_config = {"from_attributes": True}
+
+
+# --- Checklist --------------------------------------------------------------
+
+
+class GenerateChecklistRequest(BaseModel):
+    visa_subclass: Optional[str] = Field(
+        default=None,
+        description="Override the case's visa_subclass when picking a template.",
+    )
+
+
+class UpdateChecklistItemRequest(BaseModel):
+    status: Optional[Literal["pending", "uploaded", "validated", "flagged"]] = None
+    document_id: Optional[UUID] = None
+    notes: Optional[str] = None

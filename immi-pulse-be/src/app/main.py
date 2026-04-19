@@ -135,6 +135,10 @@ def create_app() -> FastAPI:
     from app.testing.router import router as test_router
     app.include_router(test_router, prefix=settings.api_v1_prefix)
 
+    # Lawyer showcase demo endpoints
+    from app.demo.router import router as demo_router
+    app.include_router(demo_router, prefix=settings.api_v1_prefix)
+
     # --- Startup: seed mailboxes + scheduler ---
     from app.scheduler.jobs import shutdown_scheduler, start_scheduler
 

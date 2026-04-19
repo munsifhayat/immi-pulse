@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "mcp__playwright__browser_navigate",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -s \"https://www.redditinc.com/policies/content-policy\")",
+      "Bash(curl -s http://localhost:8000/health)",
+      "Bash(curl -s -o /dev/null -w '%{http_code}\\\\n' http://localhost:3000/dashboard/inbox)",
+      "Bash(curl -s -o /dev/null -w '%{http_code}\\\\n' http://localhost:3001/dashboard/inbox)"
     ]
   }
 }

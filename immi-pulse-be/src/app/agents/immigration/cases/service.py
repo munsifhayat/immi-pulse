@@ -8,7 +8,10 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
+from app.agents.immigration.cases.checklist_templates import get_template
+from app.agents.immigration.cases.heuristic_analyzer import heuristic_analyze
 from app.agents.immigration.cases.models import (
     Case,
     CaseDocument,
@@ -74,6 +77,14 @@ class CaseService:
         source_message_id: Optional[str] = None,
         source_mailbox: Optional[str] = None,
     ) -> Case:
+        metadata: dict[str, Any] = {}
+        if payload.ai_summary is not None:
+            metadata["ai_summary"] = payload.ai_summary.model_dump(mode="json")
+        if payload.checklist is not None:
+            metadata["checklist"] = [
+                item.model_dump(mode="json") for item in payload.checklist
+            ]
+
         case = Case(
             id=uuid.uuid4(),
             client_name=payload.client_name,
@@ -88,6 +99,7 @@ class CaseService:
             source_mailbox=source_mailbox,
             consultant_id=consultant_id,
             notes=payload.notes,
+            metadata_json=metadata or None,
         )
         db.add(case)
         await db.flush()
@@ -97,9 +109,117 @@ class CaseService:
             actor_type="system" if payload.source == "email" else "consultant",
             actor_user_id=consultant_id,
             event_type="case_created",
-            event_payload={"source": payload.source, "stage": payload.stage},
+            event_payload={
+                "source": payload.source,
+                "stage": payload.stage,
+                "has_ai_summary": payload.ai_summary is not None,
+                "checklist_items": len(payload.checklist) if payload.checklist else 0,
+            },
         )
         return case
+
+    # --- Checklist helpers (stored on case.metadata_json) ------------------
+
+    @staticmethod
+    async def generate_checklist(
+        db: AsyncSession,
+        case: Case,
+        *,
+        visa_subclass: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        """(Re)generate the case's checklist from a template and persist it."""
+        template = get_template(visa_subclass or case.visa_subclass)
+        metadata = dict(case.metadata_json or {})
+        metadata["checklist"] = template
+        case.metadata_json = metadata
+        flag_modified(case, "metadata_json")
+        await CaseService.record_event(
+            db,
+            case_id=case.id,
+            actor_type="system",
+            event_type="checklist_generated",
+            event_payload={
+                "visa_subclass": visa_subclass or case.visa_subclass,
+                "item_count": len(template),
+            },
+        )
+        await db.flush()
+        return template
+
+    @staticmethod
+    async def update_checklist_item(
+        db: AsyncSession,
+        case: Case,
+        item_id: str,
+        *,
+        status: Optional[str] = None,
+        document_id: Optional[UUID] = None,
+        notes: Optional[str] = None,
+    ) -> Optional[dict[str, Any]]:
+        metadata = dict(case.metadata_json or {})
+        items: list[dict[str, Any]] = list(metadata.get("checklist") or [])
+        found: Optional[dict[str, Any]] = None
+        for item in items:
+            if item.get("id") == item_id:
+                if status is not None:
+                    item["status"] = status
+                if document_id is not None:
+                    item["document_id"] = str(document_id)
+                if notes is not None:
+                    item["notes"] = notes
+                found = item
+                break
+        if found is None:
+            return None
+        metadata["checklist"] = items
+        case.metadata_json = metadata
+        flag_modified(case, "metadata_json")
+        await db.flush()
+        return found
+
+    @staticmethod
+    async def auto_link_document_to_checklist(
+        db: AsyncSession,
+        case: Case,
+        document: CaseDocument,
+    ) -> None:
+        """When a client uploads a doc, flip the matching checklist row to
+        'uploaded' and point it at the document — keeps the client portal and
+        consultant review UI in sync without extra bookkeeping."""
+        if not document.document_type:
+            logger.info(
+                f"auto_link skipped — no document_type on {document.id}"
+            )
+            return
+        # Refresh the case so metadata_json reflects the committed state from
+        # any prior requests; within the same session SQLAlchemy will return
+        # the cached object whose metadata_json may have been mutated since.
+        await db.refresh(case, attribute_names=["metadata_json"])
+        metadata = dict(case.metadata_json or {})
+        items = [dict(item) for item in (metadata.get("checklist") or [])]
+        dirty = False
+        for item in items:
+            if item.get("document_id"):
+                continue
+            if item.get("document_type") == document.document_type:
+                item["status"] = "uploaded"
+                item["document_id"] = str(document.id)
+                dirty = True
+                break
+        if not dirty:
+            logger.info(
+                f"auto_link: no matching checklist row for "
+                f"document_type={document.document_type} on case {case.id}"
+            )
+            return
+        metadata["checklist"] = items
+        case.metadata_json = metadata
+        flag_modified(case, "metadata_json")
+        await db.flush()
+        logger.info(
+            f"auto_link: document {document.id} ({document.document_type}) "
+            f"→ checklist row on case {case.id}"
+        )
 
     @staticmethod
     async def update_case(
@@ -206,16 +326,24 @@ class CaseService:
         stored: StoredFile = upload_case_document(
             str(case_id), file_name, file_bytes, content_type
         )
+        # Run the filename heuristic synchronously so the UI always has an
+        # ai_analysis payload to render the moment the file is uploaded. The
+        # background Bedrock-backed analyzer (when configured) overwrites
+        # this with the richer result.
+        heuristic = heuristic_analyze(file_name, file_bytes)
+        initial_status = heuristic.get("status") or "pending"
         document = CaseDocument(
             id=uuid.uuid4(),
             case_id=case_id,
+            document_type=heuristic.get("document_type"),
             file_name=file_name,
             s3_key=stored.key,
             file_size=stored.size,
             content_type=content_type,
             uploaded_by_type=uploaded_by_type,
             uploaded_by_user_id=uploaded_by_user_id,
-            status="pending",
+            status=initial_status,
+            ai_analysis=heuristic,
         )
         db.add(document)
         await db.flush()
@@ -227,6 +355,9 @@ class CaseService:
             event_type="document_uploaded",
             event_payload={"document_id": str(document.id), "file_name": file_name},
         )
+        case = await db.get(Case, case_id)
+        if case is not None:
+            await CaseService.auto_link_document_to_checklist(db, case, document)
         return document
 
     @staticmethod
@@ -250,6 +381,29 @@ class CaseService:
             event_type="document_reviewed",
             event_payload={"document_id": str(document.id), "status": status},
         )
+        # Propagate review status to the matching checklist row so both
+        # consultant and client see the same state.
+        case = await db.get(Case, document.case_id)
+        if case is not None:
+            metadata = dict(case.metadata_json or {})
+            items = list(metadata.get("checklist") or [])
+            dirty = False
+            checklist_status = (
+                "validated"
+                if status == "validated"
+                else "flagged"
+                if status in ("flagged", "rejected")
+                else "uploaded"
+            )
+            for item in items:
+                if item.get("document_id") == str(document.id):
+                    item["status"] = checklist_status
+                    dirty = True
+                    break
+            if dirty:
+                metadata["checklist"] = items
+                case.metadata_json = metadata
+                flag_modified(case, "metadata_json")
         await db.flush()
         return document
 

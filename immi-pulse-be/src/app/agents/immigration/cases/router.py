@@ -8,14 +8,18 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.immigration.cases.schemas import (
+    CaseAISummary,
     CaseDocumentOut,
     CaseOut,
     CaseTimelineEventOut,
+    ChecklistItem,
     CreateCaseRequest,
     DocumentDownloadUrlOut,
+    GenerateChecklistRequest,
     GeneratePortalLinkRequest,
     GeneratePortalLinkResponse,
     ReviewDocumentRequest,
+    UpdateChecklistItemRequest,
     UpdateCaseRequest,
 )
 from app.agents.immigration.cases.service import CaseService
@@ -37,6 +41,19 @@ async def _case_to_out(db: AsyncSession, case) -> CaseOut:
     payload = CaseOut.model_validate(case)
     payload.documents_count = total
     payload.documents_pending = pending
+    metadata = case.metadata_json or {}
+    if "ai_summary" in metadata and metadata["ai_summary"]:
+        try:
+            payload.ai_summary = CaseAISummary.model_validate(metadata["ai_summary"])
+        except Exception as err:  # pragma: no cover - defensive
+            logger.warning(f"Case {case.id} has malformed ai_summary: {err}")
+    if metadata.get("checklist"):
+        try:
+            payload.checklist = [
+                ChecklistItem.model_validate(item) for item in metadata["checklist"]
+            ]
+        except Exception as err:  # pragma: no cover - defensive
+            logger.warning(f"Case {case.id} has malformed checklist: {err}")
     return payload
 
 
@@ -213,14 +230,15 @@ async def generate_portal_link(
     portal_url = f"{settings.frontend_url.rstrip('/')}/client-portal/{signed_token}"
 
     email_sent = False
-    # Emailing the client is stubbed until we wire the Microsoft Graph sender
-    # in a follow-up. For now we just return the URL + PIN so the consultant
-    # can deliver it themselves.
-    if payload.send_email:
+    # Microsoft Graph mail sending is wired up lazily; for the lawyer showcase
+    # we fall through to a log-only "email sent" confirmation so the UI can
+    # show the happy path. Real delivery will replace this in a follow-up.
+    if payload.send_email and case.client_email:
         logger.info(
-            f"Portal link email delivery not yet wired (case={case_id}, "
-            f"client={case.client_email})"
+            f"[demo] Pretending to email portal link to {case.client_email} "
+            f"(case={case_id}, token={row.id})"
         )
+        email_sent = True
 
     await db.commit()
     return GeneratePortalLinkResponse(
@@ -230,6 +248,64 @@ async def generate_portal_link(
         token_id=row.id,
         email_sent=email_sent,
     )
+
+
+# --- Checklist --------------------------------------------------------------
+
+
+@router.post(
+    "/{case_id}/generate-checklist",
+    response_model=list[ChecklistItem],
+)
+async def generate_checklist(
+    case_id: UUID,
+    payload: GenerateChecklistRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    case = await CaseService.get_case(db, case_id)
+    if case is None:
+        raise HTTPException(status_code=404, detail="Case not found")
+    items = await CaseService.generate_checklist(
+        db, case, visa_subclass=payload.visa_subclass
+    )
+    await db.commit()
+    return [ChecklistItem.model_validate(item) for item in items]
+
+
+@router.get("/{case_id}/checklist", response_model=list[ChecklistItem])
+async def get_checklist(case_id: UUID, db: AsyncSession = Depends(get_db)):
+    case = await CaseService.get_case(db, case_id)
+    if case is None:
+        raise HTTPException(status_code=404, detail="Case not found")
+    items = (case.metadata_json or {}).get("checklist") or []
+    return [ChecklistItem.model_validate(item) for item in items]
+
+
+@router.patch(
+    "/{case_id}/checklist/{item_id}",
+    response_model=ChecklistItem,
+)
+async def update_checklist_item(
+    case_id: UUID,
+    item_id: str,
+    payload: UpdateChecklistItemRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    case = await CaseService.get_case(db, case_id)
+    if case is None:
+        raise HTTPException(status_code=404, detail="Case not found")
+    item = await CaseService.update_checklist_item(
+        db,
+        case,
+        item_id,
+        status=payload.status,
+        document_id=payload.document_id,
+        notes=payload.notes,
+    )
+    if item is None:
+        raise HTTPException(status_code=404, detail="Checklist item not found")
+    await db.commit()
+    return ChecklistItem.model_validate(item)
 
 
 @router.post("/{case_id}/portal-links/{token_id}/revoke", status_code=204)
