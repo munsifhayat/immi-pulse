@@ -25,6 +25,9 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
         "/openapi.json",
         "/health",
         "/api/v1/integrations/microsoft/callback",
+        "/api/v1/auth/signup",
+        "/api/v1/auth/login",
+        "/api/v1/public/invites/accept",
     }
 
     PUBLIC_PREFIXES = (
@@ -32,6 +35,7 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
         "/api/v1/client-portal/",
         "/api/v1/marketplace/public/",
         "/api/v1/community/public/",
+        "/api/v1/public/q/",
     )
 
     async def dispatch(self, request: Request, call_next):

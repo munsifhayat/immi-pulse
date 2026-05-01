@@ -35,11 +35,15 @@ class Settings(BaseSettings):
         return self.environment.lower() == "production"
 
     # --- AWS Bedrock ---
+    # Region is Sydney for data residency. Models use cross-region inference profiles
+    # so the actual inference can route to whichever region has capacity.
+    # `global.*` is cheaper (~10%) and available in more regions; `apac.*` keeps
+    # routing inside Asia-Pacific only. Override via env in any region-sensitive deploy.
     aws_access_key_id: str | None = None
     aws_secret_access_key: str | None = None
     aws_region: str = "ap-southeast-2"
-    bedrock_analyzer_model: str = "anthropic.claude-3-5-haiku-20241022-v1:0"
-    bedrock_drafter_model: str = "anthropic.claude-sonnet-4-6"
+    bedrock_analyzer_model: str = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+    bedrock_drafter_model: str = "apac.anthropic.claude-sonnet-4-5-20250929-v1:0"
 
     # --- AWS S3 (document storage) ---
     aws_s3_bucket: str | None = None
@@ -53,6 +57,14 @@ class Settings(BaseSettings):
     portal_session_jwt_secret: str = "change-me-session-jwt-secret-at-least-32-chars"
     portal_session_ttl_minutes: int = 15
     portal_pin_max_attempts: int = 5
+
+    # --- Console JWT (multi-tenant Owner/Seat auth) ---
+    # Dedicated secret. Falls back to portal_session_jwt_secret in dev only.
+    jwt_secret: str = ""
+
+    @property
+    def effective_jwt_secret(self) -> str:
+        return self.jwt_secret or self.portal_session_jwt_secret
 
     # --- Microsoft 365 ---
     microsoft_client_id: str | None = None

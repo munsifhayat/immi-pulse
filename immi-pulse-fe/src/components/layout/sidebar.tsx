@@ -1,21 +1,22 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Inbox,
-  BrainCircuit,
+  ClipboardList,
+  FileText,
   Users,
   FolderKanban,
-  FileCheck,
-  Activity,
   Settings,
   LogOut,
   ChevronsUpDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
+import { preCasesApi } from "@/lib/api/services";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -27,21 +28,41 @@ import {
 
 const navigation = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Pre-Cases", href: "/dashboard/precases", icon: Inbox, badgeKey: "preCases" as const },
+  { name: "Questionnaires", href: "/dashboard/questionnaires", icon: ClipboardList },
   { name: "Clients", href: "/dashboard/clients", icon: Users },
   { name: "Cases", href: "/dashboard/cases", icon: FolderKanban },
-  { name: "Inbox", href: "/dashboard/inbox", icon: Inbox },
-  { name: "Product Board", href: "/dashboard/agent-board", icon: BrainCircuit },
-  { name: "Documents", href: "/dashboard/documents", icon: FileCheck },
-  { name: "Activity", href: "/dashboard/activity", icon: Activity },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+  { name: "Documents", href: "/dashboard/documents", icon: FileText },
+  { name: "Settings", href: "/dashboard/settings/team", icon: Settings },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, org, logout, isAuthenticated } = useAuth();
+  const [unreadPre, setUnreadPre] = useState<number>(0);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let mounted = true;
+    const load = async () => {
+      try {
+        const items = await preCasesApi.list();
+        if (!mounted) return;
+        setUnreadPre(items.filter((p) => p.status === "pending" || p.read_at === null).length);
+      } catch {
+        // Silent — sidebar shouldn't error on bg fetch
+      }
+    };
+    load();
+    const id = setInterval(load, 30_000);
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
+  }, [isAuthenticated, pathname]);
 
   const userInitials = user
-    ? `${user.first_name?.[0] || ""}${user.last_name?.[0] || ""}`.toUpperCase()
+    ? `${user.first_name?.[0] || ""}${user.last_name?.[0] || ""}`.toUpperCase() || user.email[0].toUpperCase()
     : "U";
 
   return (
@@ -49,104 +70,74 @@ export function Sidebar() {
       {/* Brand */}
       <div className="flex h-14 items-center gap-2.5 border-b border-border px-5">
         <Link href="/dashboard" className="flex items-center gap-2.5">
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 32 32"
-            fill="none"
-            className="shrink-0"
-            aria-hidden="true"
-          >
-            <rect width="32" height="32" rx="7" fill="url(#sidebar-logo-grad)" />
-            <path
-              d="M9 22V10h2.5v12H9zm5 0V10h2.5v12H14zm5 0V10h2.5v5L24 10h3l-3.5 5.5L27 22h-3l-2.5-5-2 3v2h-0.5z"
-              fill="white"
-            />
-            <defs>
-              <linearGradient
-                id="sidebar-logo-grad"
-                x1="0"
-                y1="0"
-                x2="32"
-                y2="32"
-                gradientUnits="userSpaceOnUse"
-              >
-                <stop stopColor="#7C5CFC" />
-                <stop offset="1" stopColor="#5B3ADB" />
-              </linearGradient>
-            </defs>
-          </svg>
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-[#7C5CFC] to-[#5B3ADB] text-xs font-bold text-white">
+            IP
+          </div>
           <div className="flex flex-col">
             <span className="text-sm font-bold tracking-tight text-foreground">IMMI-PULSE</span>
+            <span className="text-[10px] text-muted-foreground">{org?.name || "—"}</span>
           </div>
         </Link>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 space-y-0.5 px-3 py-3">
+      {/* Nav */}
+      <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
         {navigation.map((item) => {
-          const isActive =
-            pathname === item.href ||
-            (item.href !== "/dashboard" && pathname.startsWith(item.href));
+          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          const Icon = item.icon;
+          const badge =
+            item.badgeKey === "preCases" && unreadPre > 0 ? unreadPre : null;
           return (
             <Link
               key={item.name}
               href={item.href}
               className={cn(
-                "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150",
+                "flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm transition-colors",
                 isActive
                   ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              {isActive && (
-                <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />
+              <span className="flex items-center gap-3">
+                <Icon className="h-4 w-4" />
+                {item.name}
+              </span>
+              {badge !== null && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-medium text-primary-foreground">
+                  {badge}
+                </span>
               )}
-              <item.icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-              {item.name}
             </Link>
           );
         })}
       </nav>
 
-      {/* Bottom section */}
+      {/* User menu */}
       <div className="border-t border-border p-3">
-        {/* Version */}
-        <div className="mb-2 px-3">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/50">
-            v{process.env.NEXT_PUBLIC_APP_VERSION || "0.0.0"}
-          </p>
-        </div>
-
-        {/* User menu */}
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-accent">
-              <Avatar className="h-7 w-7">
-                <AvatarFallback className="bg-primary/10 text-[11px] font-semibold text-primary">
-                  {userInitials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 truncate">
-                <p className="truncate text-[13px] font-medium text-foreground">
-                  {user?.first_name} {user?.last_name}
-                </p>
-                <p className="truncate text-[11px] text-muted-foreground">
-                  {user?.email}
-                </p>
-              </div>
-              <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-[220px]">
-            <div className="px-2 py-1.5">
-              <p className="text-sm font-medium">{user?.first_name} {user?.last_name}</p>
-              <p className="text-xs text-muted-foreground">{user?.email}</p>
+          <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-md p-2 text-left hover:bg-muted">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 overflow-hidden">
+              <p className="truncate text-sm font-medium">
+                {user?.first_name} {user?.last_name}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
             </div>
+            <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings/team">
+                <Settings className="mr-2 h-4 w-4" />
+                Team & settings
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive focus:text-destructive">
+            <DropdownMenuItem onClick={logout}>
               <LogOut className="mr-2 h-4 w-4" />
-              Log out
+              Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

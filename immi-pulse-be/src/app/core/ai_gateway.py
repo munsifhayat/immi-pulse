@@ -18,29 +18,30 @@ from app.core.config import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# Approximate Bedrock pricing per 1M tokens
+# Approximate Bedrock pricing per 1M tokens.
+# Keys match Bedrock model IDs as well as the cross-region inference profile prefixes
+# (apac.*, us.*, eu.*, global.*). _normalize_model_id strips the profile prefix
+# before lookup, so we only need one entry per underlying model.
 MODEL_PRICING = {
-    "anthropic.claude-3-haiku-20240307-v1:0": {
-        "input_per_1m": 0.25,
-        "output_per_1m": 1.25,
-    },
-    "anthropic.claude-3-5-haiku-20241022-v1:0": {
-        "input_per_1m": 0.80,
-        "output_per_1m": 4.00,
-    },
-    "anthropic.claude-sonnet-4-20250514-v1:0": {
-        "input_per_1m": 3.00,
-        "output_per_1m": 15.00,
-    },
-    "anthropic.claude-sonnet-4-6": {
-        "input_per_1m": 3.00,
-        "output_per_1m": 15.00,
-    },
-    "default": {
-        "input_per_1m": 1.00,
-        "output_per_1m": 5.00,
-    },
+    # Legacy Claude 3 family (kept for backwards-compat with old usage logs)
+    "anthropic.claude-3-haiku-20240307-v1:0": {"input_per_1m": 0.25, "output_per_1m": 1.25},
+    "anthropic.claude-3-5-haiku-20241022-v1:0": {"input_per_1m": 0.80, "output_per_1m": 4.00},
+    "anthropic.claude-sonnet-4-20250514-v1:0": {"input_per_1m": 3.00, "output_per_1m": 15.00},
+    # Current generation
+    "anthropic.claude-haiku-4-5-20251001-v1:0": {"input_per_1m": 1.00, "output_per_1m": 5.00},
+    "anthropic.claude-sonnet-4-5-20250929-v1:0": {"input_per_1m": 3.00, "output_per_1m": 15.00},
+    "anthropic.claude-sonnet-4-6-20251218-v1:0": {"input_per_1m": 3.00, "output_per_1m": 15.00},
+    "anthropic.claude-opus-4-7-20260420-v1:0": {"input_per_1m": 15.00, "output_per_1m": 75.00},
+    "default": {"input_per_1m": 1.00, "output_per_1m": 5.00},
 }
+
+
+def _normalize_model_id(model_id: str) -> str:
+    """Strip CRIS profile prefix (apac./us./eu./global.) for pricing lookup."""
+    for prefix in ("global.", "apac.", "us.", "eu."):
+        if model_id.startswith(prefix):
+            return model_id[len(prefix):]
+    return model_id
 
 
 @dataclass
@@ -248,7 +249,7 @@ class AIGateway:
         )
 
     def _calculate_cost(self, model_id: str, input_tokens: int, output_tokens: int) -> float:
-        pricing = MODEL_PRICING.get(model_id, MODEL_PRICING["default"])
+        pricing = MODEL_PRICING.get(_normalize_model_id(model_id), MODEL_PRICING["default"])
         return (input_tokens / 1_000_000) * pricing["input_per_1m"] + (
             output_tokens / 1_000_000
         ) * pricing["output_per_1m"]

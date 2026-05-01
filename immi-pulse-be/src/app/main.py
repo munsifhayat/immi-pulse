@@ -127,6 +127,23 @@ def create_app() -> FastAPI:
     app.include_router(marketplace_router, prefix=settings.api_v1_prefix)
     app.include_router(community_router, prefix=settings.api_v1_prefix)
 
+    # New multi-tenant domain — auth, orgs, questionnaires, precases, checkpoints
+    from app.agents.immigration.auth.router import router as auth_router
+    from app.agents.immigration.orgs.router import router as orgs_router
+    from app.agents.immigration.orgs.router import public_router as orgs_public_router
+    from app.agents.immigration.questionnaires.router import router as questionnaires_router
+    from app.agents.immigration.questionnaires.router import public_router as questionnaires_public_router
+    from app.agents.immigration.precases.router import router as precases_router
+    from app.agents.immigration.checkpoints.router import router as checkpoints_router
+
+    app.include_router(auth_router, prefix=settings.api_v1_prefix)
+    app.include_router(orgs_router, prefix=settings.api_v1_prefix)
+    app.include_router(orgs_public_router, prefix=settings.api_v1_prefix)
+    app.include_router(questionnaires_router, prefix=settings.api_v1_prefix)
+    app.include_router(questionnaires_public_router, prefix=settings.api_v1_prefix)
+    app.include_router(precases_router, prefix=settings.api_v1_prefix)
+    app.include_router(checkpoints_router, prefix=settings.api_v1_prefix)
+
     # Activity log & metrics
     from app.agents.shared.activity_router import router as activity_router
     app.include_router(activity_router, prefix=settings.api_v1_prefix)
