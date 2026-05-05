@@ -3,37 +3,58 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Instrument_Serif, JetBrains_Mono } from "next/font/google";
+import {
+  ArrowRight,
+  Check,
+  Eye,
+  EyeOff,
+  Sparkles,
+  ShieldCheck,
+  FileSearch,
+  Inbox,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { ArrowUpRight } from "lucide-react";
+import { fadeUp, stagger } from "@/lib/motion";
 
-const serif = Instrument_Serif({
-  weight: "400",
-  style: ["normal", "italic"],
-  subsets: ["latin"],
-  variable: "--font-serif-d",
-  display: "swap",
-});
-
-const mono = JetBrains_Mono({
-  weight: ["400", "500"],
-  subsets: ["latin"],
-  variable: "--font-mono-d",
-  display: "swap",
-});
-
-const ease = [0.22, 1, 0.36, 1] as const;
-
-const valueLines = [
-  ["I.", "AI visa classification — every email, in seconds."],
-  ["II.", "Document intelligence trained on Australian migration law."],
-  ["III.", "A case manifest that stays tidier than your inbox."],
+const valueProps = [
+  {
+    icon: Inbox,
+    title: "AI visa classification",
+    desc: "Every email triaged in seconds — subclass, urgency, next action.",
+  },
+  {
+    icon: FileSearch,
+    title: "Document intelligence",
+    desc: "Trained on Australian migration law, not generic templates.",
+  },
+  {
+    icon: Sparkles,
+    title: "Case manifest",
+    desc: "A workspace tidier than your inbox, organised by client.",
+  },
 ];
+
+function GridBg({ id }: { id: string }) {
+  return (
+    <div className="pointer-events-none absolute inset-0" aria-hidden>
+      <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id={id} x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
+            <path d="M 48 0 L 0 0 0 48" fill="none" stroke="#7C5CFC" strokeWidth="0.5" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill={`url(#${id})`} opacity="0.05" />
+      </svg>
+    </div>
+  );
+}
 
 export default function SignupPage() {
   const { signup } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [firmName, setFirmName] = useState("");
@@ -41,8 +62,15 @@ export default function SignupPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
+  const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -56,8 +84,7 @@ export default function SignupPage() {
       });
     } catch (err: unknown) {
       const detail =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ||
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
         (err as Error)?.message ||
         "Signup failed";
       setError(typeof detail === "string" ? detail : "Signup failed");
@@ -67,278 +94,276 @@ export default function SignupPage() {
   };
 
   return (
-    <div
-      className={`${serif.variable} ${mono.variable} min-h-screen w-full bg-[#0F1117] text-white antialiased lg:grid lg:grid-cols-[1.05fr_1fr]`}
-    >
-      {/* ─────────────── LEFT PANEL — EDITORIAL BROADSIDE ─────────────── */}
-      <aside className="relative isolate hidden overflow-hidden bg-[#0F1117] lg:flex lg:flex-col">
-        {/* Atmospheric layers */}
-        <BackgroundLayers />
+    <div className="relative min-h-screen w-full overflow-hidden bg-white">
+      <GridBg id="signup-grid" />
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_70%_at_50%_0%,transparent_0%,white_100%)]"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -right-32 -top-32 h-[500px] w-[500px] rounded-full bg-purple/[0.05] blur-3xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -bottom-48 -left-48 h-[450px] w-[450px] rounded-full bg-purple-muted/[0.06] blur-3xl"
+        aria-hidden
+      />
 
-        {/* Top hairline meta */}
-        <div className="relative z-10 flex items-center justify-between px-12 pt-10 font-[family-name:var(--font-mono-d)] text-[10.5px] uppercase tracking-[0.22em] text-white/55">
-          <Link href="/" className="group inline-flex items-center gap-2.5">
-            <span className="block h-1.5 w-1.5 rotate-45 bg-[#BDB4FE] transition-transform duration-500 group-hover:rotate-[225deg]" />
-            <span>IMMI-PULSE</span>
-            <span className="text-white/25">/</span>
-            <span className="text-white/35">SYDNEY · EST. 2026</span>
+      {/* Top bar */}
+      <header className="relative z-10 border-b border-border bg-white/70 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
+          <Link href="/" className="inline-flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple">
+              <span className="font-heading text-[15px] font-semibold leading-none text-white">II</span>
+            </span>
+            <span className="font-heading text-[18px] font-semibold tracking-tight text-navy">
+              IMMI-PULSE
+            </span>
           </Link>
-          <span className="hidden tabular-nums text-white/35 xl:inline">
-            FOLIO Nº 001 — INTAKE
-          </span>
-        </div>
-
-        {/* Centered editorial content */}
-        <div className="relative z-10 flex flex-1 flex-col justify-center px-12 xl:px-16">
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease, delay: 0.05 }}
-            className="font-[family-name:var(--font-mono-d)] text-[10.5px] uppercase tracking-[0.32em] text-[#BDB4FE]/85"
-          >
-            <span className="inline-block h-px w-8 translate-y-[-3px] bg-[#BDB4FE]/60 align-middle" />
-            <span className="ml-3">An invitation to migration agents</span>
-          </motion.p>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, ease, delay: 0.15 }}
-            className="mt-7 max-w-[14ch] font-[family-name:var(--font-serif-d)] text-[clamp(3.4rem,5.4vw,5.6rem)] font-normal leading-[0.95] tracking-[-0.025em] text-white"
-          >
-            Where serious{" "}
-            <span className="italic text-[#BDB4FE]">immigration</span> practice
-            begins.
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, ease, delay: 0.28 }}
-            className="mt-7 max-w-[44ch] text-[15.5px] leading-[1.65] text-white/70"
-          >
-            A modern operating system for OMARA-registered agents and migration
-            firms — built around how you actually work, not how legacy software
-            wishes you did.
-          </motion.p>
-
-          {/* Numbered editorial value props */}
-          <motion.ul
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: {},
-              visible: { transition: { staggerChildren: 0.09, delayChildren: 0.4 } },
-            }}
-            className="mt-12 space-y-4 border-l border-white/10 pl-6"
-          >
-            {valueLines.map(([numeral, text]) => (
-              <motion.li
-                key={numeral}
-                variants={{
-                  hidden: { opacity: 0, x: -10 },
-                  visible: { opacity: 1, x: 0, transition: { duration: 0.7, ease } },
-                }}
-                className="flex items-baseline gap-4 text-[15px] text-white/80"
-              >
-                <span className="font-[family-name:var(--font-serif-d)] text-[18px] italic text-[#BDB4FE]/80">
-                  {numeral}
-                </span>
-                <span className="leading-snug">{text}</span>
-              </motion.li>
-            ))}
-          </motion.ul>
-        </div>
-
-        {/* Bottom — passport seal + footer line */}
-        <div className="relative z-10 flex items-end justify-between px-12 pb-10 xl:px-16">
-          <PassportSeal />
-
-          <motion.blockquote
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, ease, delay: 0.7 }}
-            className="hidden max-w-[28ch] text-right xl:block"
-          >
-            <p className="font-[family-name:var(--font-serif-d)] text-[16px] italic leading-snug text-white/65">
-              &ldquo;Finally, a platform built by people who understand
-              immigration law.&rdquo;
-            </p>
-            <footer className="mt-3 font-[family-name:var(--font-mono-d)] text-[9.5px] uppercase tracking-[0.24em] text-white/40">
-              — Practice Director, Melbourne
-            </footer>
-          </motion.blockquote>
-        </div>
-      </aside>
-
-      {/* ─────────────── RIGHT PANEL — THE MANIFEST FORM ─────────────── */}
-      <section className="relative flex min-h-screen flex-col bg-white text-[#0F1117]">
-        {/* Subtle right-side background */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage:
-              "radial-gradient(ellipse 80% 50% at 80% 0%, rgba(124,92,252,0.05), transparent 70%)",
-          }}
-        />
-
-        {/* Top bar — mobile brand + sign-in link */}
-        <div className="relative z-10 flex items-center justify-between border-b border-[#0F1117]/8 px-6 py-5 sm:px-10 lg:border-b-0 lg:px-12 lg:py-7">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2.5 font-[family-name:var(--font-mono-d)] text-[10.5px] uppercase tracking-[0.22em] text-[#0F1117]/60 lg:hidden"
-          >
-            <span className="block h-1.5 w-1.5 rotate-45 bg-[#7C5CFC]" />
-            IMMI-PULSE
-          </Link>
-          <p className="ml-auto inline-flex items-center gap-2 font-[family-name:var(--font-mono-d)] text-[11px] uppercase tracking-[0.18em] text-[#0F1117]/55">
+          <p className="text-[14px] text-gray-text">
             Already a member?{" "}
             <Link
               href="/login"
-              className="group inline-flex items-center gap-1 text-[#0F1117] underline-offset-4 hover:underline"
+              className="font-medium text-purple hover:text-purple-deep"
             >
               Sign in
-              <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>
           </p>
         </div>
+      </header>
 
-        {/* Form container */}
-        <div className="relative z-10 flex flex-1 items-center justify-center px-6 pb-14 pt-8 sm:px-10 lg:px-14 xl:px-20">
+      {/* Main content */}
+      <main className="relative z-10 mx-auto grid w-full max-w-7xl gap-12 px-6 py-12 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:px-8 lg:py-20">
+        {/* Left — pitch */}
+        <section className="relative">
           <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease, delay: 0.2 }}
-            className="w-full max-w-[480px]"
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            custom={0}
+            className="inline-flex items-center gap-2 rounded-full border border-purple/20 bg-white/80 px-4 py-1.5 shadow-sm backdrop-blur-sm"
           >
-            {/* Section eyebrow */}
-            <div className="flex items-center gap-3 font-[family-name:var(--font-mono-d)] text-[10.5px] uppercase tracking-[0.32em] text-[#7C5CFC]">
-              <span className="block h-px w-6 bg-[#7C5CFC]/40" />
-              <span>New account · Manifest</span>
-            </div>
+            <span className="h-2 w-2 animate-pulse rounded-full bg-teal" />
+            <span className="text-[13px] font-medium text-navy">
+              Built for OMARA-registered agents
+            </span>
+          </motion.div>
 
-            <h2 className="mt-5 max-w-[18ch] font-[family-name:var(--font-serif-d)] text-[44px] font-normal leading-[0.98] tracking-[-0.02em] text-[#0F1117] sm:text-[52px] lg:hidden">
-              Begin your <span className="italic text-[#5B3ADB]">practice</span>.
-            </h2>
-            <h2 className="mt-5 hidden font-[family-name:var(--font-serif-d)] text-[40px] font-normal leading-[1.0] tracking-[-0.02em] text-[#0F1117] lg:block">
-              Create your <span className="italic text-[#5B3ADB]">account</span>.
-            </h2>
+          <motion.h1
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            custom={1}
+            className="mt-6 font-heading text-[clamp(2.5rem,5vw,4rem)] font-normal leading-[1.05] tracking-[-1.5px] text-navy"
+          >
+            Where serious{" "}
+            <span className="bg-gradient-to-r from-purple to-purple-deep bg-clip-text text-transparent">
+              immigration
+            </span>{" "}
+            practice begins.
+          </motion.h1>
 
-            <p className="mt-4 max-w-[42ch] text-[15px] leading-[1.55] text-[#4B5563]">
-              Three minutes. No card. You start on a 14-day Professional trial —
-              full feature set, switch plans anytime.
+          <motion.p
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            custom={2}
+            className="mt-5 max-w-xl text-[17px] leading-relaxed text-gray-text"
+          >
+            A modern operating system for OMARA-registered agents and migration firms —
+            built around how you actually work, not how legacy software wishes you did.
+          </motion.p>
+
+          <motion.ul
+            variants={stagger}
+            initial="hidden"
+            animate="visible"
+            className="mt-10 space-y-5"
+          >
+            {valueProps.map((v, i) => (
+              <motion.li
+                key={v.title}
+                variants={fadeUp}
+                custom={i + 3}
+                className="flex items-start gap-4 rounded-xl border border-border bg-white p-5"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple/10">
+                  <v.icon className="h-5 w-5 text-purple" aria-hidden />
+                </div>
+                <div>
+                  <h3 className="font-heading text-[16px] font-semibold text-navy">
+                    {v.title}
+                  </h3>
+                  <p className="mt-1 text-[14px] leading-relaxed text-gray-text">
+                    {v.desc}
+                  </p>
+                </div>
+              </motion.li>
+            ))}
+          </motion.ul>
+
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            custom={6}
+            className="mt-10 flex items-center gap-4 rounded-xl border border-purple/10 bg-purple/[0.03] p-5"
+          >
+            <ShieldCheck className="h-6 w-6 shrink-0 text-purple" aria-hidden />
+            <p className="text-[14px] leading-relaxed text-gray-text">
+              <span className="font-semibold text-navy">14-day Professional trial.</span>{" "}
+              Full feature set. No credit card. Switch plans anytime.
+            </p>
+          </motion.div>
+        </section>
+
+        {/* Right — form */}
+        <section>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.15 }}
+            className="rounded-2xl border border-border bg-white p-8 shadow-xl shadow-black/[0.03] sm:p-10"
+          >
+            <h2 className="font-heading text-[28px] font-semibold leading-tight text-navy sm:text-[32px]">
+              Create your account
+            </h2>
+            <p className="mt-2 text-[15px] leading-relaxed text-gray-text">
+              Three minutes. No card required. You start on a 14-day Professional trial.
             </p>
 
-            <form onSubmit={onSubmit} className="mt-10 space-y-7">
-              <div className="grid grid-cols-2 gap-x-6">
-                <Field
-                  num="01"
+            <form onSubmit={onSubmit} className="mt-8 space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
                   label="First name"
                   id="firstName"
                   value={firstName}
                   onChange={setFirstName}
                   required
+                  placeholder="Jane"
                 />
-                <Field
-                  num="02"
+                <FormField
                   label="Last name"
                   id="lastName"
                   value={lastName}
                   onChange={setLastName}
+                  placeholder="Doe"
                 />
               </div>
-              <Field
-                num="03"
+              <FormField
                 label="Practice / firm name"
                 id="firmName"
                 value={firmName}
                 onChange={setFirmName}
                 required
+                placeholder="Acme Migration Co."
               />
-              <Field
-                num="04"
-                label="Email"
+              <FormField
+                label="Work email"
                 id="email"
                 type="email"
                 value={email}
                 onChange={setEmail}
                 required
+                placeholder="you@firm.com.au"
               />
-              <Field
-                num="05"
+              <FormField
                 label="Password"
                 id="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={setPassword}
                 required
                 minLength={6}
-                hint="Six characters or more"
+                hint="Minimum 6 characters"
+                trailing={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="text-gray-text transition-colors hover:text-navy"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                }
               />
-              <Field
-                num="06"
+              <FormField
+                label="Confirm password"
+                id="confirmPassword"
+                type={showPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                required
+                minLength={6}
+                hint={
+                  passwordsMismatch
+                    ? "Passwords do not match"
+                    : passwordsMatch
+                    ? "Match confirmed"
+                    : undefined
+                }
+                hintTone={passwordsMismatch ? "error" : passwordsMatch ? "success" : "muted"}
+                trailing={
+                  passwordsMatch ? <Check className="h-4 w-4 text-teal" /> : null
+                }
+              />
+              <FormField
                 label="Promo or pilot code"
                 id="promoCode"
                 value={promoCode}
                 onChange={setPromoCode}
-                hint="Optional"
+                placeholder="Optional"
               />
 
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="border-l-2 border-red-500 bg-red-50 px-4 py-3 font-[family-name:var(--font-mono-d)] text-[12px] tracking-[0.04em] text-red-700"
+                  className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700"
                 >
-                  ⚠ {error}
+                  {error}
                 </motion.div>
               )}
 
-              <SubmitButton busy={busy} />
+              <button
+                type="submit"
+                disabled={busy}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border-2 border-purple bg-purple px-7 py-3.5 text-[16px] font-medium text-white shadow-lg shadow-purple/25 transition-all hover:border-purple-deep hover:bg-purple-deep hover:shadow-purple-deep/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-2 disabled:opacity-60"
+              >
+                {busy ? "Creating your account…" : "Create account"}
+                {!busy && <ArrowRight className="h-4 w-4" aria-hidden />}
+              </button>
 
-              <p className="font-[family-name:var(--font-mono-d)] text-[10.5px] uppercase tracking-[0.18em] text-[#4B5563]/70">
+              <p className="text-center text-[13px] leading-relaxed text-gray-text">
                 By continuing you agree to our{" "}
-                <Link
-                  href="/terms"
-                  className="text-[#0F1117]/80 underline-offset-4 hover:underline"
-                >
+                <Link href="/terms" className="font-medium text-navy underline underline-offset-2 hover:text-purple">
                   Terms
                 </Link>{" "}
-                &{" "}
-                <Link
-                  href="/privacy"
-                  className="text-[#0F1117]/80 underline-offset-4 hover:underline"
-                >
-                  Privacy
+                and{" "}
+                <Link href="/privacy" className="font-medium text-navy underline underline-offset-2 hover:text-purple">
+                  Privacy Policy
                 </Link>
                 .
               </p>
             </form>
-
-            <div className="mt-12 flex items-center justify-between border-t border-[#0F1117]/8 pt-6">
-              <p className="font-[family-name:var(--font-mono-d)] text-[10.5px] uppercase tracking-[0.22em] text-[#4B5563]/70">
-                Need a guided demo?
-              </p>
-              <Link
-                href="/contact"
-                className="group inline-flex items-center gap-1.5 font-[family-name:var(--font-mono-d)] text-[11px] uppercase tracking-[0.2em] text-[#0F1117]"
-              >
-                Book a call
-                <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-              </Link>
-            </div>
           </motion.div>
-        </div>
-      </section>
+
+          <p className="mt-6 text-center text-[14px] text-gray-text">
+            Need a guided demo?{" "}
+            <Link
+              href="/contact"
+              className="font-semibold text-purple hover:text-purple-deep"
+            >
+              Book a call →
+            </Link>
+          </p>
+        </section>
+      </main>
     </div>
   );
 }
 
-/* ─────────────────────────── COMPONENTS ─────────────────────────── */
-
-function Field({
-  num,
+function FormField({
   label,
   id,
   value,
@@ -346,9 +371,11 @@ function Field({
   type = "text",
   required,
   minLength,
+  placeholder,
   hint,
+  hintTone = "muted",
+  trailing,
 }: {
-  num: string;
   label: string;
   id: string;
   value: string;
@@ -356,200 +383,49 @@ function Field({
   type?: string;
   required?: boolean;
   minLength?: number;
+  placeholder?: string;
   hint?: string;
+  hintTone?: "muted" | "success" | "error";
+  trailing?: React.ReactNode;
 }) {
+  const hintColor =
+    hintTone === "error"
+      ? "text-red-600"
+      : hintTone === "success"
+      ? "text-teal"
+      : "text-gray-text/70";
   return (
-    <div className="group relative">
+    <div>
       <label
         htmlFor={id}
-        className="flex items-baseline justify-between font-[family-name:var(--font-mono-d)] text-[10.5px] uppercase tracking-[0.22em] text-[#4B5563]/85"
+        className="flex items-baseline justify-between text-[13px] font-medium text-navy"
       >
         <span>
-          <span className="text-[#7C5CFC]/70">{num}</span>
-          <span className="mx-2 text-[#0F1117]/15">/</span>
-          <span>{label}</span>
-          {required && <span className="ml-1 text-[#7C5CFC]">*</span>}
+          {label}
+          {required && <span className="ml-0.5 text-purple">*</span>}
         </span>
-        {hint && (
-          <span className="text-[#4B5563]/55 normal-case tracking-normal">
-            {hint}
-          </span>
-        )}
+        {hint && <span className={`text-[12px] ${hintColor}`}>{hint}</span>}
       </label>
-      <input
-        id={id}
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required={required}
-        minLength={minLength}
-        autoComplete="off"
-        className="peer mt-2 block w-full border-0 border-b border-[#0F1117]/15 bg-transparent px-0 pb-2.5 pt-1 text-[18px] text-[#0F1117] outline-none transition-colors placeholder:text-[#4B5563]/40 focus:border-[#0F1117] focus:ring-0"
-      />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute bottom-0 left-0 h-px w-full origin-left scale-x-0 bg-[#7C5CFC] transition-transform duration-500 ease-out peer-focus:scale-x-100"
-      />
-    </div>
-  );
-}
-
-function SubmitButton({ busy }: { busy: boolean }) {
-  return (
-    <button
-      type="submit"
-      disabled={busy}
-      className="group relative block w-full overflow-hidden bg-[#0F1117] py-5 text-left transition-all duration-500 hover:bg-[#5B3ADB] disabled:opacity-60"
-    >
-      <span className="relative flex items-center justify-between px-6">
-        <span className="font-[family-name:var(--font-mono-d)] text-[12.5px] font-medium uppercase tracking-[0.24em] text-white">
-          {busy ? "Creating your manifest…" : "Create account"}
-        </span>
-        <span className="relative inline-flex items-center gap-3 text-white">
-          <span className="h-px w-10 bg-white/40 transition-all duration-500 group-hover:w-16 group-hover:bg-white" />
-          <svg
-            width="22"
-            height="10"
-            viewBox="0 0 22 10"
-            fill="none"
-            className="transition-transform duration-500 group-hover:translate-x-1"
-            aria-hidden
-          >
-            <path
-              d="M0 5h20M16 1l4 4-4 4"
-              stroke="currentColor"
-              strokeWidth="1.2"
-              strokeLinecap="square"
-            />
-          </svg>
-        </span>
-      </span>
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-white/20"
-      />
-    </button>
-  );
-}
-
-/* ─────────────────────── LEFT PANEL DECORATION ─────────────────────── */
-
-function BackgroundLayers() {
-  return (
-    <>
-      {/* Radial brand glow */}
-      <div
-        aria-hidden
-        className="absolute inset-0 opacity-90"
-        style={{
-          background:
-            "radial-gradient(ellipse 70% 60% at 18% 100%, rgba(124,92,252,0.22), transparent 70%), radial-gradient(ellipse 60% 50% at 90% 0%, rgba(45,212,191,0.10), transparent 65%)",
-        }}
-      />
-      {/* Topographic contour lines */}
-      <svg
-        aria-hidden
-        className="absolute inset-0 h-full w-full opacity-[0.18]"
-        viewBox="0 0 800 1000"
-        preserveAspectRatio="xMidYMid slice"
-      >
-        <defs>
-          <linearGradient id="contour" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#BDB4FE" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#7C5CFC" stopOpacity="0.05" />
-          </linearGradient>
-        </defs>
-        {Array.from({ length: 14 }).map((_, i) => {
-          const r = 220 + i * 60;
-          return (
-            <ellipse
-              key={i}
-              cx="120"
-              cy="980"
-              rx={r}
-              ry={r * 0.78}
-              fill="none"
-              stroke="url(#contour)"
-              strokeWidth="0.7"
-            />
-          );
-        })}
-      </svg>
-      {/* Faint dot grid */}
-      <div
-        aria-hidden
-        className="absolute inset-0 opacity-[0.15]"
-        style={{
-          backgroundImage:
-            "radial-gradient(rgba(255,255,255,0.55) 1px, transparent 1px)",
-          backgroundSize: "28px 28px",
-          maskImage:
-            "radial-gradient(ellipse 70% 70% at 60% 40%, #000 30%, transparent 80%)",
-          WebkitMaskImage:
-            "radial-gradient(ellipse 70% 70% at 60% 40%, #000 30%, transparent 80%)",
-        }}
-      />
-      {/* Grain */}
-      <div
-        aria-hidden
-        className="absolute inset-0 mix-blend-overlay opacity-[0.18]"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
-        }}
-      />
-      {/* Vertical hairline gutter */}
-      <div
-        aria-hidden
-        className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-white/15 to-transparent"
-      />
-    </>
-  );
-}
-
-function PassportSeal() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.85, rotate: -8 }}
-      animate={{ opacity: 1, scale: 1, rotate: -8 }}
-      transition={{ duration: 1.1, ease, delay: 0.55 }}
-      className="relative h-[148px] w-[148px] shrink-0"
-      aria-hidden
-    >
-      <svg
-        viewBox="0 0 200 200"
-        className="absolute inset-0 h-full w-full animate-[spin_60s_linear_infinite] text-[#BDB4FE]/85"
-      >
-        <defs>
-          <path
-            id="seal-curve"
-            d="M 100,100 m -78,0 a 78,78 0 1,1 156,0 a 78,78 0 1,1 -156,0"
-          />
-        </defs>
-        <text
-          fontFamily="var(--font-mono-d), ui-monospace"
-          fontSize="9.6"
-          letterSpacing="3.6"
-          fill="currentColor"
-        >
-          <textPath href="#seal-curve" startOffset="0">
-            AGENT REGISTRATION · OMARA · COMMONWEALTH OF AUSTRALIA · ✦ ·
-          </textPath>
-        </text>
-      </svg>
-      <div className="absolute inset-[20px] rounded-full border border-[#BDB4FE]/40" />
-      <div className="absolute inset-[30px] rounded-full border border-dashed border-[#BDB4FE]/25" />
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="font-[family-name:var(--font-mono-d)] text-[9.5px] uppercase tracking-[0.28em] text-white/55">
-          Folio
-        </span>
-        <span className="mt-1 font-[family-name:var(--font-serif-d)] text-[34px] italic leading-none text-white">
-          Nº 001
-        </span>
-        <span className="mt-1.5 font-[family-name:var(--font-mono-d)] text-[8.5px] uppercase tracking-[0.28em] text-[#BDB4FE]/80">
-          Intake
-        </span>
+      <div className="relative mt-1.5">
+        <input
+          id={id}
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={required}
+          minLength={minLength}
+          placeholder={placeholder}
+          autoComplete="off"
+          className={`block w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-[15px] text-navy placeholder:text-gray-text/40 focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/20 ${
+            trailing ? "pr-10" : ""
+          }`}
+        />
+        {trailing && (
+          <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center">
+            {trailing}
+          </div>
+        )}
       </div>
-    </motion.div>
+    </div>
   );
 }
