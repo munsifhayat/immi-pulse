@@ -21,6 +21,12 @@ export interface Org {
   niche?: string | null;
   omara_number?: string | null;
   country: string;
+  abn?: string | null;
+  bsb?: string | null;
+  bank_account_number?: string | null;
+  bank_account_name?: string | null;
+  payid?: string | null;
+  bpay_biller_code?: string | null;
 }
 
 export interface Seat {

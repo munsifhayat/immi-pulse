@@ -38,6 +38,14 @@ class OrgOut(BaseModel):
     omara_number: Optional[str] = None
     country: str
 
+    # Australian payment + business details (optional — fill in Settings → Bank & ABN)
+    abn: Optional[str] = None
+    bsb: Optional[str] = None
+    bank_account_number: Optional[str] = None
+    bank_account_name: Optional[str] = None
+    payid: Optional[str] = None
+    bpay_biller_code: Optional[str] = None
+
     class Config:
         from_attributes = True
 

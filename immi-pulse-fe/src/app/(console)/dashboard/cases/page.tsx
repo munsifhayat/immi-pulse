@@ -3,12 +3,21 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { FolderKanban, Plus, Filter, Loader2 } from "lucide-react";
-import { visaSubclasses } from "@/lib/mock-data/immigration-mock";
+import {
+  FolderKanban,
+  Plus,
+  Filter,
+  Loader2,
+  ArrowRight,
+  FileText,
+  ListChecks,
+  Receipt,
+  Upload,
+} from "lucide-react";
+import { visaSubclasses } from "@/lib/constants/visa";
 import { useCases, useCreateCase } from "@/lib/api/hooks/cases";
 import type { CaseOut, CaseStage } from "@/lib/types/immigration";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -33,10 +42,14 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { fadeUp, stagger } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import {
+  PageHeader,
+  EditorialButton,
+  EditorialTag,
+} from "@/components/layout/page-header";
 
 // ── Stage labels & colors ───────────────────────────────────
 // Keys mirror backend CASE_STAGES and frontend CaseStage in immigration.ts.
@@ -148,6 +161,11 @@ export default function CasesPage() {
     );
   }, [cases]);
 
+  const hasActiveFilters =
+    stageFilter !== "all" || visaFilter !== "all" || priorityFilter !== "all";
+  const isEmptyAllTime =
+    !casesQuery.isLoading && cases.length === 0 && !hasActiveFilters;
+
   // ── Stats ───────────────────────────────────────────────
   const stats = useMemo(() => {
     const active = cases.filter((c) => c.stage !== "decision").length;
@@ -205,128 +223,120 @@ export default function CasesPage() {
 
   return (
     <motion.div
-      className="space-y-6 text-foreground"
+      className="space-y-8 text-foreground"
       variants={stagger}
       initial="hidden"
       animate="visible"
     >
-      {/* Header */}
-      <motion.div
-        variants={fadeUp}
-        custom={0}
-        className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-            <FolderKanban className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">
-              Cases
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Manage all visa applications and case progress
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {casesQuery.isLoading && (
-            <Badge
-              variant="secondary"
-              className="bg-blue-50 text-blue-700 border-blue-200 gap-1"
+      <PageHeader
+        eyebrow="Folio Nº 005 — Caseload"
+        title={
+          <>
+            Visa applications, <em>in motion</em>.
+          </>
+        }
+        description="Track stages, collect documents, and ship lodgements — every active matter in one register."
+        actions={
+          <>
+            {casesQuery.isLoading && (
+              <EditorialTag tone="muted">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Loading
+              </EditorialTag>
+            )}
+            {casesQuery.isError && (
+              <EditorialTag tone="danger">API error</EditorialTag>
+            )}
+            <EditorialButton
+              variant="solid"
+              onClick={() => setNewCaseOpen(true)}
             >
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Loading
-            </Badge>
-          )}
-          {casesQuery.isError && (
-            <Badge
-              variant="secondary"
-              className="bg-red-50 text-red-700 border-red-200"
-            >
-              API error
-            </Badge>
-          )}
-          <Dialog open={newCaseOpen} onOpenChange={setNewCaseOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="gap-1.5">
-                <Plus className="h-4 w-4" />
-                New Case
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create new case</DialogTitle>
-                <DialogDescription>
-                  Create a case manually. It will start in the Inquiry stage so
-                  you can send the client a portal link and collect documents.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-2">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Client name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
-                    placeholder="Priya Sharma"
-                    value={newCaseName}
-                    onChange={(e) => setNewCaseName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Client email
-                  </label>
-                  <input
-                    type="email"
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
-                    placeholder="priya@example.com"
-                    value={newCaseEmail}
-                    onChange={(e) => setNewCaseEmail(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Visa subclass
-                  </label>
-                  <Select value={newCaseVisa} onValueChange={setNewCaseVisa}>
-                    <SelectTrigger className="w-full h-9 text-[13px]">
-                      <SelectValue placeholder="Select a visa subclass" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {visaSubclasses.map((v) => (
-                        <SelectItem key={v.code} value={v.code}>
-                          {v.code} — {v.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <DialogClose asChild>
-                  <Button variant="outline" size="sm">
-                    Cancel
-                  </Button>
-                </DialogClose>
-                <Button
-                  size="sm"
-                  disabled={!newCaseName.trim() || createCase.isPending}
-                  onClick={handleCreateCase}
-                >
-                  {createCase.isPending && (
-                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                  )}
-                  Create case
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </motion.div>
+              <Plus className="h-3 w-3" />
+              New Case
+            </EditorialButton>
+          </>
+        }
+      />
 
+      {/* New-case dialog — controlled, decoupled from header. */}
+      <Dialog open={newCaseOpen} onOpenChange={setNewCaseOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create new case</DialogTitle>
+            <DialogDescription>
+              Create a case manually. It will start in the Inquiry stage so you
+              can send the client a portal link and collect documents.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                Client name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                placeholder="Client's full name"
+                value={newCaseName}
+                onChange={(e) => setNewCaseName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                Client email
+              </label>
+              <input
+                type="email"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                placeholder="client@example.com"
+                value={newCaseEmail}
+                onChange={(e) => setNewCaseEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                Visa subclass
+              </label>
+              <Select value={newCaseVisa} onValueChange={setNewCaseVisa}>
+                <SelectTrigger className="w-full h-9 text-[13px]">
+                  <SelectValue placeholder="Select a visa subclass" />
+                </SelectTrigger>
+                <SelectContent>
+                  {visaSubclasses.map((v) => (
+                    <SelectItem key={v.code} value={v.code}>
+                      {v.code} — {v.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <DialogClose asChild>
+              <Button variant="outline" size="sm">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              size="sm"
+              disabled={!newCaseName.trim() || createCase.isPending}
+              onClick={handleCreateCase}
+            >
+              {createCase.isPending && (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              )}
+              Create case
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {isEmptyAllTime ? (
+        <motion.div variants={fadeUp} custom={1}>
+          <CasesEmptyState onCreate={() => setNewCaseOpen(true)} />
+        </motion.div>
+      ) : (
+        <>
       {/* Stats Bar */}
       <motion.div
         variants={fadeUp}
@@ -551,6 +561,103 @@ export default function CasesPage() {
           </Table>
         </Card>
       </motion.div>
+        </>
+      )}
     </motion.div>
+  );
+}
+
+// ── Empty state ─────────────────────────────────────────────
+function CasesEmptyState({ onCreate }: { onCreate: () => void }) {
+  const steps = [
+    {
+      icon: FileText,
+      title: "Open a case",
+      description: "Promote a pre-case or create one manually.",
+    },
+    {
+      icon: ListChecks,
+      title: "Generate a checklist",
+      description: "Tailored to the visa subclass.",
+    },
+    {
+      icon: Upload,
+      title: "Collect documents",
+      description: "Share a secure portal link with a PIN.",
+    },
+    {
+      icon: Receipt,
+      title: "Bill in checkpoints",
+      description: "Invoice each milestone separately.",
+    },
+  ];
+
+  return (
+    <Card className="overflow-hidden border-border/60 p-0">
+      <div className="grid gap-0 lg:grid-cols-[1.1fr_1fr]">
+        {/* Left: hero + actions */}
+        <div className="flex flex-col gap-5 p-8 sm:p-10">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
+            <FolderKanban className="h-5 w-5 text-primary" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-xl font-semibold tracking-tight text-foreground">
+              No cases yet
+            </h3>
+            <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+              Cases are paying engagements — documents, checkpoints, a client
+              portal. Most start as a pre-case from your public questionnaire,
+              but you can open one manually too.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <Button onClick={onCreate} className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              Create case manually
+            </Button>
+            <Button asChild variant="outline">
+              <a href="/dashboard/precases" className="gap-1.5">
+                Open pre-cases
+                <ArrowRight className="h-3.5 w-3.5" />
+              </a>
+            </Button>
+          </div>
+        </div>
+
+        {/* Right: how it works — vertical numbered stepper */}
+        <div className="border-t border-border/60 bg-muted/20 p-6 sm:p-8 lg:border-l lg:border-t-0">
+          <p className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            How a case flows
+          </p>
+          <ol className="relative space-y-4">
+            {steps.map((s, i) => {
+              const Icon = s.icon;
+              const isLast = i === steps.length - 1;
+              return (
+                <li key={s.title} className="relative flex items-start gap-3">
+                  {!isLast && (
+                    <span
+                      className="absolute left-[15px] top-8 h-[calc(100%+0.25rem)] w-px bg-border"
+                      aria-hidden
+                    />
+                  )}
+                  <span className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground">
+                    <Icon className="h-3.5 w-3.5" />
+                  </span>
+                  <div className="flex-1 pt-0.5">
+                    <p className="text-sm font-semibold text-foreground">
+                      {s.title}
+                    </p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                      {s.description}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </div>
+    </Card>
   );
 }

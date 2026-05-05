@@ -9,10 +9,15 @@ from app.agents.immigration.auth.schemas import OrgOut
 from app.agents.immigration.orgs import service as org_service
 from app.agents.immigration.orgs.schemas import (
     AcceptInviteRequest,
+    BillingSummary,
     InviteCreate,
     InviteOut,
     OrgUpdate,
+    PlanOut,
+    RedeemPromoRequest,
+    RedeemPromoResponse,
     SeatOut,
+    SelectPlanRequest,
 )
 from app.core.jwt_auth import (
     CurrentContext,
@@ -63,6 +68,51 @@ async def revoke_seat(
     from uuid import UUID
     await org_service.revoke_seat(db, ctx.org_id, UUID(seat_id), ctx.seat_id)
     return None
+
+
+@router.post("/seats/{seat_id}/resend", response_model=InviteOut)
+async def resend_seat_invite(
+    seat_id: str,
+    ctx: CurrentContext = Depends(get_current_owner_or_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    from uuid import UUID
+    return await org_service.resend_invite(db, ctx.org_id, UUID(seat_id))
+
+
+@router.get("/billing", response_model=BillingSummary)
+async def get_billing(
+    ctx: CurrentContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db),
+):
+    return await org_service.get_billing_summary(db, ctx.org_id)
+
+
+@router.post("/billing/select-plan", response_model=BillingSummary)
+async def select_plan(
+    payload: SelectPlanRequest,
+    ctx: CurrentContext = Depends(get_current_owner_or_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    return await org_service.select_plan(db, ctx.org_id, payload.tier)
+
+
+@router.post("/billing/redeem-promo", response_model=RedeemPromoResponse)
+async def redeem_promo(
+    payload: RedeemPromoRequest,
+    ctx: CurrentContext = Depends(get_current_owner_or_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Apply a pilot/promo code post-signup. Idempotent for the same pilot."""
+    return await org_service.redeem_promo(db, ctx.org_id, payload.code)
+
+
+# Plans catalog — readable by anyone authenticated (it's also exposed publicly via pricing page).
+@router.get("/plans", response_model=list[PlanOut])
+async def list_plans(
+    ctx: CurrentContext = Depends(get_current_context),
+):
+    return await org_service.list_plans()
 
 
 # Public-ish endpoint — no auth required to redeem an invite token

@@ -42,7 +42,9 @@ def create_app() -> FastAPI:
         ],
     )
 
-    # CORS middleware
+    # Middleware order: add inner first, outer last.
+    # APIKeyAuth runs before app, CORS wraps everything so even 401s carry CORS headers.
+    app.add_middleware(APIKeyAuthMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.effective_cors_origins,
@@ -50,9 +52,6 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-    # API Key auth middleware
-    app.add_middleware(APIKeyAuthMiddleware)
 
     # Validation error handlers
     @app.exception_handler(RequestValidationError)
@@ -127,14 +126,21 @@ def create_app() -> FastAPI:
     app.include_router(marketplace_router, prefix=settings.api_v1_prefix)
     app.include_router(community_router, prefix=settings.api_v1_prefix)
 
-    # New multi-tenant domain — auth, orgs, questionnaires, precases, checkpoints
+    # New multi-tenant domain — auth, orgs, questionnaires, precases, checkpoints,
+    # clients, engagement letters, payments
     from app.agents.immigration.auth.router import router as auth_router
-    from app.agents.immigration.orgs.router import router as orgs_router
-    from app.agents.immigration.orgs.router import public_router as orgs_public_router
-    from app.agents.immigration.questionnaires.router import router as questionnaires_router
-    from app.agents.immigration.questionnaires.router import public_router as questionnaires_public_router
-    from app.agents.immigration.precases.router import router as precases_router
     from app.agents.immigration.checkpoints.router import router as checkpoints_router
+    from app.agents.immigration.clients.router import router as clients_router
+    from app.agents.immigration.engagement.router import router as engagement_router
+    from app.agents.immigration.engagement.router import public_router as engagement_public_router
+    from app.agents.immigration.orgs.router import public_router as orgs_public_router
+    from app.agents.immigration.orgs.router import router as orgs_router
+    from app.agents.immigration.payments.router import router as payments_router
+    from app.agents.immigration.precases.router import router as precases_router
+    from app.agents.immigration.questionnaires.router import (
+        public_router as questionnaires_public_router,
+    )
+    from app.agents.immigration.questionnaires.router import router as questionnaires_router
 
     app.include_router(auth_router, prefix=settings.api_v1_prefix)
     app.include_router(orgs_router, prefix=settings.api_v1_prefix)
@@ -143,6 +149,10 @@ def create_app() -> FastAPI:
     app.include_router(questionnaires_public_router, prefix=settings.api_v1_prefix)
     app.include_router(precases_router, prefix=settings.api_v1_prefix)
     app.include_router(checkpoints_router, prefix=settings.api_v1_prefix)
+    app.include_router(clients_router, prefix=settings.api_v1_prefix)
+    app.include_router(engagement_router, prefix=settings.api_v1_prefix)
+    app.include_router(engagement_public_router, prefix=settings.api_v1_prefix)
+    app.include_router(payments_router, prefix=settings.api_v1_prefix)
 
     # Activity log & metrics
     from app.agents.shared.activity_router import router as activity_router

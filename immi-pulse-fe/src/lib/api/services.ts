@@ -89,6 +89,14 @@ export interface PreCaseListItem {
   client_name?: string | null;
   submitted_at?: string | null;
   read_at?: string | null;
+  qualified_at?: string | null;
+  letter_sent_at?: string | null;
+  letter_signed_at?: string | null;
+  paid_at?: string | null;
+  converted_at?: string | null;
+  skipped_letter?: string | null;
+  skipped_payment?: string | null;
+  promoted_case_id?: string | null;
   created_at: string;
 }
 
@@ -97,7 +105,6 @@ export interface PreCaseDetail extends PreCaseListItem {
   questionnaire_id?: string | null;
   questionnaire_fields: QuestionField[];
   answers: Record<string, unknown>;
-  promoted_case_id?: string | null;
 }
 
 export interface Checkpoint {
@@ -122,14 +129,68 @@ export const authApi = {
   me: async () => (await apiClient.get("/auth/me")).data,
 };
 
+export interface Plan {
+  tier: "starter" | "pro" | "enterprise";
+  name: string;
+  description: string;
+  price_per_seat_aud_monthly: number;
+  price_label: string;
+  is_default_signup: boolean;
+  is_custom: boolean;
+  features: string[];
+}
+
+export interface BillingSummary {
+  tier: "starter" | "pro" | "enterprise";
+  status: "trial" | "active" | "past_due" | "canceled" | "frozen" | "archived";
+  plan_name: string;
+  price_label: string;
+  price_per_seat_aud_monthly: number;
+  is_custom: boolean;
+  trial_ends_at: string | null;
+  current_period_end: string | null;
+  total_seats: number;
+  role_counts: Record<string, number>;
+  monthly_total_aud: number;
+  features: string[];
+}
+
 export const orgApi = {
-  update: async (payload: Partial<{ name: string; niche: string; omara_number: string }>) =>
-    (await apiClient.patch("/org", payload)).data,
+  update: async (
+    payload: Partial<{
+      name: string;
+      niche: string;
+      omara_number: string;
+      abn: string;
+      bsb: string;
+      bank_account_number: string;
+      bank_account_name: string;
+      payid: string;
+      bpay_biller_code: string;
+    }>
+  ) => (await apiClient.patch("/org", payload)).data,
   listSeats: async (): Promise<SeatRow[]> => (await apiClient.get("/org/seats")).data,
   invite: async (email: string, role: string): Promise<InviteResponse> =>
     (await apiClient.post("/org/seats/invite", { email, role })).data,
   removeSeat: async (seatId: string) =>
     (await apiClient.delete(`/org/seats/${seatId}`)).data,
+  resendInvite: async (seatId: string): Promise<InviteResponse> =>
+    (await apiClient.post(`/org/seats/${seatId}/resend`)).data,
+  listPlans: async (): Promise<Plan[]> =>
+    (await apiClient.get("/org/plans")).data,
+  getBilling: async (): Promise<BillingSummary> =>
+    (await apiClient.get("/org/billing")).data,
+  selectPlan: async (tier: Plan["tier"]): Promise<BillingSummary> =>
+    (await apiClient.post("/org/billing/select-plan", { tier })).data,
+  redeemPromo: async (
+    code: string
+  ): Promise<{
+    applied: boolean;
+    already_applied: boolean;
+    credits_added: number;
+    pilot_name: string | null;
+    billing: BillingSummary;
+  }> => (await apiClient.post("/org/billing/redeem-promo", { code })).data,
 };
 
 // ---- Questionnaires ----
@@ -184,20 +245,264 @@ export const publicQuestionnairesApi = {
 // ---- Pre-Cases ----
 
 export const preCasesApi = {
-  list: async (status?: string): Promise<PreCaseListItem[]> =>
+  list: async (params?: { status?: string; group?: "inbox" | "precase" | "terminal" }): Promise<PreCaseListItem[]> =>
     (
       await apiClient.get("/precases", {
-        params: status ? { status } : undefined,
+        params,
       })
     ).data,
   get: async (id: string): Promise<PreCaseDetail> =>
     (await apiClient.get(`/precases/${id}`)).data,
   archive: async (id: string) =>
     (await apiClient.post(`/precases/${id}/archive`)).data,
+  qualify: async (id: string, note?: string): Promise<PreCaseDetail> =>
+    (await apiClient.post(`/precases/${id}/qualify`, { note })).data,
   promote: async (id: string): Promise<{ case_id: string }> =>
     (await apiClient.post(`/precases/${id}/promote`)).data,
+  forceConvert: async (
+    id: string,
+    payload: { reason: string; visa_subclass?: string; visa_name?: string }
+  ): Promise<{ case_id: string }> =>
+    (await apiClient.post(`/precases/${id}/force-convert`, payload)).data,
   retriggerAi: async (id: string) =>
     (await apiClient.post(`/precases/${id}/retrigger-ai`)).data,
+};
+
+// ---- Clients ----
+
+export interface ClientListItem {
+  id: string;
+  primary_email: string;
+  name?: string | null;
+  phone?: string | null;
+  country?: string | null;
+  first_seen_at?: string | null;
+  last_activity_at?: string | null;
+  query_count: number;
+  precase_count: number;
+  case_count: number;
+  archived_count: number;
+  latest_status: "query" | "precase" | "case" | "none";
+}
+
+export interface ClientHistoryItem {
+  kind: "query" | "precase" | "letter_sent" | "letter_signed" | "payment" | "case_opened" | "case_stage" | "manual_note";
+  occurred_at: string;
+  title: string;
+  detail?: string | null;
+  ref_id?: string | null;
+}
+
+export interface ClientDetail {
+  id: string;
+  primary_email: string;
+  name?: string | null;
+  phone?: string | null;
+  country?: string | null;
+  first_seen_at?: string | null;
+  created_at: string;
+  queries: Array<Record<string, unknown>>;
+  precases: Array<Record<string, unknown>>;
+  cases: Array<Record<string, unknown>>;
+  history: ClientHistoryItem[];
+}
+
+export const clientsApi = {
+  list: async (search?: string): Promise<ClientListItem[]> =>
+    (await apiClient.get("/clients", { params: search ? { search } : undefined })).data,
+  get: async (id: string): Promise<ClientDetail> =>
+    (await apiClient.get(`/clients/${id}`)).data,
+  create: async (payload: {
+    primary_email: string;
+    name?: string;
+    phone?: string;
+    country?: string;
+  }): Promise<ClientListItem> => (await apiClient.post("/clients", payload)).data,
+  patch: async (
+    id: string,
+    payload: Partial<{ name: string; phone: string; country: string }>
+  ): Promise<ClientDetail> => (await apiClient.patch(`/clients/${id}`, payload)).data,
+  sendQuestionnaire: async (
+    id: string,
+    payload: { questionnaire_id: string; personal_note?: string }
+  ): Promise<{ public_link: string; note: string }> =>
+    (await apiClient.post(`/clients/${id}/send-questionnaire`, payload)).data,
+  openCaseDirect: async (
+    id: string,
+    payload: { visa_subclass?: string; visa_name?: string; notes?: string; skip_reason?: string }
+  ): Promise<{ case_id: string }> =>
+    (await apiClient.post(`/clients/${id}/open-case`, payload)).data,
+};
+
+// ---- Engagement Letters ----
+
+export interface FeeDefaults {
+  professional_fee?: string | number;
+  disbursements?: string | number;
+  retainer?: string | number;
+  currency?: string;
+}
+
+export interface FeeLine {
+  label: string;
+  amount_aud: string | number;
+  kind: "professional_fee" | "disbursement" | "retainer" | "balance" | "other";
+}
+
+export interface LetterTemplate {
+  id: string;
+  org_id: string;
+  name: string;
+  body_md: string;
+  fee_defaults?: FeeDefaults | null;
+  is_default: boolean;
+  created_at: string;
+  updated_at?: string | null;
+}
+
+export interface LetterOut {
+  id: string;
+  pre_case_id: string;
+  template_id?: string | null;
+  rendered_body_md: string;
+  fee_lines: FeeLine[];
+  status: string;
+  sent_at?: string | null;
+  signed_at?: string | null;
+  sign_url?: string | null;
+  sign_link_expires_at?: string | null;
+  created_at: string;
+}
+
+export interface PublicLetterView {
+  letter_id: string;
+  firm_name: string;
+  omara_number?: string | null;
+  abn?: string | null;
+  rendered_body_md: string;
+  rendered_html?: string | null;
+  fee_lines: FeeLine[];
+  status: string;
+}
+
+export interface SendLetterResponse {
+  letter_id: string;
+  sign_url: string;
+  sign_pin: string;
+  expires_at: string;
+}
+
+export const lettersApi = {
+  listTemplates: async (): Promise<LetterTemplate[]> =>
+    (await apiClient.get("/engagement-letters/templates")).data,
+  getDefaultTemplate: async (): Promise<LetterTemplate> =>
+    (await apiClient.get("/engagement-letters/templates/default")).data,
+  createTemplate: async (payload: {
+    name?: string;
+    body_md: string;
+    fee_defaults?: FeeDefaults;
+    is_default?: boolean;
+  }): Promise<LetterTemplate> =>
+    (await apiClient.post("/engagement-letters/templates", payload)).data,
+  patchTemplate: async (
+    id: string,
+    payload: Partial<{ name: string; body_md: string; fee_defaults: FeeDefaults; is_default: boolean }>
+  ): Promise<LetterTemplate> =>
+    (await apiClient.patch(`/engagement-letters/templates/${id}`, payload)).data,
+  deleteTemplate: async (id: string) =>
+    (await apiClient.delete(`/engagement-letters/templates/${id}`)).data,
+
+  getForPreCase: async (preCaseId: string): Promise<LetterOut | null> =>
+    (await apiClient.get(`/engagement-letters/by-precase/${preCaseId}`)).data,
+  send: async (
+    preCaseId: string,
+    payload: {
+      compose: {
+        template_id?: string;
+        visa_subclass?: string;
+        visa_name?: string;
+        scope?: string;
+        fee_lines: FeeLine[];
+        extra_md?: string;
+      };
+      expires_in_days?: number;
+    }
+  ): Promise<SendLetterResponse> =>
+    (await apiClient.post(`/engagement-letters/by-precase/${preCaseId}/send`, payload)).data,
+  markSignedManually: async (
+    preCaseId: string,
+    payload: { signer_name: string; method?: "manual_upload" | "consultant_attest"; reason: string; uploaded_pdf_s3_key?: string }
+  ): Promise<LetterOut> =>
+    (await apiClient.post(`/engagement-letters/by-precase/${preCaseId}/mark-signed-manually`, payload)).data,
+  void: async (letterId: string) =>
+    (await apiClient.post(`/engagement-letters/${letterId}/void`)).data,
+};
+
+export const publicLettersApi = {
+  get: async (signToken: string): Promise<PublicLetterView> =>
+    (await apiClient.get(`/public/letters/${signToken}`)).data,
+  sign: async (
+    signToken: string,
+    payload: {
+      pin: string;
+      consent_given: boolean;
+      signer_name: string;
+      method: "typed_name" | "drawn";
+      signature_image_b64?: string;
+    }
+  ): Promise<{ success: boolean; signed_at: string; download_url: string | null }> =>
+    (await apiClient.post(`/public/letters/${signToken}/sign`, payload)).data,
+};
+
+// ---- Payments ----
+
+export type PaymentMethod =
+  | "stripe_card"
+  | "stripe_becs"
+  | "bank_transfer"
+  | "payid"
+  | "bpay"
+  | "cash"
+  | "cheque"
+  | "waived"
+  | "other";
+
+export interface PaymentRecord {
+  id: string;
+  checkpoint_id?: string | null;
+  pre_case_id?: string | null;
+  case_id?: string | null;
+  method: PaymentMethod;
+  amount_aud: string;
+  reference?: string | null;
+  received_at: string;
+  notes?: string | null;
+  receipt_number?: string | null;
+  created_at: string;
+}
+
+export const paymentsApi = {
+  list: async (params: {
+    pre_case_id?: string;
+    case_id?: string;
+    checkpoint_id?: string;
+  }): Promise<PaymentRecord[]> =>
+    (await apiClient.get("/payments", { params })).data,
+  record: async (payload: {
+    checkpoint_id?: string;
+    pre_case_id?: string;
+    case_id?: string;
+    method: PaymentMethod;
+    amount_aud: string | number;
+    reference?: string;
+    received_at: string;
+    notes?: string;
+  }): Promise<PaymentRecord> => (await apiClient.post("/payments", payload)).data,
+  skip: async (payload: {
+    pre_case_id: string;
+    reason: string;
+  }): Promise<{ payment_record_id: string; pre_case_id: string; new_status: string }> =>
+    (await apiClient.post("/payments/skip", payload)).data,
 };
 
 // ---- Checkpoints ----

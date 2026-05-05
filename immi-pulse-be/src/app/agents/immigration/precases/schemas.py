@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class PreCaseListItem(BaseModel):
@@ -20,6 +20,14 @@ class PreCaseListItem(BaseModel):
     client_name: Optional[str] = None
     submitted_at: Optional[datetime] = None
     read_at: Optional[datetime] = None
+    qualified_at: Optional[datetime] = None
+    letter_sent_at: Optional[datetime] = None
+    letter_signed_at: Optional[datetime] = None
+    paid_at: Optional[datetime] = None
+    converted_at: Optional[datetime] = None
+    skipped_letter: Optional[str] = None
+    skipped_payment: Optional[str] = None
+    promoted_case_id: Optional[UUID] = None
     created_at: datetime
 
 
@@ -40,6 +48,16 @@ class PreCaseDetail(BaseModel):
     answers: dict[str, Any] = {}
     submitted_at: Optional[datetime] = None
     promoted_case_id: Optional[UUID] = None
+
+    # Lifecycle timestamps
+    qualified_at: Optional[datetime] = None
+    letter_sent_at: Optional[datetime] = None
+    letter_signed_at: Optional[datetime] = None
+    paid_at: Optional[datetime] = None
+    converted_at: Optional[datetime] = None
+    skipped_letter: Optional[str] = None
+    skipped_payment: Optional[str] = None
+
     created_at: datetime
 
 
@@ -49,3 +67,15 @@ class PromoteResponse(BaseModel):
 
 class PreCaseDecision(BaseModel):
     action: Literal["archive", "mark_unread", "mark_read"]
+
+
+class QualifyRequest(BaseModel):
+    """Mark this query as qualified — a real lead worth pursuing."""
+    note: Optional[str] = Field(None, max_length=2000)
+
+
+class ForceConvertRequest(BaseModel):
+    """Manual override — convert to case immediately, skipping any remaining gates."""
+    reason: str = Field(min_length=1, max_length=500)
+    visa_subclass: Optional[str] = None
+    visa_name: Optional[str] = None

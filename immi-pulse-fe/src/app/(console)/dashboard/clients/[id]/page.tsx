@@ -1,463 +1,538 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import Link from "next/link";
 import {
-  ArrowLeft,
-  Mail,
-  Phone,
-  Globe,
-  Calendar,
-  CreditCard,
+  ArrowRight,
   Briefcase,
-  Clock,
   ChevronRight,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  Minus,
-  Plus,
-  Rocket,
+  ClipboardCheck,
+  ExternalLink,
+  FileText,
+  FilePlus,
+  FileSignature,
+  FolderOpen,
+  Loader2,
+  Mail,
+  PenSquare,
+  Send,
+  Wallet,
+  Zap,
 } from "lucide-react";
-import { clientsService } from "@/lib/api/clients.service";
-import type { Client, Case, ClientJourney } from "@/lib/types/immigration";
-import { JOURNEY_STAGE_MAP, getCompletionPercentage } from "@/lib/journey-config";
-import { JourneyTimeline } from "@/components/journey/journey-timeline";
-import { JourneyProgressBar } from "@/components/journey/journey-progress-bar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { fadeUp, stagger } from "@/lib/motion";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  clientsApi,
+  questionnairesApi,
+  type ClientDetail,
+  type QuestionnaireListItem,
+} from "@/lib/api/services";
 import { cn } from "@/lib/utils";
 
-function getInitials(first: string, last: string): string {
-  return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
-}
+const KIND_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
+  query: FileText,
+  precase: Briefcase,
+  letter_sent: Send,
+  letter_signed: FileSignature,
+  payment: Wallet,
+  case_opened: FolderOpen,
+  case_stage: Zap,
+  manual_note: PenSquare,
+};
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-AU", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function formatTimeAgo(dateStr: string): string {
-  const now = new Date();
-  const date = new Date(dateStr);
-  const diffMs = now.getTime() - date.getTime();
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffHours < 1) return "just now";
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return formatDate(dateStr);
-}
-
-function OutcomeBadge({ outcome }: { outcome: ClientJourney["outcome"] }) {
-  if (!outcome) return null;
-  const styles = {
-    granted: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-    refused: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-    withdrawn: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-  };
-  const icons = {
-    granted: CheckCircle2,
-    refused: XCircle,
-    withdrawn: Minus,
-  };
-  const Icon = icons[outcome];
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase",
-        styles[outcome]
-      )}
-    >
-      <Icon className="h-3 w-3" />
-      {outcome}
-    </span>
-  );
-}
+const KIND_TONE: Record<string, string> = {
+  query: "bg-sky-100 text-sky-700",
+  precase: "bg-violet-100 text-violet-700",
+  letter_sent: "bg-amber-100 text-amber-800",
+  letter_signed: "bg-emerald-100 text-emerald-700",
+  payment: "bg-emerald-100 text-emerald-700",
+  case_opened: "bg-emerald-100 text-emerald-700",
+  case_stage: "bg-blue-100 text-blue-700",
+  manual_note: "bg-muted text-muted-foreground",
+};
 
 export default function ClientDetailPage() {
-  const params = useParams();
+  const params = useParams<{ id: string }>();
   const router = useRouter();
-  const clientId = params.id as string;
+  const [client, setClient] = useState<ClientDetail | null>(null);
+  const [showSendQ, setShowSendQ] = useState(false);
+  const [showOpenCase, setShowOpenCase] = useState(false);
+  const [showLink, setShowLink] = useState<{ url: string; note: string } | null>(null);
 
-  const [client, setClient] = useState<Client | null>(null);
-  const [cases, setCases] = useState<Case[]>([]);
-  const [journeys, setJourneys] = useState<ClientJourney[]>([]);
-  const [activeJourney, setActiveJourney] = useState<string | null>(null);
+  const load = useCallback(async () => {
+    const c = await clientsApi.get(params.id);
+    setClient(c);
+  }, [params.id]);
 
   useEffect(() => {
-    clientsService.getClient(clientId).then(setClient);
-    clientsService.getClientCases(clientId).then(setCases);
-    clientsService.getClientJourneys(clientId).then((j) => {
-      setJourneys(j);
-      // Default to the most active journey (non-completed, most recent)
-      const active =
-        j.find((jn) => !jn.outcome) ?? j[0];
-      if (active) setActiveJourney(active.case_id);
-    });
-  }, [clientId]);
+    load();
+  }, [load]);
 
   if (!client) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <div className="flex items-center justify-center py-20 text-muted-foreground">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
       </div>
     );
   }
 
-  const selectedJourney = journeys.find((j) => j.case_id === activeJourney);
-  const selectedCase = cases.find((c) => c.id === activeJourney);
-
-  // Count stats
-  const activeCases = cases.filter(
-    (c) => !["granted", "refused", "withdrawn"].includes(c.stage)
-  ).length;
-  const completedCases = cases.filter((c) =>
-    ["granted", "refused", "withdrawn"].includes(c.stage)
-  ).length;
-  const blockedJourneys = journeys.filter((j) =>
-    j.steps.some((s) => s.status === "blocked")
-  ).length;
-
   return (
-    <motion.div
-      className="space-y-6 text-foreground"
-      variants={stagger}
-      initial="hidden"
-      animate="visible"
-    >
-      {/* Back button + header */}
-      <motion.div variants={fadeUp} custom={0}>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mb-3 -ml-2 gap-1.5 text-muted-foreground"
-          onClick={() => router.push("/dashboard/clients")}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Clients
-        </Button>
+    <div className="space-y-6">
+      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <Link href="/dashboard/clients" className="hover:text-foreground">
+          Clients
+        </Link>
+        <ChevronRight className="h-3 w-3" />
+        <span className="text-foreground">{client.name || client.primary_email}</span>
+      </div>
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-4">
-            <Avatar className="h-14 w-14">
-              <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">
-                {getInitials(client.first_name, client.last_name)}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">
-                {client.first_name} {client.last_name}
-              </h2>
-              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5">
-                  <Mail className="h-3.5 w-3.5" />
-                  {client.email}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-4">
+          <div
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 text-lg font-semibold text-white"
+            aria-hidden
+          >
+            {(client.name || client.primary_email)[0]?.toUpperCase()}
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {client.name || client.primary_email}
+            </h1>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <Mail className="h-3 w-3" />
+                {client.primary_email}
+              </span>
+              {client.phone && <span>{client.phone}</span>}
+              {client.country && <span>{client.country}</span>}
+              {client.first_seen_at && (
+                <span>
+                  In your funnel since {new Date(client.first_seen_at).toLocaleDateString()}
                 </span>
-                {client.phone && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Phone className="h-3.5 w-3.5" />
-                    {client.phone}
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-1.5">
-                  <Globe className="h-3.5 w-3.5" />
-                  {client.nationality}
-                </span>
-              </div>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              className="gap-2"
-              onClick={() => router.push(`/dashboard/clients/${clientId}/journey/new`)}
-            >
-              <Rocket className="h-4 w-4" />
-              Start New Journey
-            </Button>
-            <Badge className="bg-primary/10 text-primary border-primary/30 hover:bg-primary/10">
-              Demo Data
-            </Badge>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Stats cards */}
-      <motion.div
-        variants={fadeUp}
-        custom={1}
-        className="grid gap-4 grid-cols-2 lg:grid-cols-4"
-      >
-        <Card className="border-border/60 shadow-sm">
-          <CardContent className="flex items-center gap-3 py-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-              <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{cases.length}</p>
-              <p className="text-xs text-muted-foreground">Total Cases</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/60 shadow-sm">
-          <CardContent className="flex items-center gap-3 py-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-              <Clock className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{activeCases}</p>
-              <p className="text-xs text-muted-foreground">Active</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/60 shadow-sm">
-          <CardContent className="flex items-center gap-3 py-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{completedCases}</p>
-              <p className="text-xs text-muted-foreground">Completed</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/60 shadow-sm">
-          <CardContent className="flex items-center gap-3 py-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30">
-              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{blockedJourneys}</p>
-              <p className="text-xs text-muted-foreground">Blocked</p>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Client info + journey section */}
-      <motion.div
-        variants={fadeUp}
-        custom={2}
-        className="grid gap-6 lg:grid-cols-[320px_1fr]"
-      >
-        {/* Left: Client info + case selector */}
-        <div className="space-y-4">
-          {/* Client details card */}
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">
-                Client Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-[13px]">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Date of Birth</span>
-                <span className="font-medium">
-                  {new Date(client.date_of_birth).toLocaleDateString("en-AU", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </span>
-              </div>
-              <Separator />
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Nationality</span>
-                <span className="font-medium">{client.nationality}</span>
-              </div>
-              <Separator />
-              {client.passport_number && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Passport</span>
-                    <span className="font-medium font-mono text-xs">
-                      {client.passport_number}
-                    </span>
-                  </div>
-                  <Separator />
-                </>
-              )}
-              {client.current_visa && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Current Visa</span>
-                    <span className="font-medium">
-                      Subclass {client.current_visa}
-                    </span>
-                  </div>
-                  <Separator />
-                </>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Client Since</span>
-                <span className="font-medium">
-                  {formatDate(client.created_at)}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Case selector */}
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">
-                Visa Applications ({journeys.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 p-3">
-              {journeys.map((journey) => {
-                const isActive = journey.case_id === activeJourney;
-                const stageConfig = JOURNEY_STAGE_MAP[journey.current_stage];
-                const completion = getCompletionPercentage(
-                  journey.current_stage
-                );
-                const hasBlocker = journey.steps.some(
-                  (s) => s.status === "blocked"
-                );
-
-                return (
-                  <button
-                    key={journey.case_id}
-                    onClick={() => setActiveJourney(journey.case_id)}
-                    className={cn(
-                      "w-full rounded-lg border p-3 text-left transition-all duration-200",
-                      isActive
-                        ? "border-primary/40 bg-primary/5 shadow-sm"
-                        : "border-border/60 hover:border-border hover:bg-muted/30"
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[13px] font-semibold text-foreground">
-                            {journey.visa_subclass}
-                          </span>
-                          <span className="truncate text-[12px] text-muted-foreground">
-                            {journey.visa_name}
-                          </span>
-                        </div>
-                        <div className="mt-1.5 flex items-center gap-2">
-                          {journey.outcome ? (
-                            <OutcomeBadge outcome={journey.outcome} />
-                          ) : (
-                            <span
-                              className={cn(
-                                "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                                stageConfig?.colorBg,
-                                stageConfig?.colorText
-                              )}
-                            >
-                              {stageConfig?.shortLabel}
-                            </span>
-                          )}
-                          {hasBlocker && !journey.outcome && (
-                            <AlertTriangle className="h-3 w-3 text-red-500" />
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[11px] font-semibold text-foreground">
-                          {completion}%
-                        </span>
-                        <ChevronRight
-                          className={cn(
-                            "h-4 w-4 text-muted-foreground transition-transform",
-                            isActive && "text-primary rotate-90"
-                          )}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Mini progress bar */}
-                    <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
-                      <div
-                        className={cn(
-                          "h-full rounded-full transition-all duration-500",
-                          journey.outcome === "granted"
-                            ? "bg-emerald-500"
-                            : journey.outcome === "refused"
-                              ? "bg-red-500"
-                              : hasBlocker
-                                ? "bg-red-400"
-                                : "bg-primary"
-                        )}
-                        style={{ width: `${completion}%` }}
-                      />
-                    </div>
-                  </button>
-                );
-              })}
-            </CardContent>
-          </Card>
         </div>
 
-        {/* Right: Journey Timeline */}
-        <Card className="border-border/60 shadow-sm">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base font-semibold">
-                  {selectedJourney
-                    ? `${selectedJourney.visa_subclass} — ${selectedJourney.visa_name}`
-                    : "Select a case"}
-                </CardTitle>
-                {selectedJourney && (
-                  <p className="mt-1 text-[12px] text-muted-foreground">
-                    Started {formatDate(selectedJourney.started_at)} &middot;
-                    Last updated {formatTimeAgo(selectedJourney.updated_at)}
-                  </p>
-                )}
-              </div>
-              {selectedJourney && (
-                <div className="flex items-center gap-3">
-                  {selectedJourney.outcome ? (
-                    <OutcomeBadge outcome={selectedJourney.outcome} />
-                  ) : (
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-primary">
-                        {getCompletionPercentage(
-                          selectedJourney.current_stage
-                        )}
-                        %
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        Complete
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            {selectedJourney && !selectedJourney.outcome && (
-              <div className="mt-3">
-                <JourneyProgressBar steps={selectedJourney.steps} />
-              </div>
-            )}
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setShowSendQ(true)} className="gap-2">
+            <Send className="h-4 w-4" />
+            Send form
+          </Button>
+          <Button onClick={() => setShowOpenCase(true)} className="gap-2">
+            <FilePlus className="h-4 w-4" />
+            Open case directly
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatCard label="Queries" value={client.queries.length} />
+        <StatCard label="Pre-cases in flight" value={client.precases.length} />
+        <StatCard label="Cases" value={client.cases.length} accent />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold">Timeline</CardTitle>
           </CardHeader>
           <CardContent>
-            {selectedJourney ? (
-              <JourneyTimeline
-                steps={selectedJourney.steps}
-                outcome={selectedJourney.outcome}
-              />
+            {client.history.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No activity yet.</p>
             ) : (
-              <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-                Select a visa application to view the journey
-              </div>
+              <ol className="space-y-4">
+                {client.history.map((h, i) => {
+                  const Icon = KIND_ICON[h.kind] ?? FileText;
+                  const tone = KIND_TONE[h.kind] ?? "bg-muted";
+                  return (
+                    <li key={i} className="flex gap-3">
+                      <div
+                        className={cn(
+                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                          tone
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1 border-b border-border/40 pb-3 last:border-0">
+                        <p className="text-sm font-medium">{h.title}</p>
+                        {h.detail && (
+                          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                            {h.detail}
+                          </p>
+                        )}
+                        <p className="mt-1 text-[10px] text-muted-foreground">
+                          {new Date(h.occurred_at).toLocaleString()}
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
             )}
           </CardContent>
         </Card>
-      </motion.div>
-    </motion.div>
+
+        <div className="space-y-4">
+          {client.cases.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold">Cases</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {client.cases.map((c) => (
+                  <Link
+                    key={String(c.id)}
+                    href={`/dashboard/cases/${c.id}`}
+                    className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm hover:bg-muted/40"
+                  >
+                    <div>
+                      <p className="font-medium">
+                        {String(c.visa_subclass || "Case")} {c.visa_name ? `· ${c.visa_name}` : ""}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground capitalize">{String(c.stage)}</p>
+                    </div>
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {client.precases.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold">Pre-cases in flight</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {client.precases.map((p) => (
+                  <Link
+                    key={String(p.id)}
+                    href={`/dashboard/precases/${p.id}`}
+                    className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm hover:bg-muted/40"
+                  >
+                    <div>
+                      <p className="font-medium capitalize">{String(p.status).replace(/_/g, " ")}</p>
+                      <p className="line-clamp-1 text-[10px] text-muted-foreground">
+                        {String(p.ai_summary ?? "")}
+                      </p>
+                    </div>
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {client.queries.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold">In inbox</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {client.queries.map((q) => (
+                  <Link
+                    key={String(q.id)}
+                    href={`/dashboard/inbox/${q.id}`}
+                    className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm hover:bg-muted/40"
+                  >
+                    <div>
+                      <p className="font-medium capitalize">{String(q.status)}</p>
+                      <p className="line-clamp-1 text-[10px] text-muted-foreground">
+                        {String(q.ai_summary ?? "")}
+                      </p>
+                    </div>
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      <SendQuestionnaireDialog
+        open={showSendQ}
+        onClose={() => setShowSendQ(false)}
+        clientId={client.id}
+        clientName={client.name || client.primary_email}
+        onSent={(info) => {
+          setShowSendQ(false);
+          setShowLink(info);
+        }}
+      />
+      <ShareLinkDialog
+        info={showLink}
+        onClose={() => setShowLink(null)}
+      />
+      <OpenCaseDirectDialog
+        open={showOpenCase}
+        onClose={() => setShowOpenCase(false)}
+        clientId={client.id}
+        onOpened={(caseId) => {
+          setShowOpenCase(false);
+          router.push(`/dashboard/cases/${caseId}`);
+        }}
+      />
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: number;
+  accent?: boolean;
+}) {
+  return (
+    <Card
+      className={cn(
+        "border-border/60 px-4 py-3",
+        accent && "border-emerald-200 bg-emerald-50/40"
+      )}
+    >
+      <p className="text-xl font-bold leading-none">{value}</p>
+      <p className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
+    </Card>
+  );
+}
+
+function SendQuestionnaireDialog({
+  open,
+  onClose,
+  clientId,
+  clientName,
+  onSent,
+}: {
+  open: boolean;
+  onClose: () => void;
+  clientId: string;
+  clientName: string;
+  onSent: (info: { url: string; note: string }) => void;
+}) {
+  const [questionnaires, setQuestionnaires] = useState<QuestionnaireListItem[]>([]);
+  const [selectedId, setSelectedId] = useState<string>("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      questionnairesApi.list().then((qs) => {
+        const active = qs.filter((q) => q.is_active);
+        setQuestionnaires(active);
+        if (active[0]) setSelectedId(active[0].id);
+      });
+      setNote(`Hi ${clientName}, please complete this short intake form so we can review your case.`);
+    }
+  }, [open, clientName]);
+
+  const submit = async () => {
+    if (!selectedId) return;
+    setBusy(true);
+    try {
+      const r = await clientsApi.sendQuestionnaire(clientId, {
+        questionnaire_id: selectedId,
+        personal_note: note || undefined,
+      });
+      onSent({ url: r.public_link, note: r.note });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Send a form to this client</DialogTitle>
+          <DialogDescription>
+            Generates a personalised public link with the email pre-filled.
+            Send it via email, WhatsApp, or any channel.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div>
+            <Label htmlFor="qsel" className="text-xs">Form</Label>
+            <select
+              id="qsel"
+              value={selectedId}
+              onChange={(e) => setSelectedId(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              {questionnaires.length === 0 && <option value="">No active forms</option>}
+              {questionnaires.map((q) => (
+                <option key={q.id} value={q.id}>
+                  {q.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="note" className="text-xs">Personal note (optional)</Label>
+            <Textarea id="note" rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} disabled={busy || !selectedId} className="gap-2">
+            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+            Generate link
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ShareLinkDialog({
+  info,
+  onClose,
+}: {
+  info: { url: string; note: string } | null;
+  onClose: () => void;
+}) {
+  if (!info) return null;
+  return (
+    <Dialog open={true} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Personalised link ready</DialogTitle>
+          <DialogDescription>
+            Copy and send this to your client. The note is just a suggestion —
+            paste whatever feels right for your channel.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Link</Label>
+            <div className="mt-1 flex items-center gap-2">
+              <Input value={info.url} readOnly className="text-xs" />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigator.clipboard.writeText(info.url)}
+              >
+                Copy
+              </Button>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Suggested note</Label>
+            <Textarea value={info.note} readOnly rows={3} className="mt-1 text-xs" />
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-2"
+              onClick={() => navigator.clipboard.writeText(`${info.note}\n\n${info.url}`)}
+            >
+              <ClipboardCheck className="mr-1.5 h-3 w-3" />
+              Copy note + link
+            </Button>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={onClose}>Done</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function OpenCaseDirectDialog({
+  open,
+  onClose,
+  clientId,
+  onOpened,
+}: {
+  open: boolean;
+  onClose: () => void;
+  clientId: string;
+  onOpened: (caseId: string) => void;
+}) {
+  const [visaSubclass, setVisaSubclass] = useState("");
+  const [visaName, setVisaName] = useState("");
+  const [skipReason, setSkipReason] = useState("");
+  const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    setBusy(true);
+    try {
+      const r = await clientsApi.openCaseDirect(clientId, {
+        visa_subclass: visaSubclass || undefined,
+        visa_name: visaName || undefined,
+        skip_reason: skipReason || "Client engaged offline",
+        notes: notes || undefined,
+      });
+      onOpened(r.case_id);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Open a case directly</DialogTitle>
+          <DialogDescription>
+            Skip the inbox and pre-case ladder — open a case immediately for this
+            client. Use when the client has engaged offline (relative case,
+            walk-in, paper agreement, etc.).
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label htmlFor="ocsub" className="text-xs">Visa subclass</Label>
+              <Input id="ocsub" value={visaSubclass} onChange={(e) => setVisaSubclass(e.target.value)} placeholder="482" />
+            </div>
+            <div>
+              <Label htmlFor="ocname" className="text-xs">Visa name</Label>
+              <Input id="ocname" value={visaName} onChange={(e) => setVisaName(e.target.value)} placeholder="TSS" />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="ocsr" className="text-xs">Why skip the pre-case ladder?</Label>
+            <Input
+              id="ocsr"
+              value={skipReason}
+              onChange={(e) => setSkipReason(e.target.value)}
+              placeholder="Relative case · paper agreement signed in person"
+            />
+          </div>
+          <div>
+            <Label htmlFor="ocn" className="text-xs">Notes (optional)</Label>
+            <Textarea id="ocn" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} disabled={busy} className="gap-2">
+            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+            Open case
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

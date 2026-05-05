@@ -19,6 +19,7 @@ from app.agents.immigration.orgs.models import (
     Seat,
     Subscription,
 )
+from app.agents.immigration.orgs.plans import DEFAULT_SIGNUP_TIER, TRIAL_DAYS
 from app.agents.immigration.questionnaires.models import (
     Questionnaire,
     QuestionnaireVersion,
@@ -159,15 +160,16 @@ async def signup(db: AsyncSession, payload: SignupRequest) -> dict:
     db.add(org)
     await db.flush()
 
-    # Subscription
-    tier = pilot.tier_override if pilot and pilot.tier_override else "starter"
+    # Subscription — default new accounts to Pro trial so they see the full platform
+    # for 14 days, no card. Pilot codes can override the tier and skip the trial.
+    tier = pilot.tier_override if pilot and pilot.tier_override else DEFAULT_SIGNUP_TIER
     sub = Subscription(
         org_id=org.id,
         tier=tier,
         status="active" if pilot else "trial",
         seat_count=1,
         pilot_program_id=pilot.id if pilot else None,
-        trial_ends_at=datetime.now(timezone.utc) + timedelta(days=14) if not pilot else None,
+        trial_ends_at=datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS) if not pilot else None,
         current_period_end=datetime.now(timezone.utc) + timedelta(days=30),
     )
     db.add(sub)

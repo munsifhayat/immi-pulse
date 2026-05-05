@@ -9,6 +9,8 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
   --font-heading: var(--font-outfit);
+  --font-serif: var(--font-serif-d);
+  --font-editorial-mono: var(--font-mono-d);
   --font-mono: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
 
   /* IMMI-PULSE Brand Colors */
@@ -172,6 +174,80 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-outfit), system-ui, sans-serif;
     text-wrap: balance;
+  }
+}
+
+/* ── Editorial / Manifest design system ──
+   Dark navy + serif italic + mono uppercase folio aesthetic.
+   Use these tokens across the console for consistent typographic voice. */
+@layer utilities {
+  .font-serif-d {
+    font-family: var(--font-serif-d), "Cormorant Garamond", Georgia, serif;
+    font-feature-settings: "liga", "calt";
+  }
+  .font-mono-d {
+    font-family: var(--font-mono-d), ui-monospace, "SF Mono", monospace;
+    font-feature-settings: "ss01", "cv06";
+  }
+
+  /* Eyebrow — small mono uppercase label sitting above editorial titles. */
+  .editorial-eyebrow {
+    font-family: var(--font-mono-d), ui-monospace, monospace;
+    font-size: 10.5px;
+    line-height: 1;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--purple);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .editorial-eyebrow::before {
+    content: "";
+    display: block;
+    width: 1.5rem;
+    height: 1px;
+    background: color-mix(in srgb, var(--purple) 45%, transparent);
+  }
+
+  /* Title — serif display with italic accent slot. */
+  .editorial-title {
+    font-family: var(--font-serif-d), "Cormorant Garamond", Georgia, serif;
+    font-weight: 400;
+    font-size: clamp(2.2rem, 3.4vw, 3.1rem);
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+    color: var(--foreground);
+    text-wrap: balance;
+  }
+  .editorial-title em,
+  .editorial-title .ital {
+    font-style: italic;
+    color: var(--purple-deep);
+  }
+  .dark .editorial-title em,
+  .dark .editorial-title .ital {
+    color: var(--purple-light);
+  }
+
+  /* Folio meta line — mono uppercase tracked metadata. */
+  .editorial-meta {
+    font-family: var(--font-mono-d), ui-monospace, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  }
+
+  /* Hairline dividers — used between sections instead of heavy borders. */
+  .editorial-rule {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      color-mix(in srgb, var(--foreground) 14%, transparent),
+      transparent
+    );
   }
 }
 

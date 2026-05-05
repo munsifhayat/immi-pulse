@@ -14,53 +14,53 @@ import { fadeUp, stagger } from "@/lib/motion";
 const plans = [
   {
     name: "Starter",
-    desc: "For solo practitioners getting started with AI",
-    price: "Free",
-    period: "during early access",
-    cta: "Get Started Free",
+    desc: "Lean essentials for solo agents and small firms running their first cases on AI",
+    price: "$29",
+    period: "/seat/month",
+    cta: "Get Started",
     ctaStyle: "border border-border text-navy hover:bg-gray-light",
     features: [
       "Up to 20 active cases",
       "Email intake & classification",
       "Basic visa checklists",
-      "1 consultant seat",
+      "Client portal (read-only)",
       "Community support",
     ],
     highlighted: false,
   },
   {
     name: "Professional",
-    desc: "For established practices needing the full platform",
-    price: "$149",
-    period: "/consultant/month",
+    desc: "The full AI platform for established practices that want to scale",
+    price: "$99",
+    period: "/seat/month",
     cta: "Start Free Trial",
     ctaStyle: "bg-purple text-white hover:bg-purple-deep",
     features: [
       "Unlimited active cases",
       "AI document validation & OCR",
-      "Smart checklists with tracking",
+      "Smart checklists with progress tracking",
+      "Predictive case analytics & insights",
+      "Marketplace listing for new client leads",
       "Client communication tools",
-      "Case analytics & reporting",
-      "Priority email support",
-      "Knowledge base access",
+      "Priority support",
     ],
     highlighted: true,
   },
   {
     name: "Enterprise",
-    desc: "For multi-consultant firms with custom needs",
+    desc: "For multi-office firms with custom requirements and contracted volume",
     price: "Custom",
     period: "contact us",
     cta: "Contact Sales",
     ctaStyle: "border border-border text-navy hover:bg-gray-light",
     features: [
       "Everything in Professional",
-      "Unlimited consultant seats",
-      "Custom integrations",
+      "SSO (SAML / OIDC)",
+      "Custom AI model training",
+      "On-premise deployment option",
       "Dedicated account manager",
       "SLA & uptime guarantee",
-      "Custom AI model training",
-      "On-premise option",
+      "Custom integrations",
     ],
     highlighted: false,
   },
@@ -69,15 +69,23 @@ const plans = [
 const faqs = [
   {
     q: "Is there a free trial?",
-    a: "Yes! During early access, the Starter plan is completely free. Professional plans come with a 14-day free trial \u2014 no credit card required.",
+    a: "Yes \u2014 every new account starts on a 14-day Professional trial automatically. Full feature set, no credit card required. After the trial you can stay on Professional, switch to Starter, or talk to us about Enterprise.",
+  },
+  {
+    q: "How are seats priced?",
+    a: "Every seat is billed at the plan\u2019s per-seat price \u2014 Starter $29, Professional $99, Enterprise custom. There are no seat caps and no role-based pricing differences; pay for the people you have, add or remove anytime.",
+  },
+  {
+    q: "What\u2019s the difference between Consultant, Staff, and Admin roles?",
+    a: "Roles are permission levels, not pricing tiers. Consultants are OMARA agents who can own and lodge cases. Staff (paralegals) can assist on cases \u2014 upload documents, draft, comment \u2014 but can\u2019t lodge or sign off. Admins can manage the team and billing. Owners are admins who also created the workspace. Every role costs the same on a given plan.",
   },
   {
     q: "What counts as an \u201cactive case\u201d?",
-    a: "A case that hasn\u2019t been marked as granted, refused, or archived. Completed cases don\u2019t count towards your limit.",
+    a: "A case that hasn\u2019t been marked as granted, refused, or archived. Completed cases don\u2019t count towards your limit on Starter.",
   },
   {
     q: "Can I switch plans later?",
-    a: "Absolutely. Upgrade or downgrade at any time. When upgrading, you get immediate access to new features. When downgrading, changes take effect at the next billing cycle.",
+    a: "Absolutely. Upgrade or downgrade at any time from Settings \u2192 Plan & Billing. When upgrading, you get immediate access to new features. When downgrading, changes take effect at the next billing cycle. Your seats are preserved either way.",
   },
   {
     q: "Is my data secure?",
@@ -165,9 +173,12 @@ export default function PricingPage() {
                   </span>
                   <span className="ml-2 text-[16px] text-gray-text">{plan.period}</span>
                 </div>
+                <p className="mt-2 text-[13px] text-gray-text/80">
+                  Add as many seats as you need · No seat caps
+                </p>
 
                 <Link
-                  href="/get-started"
+                  href={plan.name === "Enterprise" ? "/contact" : "/get-started"}
                   className={`mt-8 flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-[15px] font-medium transition-all ${plan.ctaStyle}`}
                 >
                   {plan.cta}

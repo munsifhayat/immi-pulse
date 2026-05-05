@@ -12,6 +12,14 @@ class OrgUpdate(BaseModel):
     niche: Optional[str] = None
     omara_number: Optional[str] = None
 
+    # Australian payment + business details
+    abn: Optional[str] = None
+    bsb: Optional[str] = None
+    bank_account_number: Optional[str] = None
+    bank_account_name: Optional[str] = None
+    payid: Optional[str] = None
+    bpay_biller_code: Optional[str] = None
+
 
 class SeatOut(BaseModel):
     id: UUID
@@ -53,3 +61,45 @@ class AcceptInviteRequest(BaseModel):
     password: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+
+
+class PlanOut(BaseModel):
+    tier: str
+    name: str
+    description: str
+    price_per_seat_aud_monthly: int
+    price_label: str
+    is_default_signup: bool
+    is_custom: bool
+    features: list[str]
+
+
+class BillingSummary(BaseModel):
+    tier: str
+    status: str
+    plan_name: str
+    price_label: str
+    price_per_seat_aud_monthly: int
+    is_custom: bool
+    trial_ends_at: Optional[datetime] = None
+    current_period_end: Optional[datetime] = None
+    total_seats: int
+    role_counts: dict[str, int]  # per-role counts for display only (not billing input)
+    monthly_total_aud: int
+    features: list[str]
+
+
+class SelectPlanRequest(BaseModel):
+    tier: Literal["starter", "pro", "enterprise"]
+
+
+class RedeemPromoRequest(BaseModel):
+    code: str
+
+
+class RedeemPromoResponse(BaseModel):
+    applied: bool
+    already_applied: bool
+    credits_added: int = 0
+    pilot_name: Optional[str] = None
+    billing: BillingSummary

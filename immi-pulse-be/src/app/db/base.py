@@ -16,3 +16,5 @@ from app.agents.immigration.checkpoints import models as checkpoint_models  # no
 from app.agents.immigration.cases import models as case_models  # noqa: E402,F401
 from app.agents.immigration.marketplace import models as marketplace_models  # noqa: E402,F401
 from app.agents.immigration.community import models as community_models  # noqa: E402,F401
+from app.agents.immigration.engagement import models as engagement_models  # noqa: E402,F401
+from app.agents.immigration.payments import models as payment_models  # noqa: E402,F401

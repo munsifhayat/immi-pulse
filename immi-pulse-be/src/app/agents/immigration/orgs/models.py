@@ -32,6 +32,19 @@ class Organization(Base):
     omara_number = Column(String, nullable=True)
     country = Column(String, nullable=False, default="AU")
     stripe_customer_id = Column(String, nullable=True)
+
+    # Australian business + payment details — auto-rendered into payment instructions
+    abn = Column(String, nullable=True)
+    bsb = Column(String, nullable=True)
+    bank_account_number = Column(String, nullable=True)
+    bank_account_name = Column(String, nullable=True)
+    payid = Column(String, nullable=True)
+    bpay_biller_code = Column(String, nullable=True)
+
+    # Stripe Connect Express (future)
+    stripe_connect_account_id = Column(String, nullable=True)
+    stripe_payouts_enabled = Column(Boolean, nullable=False, default=False)
+
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
         DateTime(timezone=True),
