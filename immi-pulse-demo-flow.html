@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>IMMI-PULSE — Pilot Consultant Demo Flow</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --navy: #101928;
+    --purple: #7A5AF8;
+    --purple-deep: #3E1C96;
+    --purple-light: #BDB4FE;
+    --purple-muted: #D9D6FE;
+    --gray-text: #475367;
+    --gray-light: #F0F2F5;
+    --teal: #1B7B6F;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(180deg, #F7F6FE 0%, #FAFAFA 100%);
+    color: var(--navy);
+  }
+  .wrap {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 48px 56px 96px;
+  }
+  .header {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--purple-deep) 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 36px 40px;
+    margin-bottom: 32px;
+    box-shadow: 0 12px 40px rgba(62, 28, 150, 0.18);
+  }
+  .header .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    font-size: 11px;
+    color: var(--purple-light);
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .header h1 {
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-size: 34px;
+    line-height: 1.15;
+    margin: 0 0 10px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
+  .header .subtitle {
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 15px;
+    line-height: 1.55;
+    max-width: 760px;
+  }
+  .header .meta {
+    margin-top: 18px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .pill {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .toc {
+    background: white;
+    border: 1px solid var(--gray-light);
+    border-radius: 14px;
+    padding: 22px 28px;
+    margin-bottom: 32px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+  .toc a {
+    text-decoration: none;
+    color: var(--navy);
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--gray-light);
+    transition: all 0.15s ease;
+    display: block;
+  }
+  .toc a:hover {
+    background: var(--purple-muted);
+    border-color: var(--purple-light);
+    color: var(--purple-deep);
+  }
+  .toc a .num {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    background: var(--purple);
+    color: white;
+    border-radius: 6px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 22px;
+    font-size: 11px;
+    margin-right: 8px;
+  }
+  .diagram-card {
+    background: white;
+    border-radius: 16px;
+    padding: 32px 36px;
+    box-shadow: 0 4px 20px rgba(16, 25, 40, 0.06);
+    margin-bottom: 28px;
+    border: 1px solid #ECECF5;
+  }
+  .diagram-card .step-tag {
+    display: inline-block;
+    background: var(--purple-muted);
+    color: var(--purple-deep);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+  }
+  .diagram-card h2 {
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    color: var(--navy);
+    letter-spacing: -0.3px;
+  }
+  .diagram-card .lede {
+    color: var(--gray-text);
+    font-size: 15px;
+    line-height: 1.65;
+    margin: 0 0 24px;
+    max-width: 920px;
+  }
+  .mermaid {
+    background: #FCFCFE;
+    border: 1px solid #EFEFF7;
+    border-radius: 10px;
+    padding: 24px 16px;
+    overflow-x: auto;
+    text-align: center;
+  }
+  .talk-track {
+    margin-top: 22px;
+    padding: 18px 22px;
+    background: #FAF8FF;
+    border-left: 3px solid var(--purple);
+    border-radius: 0 10px 10px 0;
+  }
+  .talk-track .label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--purple-deep);
+    margin-bottom: 8px;
+  }
+  .talk-track p {
+    margin: 0;
+    color: var(--navy);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .legend {
+    background: white;
+    border-radius: 16px;
+    padding: 28px 32px;
+    box-shadow: 0 4px 20px rgba(16, 25, 40, 0.06);
+    border: 1px solid #ECECF5;
+  }
+  .legend h2 {
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 16px;
+    color: var(--navy);
+  }
+  .legend-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px 24px;
+    margin-bottom: 24px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--gray-text);
+  }
+  .swatch {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    flex-shrink: 0;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  .takeaways {
+    border-top: 1px solid var(--gray-light);
+    padding-top: 22px;
+  }
+  .takeaways h3 {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--purple-deep);
+    margin: 0 0 14px;
+  }
+  .takeaways ul {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+  }
+  .takeaways li {
+    padding: 8px 0 8px 30px;
+    position: relative;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--navy);
+    border-bottom: 1px solid var(--gray-light);
+  }
+  .takeaways li:last-child { border-bottom: none; }
+  .takeaways li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 22px;
+    height: 22px;
+    background: var(--purple);
+    color: white;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 22px;
+    font-size: 12px;
+    font-weight: bold;
+  }
+  .footer {
+    text-align: center;
+    color: var(--gray-text);
+    font-size: 12px;
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--gray-light);
+  }
+  @media (max-width: 900px) {
+    .wrap { padding: 24px 20px 60px; }
+    .toc { grid-template-columns: 1fr 1fr; }
+    .legend-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="header">
+  <div class="eyebrow">Pilot Demo · Consultant Walkthrough</div>
+  <h1>How IMMI-PULSE turns a stranger on your website into a paying, fully-managed visa case.</h1>
+  <div class="subtitle">
+    A five-diagram tour of the platform you're piloting — written in your language.
+    We'll trace one applicant from the moment they hit your branded intake form,
+    through AI triage, your inbox, e-signed engagement letter, payment, and into
+    a 10-stage managed case with document intelligence.
+  </div>
+  <div class="meta">
+    <span class="pill">Phase 1 · Live</span>
+    <span class="pill">Australia · OMARA-aligned</span>
+    <span class="pill">Manual override at every step</span>
+    <span class="pill">Generated 2026-05-08</span>
+  </div>
+</div>
+
+<div class="toc">
+  <a href="#d1"><span class="num">1</span>System map</a>
+  <a href="#d2"><span class="num">2</span>End-to-end journey</a>
+  <a href="#d3"><span class="num">3</span>PreCase lifecycle</a>
+  <a href="#d4"><span class="num">4</span>Case stages</a>
+  <a href="#d5"><span class="num">5</span>Document AI</a>
+</div>
+
+<!-- ============ DIAGRAM 1 ============ -->
+<div class="diagram-card" id="d1">
+  <div class="step-tag">Diagram 1 of 5</div>
+  <h2>The system map — what the applicant sees, what you see, what the AI does</h2>
+  <p class="lede">
+    Three audiences, one platform. Your applicants land on your branded intake page
+    and a portal that's always theirs. You work from a console that surfaces every
+    new lead, signed letter, and uploaded document. The AI quietly works behind both
+    sides — triaging, summarising, flagging — but never decides anything on its own.
+  </p>
+  <div class="mermaid">
+flowchart LR
+    subgraph APPLICANT ["Applicant — public web"]
+        QF["Branded<br/>questionnaire<br/>(your slug, your niche)"]
+        PORTAL["Client portal<br/>(token-based, no signup)"]
+        SIGN["E-sign page<br/>(/q/sign/...)"]
+    end
+
+    subgraph CONSOLE ["Consultant console — your dashboard"]
+        INBOX["Inbox<br/>(new submissions)"]
+        PRECASES["Pre-cases<br/>(qualified leads)"]
+        CASES["Cases<br/>(active matters)"]
+        CLIENTS["Clients<br/>(unified contact list)"]
+        SETTINGS["Settings<br/>(template, bank, niche)"]
+    end
+
+    subgraph API ["FastAPI backend — multi-tenant"]
+        AUTH["Org auth<br/>(API key + seats)"]
+        TRIAGE["PreCase triage<br/>worker"]
+        DOCAI["Document<br/>analyzer"]
+        ESIGN["Engagement<br/>letter service"]
+        PAY["Payments<br/>(manual receipts)"]
+    end
+
+    subgraph DB ["Postgres — tenant-scoped"]
+        ORGS[("organizations<br/>+ seats")]
+        PRE[("pre_cases")]
+        CASEDB[("cases<br/>+ documents<br/>+ checkpoints")]
+        LETTERS[("engagement_letters<br/>+ signatures")]
+    end
+
+    subgraph AI ["AWS Bedrock"]
+        HAIKU["Claude Haiku<br/>(triage + doc flags)"]
+        SONNET["Claude Sonnet<br/>(letter drafting)"]
+    end
+
+    QF -- "submit" --> AUTH
+    AUTH --> TRIAGE
+    TRIAGE -- "summary, fit score" --> PRE
+    TRIAGE -. "best-effort" .-> HAIKU
+
+    INBOX --> PRE
+    PRECASES --> PRE
+    CASES --> CASEDB
+    CLIENTS --> ORGS
+
+    PRECASES -- "qualify" --> ESIGN
+    ESIGN --> LETTERS
+    ESIGN -. "draft body" .-> SONNET
+    LETTERS -- "sign link" --> SIGN
+    SIGN -- "signed event" --> ESIGN
+
+    PRECASES -- "mark paid" --> PAY
+    PAY -- "receipt" --> PORTAL
+
+    PORTAL -- "upload" --> DOCAI
+    DOCAI --> CASEDB
+    DOCAI -. "deep flags" .-> HAIKU
+
+    classDef applicantLane fill:#fde8e3,stroke:#B85C50,color:#5a1f17
+    classDef consoleLane fill:#e3f0fd,stroke:#3a6db8,color:#1c365e
+    classDef apiLane fill:#e8f5e9,stroke:#4a8a4f,color:#1c3d1f
+    classDef dbLane fill:#fff5d9,stroke:#b89a3a,color:#5e4914
+    classDef aiLane fill:#ece3fd,stroke:#6d3ab8,color:#361c5e
+
+    class QF,PORTAL,SIGN applicantLane
+    class INBOX,PRECASES,CASES,CLIENTS,SETTINGS consoleLane
+    class AUTH,TRIAGE,DOCAI,ESIGN,PAY apiLane
+    class ORGS,PRE,CASEDB,LETTERS dbLane
+    class HAIKU,SONNET aiLane
+  </div>
+  <div class="talk-track">
+    <div class="label">What to say in the demo</div>
+    <p>"Everything on the left is what your applicants experience — branded with your firm's name, no signup required. Everything in blue is yours. The green boxes in the middle are the engine; the purple ones are the AI we lean on. The dotted lines to AI are deliberate — the system always works even if Bedrock is down."</p>
+  </div>
+</div>
+
+<!-- ============ DIAGRAM 2 ============ -->
+<div class="diagram-card" id="d2">
+  <div class="step-tag">Diagram 2 of 5</div>
+  <h2>The end-to-end journey — one applicant, one timeline</h2>
+  <p class="lede">
+    Read this top-to-bottom: it's exactly what happens between an applicant
+    submitting your form and you opening their case file. Every solid arrow is
+    automatic; every dashed arrow is an action you take. Notice how few clicks
+    it takes you from "new lead" to "paid retainer".
+  </p>
+  <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant A as Applicant
+    participant Q as Questionnaire page
+    participant API as IMMI-PULSE API
+    participant T as Triage worker
+    participant LLM as Claude Haiku
+    participant C as Consultant (you)
+    participant E as Engagement service
+    participant P as Client portal
+
+    A->>Q: Lands on your branded form
+    Q->>API: POST /questionnaires/respond
+    API->>API: Create PreCase (status pending)
+    API-->>Q: Thank-you screen
+    API-)T: Schedule triage (async)
+    T->>LLM: Summarise, classify fit
+    LLM-->>T: summary, outcome, confidence
+    T->>API: Update PreCase (in_review-ready)
+
+    Note over C: New item appears in Inbox
+    C->>API: Open PreCase, read AI summary
+    C-->>API: Click "Qualify" (status qualified)
+
+    C-->>E: Generate engagement letter (template + variables)
+    E->>API: Store letter (status sent)
+    API-->>A: Email signing link (/q/sign/...)
+    A->>P: Open link, type name, click sign
+    P->>E: POST signature event
+    E->>API: Letter signed, PreCase letter_signed
+
+    C-->>API: Record payment (manual receipt)
+    API->>API: PreCase paid
+
+    C-->>API: Click "Convert to case"
+    API->>API: Open Case (stage inquiry)
+    Note over C: Case appears in Cases tab
+    A->>P: Uploads documents anytime
+    P->>API: Multipart upload
+    API->>LLM: Filename + content heuristics
+    LLM-->>API: Doc type, flags, suggestions
+    API-->>C: Document card with flags
+  </div>
+  <div class="talk-track">
+    <div class="label">What to say in the demo</div>
+    <p>"From the applicant's first click to your retainer being recorded is roughly six clicks on your end. Steps 1–9 happen in seconds; step 10 is you reading and pressing 'Qualify'. Steps 13 and 16 are the only places you take a deliberate action — everything else is the system updating its own state."</p>
+  </div>
+</div>
+
+<!-- ============ DIAGRAM 3 ============ -->
+<div class="diagram-card" id="d3">
+  <div class="step-tag">Diagram 3 of 5</div>
+  <h2>PreCase lifecycle — the seven states a lead passes through</h2>
+  <p class="lede">
+    Every lead in IMMI-PULSE has exactly one of these statuses, and the
+    sidebar tabs in your console map directly to them. You can manually
+    override any transition (skip payment, mark a letter signed in person,
+    archive at any moment) — that's a deliberate design choice for your pilot.
+  </p>
+  <div class="mermaid">
+stateDiagram-v2
+    [*] --> pending: Applicant submits form
+    pending --> in_review: You open the PreCase
+    in_review --> qualified: You click "Qualify"
+    in_review --> archived: You reject / dismiss
+    qualified --> letter_sent: Generate engagement letter
+    letter_sent --> letter_signed: Client signs (or you mark signed)
+    letter_signed --> paid: Receipt recorded (or skip payment)
+    qualified --> paid: Skip letter (manual override)
+    paid --> converted: Convert to case
+    qualified --> archived: Lead goes cold
+    letter_sent --> archived: Letter never signed
+    archived --> [*]
+    converted --> [*]
+
+    note right of pending
+      Inbox view
+    end note
+    note right of qualified
+      Pre-cases view
+    end note
+    note right of converted
+      Cases view
+    end note
+  </div>
+  <div class="talk-track">
+    <div class="label">What to say in the demo</div>
+    <p>"The system is opinionated about the happy path — pending → review → qualified → letter → signed → paid → converted — but it never blocks you. If a client signs a paper copy in your office, hit 'Mark signed'. If you waive the retainer, hit 'Skip payment'. The audit trail still records what really happened."</p>
+  </div>
+</div>
+
+<!-- ============ DIAGRAM 4 ============ -->
+<div class="diagram-card" id="d4">
+  <div class="step-tag">Diagram 4 of 5</div>
+  <h2>The 10-stage case pipeline — from converted lead to decision</h2>
+  <p class="lede">
+    Once a PreCase converts, it becomes a Case with its own stage timeline.
+    These stages mirror how an Australian migration practice actually runs a
+    matter — they're not arbitrary software states. Each stage unlocks specific
+    checkpoints, document slots, and AI assists.
+  </p>
+  <div class="mermaid">
+flowchart LR
+    S1["1 · Inquiry<br/>initial scope"]
+    S2["2 · Consultation<br/>discovery call"]
+    S3["3 · Visa pathway<br/>subclass picked"]
+    S4["4 · Checklist<br/>generated for visa"]
+    S5["5 · Document<br/>collection"]
+    S6["6 · Document<br/>review"]
+    S7["7 · Application<br/>prep"]
+    S8["8 · Lodgement<br/>submitted to DHA"]
+    S9["9 · Post-lodgement<br/>RFE handling"]
+    S10["10 · Decision<br/>grant / refusal"]
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8 --> S9 --> S10
+
+    AI1["Checklist<br/>auto-template"]:::ai
+    AI2["Filename heuristic +<br/>Bedrock review"]:::ai
+    AI3["Form-field<br/>completeness check"]:::ai
+
+    AI1 -.-> S4
+    AI2 -.-> S5
+    AI2 -.-> S6
+    AI3 -.-> S7
+
+    classDef stage fill:#e3f0fd,stroke:#3a6db8,color:#1c365e,stroke-width:1.5px
+    classDef ai fill:#ece3fd,stroke:#6d3ab8,color:#361c5e,stroke-dasharray: 4 3
+
+    class S1,S2,S3,S4,S5,S6,S7,S8,S9,S10 stage
+  </div>
+  <div class="talk-track">
+    <div class="label">What to say in the demo</div>
+    <p>"Stages 1–3 are about scoping. Stage 4 is where IMMI-PULSE earns its keep — the checklist for a 482 looks nothing like the checklist for a 189, and we generate the right one automatically. Stages 5–6 are where document AI lives. Stages 7–10 are pure case-management — your work, your judgement, our timeline."</p>
+  </div>
+</div>
+
+<!-- ============ DIAGRAM 5 ============ -->
+<div class="diagram-card" id="d5">
+  <div class="step-tag">Diagram 5 of 5</div>
+  <h2>Document intelligence — what happens the moment a file is uploaded</h2>
+  <p class="lede">
+    Every document the applicant uploads is classified, flagged, and posted to
+    the case timeline within seconds. The heuristic layer runs first so the
+    portal feels instant; if Bedrock is reachable, deeper analysis overwrites
+    the heuristic with a stronger result. Either way, you see flags, not a
+    blank file icon.
+  </p>
+  <div class="mermaid">
+flowchart TD
+    UP["Applicant uploads file<br/>via client portal"]
+    H["Heuristic analyzer<br/>(filename keywords)"]
+    Q1{"Recognised<br/>doc type?"}
+    H_OK["Tag as<br/>passport / IELTS / police / etc."]
+    H_NO["Tag as<br/>'unclassified — review'"]
+    SAVE["Save document card<br/>with flags + suggestions"]
+    AI{"AWS Bedrock<br/>available?"}
+    LLM["Claude Haiku<br/>deep content read"]
+    OVR["Overwrite with<br/>stronger AI flags"]
+    SHOW["Surface in case timeline<br/>+ checklist auto-tick"]
+    REV["Consultant review<br/>(approve / reject / request new)"]
+
+    UP --> H --> Q1
+    Q1 -- "yes" --> H_OK --> SAVE
+    Q1 -- "no" --> H_NO --> SAVE
+    SAVE --> AI
+    AI -- "yes" --> LLM --> OVR --> SHOW
+    AI -- "no" --> SHOW
+    SHOW --> REV
+
+    classDef inputNode fill:#fde8e3,stroke:#B85C50,color:#5a1f17
+    classDef logicNode fill:#e8f5e9,stroke:#4a8a4f,color:#1c3d1f
+    classDef decisionNode fill:#fff5d9,stroke:#b89a3a,color:#5e4914
+    classDef aiNode fill:#ece3fd,stroke:#6d3ab8,color:#361c5e
+    classDef outputNode fill:#e3f0fd,stroke:#3a6db8,color:#1c365e
+
+    class UP inputNode
+    class H,SAVE,SHOW logicNode
+    class Q1,AI decisionNode
+    class LLM,OVR,H_OK,H_NO aiNode
+    class REV outputNode
+  </div>
+  <div class="talk-track">
+    <div class="label">What to say in the demo</div>
+    <p>"The two-tier design is deliberate. The heuristic is so cheap it runs in milliseconds and it covers the 18 most common Australian visa documents — passport, IELTS, ACS, AFP check, Form 80, the lot. Bedrock layered on top picks up the subtle stuff: expiring passports, mismatched names, dodgy bank statements. You always get a result, even if the AI tier is down."</p>
+  </div>
+</div>
+
+<!-- ============ LEGEND ============ -->
+<div class="legend">
+  <h2>Colour key & key takeaways</h2>
+  <div class="legend-grid">
+    <div class="legend-item"><span class="swatch" style="background:#fde8e3;border-color:#B85C50"></span>Applicant-facing</div>
+    <div class="legend-item"><span class="swatch" style="background:#e3f0fd;border-color:#3a6db8"></span>Consultant console</div>
+    <div class="legend-item"><span class="swatch" style="background:#e8f5e9;border-color:#4a8a4f"></span>Backend logic</div>
+    <div class="legend-item"><span class="swatch" style="background:#fff5d9;border-color:#b89a3a"></span>Database / decisions</div>
+    <div class="legend-item"><span class="swatch" style="background:#ece3fd;border-color:#6d3ab8"></span>AI (Bedrock)</div>
+    <div class="legend-item"><span class="swatch" style="background:#FAF8FF;border-color:#7A5AF8"></span>Demo talk-track</div>
+  </div>
+  <div class="takeaways">
+    <h3>Five things to leave the consultant with</h3>
+    <ul>
+      <li><strong>Branded intake from day one.</strong> Their firm's name on the questionnaire URL — applicants never see ours.</li>
+      <li><strong>AI assists, you decide.</strong> Triage and document flags are suggestions; every status change is a click you make.</li>
+      <li><strong>Manual override at every step.</strong> Skip payment, mark a letter signed in person, archive at any time — the system never blocks you.</li>
+      <li><strong>Multi-tenant isolation.</strong> Each consultancy is its own org, with its own seats, niche, template, bank details, and data.</li>
+      <li><strong>Resilient by design.</strong> Heuristic fallbacks mean the demo works even if AWS Bedrock has a bad day.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="footer">
+  IMMI-PULSE · Pilot Consultant Demo · Generated 2026-05-08
+</div>
+
+</div>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    themeVariables: {
+      primaryColor: '#7A5AF8',
+      primaryTextColor: '#101928',
+      primaryBorderColor: '#7A5AF8',
+      lineColor: '#475367',
+      fontFamily: 'Inter, system-ui, sans-serif'
+    },
+    flowchart: { curve: 'basis', padding: 18, htmlLabels: true },
+    sequence: { showSequenceNumbers: true, actorMargin: 60, boxMargin: 10 },
+    state: { padding: 12 }
+  });
+</script>
+</body>
+</html>

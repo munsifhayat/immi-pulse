@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IMMI-PULSE — Consultant Walkthrough (What's Built)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #101928;
+    --navy-2: #1c2638;
+    --purple: #7A5AF8;
+    --purple-deep: #3E1C96;
+    --purple-light: #BDB4FE;
+    --purple-muted: #D9D6FE;
+    --gray-text: #475367;
+    --gray-light: #F0F2F5;
+    --gray-border: #e6e9ef;
+    --teal: #1B7B6F;
+    --teal-light: #2DD4BF;
+    --green: #16a34a;
+    --amber: #d97706;
+    --red: #dc2626;
+    --white: #ffffff;
+    --shadow-sm: 0 1px 2px rgba(16,25,40,0.05);
+    --shadow-md: 0 4px 16px rgba(16,25,40,0.06);
+    --shadow-lg: 0 12px 40px rgba(16,25,40,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #fafbfd;
+    color: var(--navy);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; letter-spacing: -0.02em; color: var(--navy); }
+  code, pre { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+
+  /* ===== Hero ===== */
+  .hero {
+    background: linear-gradient(135deg, var(--navy) 0%, #1a2540 50%, var(--purple-deep) 100%);
+    color: white;
+    padding: 80px 24px 100px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(122,90,248,0.25) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(45,212,191,0.15) 0%, transparent 40%);
+    pointer-events: none;
+  }
+  .hero-inner { max-width: 1200px; margin: 0 auto; position: relative; }
+  .hero-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 14px; border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    font-size: 13px; font-weight: 500;
+    color: var(--purple-light);
+    margin-bottom: 20px;
+  }
+  .hero-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal-light); box-shadow: 0 0 12px var(--teal-light); }
+  .hero h1 { font-size: clamp(36px, 5vw, 56px); font-weight: 800; line-height: 1.05; color: white; margin-bottom: 16px; }
+  .hero h1 .accent { background: linear-gradient(90deg, var(--purple-light), var(--teal-light)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p.lead { font-size: 18px; max-width: 720px; color: rgba(255,255,255,0.78); }
+  .hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 48px; }
+  .stat { padding: 20px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; backdrop-filter: blur(8px); }
+  .stat .num { font-family: 'Outfit'; font-weight: 700; font-size: 28px; color: white; }
+  .stat .lbl { font-size: 13px; color: rgba(255,255,255,0.65); margin-top: 4px; }
+
+  /* ===== Layout ===== */
+  .layout { max-width: 1200px; margin: 0 auto; padding: 64px 24px; display: grid; grid-template-columns: 240px 1fr; gap: 48px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+  .sidebar { position: sticky; top: 24px; align-self: start; height: fit-content; }
+  .sidebar h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray-text); margin-bottom: 12px; }
+  .sidebar ol { list-style: none; counter-reset: step; }
+  .sidebar li { counter-increment: step; margin-bottom: 4px; }
+  .sidebar a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-radius: 8px;
+    color: var(--gray-text); text-decoration: none;
+    font-size: 14px; font-weight: 500;
+    transition: all 0.15s;
+  }
+  .sidebar a::before {
+    content: counter(step);
+    width: 22px; height: 22px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: var(--gray-light); color: var(--gray-text);
+    font-size: 11px; font-weight: 600; flex-shrink: 0;
+  }
+  .sidebar a:hover { background: var(--purple-muted); color: var(--purple-deep); }
+  .sidebar a:hover::before { background: var(--purple); color: white; }
+
+  .content { min-width: 0; }
+  section.step { margin-bottom: 80px; scroll-margin-top: 24px; }
+  .step-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--purple) 0%, var(--purple-deep) 100%);
+    color: white; font-family: 'Outfit'; font-weight: 700; font-size: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 12px rgba(122,90,248,0.3);
+  }
+  .step h2 { font-size: 28px; margin-bottom: 8px; }
+  .step .actor {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+    margin-bottom: 14px;
+  }
+  .actor-consultant { background: var(--purple-muted); color: var(--purple-deep); }
+  .actor-applicant  { background: #d1fae5; color: #065f46; }
+  .actor-system     { background: #fef3c7; color: #92400e; }
+  .actor-admin      { background: #fee2e2; color: #991b1b; }
+  .step .desc { color: var(--gray-text); font-size: 16px; margin-bottom: 24px; max-width: 720px; }
+
+  /* ===== Mockup Card ===== */
+  .mockup {
+    background: white;
+    border: 1px solid var(--gray-border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .browser-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px;
+    background: #f7f8fa;
+    border-bottom: 1px solid var(--gray-border);
+  }
+  .browser-bar .dots { display: flex; gap: 6px; }
+  .browser-bar .dots span { width: 11px; height: 11px; border-radius: 50%; }
+  .browser-bar .dots span:nth-child(1) { background: #ff5f57; }
+  .browser-bar .dots span:nth-child(2) { background: #ffbd2e; }
+  .browser-bar .dots span:nth-child(3) { background: #28c840; }
+  .browser-bar .url {
+    flex: 1; padding: 5px 12px;
+    background: white; border: 1px solid var(--gray-border); border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--gray-text);
+  }
+  .mockup-body { padding: 24px; }
+
+  /* Sidebar/dashboard mock */
+  .dash-mock { display: grid; grid-template-columns: 200px 1fr; gap: 0; min-height: 360px; }
+  .dash-side { background: var(--navy); color: white; padding: 18px 14px; border-radius: 10px 0 0 10px; }
+  .dash-side .logo { font-family: 'Outfit'; font-weight: 700; font-size: 16px; margin-bottom: 18px; color: var(--purple-light); }
+  .dash-side .nav-i { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 2px; }
+  .dash-side .nav-i.active { background: rgba(122,90,248,0.2); color: white; }
+  .dash-side .nav-i .ic { width: 14px; height: 14px; background: currentColor; border-radius: 3px; opacity: 0.8; }
+  .dash-main { background: #fafbfd; padding: 20px; border-radius: 0 10px 10px 0; }
+
+  .form-field { margin-bottom: 12px; }
+  .form-field label { display: block; font-size: 12px; font-weight: 500; color: var(--gray-text); margin-bottom: 4px; }
+  .form-field .input { padding: 8px 12px; background: white; border: 1px solid var(--gray-border); border-radius: 6px; font-size: 13px; color: var(--navy); }
+  .btn-primary { display: inline-block; padding: 9px 18px; background: var(--purple); color: white; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-primary:hover { background: var(--purple-deep); }
+  .btn-ghost { display: inline-block; padding: 8px 14px; background: white; color: var(--navy); border: 1px solid var(--gray-border); border-radius: 8px; font-size: 13px; font-weight: 500; }
+
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: white; border: 1px solid var(--gray-border); border-radius: 10px; padding: 12px; }
+  .stat-card .v { font-family: 'Outfit'; font-weight: 700; font-size: 22px; color: var(--navy); }
+  .stat-card .l { font-size: 11px; color: var(--gray-text); margin-top: 2px; }
+
+  .row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: white; border: 1px solid var(--gray-border); border-radius: 8px; margin-bottom: 6px; font-size: 13px; }
+  .row .avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--purple-light), var(--purple)); flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 11px; }
+  .row .body { flex: 1; min-width: 0; }
+  .row .body .t { font-weight: 600; color: var(--navy); }
+  .row .body .s { font-size: 11px; color: var(--gray-text); }
+  .row .meta { font-size: 11px; color: var(--gray-text); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
+  .b-green { background: #d1fae5; color: #065f46; }
+  .b-amber { background: #fef3c7; color: #92400e; }
+  .b-red { background: #fee2e2; color: #991b1b; }
+  .b-blue { background: #dbeafe; color: #1e40af; }
+  .b-purple { background: var(--purple-muted); color: var(--purple-deep); }
+  .b-gray { background: var(--gray-light); color: var(--gray-text); }
+
+  /* What happens panel */
+  .what-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  @media (max-width: 700px) { .what-row { grid-template-columns: 1fr; } }
+  .panel {
+    background: white; border: 1px solid var(--gray-border); border-radius: 12px; padding: 18px;
+  }
+  .panel h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gray-text); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .panel ul { list-style: none; }
+  .panel ul li { padding-left: 18px; position: relative; font-size: 13.5px; color: var(--navy); margin-bottom: 6px; line-height: 1.5; }
+  .panel ul li::before { content: ''; position: absolute; left: 4px; top: 9px; width: 5px; height: 5px; border-radius: 50%; background: var(--purple); }
+  .panel.api-panel { background: var(--navy); color: white; border: none; }
+  .panel.api-panel h4 { color: var(--purple-light); }
+  .panel.api-panel ul li { color: rgba(255,255,255,0.85); }
+  .panel.api-panel ul li::before { background: var(--teal-light); }
+  .panel.api-panel code { color: var(--purple-light); }
+
+  /* Architecture */
+  .arch-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 800px) { .arch-grid { grid-template-columns: 1fr; } }
+  .arch-card { background: white; border: 1px solid var(--gray-border); border-radius: 12px; padding: 18px; }
+  .arch-card h5 { font-family: 'Outfit'; font-weight: 600; font-size: 14px; margin-bottom: 4px; color: var(--purple-deep); }
+  .arch-card .pill { display: inline-block; padding: 2px 8px; background: var(--purple-muted); color: var(--purple-deep); border-radius: 4px; font-size: 10px; font-weight: 600; margin-right: 4px; margin-bottom: 4px; }
+
+  /* Tech stack */
+  .stack { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .stack-card { padding: 14px 16px; background: white; border: 1px solid var(--gray-border); border-radius: 10px; }
+  .stack-card .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gray-text); }
+  .stack-card .val { font-family: 'Outfit'; font-weight: 600; font-size: 14.5px; color: var(--navy); margin-top: 3px; }
+  .stack-card .sub { font-size: 11.5px; color: var(--gray-text); margin-top: 1px; }
+
+  /* Footer */
+  .footer { padding: 40px 24px 60px; text-align: center; color: var(--gray-text); font-size: 13px; border-top: 1px solid var(--gray-border); margin-top: 40px; background: white; }
+
+  /* Section heading */
+  .h-section { font-size: 22px; margin: 60px 0 18px; padding-top: 20px; border-top: 1px solid var(--gray-border); }
+  .h-section:first-of-type { border-top: none; padding-top: 0; }
+
+  /* Connector arrow */
+  .arrow { text-align: center; color: var(--purple); font-size: 18px; margin: -8px 0; }
+
+  /* Pre-built tag */
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .ta { font-size: 11px; padding: 3px 9px; background: var(--gray-light); color: var(--gray-text); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <span class="hero-pill"><span class="dot"></span>Implementation status as of May 2026</span>
+    <h1>What we've built — <span class="accent">an immigration consultant's walkthrough</span></h1>
+    <p class="lead">From sign-up to managing live cases, here is every screen and flow IMMI-PULSE ships today, mapped to the real backend modules that power them.</p>
+    <div class="hero-stats">
+      <div class="stat"><div class="num">45+</div><div class="lbl">Frontend pages shipped</div></div>
+      <div class="stat"><div class="num">11</div><div class="lbl">Backend agent modules</div></div>
+      <div class="stat"><div class="num">8</div><div class="lbl">Migrations applied</div></div>
+      <div class="stat"><div class="num">3</div><div class="lbl">Auth surfaces (console / portal / public)</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- LAYOUT -->
+<div class="layout">
+  <!-- Sidebar nav -->
+  <aside class="sidebar">
+    <h4>Consultant journey</h4>
+    <ol>
+      <li><a href="#s1">Sign up</a></li>
+      <li><a href="#s2">Onboarding</a></li>
+      <li><a href="#s3">Invite team</a></li>
+      <li><a href="#s4">Build questionnaire</a></li>
+      <li><a href="#s5">Lead submits form</a></li>
+      <li><a href="#s6">AI triage</a></li>
+      <li><a href="#s7">Review pre-case</a></li>
+      <li><a href="#s8">Promote to case</a></li>
+      <li><a href="#s9">Manage case</a></li>
+      <li><a href="#s10">Documents & checklist</a></li>
+      <li><a href="#s11">Client portal</a></li>
+      <li><a href="#s12">Checkpoints</a></li>
+      <li><a href="#s13">Community</a></li>
+      <li><a href="#s14">Marketplace</a></li>
+    </ol>
+    <h4 style="margin-top:24px">Reference</h4>
+    <ol style="counter-reset:none">
+      <li><a href="#arch" style="padding-left:0">⌬ Architecture</a></li>
+      <li><a href="#stack" style="padding-left:0">⌬ Tech stack</a></li>
+    </ol>
+  </aside>
+
+  <!-- Content -->
+  <main class="content">
+
+  <h2 class="h-section">Part 1 — Setup & onboarding</h2>
+
+  <!-- STEP 1 -->
+  <section class="step" id="s1">
+    <div class="step-num">1</div>
+    <span class="actor actor-consultant">Consultant</span>
+    <h2>Sign up — create the firm</h2>
+    <p class="desc">An immigration consultant lands on the public site and creates their firm. One form spins up an entire multi-tenant org behind the scenes — organization, owner user, owner seat, trial subscription, and a credit wallet for AI usage.</p>
+
+    <div class="mockup">
+      <div class="browser-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="url">app.immipulse.com/get-started</div>
+      </div>
+      <div class="mockup-body">
+        <h3 style="font-size:20px;margin-bottom:6px">Get started with IMMI-PULSE</h3>
+        <p style="font-size:13px;color:var(--gray-text);margin-bottom:18px">30-day free trial. No card required.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:520px">
+          <div class="form-field"><label>First name</label><div class="input">Sarah</div></div>
+          <div class="form-field"><label>Last name</label><div class="input">Chen</div></div>
+          <div class="form-field" style="grid-column:1/-1"><label>Work email</label><div class="input">sarah@chenmigration.com.au</div></div>
+          <div class="form-field" style="grid-column:1/-1"><label>Firm name</label><div class="input">Chen Migration Services</div></div>
+          <div class="form-field" style="grid-column:1/-1"><label>Password</label><div class="input">••••••••••</div></div>
+        </div>
+        <button class="btn-primary" style="margin-top:14px">Create my firm →</button>
+      </div>
+    </div>
+
+    <div class="what-row">
+      <div class="panel">
+        <h4>What the consultant sees</h4>
+        <ul>
+          <li>Single form: name, email, firm, password</li>
+          <li>Auto-redirects to a 3-step onboarding wizard</li>
+          <li>Trial banner appears in the dashboard chrome</li>
+        </ul>
+      </div>
+      <div class="panel api-panel">
+        <h4>What happens server-side</h4>
+        <ul>
+          <li><code>POST /auth/signup</code></li>
+          <li>Creates <code>Organization</code> + <code>User</code> + <code>Seat (role=owner)</code></li>
+          <li>Creates <code>Subscription (trial, 30d)</code> + <code>CreditWallet (1k credits)</code></li>
+          <li>Issues console JWT (15-min access, refresh on call)</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="step" id="s2">
+    <div class="step-num">2</div>
+    <span class="actor actor-consultant">Consultant</span>
+    <h2>Onboarding — niche, OMARA, team</h2>
+    <p class="desc">A focused 3-step wizard captures what we need for AI personalization (niche & visa specialty), regulatory metadata (OMARA registration number), and lets the owner invite teammates immediately.</p>
+
+    <div class="mockup">
+      <div class="browser-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="url">app.immipulse.com/onboarding</div>
+      </div>
+      <div class="mockup-body">
+        <div style="display:flex;gap:8px;margin-bottom:18px">
+          <div style="flex:1;height:4px;background:var(--purple);border-radius:2px"></div>
+          <div style="flex:1;height:4px;background:var(--purple);border-radius:2px"></div>
+          <div style="flex:1;height:4px;background:var(--gray-light);border-radius:2px"></div>
+        </div>
+        <h3 style="font-size:20px;margin-bottom:4px">Step 2 of 3 — Tell us about your practice</h3>
+        <p style="font-size:13px;color:var(--gray-text);margin-bottom:14px">This helps our AI prioritize the right visa categories for you.</p>
+        <div class="form-field"><label>Your niche / specialty</label><div class="input">Employer-sponsored skilled migration — 482, 186, 494 visas</div></div>
+        <div class="form-field"><label>OMARA registration number</label><div class="input">2118XXX</div></div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn-ghost">← Back</button>
+          <button class="btn-primary">Continue →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="what-row">
+      <div class="panel">
+        <h4>What the consultant sees</h4>
+        <ul>
+          <li>3 steps: niche → invite team → done</li>
+          <li>Skippable — owner can return via Settings</li>
+          <li>Lands them in <code>/dashboard</code> with sample data hidden</li>
+        </ul>
+      </div>
+      <div class="panel api-panel">
+        <h4>What happens server-side</h4>
+        <ul>
+          <li><code>PATCH /org</code> — niche, omara_number stored on Organization</li>
+          <li>Niche string is later fed into <code>VisaAnalyzer</code> system prompt</li>
+          <li>Onboarding completion flag persisted for routing</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="step" id="s3">
+    <div class="step-num">3</div>
+    <span class="actor actor-consultant">Consultant</span>
+    <h2>Invite the team</h2>
+    <p class="desc">From <code>Settings → Team</code> the owner invites consultants and admins. Each invite is a tokenized link the invitee accepts publicly — no inbox required for our pilot stage.</p>
+
+    <div class="mockup">
+      <div class="browser-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="url">app.immipulse.com/dashboard/settings/team</div>
+      </div>
+      <div class="dash-mock">
+        <div class="dash-side">
+          <div class="logo">IMMI-PULSE</div>
+          <div class="nav-i"><span class="ic"></span> Dashboard</div>
+          <div class="nav-i"><span class="ic"></span> Pre-cases</div>
+          <div class="nav-i"><span class="ic"></span> Cases</div>
+          <div class="nav-i"><span class="ic"></span> Clients</div>
+          <div class="nav-i"><span class="ic"></span> Questionnaires</div>
+          <div class="nav-i active"><span class="ic"></span> Settings</div>
+        </div>
+        <div class="dash-main">
+          <h3 style="font-size:18px;margin-bottom:4px">Team members</h3>
+          <p style="font-size:12px;color:var(--gray-text);margin-bottom:14px">3 of 5 seats used</p>
+          <div class="row">
+            <div class="avatar">SC</div>
+            <div class="body"><div class="t">Sarah Chen</div><div class="s">sarah@chenmigration.com.au</div></div>
+            <span class="badge b-purple">Owner</span>
+          </div>
+          <div class="row">
+            <div class="avatar" style="background:linear-gradient(135deg,var(--teal-light),var(--teal))">DJ</div>
+            <div class="body"><div class="t">David Jones</div><div class="s">david@chenmigration.com.au</div></div>
+            <span class="badge b-blue">Admin</span>
+          </div>
+          <div class="row" style="opacity:0.7">
+            <div class="avatar" style="background:#cbd5e1">??</div>
+            <div class="body"><div class="t">priya@chenmigration.com.au</div><div class="s">Invited 2 days ago • expires in 5d</div></div>
+            <span class="badge b-amber">Pending</span>
+          </div>
+          <button class="btn-primary" style="margin-top:14px">+ Invite member</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="what-row">
+      <div class="panel">
+        <h4>What the consultant sees</h4>
+        <ul>
+          <li>Roster with role badges (owner / admin / consultant)</li>
+          <li>Pending invites shown with expiry countdown</li>
+          <li>Revoke seat in one click</li>
+        </ul>
+      </div>
+      <div class="panel api-panel">
+        <h4>What happens server-side</h4>
+        <ul>
+          <li><code>POST /org/seats/invite</code> → <code>SeatInvite</code> with 7-day token</li>
+          <li><code>POST /public/invites/accept</code> creates User + Seat, returns JWT</li>
+          <li><code>DELETE /org/seats/{id}</code> revokes, owner/admin only</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="h-section">Part 2 — Lead capture (questionnaires)</h2>
+
+  <!-- STEP 4 -->
+  <section class="step" id="s4">
+    <div class="step-num">4</div>
+    <span class="actor actor-consultant">Consultant</span>
+    <h2>Build a public intake questionnaire</h2>
+    <p class="desc">Drag-and-drop builder. Add text, select, radio, checkbox fields, mark required, save. Each questionnaire publishes to a public slug at <code>/q/{slug}</code> that the consultant shares on their website, Instagram, or in email signatures.</p>
+
+    <div class="mockup">
+      <div class="browser-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="url">app.immipulse.com/dashboard/questionnaires/new</div>
+      </div>
+      <div class="mockup-body">
+        <h3 style="font-size:18px;margin-bottom:14px">New questionnaire</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+          <div>
+            <div class="form-field"><label>Name</label><div class="input">Skilled visa eligibility — initial enquiry</div></div>
+            <div style="background:white;border:1px dashed var(--gray-border);border-radius:10px;padding:12px;margin-top:10px">
+              <div style="font-size:11px;color:var(--gray-text);margin-bottom:8px">FIELDS · drag to reorder</div>
+              <div class="row" style="margin-bottom:6px"><span class="badge b-blue">text</span><div class="body"><div class="t">Full name</div></div><span style="font-size:10px;color:var(--gray-text)">required</span></div>
+              <div class="row" style="margin-bottom:6px"><span class="badge b-blue">email</span><div class="body"><div class="t">Email address</div></div><span style="font-size:10px;color:var(--gray-text)">required</span></div>
+              <div class="row" style="margin-bottom:6px"><span class="badge b-purple">select</span><div class="body"><div class="t">Visa type interested in</div><div class="s">5 options</div></div></div>
+              <div class="row" style="margin-bottom:6px"><span class="badge b-purple">radio</span><div class="body"><div class="t">Years of work experience</div><div class="s">4 options</div></div></div>
+              <div class="row"><span class="badge b-blue">textarea</span><div class="body"><div class="t">Tell us about your situation</div></div></div>
+            </div>
+          </div>
+          <div>
+            <div style="background:#f7f8fa;border-radius:10px;padding:14px">
+              <div style="font-size:11px;color:var(--gray-text);margin-bottom:8px">PUBLIC PREVIEW · /q/skilled-visa-enquiry</div>
+              <div style="background:white;border-radius:8px;padding:14px;border:1px solid var(--gray-border)">
+                <div style="font-family:Outfit;font-weight:600;font-size:15px;margin-bottom:4px">Skilled visa eligibility</div>
+                <div style="font-size:11px;color:var(--gray-text);margin-bottom:12px">Chen Migration Services</div>
+                <div class="form-field"><label>Full name</label><div class="input"></div></div>
+                <div class="form-field"><label>Email</label><div class="input"></div></div>
+                <div class="form-field"><label>Visa type</label><div class="input">Select…</div></div>
+                <button class="btn-primary" style="font-size:11px;padding:6px 12px">Submit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px"><button class="btn-ghost">Save draft</button><button class="btn-primary">Publish & copy link</button></div>
+      </div>
+    </div>
+
+    <div class="what-row">
+      <div class="panel">
+        <h4>What the consultant sees</h4>
+        <ul>
+          <li>Visual builder with live public preview</li>
+          <li>Generates a shareable URL: <code>immipulse.com/q/skilled-visa-enquiry</code></li>
+          <li>Can deactivate / version a questionnaire later</li>
+        </ul>
+      </div>
+      <div class="panel api-panel">
+        <h4>What happens server-side</h4>
+        <ul>
+          <li><code>POST /questionnaires</code> creates <code>Questionnaire</code> + <code>QuestionnaireVersion</code> (schema as JSONB)</li>
+          <li>Slug auto-generated from name, uniqueness checked org-scope</li>
+          <li>Each edit creates a new version (response audit trail intact)</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 5 -->
+  <section class="step" id="s5">
+    <div class="step-num">5</div>
+    <span class="actor actor-applicant">Visa applicant (public, no auth)</span>
+    <h2>Lead submits the public form</h2>
+    <p class="desc">A prospective client clicks the link and fills out the form on a clean public page. No login. On submit, the system creates a Client, a QuestionnaireResponse, and a PreCase — and dispatches the AI triage job in the background.</p>
+
+    <div class="mockup">
+      <div class="browser-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="url">immipulse.com/q/skilled-visa-enquiry</div>
+      </div>
+      <div class="mockup-body" style="background:#f7f8fa">
+        <div style="max-width:540px;margin:0 auto;background:white;border:1px solid var(--gray-border);border-radius:14px;padding:28px;box-shadow:var(--shadow-md)">
+          <div style="text-align:center;margin-bottom:18px">
+            <div style="font-family:Outfit;font-weight:700;font-size:20px">Skilled visa eligibility</div>
+            <div style="font-size:12px;color:var(--gray-text);margin-top:4px">Chen Migration Services · OMARA 2118XXX</div>
+          </div>
+          <div class="form-field"><label>Full name</label><div class="input">Liam O'Connor</div></div>
+          <div class="form-field"><label>Email</label><div class="input">liam.oconnor@gmail.com</div></div>
+          <div class="form-field"><label>Visa type interested in</label><div class="input">Subclass 482 (TSS)</div></div>
+          <div class="form-field"><label>Years of work experience</label><div class="input">5–10 years</div></div>
+          <div class="form-field"><label>Tell us about your situation</label><div class="input" style="min-height:50px">I'm a senior software engineer at a UK firm, currently with an Australian sponsor offer for a Sydney-based role…</div></div>
+          <button class="btn-primary" style="width:100%">Submit enquiry</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="what-row">
+      <div class="panel">
+        <h4>What the applicant sees</h4>
+        <ul>
+          <li>Branded form with consultant's firm name + OMARA #</li>
+          <li>"Thanks, we'll be in touch" confirmation on submit</li>
+          <li>No account creation — friction-free intake</li>
+        </ul>
+      </div>
+      <div class="panel api-panel">
+        <h4>What happens server-side</h4>
+        <ul>
+          <li><code>POST /public/q/{slug}/submit</code> (rate-limited by IP-hash)</li>
+          <li>Creates <code>QuestionnaireResponse</code> (answers JSONB, ip_hash, ua)</li>
+          <li>Finds-or-creates <code>Client</code> + <code>ClientOrgLink</code></li>
+          <li>Creates <code>PreCase (status=pending, ai_status=pending)</code></li>
+          <li>Enqueues async <code>triage()</code> job</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 6 -->
+  <section class="step" id="s6">
+    <div class="step-num">6</div>
+    <span class="actor actor-system">AI gateway · Bedrock</span>
+    <h2>Background — AI triages the lead</h2>
+    <p class="desc">Two Bedrock models run in sequence. Haiku 4.5 extracts structured fields from the prose answer; Sonnet 4.5 produces a fit assessment with a confidence score. Cost and tokens are deducted from the org's CreditWallet.</p>
+
+    <div class="mockup">
+      <div class="mockup-body" style="background:var(--navy);color:white">
+        <div style="display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:14px;align-items:center">
+          <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px">
+            <div style="font-size:10px;color:var(--purple-light);font-weight:600;letter-spacing:0.06em">INPUT</div>
+            <div style="font-size:13px;margin-top:6px;color:white">Questionnaire response (JSONB)</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px">5 fields, ~180 words of free text</div>
+          </div>
+          <div style="color:var(--purple-light);font-size:24px">→</div>
+          <div style="background:rgba(122,90,248,0.15);border:1px solid rgba(122,90,248,0.4);border-radius:10px;padding:14px">
+            <div style="font-size:10px;color:var(--purple-light);font-weight:600;letter-spacing:0.06em">HAIKU 4.5 · classifier</div>
+            <div style="font-size:13px;margin-top:6px;color:white">Extract: visa subclass, exp years, country, sponsor</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px">~340 in / 120 out tokens</div>
+          </div>
+          <div style="color:var(--purple-light);font-size:24px">→</div>
+          <div style="background:rgba(45,212,191,0.12);border:1px solid rgba(45,212,191,0.4);border-radius:10px;padding:14px">
+            <div style="font-size:10px;color:var(--teal-light);font-weight:600;letter-spacing:0.06em">SONNET 4.5 · analyzer</div>
+            <div style="font-size:13px;margin-top:6px;color:white">Suggested outcome + confidence</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px">~520 in / 280 out tokens</div>
+          </div>
+        </div>
+        <div style="margin-top:18px;background:rgba(255,255,255,0.04);border-left:3px solid var(--teal-light);padding:12px;border-radius:6px">
+          <div style="font-size:11px;color:var(--purple-light);font-weight:600">PRECASE.AI_SUMMARY (output)</div>
+          <pre style="color:rgba(255,255,255,0.85);margin-top:6px;white-space:pre-wrap;font-size:12px">{
+  "outcome": "likely_fit",
+  "confidence": 0.87,
+  "summary": "Senior SWE, UK passport, 7y exp, has confirmed AU sponsor.
+   Strong fit for 482 TSS Medium-Term stream. Standard documentation
+   pathway. Prioritise English evidence + skills assessment review.",
+  "next_steps": ["confirm sponsor SBS approval", "request CV + IELTS", "book 30-min consult"]
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="what-row">
+      <div class="panel">
+        <h4>Outcome buckets</h4>
+        <ul>
+          <li><code>likely_fit</code> — ready to convert to paying case</li>
+          <li><code>needs_info</code> — request more docs before quoting</li>
+          <li><code>paid_consult</code> — borderline, charge for assessment</li>
+          <li><code>unlikely_fit</code> — politely decline / refer out</li>
+        </ul>
+      </div>
+      <div class="panel api-panel">
+        <h4>What happens server-side</h4>
+        <ul>
+          <li><code>AIGateway.classify()</code> → Haiku via Strands SDK + Bedrock</li>
+          <li><code>AIGateway.analyze()</code> → Sonnet, system prompt seeded with org niche</li>
+          <li>Persists <code>ai_summary, ai_suggested_outcome, ai_confidence</code> on PreCase</li>
+          <li>Logs to <code>AIUsageLog</code>, debits CreditWallet</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="h-section">Part 3 — Triage & convert</h2>
+
+  <!-- STEP 7 -->
+  <section class="step" id="s7">
+    <div class="step-num">7</div>
+    <span class="actor actor-consultant">Consultant</span>
+    <h2>Review the pre-case inbox</h2>
+    <p class="desc">Pre-cases are the lead inbox. Each row shows the AI verdict, confidence, and unread state. The consultant reads, decides, and either promotes to a paid case, archives, or asks for more info.</p>
+
+    <div class="mockup">
+      <div class="browser-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="url">app.immipulse.com/dashboard/precases</div>
+      </div>
+      <div class="dash-mock">
+        <div class="dash-side">
+          <div class="logo">IMMI-PULSE</div>
+          <div class="nav-i"><span class="ic"></span> Dashboard</div>
+          <div class="nav-i active"><span class="ic"></span> Pre-cases <span style="margin-left:auto;background:var(--purple);padding:1px 6px;border-radius:8px;font-size:10px">3</span></div>
+          <div class="nav-i"><span class="ic"></span> Cases</div>
+          <div class="nav-i"><span class="ic"></span> Clients</div>
+          <div class="nav-i"><span class="ic"></span> Questionnaires</div>
+        </div>
+        <div class="dash-main">
+          <h3 style="font-size:18px;margin-bottom:14px">Pre-cases inbox</h3>
+          <div class="row" style="border-left:3px solid var(--purple)">
+            <div class="avatar">LO</div>
+            <div class="body">
+              <div class="t">Liam O'Connor <span class="badge b-purple" style="margin-left:6px">NEW</span></div>
+              <div class="s">liam.oconnor@gmail.com · 482 TSS · 5–10y exp</div>
+            </div>
+            <span class="badge b-green">likely fit · 87%</span>
+          </div>
+          <div class="row">
+            <div class="avatar" style="background:linear-gradient(135deg,#fbbf24,#d97706)">PR</div>
+            <div class="body">
+              <div class="t">Priya Ramaswamy</div>
+              <div class="s">priya.r@outlook.com · 189 PR · 10+y exp</div>
+            </div>
+            <span class="badge b-amber">needs info · 64%</span>
+          </div>
+          <div class="row">
+            <div class="avatar" style="background:linear-gradient(135deg,#34d399,#059669)">MK</div>
+            <div class="body">
+              <div class="t">Mateo Kovac</div>
+              <div class="s">mateo@kovac.hr · 482 TSS · 2–5y exp</div>
+            </div>
+            <span class="badge b-blue">paid consult · 71%</span>
+          </div>
+          <div class="row" style="opacity:0.55">
+            <div class="avatar" style="background:#94a3b8">JS</div>
+            <div class="body">
+              <div class="t">Jordan Smith</div>
+              <div class="s">jordan@protonmail.com · 491 RSMS · &lt;1y exp</div>
+            </div>
+            <span class="badge b-red">unlikely · 92%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="what-row">
+      <div class="panel">
+        <h4>What the consultant sees</h4>
+        <ul>
+          <li>Sorted by newest, color-coded by AI verdict</li>
+          <li>Click row → full questionnaire answers + AI rationale + actions</li>
+          <li>Bulk archive for obvious non-fits</li>
+        </ul>
+      </div>
+      <div class="panel api-panel">
+        <h4>What happens server-side</h4>
+        <ul>
+          <li><code>GET /precases?status=pending</code></li>
+          <li><code>GET /precases/{id}</code> sets <code>read_at</code> on first view</li>
+          <li><code>POST /precases/{id}/retrigger-ai</code> for low-confidence reruns</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 8 -->
+  <section class="step" id="s8">
+    <div class="step-num">8</div>
+    <span class="actor actor-consultant">Consultant</span>
+    <h2>Promote pre-case → paying case</h2>
+    <p class="desc">One click. A new Case is opened, linked to the original pre-case for audit, and the consultant is dropped into the case workspace.</p>
+
+    <div class="mockup">
+      <div class="browser-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="url">app.immipulse.com/dashboard/precases/p_8a2…</div>
+      </div>
+      <div class="mockup-body">
+        <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:18px">
+          <div>
+            <h3 style="font-size:18px;margin-bottom:4px">Liam O'Connor</h3>
+            <p style="font-size:12px;color:var(--gray-text);margin-bottom:14px">Submitted 12 May 2026 · 14:22 AEST</p>
+            <div class="panel" style="padding:14px;margin-bottom:10px">
+              <h4>Questionnaire answers</h4>
+              <ul>
+                <li><strong>Visa interest:</strong> Subclass 482 (TSS)</li>
+                <li><strong>Experience:</strong> 5–10 years</li>
+                <li><strong>Situation:</strong> Senior SWE, UK passport, AU sponsor offer for Sydney role…</li>
+              </ul>
+            </div>
+          </div>
+          <div>
+            <div class="panel" style="padding:14px;background:linear-gradient(135deg,#f5f3ff,#fff);border-color:var(--purple-muted)">
+              <h4 style="color:var(--purple-deep)">⚡ AI assessment</h4>
+              <span class="badge b-green" style="margin-bottom:8px;display:inline-block">likely fit · 87%</span>
+              <p style="font-size:12.5px;color:var(--gray-text);margin-bottom:10px">Senior SWE, UK passport, 7y exp, confirmed AU sponsor. Strong fit for 482 TSS Medium-Term stream. Standard documentation pathway.</p>
+              <div style="display:grid;gap:6px;margin-top:10px">
+                <button class="btn-primary" style="text-align:center">→ Promote to case</button>
+                <button class="btn-ghost" style="text-align:center">Request more info</button>
+                <button class="btn-ghost" style="text-align:center">Archive</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="what-row">
+      <div class="panel">
+        <h4>What the consultant sees</h4>
+        <ul>
+          <li>Side-by-side: applicant answers + AI rationale</li>
+          <li>One-click promote — no double data entry</li>
+          <li>Lands in the new Case workspace immediately</li>
+        </ul>
+      </div>
+      <div class="panel api-panel">
+        <h4>What happens server-side</h4>
+        <ul>
+          <li><code>POST /precases/{id}/promote</code></li>
+          <li>Creates <code>Case</code> with visa_subclass, client, AI metadata copied</li>
+          <li>PreCase <code>status=promoted</code>, link preserved for audit</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="h-section">Part 4 — Case management</h2>
+
+  <!-- STEP 9 -->
+  <section class="step" id="s9">
+    <div class="step-num">9</div>
+    <span class="actor actor-consultant">Consultant</span>
+    <h2>Manage the case workspace</h2>
+    <p class="desc">Tabbed workspace — Overview, Documents, Checklist, Timeline, Portal. Stage and priority are dropdowns. Everything one click from open to lodged.</p>
+
+    <div class="mockup">
+      <div class="browser-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="url">app.immipulse.com/dashboard/cases/c_4f7…</div>
+      </div>
+      <div class="mockup-body">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+          <div>
+            <h3 style="font-size:20px;margin-bottom:2px">Liam O'Connor — 482 TSS</h3>
+            <p style="font-size:12px;color:var(--gray-text)">Created from pre-case · 12 May 2026</p>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge b-blue">stage: documents</span>
+            <span class="badge b-amber">high priority</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:0;border-bottom:1px solid var(--gray-border);margin-bottom:14px">
+          <div style="padding:8px 14px;font-size:13px;color:var(--gray-text)">Overview</div>
+          <div style="padding:8px 14px;font-size:13px;color:var(--purple);border-bottom:2px solid var(--purple);font-weight:600">Documents <span class="badge b-purple" style="margin-left:4px">7</span></div>
+          <div style="padding:8px 14px;font-size:13px;color:var(--gray-text)">Checklist <span style="color:var(--gray-text)">(4/12)</span></div>
+          <div style="padding:8px 14px;font-size:13px;color:var(--gray-text)">Timeline</div>
+          <div style="padding:8px 14px;font-size:13px;color:var(--gray-text)">Portal</div>
+        </div>
+        <div class="card-grid">
+          <div class="stat-card"><div class="v">7</div><div class="l">Documents</div></div>
+          <div class="stat-card"><div class="v">4 / 12</div><div class="l">Checklist done</div></div>
+          <div class="stat-card"><div class="v">2</div><div class="l">AI flags</div></div>
+          <div class="stat-card"><div class="v">$2,400</div><div class="l">Outstanding</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 10 -->
+  <section class="step" id="s10">
+    <div class="step-num">10</div>
+    <span class="actor actor-consultant">Consultant</span>
+    <h2>Documents — upload, AI-validate, checklist</h2>
+    <p class="desc">Documents are uploaded by either the consultant or the client (via portal). On upload, an async analyzer agent extracts text, classifies the document, and flags missing info — surfaced as badges.</p>
+
+    <div class="mockup">
+      <div class="browser-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="url">app.immipulse.com/dashboard/cases/c_4f7…/documents</div>
+      </div>
+      <div class="mockup-body">
+        <div class="row"><span class="badge b-blue">PDF</span><div class="body"><div class="t">passport_oconnor.pdf</div><div class="s">Uploaded by Liam (portal) · 13 May</div></div><span class="badge b-green">validated</span></div>
+        <div class="row"><span class="badge b-blue">PDF</span><div class="body"><div class="t">employment_letter.pdf</div><div class="s">Uploaded by Sarah · 13 May</div></div><span class="badge b-green">validated</span></div>
+        <div class="row"><span class="badge b-blue">PDF</span><div class="body"><div class="t">cv_liam_2026.pdf</div><div class="s">Uploaded by Liam (portal) · 14 May</div></div><span class="badge b-amber">flagged · 2 issues</span></div>
+        <div class="row"><span class="badge b-blue">PDF</span><div class="body"><div class="t">ielts_results.pdf</div><div class="s">Uploaded by Liam (portal) · 14 May</div></div><span class="badge b-amber">flagged · expired</span></div>
+        <div class="row"><span class="badge b-blue">PDF</span><div class="body"><div class="t">sponsor_sbs_approval.pdf</div><div class="s">Uploaded by Sarah · 15 May</div></div><span class="badge b-blue">analyzing…</span></div>
+        <div style="margin-top:14px;padding:12px;background:#f5f3ff;border:1px dashed var(--purple-muted);border-radius:10px;text-align:center;font-size:13px;color:var(--purple-deep)">
+          ⤴ Drag & drop documents, or <a style="color:var(--purple);text-decoration:underline">browse</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="what-row">
+      <div class="panel">
+        <h4>Checklist tab (separate)</h4>
+        <ul>
+          <li><strong>Generate from visa template</strong> — Sonnet drafts a tailored checklist for the visa subclass</li>
+          <li>12-item checklist for 482 (passport, sponsor, IELTS, skills assessment, etc.)</li>
+          <li>Each item links to a document; status pending → uploaded → validated</li>
+          <li>Client sees the same list in their portal</li>
+        </ul>
+      </div>
+      <div class="panel api-panel">
+        <h4>What happens server-side</h4>
+        <ul>
+          <li><code>POST /cases/{id}/documents</code> → S3 upload (presigned), <code>CaseDocument</code> row created</li>
+          <li>Async <code>DocumentAnalyzer</code> agent → extracts text, classifies type, flags issues</li>
+          <li><code>POST /cases/{id}/generate-checklist</code> → Sonnet generates checklist into <code>case.metadata.checklist</code></li>
+          <li><code>GET /cases/{id}/documents/{doc_id}/download</code> → 5-min presigned URL</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 11 -->
+  <section class="step" id="s11">
+    <div class="step-num">11</div>
+    <span class="actor actor-applicant">Visa applicant (client portal)</span>
+    <h2>Client portal — secure document upload</h2>
+    <p class="desc">From the case workspace, the consultant generates a secure, time-limited portal link with a 6-digit PIN sent over a separate channel. The client never logs in to the main app — they get a focused, branded view of just their case.</p>
+
+    <div class="mockup">
+      <div class="browser-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="url">app.immipulse.com/client-portal/eyJ0eXAiOiJK…</div>
+      </div>
+      <div class="mockup-body" style="background:#fafbfd">
+        <div style="max-width:440px;margin:0 auto;background:white;border-radius:14px;padding:28px;box-shadow:var(--shadow-md);border:1px solid var(--gray-border)">
+          <div style="text-align:center;margin-bottom:16px">
+            <div style="font-family:Outfit;font-weight:700;font-size:18px">Welcome, Liam</div>
+            <div style="font-size:12px;color:var(--gray-text);margin-top:4px">Chen Migration Services · Case #c4f7</div>
+          </div>
+          <div style="background:var(--purple-muted);border-radius:8px;padding:10px;font-size:12px;color:var(--purple-deep);margin-bottom:14px">
+            Enter the 6-digit PIN your consultant gave you to access your case.
+          </div>
+          <div style="display:flex;gap:6px;justify-content:center;margin-bottom:16px">
+            <div class="input" style="width:36px;text-align:center;padding:10px 0">8</div>
+            <div class="input" style="width:36px;text-align:center;padding:10px 0">2</div>
+            <div class="input" style="width:36px;text-align:center;padding:10px 0">4</div>
+            <div class="input" style="width:36px;text-align:center;padding:10px 0">7</div>
+            <div class="input" style="width:36px;text-align:center;padding:10px 0">1</div>
+            <div class="input" style="width:36px;text-align:center;padding:10px 0">5</div>
+          </div>
+          <button class="btn-primary" style="width:100%">Continue</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓</div>
+
+    <div class="mockup">
+      <div class="browser-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="url">app.immipulse.com/client-portal/eyJ0eXAi…/documents</div>
+      </div>
+      <div class="mockup-body">
+        <h3 style="font-size:18px;margin-bottom:4px">Your document checklist</h3>
+        <p style="font-size:12.5px;color:var(--gray-text);margin-bottom:14px">4 of 12 items uploaded. Your consultant will review each one as it comes in.</p>
+        <div class="row"><span style="color:var(--green);font-size:18px">✓</span><div class="body"><div class="t">Passport (bio page)</div><div class="s">Validated by Sarah</div></div></div>
+        <div class="row"><span style="color:var(--green);font-size:18px">✓</span><div class="body"><div class="t">Sponsor employment letter</div><div class="s">Validated</div></div></div>
+        <div class="row"><span style="color:var(--amber);font-size:18px">⚠</span><div class="body"><div class="t">CV / resume</div><div class="s">Re-upload requested — expand your 2022 role</div></div><button class="btn-ghost" style="font-size:11px;padding:5px 10px">Re-upload</button></div>
+        <div class="row" style="opacity:0.7"><span style="color:var(--gray-text);font-size:18px">○</span><div class="body"><div class="t">IELTS results</div><div class="s">Pending</div></div><button class="btn-ghost" style="font-size:11px;padding:5px 10px">Upload</button></div>
+        <div class="row" style="opacity:0.7"><span style="color:var(--gray-text);font-size:18px">○</span><div class="body"><div class="t">Skills assessment</div><div class="s">Pending</div></div><button class="btn-ghost" style="font-size:11px;padding:5px 10px">Upload</button></div>
+      </div>
+    </div>
+
+    <div class="what-row">
+      <div class="panel">
+        <h4>Why this design</h4>
+        <ul>
+          <li>No password creation — friction for clients is brutal</li>
+          <li>Token in URL + PIN out-of-band = two factors</li>
+          <li>Branded with the firm's name (whitelabel feel)</li>
+          <li>15-minute session, then re-PIN</li>
+        </ul>
+      </div>
+      <div class="panel api-panel">
+        <h4>What happens server-side</h4>
+        <ul>
+          <li><code>POST /cases/{id}/generate-portal-link</code> → <code>CasePortalToken</code> (token + bcrypt-hashed PIN, 7d expiry)</li>
+          <li><code>POST /public/portal/verify</code> → validates token+PIN, issues short-lived session JWT</li>
+          <li>Portal-uploaded docs land in same case with <code>uploaded_by_type=client_portal</code></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 12 -->
+  <section class="step" id="s12">
+    <div class="step-num">12</div>
+    <span class="actor actor-consultant">Consultant</span>
+    <h2>Checkpoints — payment milestones</h2>
+    <p class="desc">Most consultants charge in stages. Checkpoints are simple: amount + description + due date. Send to client (currently a logged-not-emailed action), mark paid, and the case timeline records it.</p>
+
+    <div class="mockup">
+      <div class="mockup-body" style="padding:20px">
+        <h3 style="font-size:16px;margin-bottom:12px">Liam O'Connor — checkpoints</h3>
+        <div class="row"><div class="body"><div class="t">Initial consultation & engagement</div><div class="s">Due 14 May · sent</div></div><span style="font-family:Outfit;font-weight:700">$1,200</span><span class="badge b-green" style="margin-left:8px">paid</span></div>
+        <div class="row"><div class="body"><div class="t">Skills assessment fee + admin</div><div class="s">Due 28 May</div></div><span style="font-family:Outfit;font-weight:700">$2,400</span><span class="badge b-amber" style="margin-left:8px">sent</span></div>
+        <div class="row" style="opacity:0.6"><div class="body"><div class="t">Lodgement & DHA fees</div><div class="s">Due on lodgement</div></div><span style="font-family:Outfit;font-weight:700">$5,800</span><span class="badge b-gray" style="margin-left:8px">draft</span></div>
+        <button class="btn-ghost" style="margin-top:10px">+ Add checkpoint</button>
+      </div>
+    </div>
+
+    <div class="what-row">
+      <div class="panel">
+        <h4>What the consultant sees</h4>
+        <ul>
+          <li>Inline list per case (no separate billing app)</li>
+          <li>States: draft → sent → paid / cancelled</li>
+          <li>Total outstanding shown on case overview</li>
+        </ul>
+      </div>
+      <div class="panel api-panel">
+        <h4>What happens server-side</h4>
+        <ul>
+          <li><code>POST /checkpoints</code> creates a Checkpoint linked to case_id or pre_case_id</li>
+          <li><code>POST /checkpoints/{id}/send</code> + <code>/mark-paid</code> + <code>/cancel</code> state transitions</li>
+          <li>Stripe integration is stubbed for v2 — currently manual reconciliation</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="h-section">Part 5 — Beyond the case</h2>
+
+  <!-- STEP 13 -->
+  <section class="step" id="s13">
+    <div class="step-num">13</div>
+    <span class="actor actor-consultant">Consultant (or anyone)</span>
+    <h2>Community — anonymous discussion</h2>
+    <p class="desc">A public, IP-rate-limited forum scoped to immigration topics. Spaces (Australian Skilled, Family Sponsored, Student, etc.), threads, comments, upvotes, and report → moderation queue. No auth required for read or post.</p>
+
+    <div class="mockup">
+      <div class="browser-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="url">immipulse.com/community/australian-skilled</div>
+      </div>
+      <div class="mockup-body">
+        <h3 style="font-size:18px;margin-bottom:2px">🇦🇺 Australian Skilled Migration</h3>
+        <p style="font-size:12.5px;color:var(--gray-text);margin-bottom:14px">2,341 threads · 18,290 comments · 6,452 members</p>
+        <div class="row"><div class="body"><div class="t">📌 482 TSS — list of acceptable English evidence (2026 update)</div><div class="s">posted by anon · 4d ago · 47 comments</div></div><span class="badge b-purple">↑ 312</span></div>
+        <div class="row"><div class="body"><div class="t">186 ENS direct entry — anyone got recent CO contact times?</div><div class="s">posted by anon · 8h ago · 12 comments</div></div><span class="badge b-purple">↑ 28</span></div>
+        <div class="row"><div class="body"><div class="t">Skills assessment for software engineers — ACS vs VETASSESS for 2026</div><div class="s">posted by anon · 2d ago · 31 comments</div></div><span class="badge b-purple">↑ 89</span></div>
+        <div class="row"><div class="body"><div class="t">491 RSMS regional withdrawal experience — sharing notes</div><div class="s">posted by anon · 12h ago · 6 comments</div></div><span class="badge b-purple">↑ 14</span></div>
+        <button class="btn-primary" style="margin-top:10px">+ New thread</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 14 -->
+  <section class="step" id="s14">
+    <div class="step-num">14</div>
+    <span class="actor actor-applicant">Visa applicant (or peer consultant)</span>
+    <h2>Marketplace — find a vetted consultant</h2>
+    <p class="desc">A directory of approved consultants. Filterable by city, visa types, languages, tier. Consultants apply via a public form; admins approve and assign tier (bronze → platinum).</p>
+
+    <div class="mockup">
+      <div class="browser-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="url">immipulse.com/find-consultants</div>
+      </div>
+      <div class="mockup-body">
+        <div style="display:grid;grid-template-columns:200px 1fr;gap:18px">
+          <div>
+            <div style="font-size:11px;color:var(--gray-text);font-weight:600;letter-spacing:0.06em;margin-bottom:8px">FILTERS</div>
+            <div class="form-field"><label>City</label><div class="input">Sydney</div></div>
+            <div class="form-field"><label>Visa type</label><div class="input">482 TSS</div></div>
+            <div class="form-field"><label>Language</label><div class="input">English</div></div>
+            <div class="form-field"><label>Tier</label><div class="input">Gold + above</div></div>
+          </div>
+          <div>
+            <div class="row" style="padding:14px"><div class="avatar" style="width:42px;height:42px">SC</div><div class="body"><div class="t">Sarah Chen <span class="badge b-amber" style="margin-left:4px">Gold</span></div><div class="s">Sydney · 482, 186, 494 · English, Mandarin · 8y exp</div><div class="tag-row"><span class="ta">⭐ 4.9 · 84 reviews</span><span class="ta">~2h response</span></div></div></div>
+            <div class="row" style="padding:14px"><div class="avatar" style="width:42px;height:42px;background:linear-gradient(135deg,#fbbf24,#7c2d12)">RP</div><div class="body"><div class="t">Rohit Patel <span class="badge b-purple" style="margin-left:4px">Platinum</span></div><div class="s">Sydney · 482, 189, 190 · English, Hindi, Gujarati · 15y exp</div><div class="tag-row"><span class="ta">⭐ 5.0 · 211 reviews</span><span class="ta">~30m response</span></div></div></div>
+            <div class="row" style="padding:14px"><div class="avatar" style="width:42px;height:42px;background:linear-gradient(135deg,#34d399,#065f46)">EM</div><div class="body"><div class="t">Emma Müller <span class="badge b-amber" style="margin-left:4px">Gold</span></div><div class="s">Sydney · 482, 491, 186 · English, German · 6y exp</div><div class="tag-row"><span class="ta">⭐ 4.8 · 47 reviews</span><span class="ta">~3h response</span></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <h2 class="h-section" id="arch">Architecture at a glance</h2>
+  <div class="arch-grid">
+    <div class="arch-card">
+      <h5>Frontend (immi-pulse-fe)</h5>
+      <p style="font-size:13px;color:var(--gray-text);margin:6px 0">Next.js 16 App Router · React 19 · TypeScript · Tailwind v4 · shadcn/ui · React Query · Bun</p>
+      <div class="tag-row">
+        <span class="pill">(public) routes</span>
+        <span class="pill">(console) routes</span>
+        <span class="pill">client portal</span>
+        <span class="pill">onboarding</span>
+      </div>
+    </div>
+    <div class="arch-card">
+      <h5>Backend (immi-pulse-be)</h5>
+      <p style="font-size:13px;color:var(--gray-text);margin:6px 0">FastAPI · async SQLAlchemy 2.0 · asyncpg · Alembic · APScheduler · pydantic-settings</p>
+      <div class="tag-row">
+        <span class="pill">orgs</span><span class="pill">auth</span><span class="pill">users</span><span class="pill">clients</span><span class="pill">cases</span><span class="pill">precases</span><span class="pill">questionnaires</span><span class="pill">checkpoints</span><span class="pill">community</span><span class="pill">marketplace</span>
+      </div>
+    </div>
+    <div class="arch-card">
+      <h5>AI &amp; infra</h5>
+      <p style="font-size:13px;color:var(--gray-text);margin:6px 0">AWS Bedrock via Strands Agents SDK · S3 documents · Heroku Postgres + dyno · Microsoft Graph (email)</p>
+      <div class="tag-row">
+        <span class="pill">Claude Haiku 4.5</span><span class="pill">Claude Sonnet 4.5</span><span class="pill">ap-southeast-2</span><span class="pill">cross-region inference</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STACK -->
+  <h2 class="h-section" id="stack">Tech stack</h2>
+  <div class="stack">
+    <div class="stack-card"><div class="lbl">Frontend</div><div class="val">Next.js 16</div><div class="sub">App Router · RSC · Server Actions</div></div>
+    <div class="stack-card"><div class="lbl">UI</div><div class="val">Tailwind v4 + shadcn/ui</div><div class="sub">Outfit / Inter · Framer Motion</div></div>
+    <div class="stack-card"><div class="lbl">Backend</div><div class="val">FastAPI</div><div class="sub">async SQLAlchemy · pydantic-settings</div></div>
+    <div class="stack-card"><div class="lbl">Database</div><div class="val">PostgreSQL 16</div><div class="sub">Alembic · multi-tenant by org_id</div></div>
+    <div class="stack-card"><div class="lbl">AI</div><div class="val">Strands Agents SDK</div><div class="sub">on AWS Bedrock · ap-southeast-2</div></div>
+    <div class="stack-card"><div class="lbl">Models</div><div class="val">Claude Haiku 4.5 + Sonnet 4.5</div><div class="sub">cross-region inference profiles</div></div>
+    <div class="stack-card"><div class="lbl">Storage</div><div class="val">AWS S3</div><div class="sub">presigned URLs (5-min)</div></div>
+    <div class="stack-card"><div class="lbl">Auth</div><div class="val">JWT (3 surfaces)</div><div class="sub">console · client portal · public</div></div>
+    <div class="stack-card"><div class="lbl">Email</div><div class="val">Microsoft Graph</div><div class="sub">MSAL OAuth · webhook + polling</div></div>
+    <div class="stack-card"><div class="lbl">Scheduler</div><div class="val">APScheduler</div><div class="sub">triage · doc analysis · email poll</div></div>
+    <div class="stack-card"><div class="lbl">Hosting</div><div class="val">Heroku</div><div class="sub">basic dyno + essential-0 Postgres</div></div>
+    <div class="stack-card"><div class="lbl">Package mgmt</div><div class="val">Bun (FE) · pip (BE)</div><div class="sub">never npm/yarn/pnpm</div></div>
+  </div>
+
+  </main>
+</div>
+
+<footer class="footer">
+  IMMI-PULSE · Implementation walkthrough · Generated May 2026 · Feature/consultant-initial-onboarding-phase-1
+</footer>
+
+</body>
+</html>
