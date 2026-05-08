@@ -34,12 +34,22 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.environment.lower() == "production"
 
-    # --- AWS Bedrock ---
+    # --- OpenAI (primary AI provider) ---
+    # Analyzer = fast/cheap model used for classification + triage.
+    # Drafter  = larger model used for summaries, analysis, and longer drafts.
+    openai_api_key: str | None = None
+    openai_analyzer_model: str = "gpt-4o-mini"
+    openai_drafter_model: str = "gpt-4o"
+    openai_request_timeout_seconds: float = 30.0
+
+    @property
+    def openai_configured(self) -> bool:
+        return bool(self.openai_api_key)
+
+    # --- AWS (S3 only — Bedrock retired) ---
     aws_access_key_id: str | None = None
     aws_secret_access_key: str | None = None
     aws_region: str = "ap-southeast-2"
-    bedrock_analyzer_model: str = "anthropic.claude-3-5-haiku-20241022-v1:0"
-    bedrock_drafter_model: str = "anthropic.claude-sonnet-4-6"
 
     # --- AWS S3 (document storage) ---
     aws_s3_bucket: str | None = None
@@ -53,6 +63,36 @@ class Settings(BaseSettings):
     portal_session_jwt_secret: str = "change-me-session-jwt-secret-at-least-32-chars"
     portal_session_ttl_minutes: int = 15
     portal_pin_max_attempts: int = 5
+
+    # --- Console JWT (multi-tenant Owner/Seat auth) ---
+    # Dedicated secret. Falls back to portal_session_jwt_secret in dev only.
+    jwt_secret: str = ""
+
+    @property
+    def effective_jwt_secret(self) -> str:
+        return self.jwt_secret or self.portal_session_jwt_secret
+
+    # --- Password storage hardening ---
+    # Server-side pepper kept OUT of the database. A DB-only leak with the pepper
+    # absent yields hashes that are useless for offline cracking. Rotate by
+    # adding a new value, lazy rehash takes care of users at next login.
+    password_pepper: str = ""
+    password_bcrypt_rounds: int = 12
+    # Block known-breached passwords (NIST SP 800-63B 5.1.1.2).
+    # Uses Pwned Passwords k-anonymity: only the first 5 chars of a SHA-1 leave
+    # the server, the password itself never does. Disable for offline / air-gapped
+    # deployments.
+    breach_check_enabled: bool = True
+    breach_check_timeout_seconds: float = 2.5
+
+    # --- Resend (transactional email) ---
+    resend_api_key: str | None = None
+    resend_from_email: str = "IMMI-PULSE <onboarding@resend.dev>"
+    resend_reply_to: str | None = None
+
+    @property
+    def resend_configured(self) -> bool:
+        return bool(self.resend_api_key)
 
     # --- Microsoft 365 ---
     microsoft_client_id: str | None = None

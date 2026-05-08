@@ -1,0 +1,40 @@
+{% extends '_layout.html' %}
+{% from '_macros.html' import button, eyebrow, hairline %}
+
+{% block preheader %}{{ preheader|default(headline) }}{% endblock %}
+
+{% block content %}
+  {% if eyebrow_text %}{{ eyebrow(eyebrow_text) }}{% endif %}
+
+  <h1 class="h1" style="font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; font-weight: 600; font-size: 32px; line-height: 38px; letter-spacing: -0.4px; color: #101928; margin: 0 0 22px 0;">
+    {{ headline }}
+  </h1>
+
+  {% if recipient_name %}
+  <p style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 16px; line-height: 26px; color: #475367; margin: 0 0 18px 0;">
+    Hi {{ recipient_name.split()[0] }},
+  </p>
+  {% endif %}
+
+  {# Body slot — caller-trusted HTML. Caller is responsible for sanitization. #}
+  <div style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 16px; line-height: 26px; color: #475367;">
+    {{ body_html|safe }}
+  </div>
+
+  {% if cta_url and cta_label %}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 36px;">
+    <tr>
+      <td align="center">
+        {{ button(cta_url, cta_label) }}
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if signoff %}
+  {{ hairline(margin='40px 0 24px 0') }}
+  <div style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 22px; color: #475367;">
+    {{ signoff|safe }}
+  </div>
+  {% endif %}
+{% endblock %}

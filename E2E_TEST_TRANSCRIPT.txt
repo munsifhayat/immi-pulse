@@ -1,0 +1,421 @@
+
+========== 1. /org/plans without auth (should 401) ==========
+
+[list-plans-anon]
+$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' 'http://localhost:8000/api/v1/org/plans' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a'
+HTTP 401
+
+========== 2. Sign up a fresh org (default plan = Pro trial) ==========
+{
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc",
+    "user": {
+        "id": "9c5fc8a9-d015-4a7c-ab1d-241fcc7ee89a",
+        "email": "immi.test.1777648129@gmail.com",
+        "first_name": "Test",
+        "last_name": "Owner"
+    },
+    "org": {
+        "id": "71dffcce-9116-49c2-9f0b-e0e66de67116",
+        "name": "E2E Test Firm 1777648129",
+        "niche": null,
+        "omara_number": null,
+        "country": "AU"
+    },
+    "seat": {
+        "id": "c4dbadcc-194a-4a31-b6ff-07a710514b0c",
+        "user_id": "9c5fc8a9-d015-4a7c-ab1d-241fcc7ee89a",
+        "role": "owner",
+        "status": "active",
+        "invited_email": null,
+        "omara_number": null
+    },
+    "subscription": {
+        "tier": "pro",
+        "status": "trial",
+        "seat_count": 1,
+        "trial_ends_at": "2026-05-15T15:08:50.043904Z"
+    },
+    "wallet": {
+        "balance": 1000,
+        "monthly_grant": 1000
+    }
+}
+TOKEN_LEN=323
+
+========== 3. /auth/me — confirms tier=pro, status=trial, trial_ends_at set ==========
+
+[auth-me]
+$ curl -s 'http://localhost:8000/api/v1/auth/me' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' | python -m json.tool
+{
+    "user": {
+        "id": "9c5fc8a9-d015-4a7c-ab1d-241fcc7ee89a",
+        "email": "immi.test.1777648129@gmail.com",
+        "first_name": "Test",
+        "last_name": "Owner"
+    },
+    "org": {
+        "id": "71dffcce-9116-49c2-9f0b-e0e66de67116",
+        "name": "E2E Test Firm 1777648129",
+        "niche": null,
+        "omara_number": null,
+        "country": "AU"
+    },
+    "seat": {
+        "id": "c4dbadcc-194a-4a31-b6ff-07a710514b0c",
+        "user_id": "9c5fc8a9-d015-4a7c-ab1d-241fcc7ee89a",
+        "role": "owner",
+        "status": "active",
+        "invited_email": null,
+        "omara_number": null
+    },
+    "subscription": {
+        "tier": "pro",
+        "status": "trial",
+        "seat_count": 1,
+        "trial_ends_at": "2026-05-15T15:08:50.043904Z"
+    },
+    "wallet": {
+        "balance": 1000,
+        "monthly_grant": 1000
+    }
+}
+
+========== 4. /org/plans returns 3 tiers with price_per_seat_aud_monthly + features ==========
+
+[list-plans]
+$ curl -s 'http://localhost:8000/api/v1/org/plans' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' | python -m json.tool
+[
+    {
+        "tier": "starter",
+        "name": "Starter",
+        "description": "Lean essentials for solo agents and small firms running their first cases on AI.",
+        "price_per_seat_aud_monthly": 29,
+        "price_label": "$29 / seat / month",
+        "is_default_signup": false,
+        "is_custom": false,
+        "features": [
+            "Up to 20 active cases",
+            "Email intake & classification",
+            "Basic visa checklists",
+            "Client portal (read-only)",
+            "Community support"
+        ]
+    },
+    {
+        "tier": "pro",
+        "name": "Professional",
+        "description": "The full AI platform for established practices that want to scale.",
+        "price_per_seat_aud_monthly": 99,
+        "price_label": "$99 / seat / month",
+        "is_default_signup": true,
+        "is_custom": false,
+        "features": [
+            "Unlimited active cases",
+            "AI document validation & OCR",
+            "Smart checklists with progress tracking",
+            "Predictive case analytics & insights",
+            "Marketplace listing for new client leads",
+            "Client communication tools",
+            "Priority support"
+        ]
+    },
+    {
+        "tier": "enterprise",
+        "name": "Enterprise",
+        "description": "For multi-office firms with custom requirements and contracted volume.",
+        "price_per_seat_aud_monthly": 0,
+        "price_label": "Custom \u2014 contact us",
+        "is_default_signup": false,
+        "is_custom": true,
+        "features": [
+            "Everything in Professional",
+            "SSO (SAML / OIDC)",
+            "Custom AI model training",
+            "On-premise deployment option",
+            "Dedicated account manager",
+            "SLA & uptime guarantee",
+            "Custom integrations"
+        ]
+    }
+]
+
+========== 5. /org/billing — fresh org has 1 owner seat @ $99 = $99/mo ==========
+
+[billing-initial]
+$ curl -s 'http://localhost:8000/api/v1/org/billing' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' | python -m json.tool
+{
+    "tier": "pro",
+    "status": "trial",
+    "plan_name": "Professional",
+    "price_label": "$99 / seat / month",
+    "price_per_seat_aud_monthly": 99,
+    "is_custom": false,
+    "trial_ends_at": "2026-05-15T15:08:50.043904Z",
+    "current_period_end": "2026-05-31T15:08:50.043907Z",
+    "total_seats": 1,
+    "role_counts": {
+        "owner": 1
+    },
+    "monthly_total_aud": 99,
+    "features": [
+        "Unlimited active cases",
+        "AI document validation & OCR",
+        "Smart checklists with progress tracking",
+        "Predictive case analytics & insights",
+        "Marketplace listing for new client leads",
+        "Client communication tools",
+        "Priority support"
+    ]
+}
+
+========== 6. Invite 2 seats: 1 admin, 1 staff ==========
+
+[invite-admin]
+$ curl -s -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"email":"immi.admin.1777648129@gmail.com","role":"admin"}' | python -m json.tool
+{
+    "id": "19834b17-74ad-43e9-ab61-7a4953fdcb62",
+    "email": "immi.admin.1777648129@gmail.com",
+    "role": "admin",
+    "token": "UpDIXYA6RCgrSkcoY1APEruxchQOi2_lj8MGd7l3LJ0",
+    "expires_at": "2026-05-15T15:08:50.177259Z",
+    "invite_link": "http://localhost:3000/accept-invite?token=UpDIXYA6RCgrSkcoY1APEruxchQOi2_lj8MGd7l3LJ0"
+}
+
+[invite-staff]
+$ curl -s -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"email":"immi.staff.1777648129@gmail.com","role":"staff"}' | python -m json.tool
+{
+    "id": "9b32727e-af7c-4b99-9529-0060b09f1c6e",
+    "email": "immi.staff.1777648129@gmail.com",
+    "role": "staff",
+    "token": "I9uZW_qaww5BCDbHGl4NicrNHVQ28gDfuUq5Tp5-RNA",
+    "expires_at": "2026-05-15T15:08:50.201393Z",
+    "invite_link": "http://localhost:3000/accept-invite?token=I9uZW_qaww5BCDbHGl4NicrNHVQ28gDfuUq5Tp5-RNA"
+}
+
+========== 7. /org/billing — should now show 3 seats × $99 = $297/mo (proves staff seats are billable now) ==========
+
+[billing-after-invites]
+$ curl -s 'http://localhost:8000/api/v1/org/billing' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' | python -m json.tool
+{
+    "tier": "pro",
+    "status": "trial",
+    "plan_name": "Professional",
+    "price_label": "$99 / seat / month",
+    "price_per_seat_aud_monthly": 99,
+    "is_custom": false,
+    "trial_ends_at": "2026-05-15T15:08:50.043904Z",
+    "current_period_end": "2026-05-31T15:08:50.043907Z",
+    "total_seats": 3,
+    "role_counts": {
+        "owner": 1,
+        "admin": 1,
+        "staff": 1
+    },
+    "monthly_total_aud": 297,
+    "features": [
+        "Unlimited active cases",
+        "AI document validation & OCR",
+        "Smart checklists with progress tracking",
+        "Predictive case analytics & insights",
+        "Marketplace listing for new client leads",
+        "Client communication tools",
+        "Priority support"
+    ]
+}
+
+========== 8. /org/seats — list shows 3 entries ==========
+
+[list-seats]
+$ curl -s 'http://localhost:8000/api/v1/org/seats' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' | python -m json.tool
+[
+    {
+        "id": "c4dbadcc-194a-4a31-b6ff-07a710514b0c",
+        "user_id": "9c5fc8a9-d015-4a7c-ab1d-241fcc7ee89a",
+        "invited_email": null,
+        "role": "owner",
+        "status": "active",
+        "omara_number": null,
+        "invited_at": null,
+        "joined_at": "2026-05-01T15:08:50.043941Z",
+        "user_email": "immi.test.1777648129@gmail.com",
+        "user_name": "Test Owner"
+    },
+    {
+        "id": "2d01d7e6-a4de-404a-9f67-8aea68aab802",
+        "user_id": null,
+        "invited_email": "immi.admin.1777648129@gmail.com",
+        "role": "admin",
+        "status": "invited",
+        "omara_number": null,
+        "invited_at": "2026-05-01T15:08:50.177289Z",
+        "joined_at": null,
+        "user_email": null,
+        "user_name": null
+    },
+    {
+        "id": "11c12a55-ecbe-4a80-bc37-ba9a55404cc2",
+        "user_id": null,
+        "invited_email": "immi.staff.1777648129@gmail.com",
+        "role": "staff",
+        "status": "invited",
+        "omara_number": null,
+        "invited_at": "2026-05-01T15:08:50.201420Z",
+        "joined_at": null,
+        "user_email": null,
+        "user_name": null
+    }
+]
+
+========== 9. Switch plan to Starter — expect tier=starter, monthly = 3 × $29 = $87 ==========
+
+[select-starter]
+$ curl -s -X POST 'http://localhost:8000/api/v1/org/billing/select-plan' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"tier":"starter"}' | python -m json.tool
+{
+    "tier": "starter",
+    "status": "active",
+    "plan_name": "Starter",
+    "price_label": "$29 / seat / month",
+    "price_per_seat_aud_monthly": 29,
+    "is_custom": false,
+    "trial_ends_at": null,
+    "current_period_end": "2026-05-31T15:08:50.043907Z",
+    "total_seats": 3,
+    "role_counts": {
+        "owner": 1,
+        "admin": 1,
+        "staff": 1
+    },
+    "monthly_total_aud": 87,
+    "features": [
+        "Up to 20 active cases",
+        "Email intake & classification",
+        "Basic visa checklists",
+        "Client portal (read-only)",
+        "Community support"
+    ]
+}
+
+========== 10. Switch plan to Enterprise — expect is_custom=true, monthly_total_aud=0 ==========
+
+[select-enterprise]
+$ curl -s -X POST 'http://localhost:8000/api/v1/org/billing/select-plan' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"tier":"enterprise"}' | python -m json.tool
+{
+    "tier": "enterprise",
+    "status": "active",
+    "plan_name": "Enterprise",
+    "price_label": "Custom \u2014 contact us",
+    "price_per_seat_aud_monthly": 0,
+    "is_custom": true,
+    "trial_ends_at": null,
+    "current_period_end": "2026-05-31T15:08:50.043907Z",
+    "total_seats": 3,
+    "role_counts": {
+        "owner": 1,
+        "admin": 1,
+        "staff": 1
+    },
+    "monthly_total_aud": 0,
+    "features": [
+        "Everything in Professional",
+        "SSO (SAML / OIDC)",
+        "Custom AI model training",
+        "On-premise deployment option",
+        "Dedicated account manager",
+        "SLA & uptime guarantee",
+        "Custom integrations"
+    ]
+}
+
+========== 11. Switch back to Pro ==========
+
+[select-pro]
+$ curl -s -X POST 'http://localhost:8000/api/v1/org/billing/select-plan' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"tier":"pro"}' | python -m json.tool
+{
+    "tier": "pro",
+    "status": "active",
+    "plan_name": "Professional",
+    "price_label": "$99 / seat / month",
+    "price_per_seat_aud_monthly": 99,
+    "is_custom": false,
+    "trial_ends_at": null,
+    "current_period_end": "2026-05-31T15:08:50.043907Z",
+    "total_seats": 3,
+    "role_counts": {
+        "owner": 1,
+        "admin": 1,
+        "staff": 1
+    },
+    "monthly_total_aud": 297,
+    "features": [
+        "Unlimited active cases",
+        "AI document validation & OCR",
+        "Smart checklists with progress tracking",
+        "Predictive case analytics & insights",
+        "Marketplace listing for new client leads",
+        "Client communication tools",
+        "Priority support"
+    ]
+}
+
+========== 12. Try to invite the same email twice (expect 400) ==========
+
+[invite-duplicate]
+$ curl -s -w '\nHTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"email":"immi.admin.1777648129@gmail.com","role":"admin"}'
+{"detail":"This email is already a seat or pending invite"}
+HTTP 400
+
+========== 13. Invite 5 more seats (no cap) ==========
+
+[invite-bulk-1]
+$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"email":"immi.bulk1.1777648129@gmail.com","role":"consultant"}'
+HTTP 201
+
+[invite-bulk-2]
+$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"email":"immi.bulk2.1777648129@gmail.com","role":"consultant"}'
+HTTP 201
+
+[invite-bulk-3]
+$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"email":"immi.bulk3.1777648129@gmail.com","role":"consultant"}'
+HTTP 201
+
+[invite-bulk-4]
+$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"email":"immi.bulk4.1777648129@gmail.com","role":"consultant"}'
+HTTP 201
+
+[invite-bulk-5]
+$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"email":"immi.bulk5.1777648129@gmail.com","role":"consultant"}'
+HTTP 201
+
+========== 14. /org/billing — 8 seats × $99 = $792/mo ==========
+
+[billing-final]
+$ curl -s 'http://localhost:8000/api/v1/org/billing' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' | python -m json.tool
+{
+    "tier": "pro",
+    "status": "active",
+    "plan_name": "Professional",
+    "price_label": "$99 / seat / month",
+    "price_per_seat_aud_monthly": 99,
+    "is_custom": false,
+    "trial_ends_at": null,
+    "current_period_end": "2026-05-31T15:08:50.043907Z",
+    "total_seats": 8,
+    "role_counts": {
+        "owner": 1,
+        "admin": 1,
+        "staff": 1,
+        "consultant": 5
+    },
+    "monthly_total_aud": 792,
+    "features": [
+        "Unlimited active cases",
+        "AI document validation & OCR",
+        "Smart checklists with progress tracking",
+        "Predictive case analytics & insights",
+        "Marketplace listing for new client leads",
+        "Client communication tools",
+        "Priority support"
+    ]
+}
+
+DONE.

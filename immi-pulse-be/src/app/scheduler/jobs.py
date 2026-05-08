@@ -121,6 +121,43 @@ async def _run_webhook_renewal():
         logger.error(f"Webhook renewal failed: {e}", exc_info=True)
 
 
+async def _retry_stuck_triages():
+    """Pick up PreCases whose AI triage stalled (pending/running > 5 min) and retry.
+
+    Heroku web dynos restart every 24h. If a PreCase was submitted moments before
+    a restart, its triage task gets killed mid-flight. This job resurrects them.
+    """
+    try:
+        from datetime import datetime, timedelta, timezone
+
+        from sqlalchemy import select
+
+        from app.agents.immigration.precases.models import PreCase
+        from app.agents.immigration.precases.triage import run_triage_async
+        from app.db.session import get_async_session
+
+        threshold = datetime.now(timezone.utc) - timedelta(minutes=5)
+        async with get_async_session() as db:
+            stuck = (
+                await db.execute(
+                    select(PreCase).where(
+                        PreCase.ai_status.in_(("pending", "running")),
+                        PreCase.created_at < threshold,
+                    ).limit(20)
+                )
+            ).scalars().all()
+            for pc in stuck:
+                # Reset to pending so run_triage will accept it
+                pc.ai_status = "pending"
+            if stuck:
+                await db.commit()
+                logger.info(f"Retrying {len(stuck)} stuck triage(s)")
+                for pc in stuck:
+                    run_triage_async(pc.id)
+    except Exception as e:
+        logger.error(f"Stuck triage retry failed: {e}", exc_info=True)
+
+
 def start_scheduler() -> AsyncIOScheduler:
     """Configure and start scheduled jobs."""
     scheduler = get_scheduler()
@@ -141,10 +178,18 @@ def start_scheduler() -> AsyncIOScheduler:
         replace_existing=True,
     )
 
+    scheduler.add_job(
+        _retry_stuck_triages,
+        trigger=IntervalTrigger(minutes=5),
+        id="precase_triage_retry",
+        name="PreCase Triage Retry (resilience)",
+        replace_existing=True,
+    )
+
     scheduler.start()
     logger.info(
         f"Scheduler started: polling every {settings.polling_interval_minutes}min, "
-        "webhook renewal at midnight"
+        "webhook renewal at midnight, triage retry every 5min"
     )
     return scheduler
 

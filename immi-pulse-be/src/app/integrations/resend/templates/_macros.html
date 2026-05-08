@@ -1,0 +1,95 @@
+{#
+  Bulletproof button — VML for Outlook 2007–2019, anchor for everything else.
+  Padding tuned so VML width=260 / height=50 visually matches the anchor in modern clients.
+#}
+{% macro button(url, label, color='#7A5AF8', shadow='#3E1C96') -%}
+<table role="presentation" border="0" cellspacing="0" cellpadding="0" align="center" style="margin: 0 auto;">
+  <tr>
+    <td align="center" bgcolor="{{ color }}" style="border-radius: 8px; box-shadow: 0 1px 0 {{ shadow }};">
+      <!--[if mso]>
+      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ url }}" style="height:50px;v-text-anchor:middle;width:280px;" arcsize="16%" stroke="f" fillcolor="{{ color }}">
+        <w:anchorlock/>
+        <center style="color:#ffffff;font-family:'Helvetica Neue',Arial,sans-serif;font-size:15px;font-weight:600;letter-spacing:0.4px;">{{ label }}</center>
+      </v:roundrect>
+      <![endif]-->
+      <!--[if !mso]><!-- -->
+      <a href="{{ url }}" target="_blank" style="display: inline-block; padding: 16px 36px; font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; font-size: 15px; font-weight: 600; line-height: 18px; color: #ffffff; text-decoration: none; letter-spacing: 0.4px; border-radius: 8px; mso-padding-alt: 0;">{{ label }}</a>
+      <!--<![endif]-->
+    </td>
+  </tr>
+</table>
+{%- endmacro %}
+
+{# Tiny uppercase eyebrow label — Teal, tracked. Used above every headline. #}
+{% macro eyebrow(text, color='#1B7B6F') -%}
+<div style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 2.4px; line-height: 14px; color: {{ color }}; text-transform: uppercase; margin: 0 0 14px 0;">{{ text }}</div>
+{%- endmacro %}
+
+{#
+  PIN card — Purple Muted card with monumental tracked digits + expiry caption.
+  Shared by upload_link.html and engagement_letter.html — keep visual identity in one place.
+#}
+{% macro pin_card(pin, expires_at_label, title='One-time access PIN') -%}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 4px 0 32px 0;">
+  <tr>
+    <td align="center" bgcolor="#F4F1FE" style="background-color: #F4F1FE; border-radius: 12px; padding: 32px 24px;">
+      <div style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 2.4px; line-height: 14px; color: #3E1C96; text-transform: uppercase; margin: 0 0 16px 0;">
+        {{ title }}
+      </div>
+      <div class="pin-digit" style="font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; font-weight: 600; font-size: 40px; line-height: 48px; letter-spacing: 12px; color: #101928; margin: 0 0 14px 0; padding-left: 12px;">
+        {{ pin }}
+      </div>
+      <div style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 13px; line-height: 20px; color: #475367;">
+        Expires {{ expires_at_label }}
+      </div>
+    </td>
+  </tr>
+</table>
+{%- endmacro %}
+
+{#
+  CTA button + "Or copy this link:" fallback block. Used whenever an email
+  contains a primary action link — keeps the affordance consistent.
+#}
+{% macro cta_with_copy_link(url, label) -%}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td align="center" style="padding: 4px 0 8px 0;">
+      {{ button(url, label) }}
+    </td>
+  </tr>
+  <tr>
+    <td align="center" style="padding: 14px 0 0 0; font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 12px; line-height: 18px; color: #98A2B3;">
+      Or copy this link:
+      <div style="margin-top: 6px; word-break: break-all;">
+        <a href="{{ url }}" style="color: #475367; text-decoration: none; border-bottom: 1px solid #D9D6FE;">{{ url }}</a>
+      </div>
+    </td>
+  </tr>
+</table>
+{%- endmacro %}
+
+{#
+  Slim-left-rule security/info note. Caller passes pre-sanitized HTML for the body.
+#}
+{% macro note_block(title, body_html) -%}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="border-left: 3px solid #BDB4FE; padding: 4px 0 4px 18px;">
+      <div style="font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; font-weight: 600; font-size: 13px; line-height: 18px; color: #101928; margin: 0 0 6px 0;">
+        {{ title }}
+      </div>
+      <div style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 13px; line-height: 21px; color: #475367;">
+        {{ body_html|safe }}
+      </div>
+    </td>
+  </tr>
+</table>
+{%- endmacro %}
+
+{# Hairline divider used between sections. #}
+{% macro hairline(color='#E4E7EC', margin='32px 0') -%}
+<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: {{ margin }};">
+  <tr><td style="border-top: 1px solid {{ color }}; font-size: 0; line-height: 0; height: 0;">&nbsp;</td></tr>
+</table>
+{%- endmacro %}

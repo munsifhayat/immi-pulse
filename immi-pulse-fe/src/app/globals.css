@@ -9,6 +9,8 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
   --font-heading: var(--font-outfit);
+  --font-serif: var(--font-serif-d);
+  --font-editorial-mono: var(--font-mono-d);
   --font-mono: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
 
   /* IMMI-PULSE Brand Colors */
@@ -175,6 +177,88 @@
   }
 }
 
+/* ── Editorial / Manifest design system ──
+   Dark navy + serif italic + mono uppercase folio aesthetic.
+   Use these tokens across the console for consistent typographic voice. */
+@layer utilities {
+  .font-serif-d {
+    font-family: var(--font-serif-d), "Cormorant Garamond", Georgia, serif;
+    font-feature-settings: "liga", "calt";
+  }
+  .font-mono-d {
+    font-family: var(--font-mono-d), ui-monospace, "SF Mono", monospace;
+    font-feature-settings: "ss01", "cv06";
+  }
+
+  /* Eyebrow — small mono uppercase label sitting above editorial titles. */
+  .editorial-eyebrow {
+    font-family: var(--font-mono-d), ui-monospace, monospace;
+    font-size: 10.5px;
+    line-height: 1;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--purple);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .editorial-eyebrow::before {
+    content: "";
+    display: block;
+    width: 1.5rem;
+    height: 1px;
+    background: color-mix(in srgb, var(--purple) 45%, transparent);
+  }
+
+  /* Title — Outfit display, normal weight, tight tracking. */
+  .editorial-title {
+    font-family: var(--font-outfit), system-ui, sans-serif;
+    font-weight: 400;
+    font-size: clamp(2rem, 3.4vw, 2.8rem);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    color: var(--foreground);
+    text-wrap: balance;
+  }
+  /* Accent words inside titles get the purple gradient treatment. */
+  .editorial-title em,
+  .editorial-title .accent,
+  .title-accent em,
+  .title-accent .accent {
+    font-style: normal;
+    background-image: linear-gradient(
+      to right,
+      var(--purple),
+      var(--purple),
+      var(--purple-deep)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* Folio meta line — mono uppercase tracked metadata. */
+  .editorial-meta {
+    font-family: var(--font-mono-d), ui-monospace, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  }
+
+  /* Hairline dividers — used between sections instead of heavy borders. */
+  .editorial-rule {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      color-mix(in srgb, var(--foreground) 14%, transparent),
+      transparent
+    );
+  }
+}
+
 /* ── Marquee animation for trust logos ── */
 @keyframes marquee {
   0% { transform: translateX(0); }
@@ -189,9 +273,75 @@
   animation-play-state: paused;
 }
 
+/* ── Pulse Mark — reusable brand symbol ── */
+.pulse-mark__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 28%;
+  border: 1.25px solid color-mix(in srgb, var(--purple) 55%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  animation: pulse-mark-out 2.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  will-change: transform, opacity, border-radius;
+}
+.pulse-mark__ring--1 { animation-delay: 0s; }
+.pulse-mark__ring--2 { animation-delay: 0.95s; }
+.pulse-mark__ring--3 { animation-delay: 1.85s; }
+
+@keyframes pulse-mark-out {
+  0%   { transform: scale(0.85); opacity: 0;    border-radius: 28%; }
+  18%  { opacity: 0.85; }
+  60%  { border-radius: 50%; }
+  100% { transform: scale(2.55); opacity: 0;    border-radius: 50%; }
+}
+
+/* Floating ambient orb used as a quiet decorative accent */
+@keyframes orb-drift {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(-14px, 18px, 0); }
+}
+.animate-orb-drift {
+  animation: orb-drift 14s ease-in-out infinite;
+}
+
+/* Subtle compass sweep for the brand seal */
+@keyframes seal-sweep {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.animate-seal-sweep {
+  animation: seal-sweep 28s linear infinite;
+  transform-origin: center;
+}
+
+/* Slow concentric ping for empty-state icons (different cadence to pulse-mark) */
+@keyframes emptypulse {
+  0%   { transform: scale(0.85); opacity: 0; }
+  18%  { opacity: 0.7; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+/* Sheen sweep for hover effects on dark buttons */
+@keyframes sheen {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Field highlight — single ring pulse for newly-added builder fields */
+@keyframes fieldHighlight {
+  0%   { transform: scale(1);    opacity: 0.7; }
+  60%  { transform: scale(1.02); opacity: 0.35; }
+  100% { transform: scale(1.04); opacity: 0;    }
+}
+
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
-  .animate-marquee {
+  .animate-marquee,
+  .animate-orb-drift,
+  .animate-seal-sweep,
+  .pulse-mark__ring {
     animation: none;
   }
+  .pulse-mark__ring { opacity: 0.22; }
+  [class*="animation:emptypulse"] { animation: none !important; }
 }

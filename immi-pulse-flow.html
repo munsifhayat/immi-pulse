@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>IMMI-PULSE — Current Implementation Visual Flow</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    margin: 0;
+    padding: 32px 48px;
+    background: #fafafa;
+    color: #1a1a1a;
+  }
+  h1 { font-size: 28px; margin: 0 0 8px; font-weight: 600; }
+  .subtitle { color: #666; margin-bottom: 32px; font-size: 14px; }
+  .diagram-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    overflow-x: auto;
+    margin-bottom: 24px;
+  }
+  .diagram-card h2 {
+    margin-top: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #7A5AF8;
+  }
+  .diagram-card p {
+    margin-top: -4px;
+    color: #555;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .legend {
+    background: white;
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    font-size: 14px;
+    line-height: 1.7;
+    margin-bottom: 24px;
+  }
+  .legend code {
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .swim {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  table.gaps {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: 13px;
+  }
+  table.gaps th, table.gaps td {
+    border-bottom: 1px solid #eee;
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  table.gaps th { background: #f6f6f8; font-weight: 600; }
+  .sev-crit { color: #b91c1c; font-weight: 600; }
+  .sev-high { color: #c2410c; font-weight: 600; }
+  .sev-med  { color: #b45309; font-weight: 600; }
+  .sev-done { color: #15803d; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h1>IMMI-PULSE — Current Implementation Visual Flow</h1>
+<div class="subtitle">Frontend + Backend map · Phase 1 consultant pipeline · Generated 2026-05-08</div>
+
+<div class="diagram-card">
+  <h2>1. System architecture — what's wired where</h2>
+  <p>High-level view of every running surface: the public marketing/community site, the consultant console, the FastAPI backend with its agent modules, the Postgres schema, and the external integrations (Microsoft 365, AWS Bedrock, S3). Lanes show ownership boundaries; arrows show real, code-level wiring.</p>
+  <div class="mermaid">
+flowchart LR
+  subgraph PUB ["Public site — (public) route group"]
+    HOME["Home / Pricing / About / Features"]
+    COMMU["Community threads<br/>moderation feed"]
+    MKT["Find consultants<br/>For consultants"]
+    QFORM["Public questionnaire<br/>/q/[slug]"]
+    SIGN["Letter signing portal<br/>/q/sign/[token] (partial)"]
+  end
+
+  subgraph CON ["Consultant console — (console) route group"]
+    OV["Overview / Dashboard"]
+    INBOX["Inbox — pending queries"]
+    PREC["Pre-cases — qualified queue"]
+    CLIENTS["Clients registry"]
+    CASES["Cases — active engagements"]
+    QTPL["Questionnaires"]
+    SETT["Settings — org / billing / team / letter template"]
+    ADMIN["Admin — agent approvals, moderation"]
+  end
+
+  subgraph FEAPI ["Frontend API client — src/lib/api"]
+    AXIOS["axios client<br/>X-API-Key + Bearer JWT"]
+    SVC["services.ts<br/>authApi, orgsApi, preCasesApi,<br/>lettersApi, paymentsApi, clientsApi,<br/>casesApi, questionnairesApi, activityApi"]
+  end
+
+  subgraph BE ["FastAPI backend — /api/v1"]
+    MW["APIKeyAuthMiddleware<br/>JWT org_id scoping"]
+    AUTHR["auth_router"]
+    ORGSR["orgs_router"]
+    QR["questionnaires_router"]
+    PCR["precases_router"]
+    ENGR["engagement_router"]
+    PAYR["payments_router"]
+    CLR["clients_router"]
+    CASER["cases_router"]
+    MSR["microsoft_router"]
+    COMR["community_router + marketplace_router"]
+    ACTR["activity_router"]
+  end
+
+  subgraph AG ["Agent modules — src/app/agents/immigration"]
+    AUTH_A["auth"]
+    ORGS_A["orgs / billing / seats"]
+    PREC_A["precases — triage service"]
+    ENG_A["engagement — letter render to PDF"]
+    PAY_A["payments — manual records"]
+    CLI_A["clients"]
+    CASE_A["cases"]
+    QN_A["questionnaires"]
+    COM_A["community / marketplace"]
+    SHR_A["shared — activity, attachments"]
+  end
+
+  subgraph DB [("PostgreSQL — async SQLAlchemy 2.0")]
+    T1["organizations / users / seats"]
+    T2["subscriptions / payment_methods"]
+    T3["questionnaires / pre_cases"]
+    T4["engagement_letters / signature_events"]
+    T5["payment_records"]
+    T6["clients / client_consents"]
+    T7["cases / activity_logs"]
+  end
+
+  subgraph EXT ["External integrations"]
+    MS["Microsoft Graph<br/>OAuth + webhooks"]
+    BR["AWS Bedrock<br/>Haiku + Sonnet"]
+    S3["S3 — letter PDFs"]
+    EMAIL["Resend (prepared,<br/>not wired)"]
+    STRIPE["Stripe (deferred)"]
+  end
+
+  PUB --> AXIOS
+  CON --> AXIOS
+  AXIOS --> SVC
+  SVC --> MW
+  MW --> AUTHR
+  MW --> ORGSR
+  MW --> QR
+  MW --> PCR
+  MW --> ENGR
+  MW --> PAYR
+  MW --> CLR
+  MW --> CASER
+  MW --> MSR
+  MW --> COMR
+  MW --> ACTR
+
+  AUTHR --> AUTH_A
+  ORGSR --> ORGS_A
+  QR --> QN_A
+  PCR --> PREC_A
+  ENGR --> ENG_A
+  PAYR --> PAY_A
+  CLR --> CLI_A
+  CASER --> CASE_A
+  MSR --> SHR_A
+  COMR --> COM_A
+
+  AUTH_A --> T1
+  ORGS_A --> T2
+  QN_A --> T3
+  PREC_A --> T3
+  ENG_A --> T4
+  PAY_A --> T5
+  CLI_A --> T6
+  CASE_A --> T7
+
+  PREC_A -- "AI classify" --> BR
+  CASE_A -- "AI analysis" --> BR
+  ENG_A -- "render PDF" --> S3
+  MSR -- "OAuth + Graph" --> MS
+  ORGS_A -. "future" .-> STRIPE
+  ENG_A -. "future" .-> EMAIL
+
+  classDef fe fill:#fde8e3,stroke:#B85C50,color:#5a1f17;
+  classDef api fill:#e3f0fd,stroke:#3a6db8,color:#1c365e;
+  classDef agent fill:#e8f5e9,stroke:#4a8a4f,color:#1c3d1f;
+  classDef db fill:#fff5d9,stroke:#b89a3a,color:#5e4914;
+  classDef ext fill:#ece3fd,stroke:#6d3ab8,color:#361c5e;
+
+  class HOME,COMMU,MKT,QFORM,SIGN,OV,INBOX,PREC,CLIENTS,CASES,QTPL,SETT,ADMIN,AXIOS,SVC fe;
+  class MW,AUTHR,ORGSR,QR,PCR,ENGR,PAYR,CLR,CASER,MSR,COMR,ACTR api;
+  class AUTH_A,ORGS_A,PREC_A,ENG_A,PAY_A,CLI_A,CASE_A,QN_A,COM_A,SHR_A agent;
+  class T1,T2,T3,T4,T5,T6,T7 db;
+  class MS,BR,S3,EMAIL,STRIPE ext;
+  </div>
+</div>
+
+<div class="diagram-card">
+  <h2>2. Pre-case lifecycle — Query → Pre-case → Case</h2>
+  <p>The core pipeline a consultant operates on. A public questionnaire response or inbound email becomes a pre-case, gets AI-triaged, gets qualified, gets an engagement letter, gets paid, and converts into an active case. Every automated step has a manual override (skip payment, mark letter signed, force-convert) per the locked Phase 1 design.</p>
+  <div class="mermaid">
+stateDiagram-v2
+  [*] --> pending : public form submitted<br/>or email arrived
+  pending --> in_review : consultant opens
+  in_review --> qualified : qualify (manual or AI-suggested)
+  in_review --> archived : not a fit
+  qualified --> letter_sent : compose + send engagement letter
+  letter_sent --> letter_signed : client signs (PIN portal)
+  letter_sent --> letter_signed : manual mark-signed (override)
+  letter_signed --> paid : record manual payment
+  letter_signed --> paid : skip payment (override)
+  paid --> converted : open case
+  qualified --> converted : force-convert (override)
+  converted --> [*] : becomes Case
+  archived --> [*]
+  </div>
+</div>
+
+<div class="diagram-card">
+  <h2>3. Public questionnaire → triage → consultant inbox (sequence)</h2>
+  <p>The single most important user journey to get production-ready: an applicant submits a public form, the backend creates a pre-case, AI triage classifies it, and it lands in the consultant's inbox with a suggested visa subclass and confidence. This sequence covers every hop including the Bedrock call and DB writes.</p>
+  <div class="mermaid">
+sequenceDiagram
+  autonumber
+  participant App as Applicant browser
+  participant FE as Next.js public route
+  participant API as FastAPI /api/v1
+  participant QN as questionnaires agent
+  participant PC as precases agent
+  participant BR as AWS Bedrock — Haiku
+  participant DB as Postgres
+  participant Con as Consultant console
+
+  App->>FE: open /q/[slug]
+  FE->>API: GET /public/questionnaires/{slug}
+  API->>DB: load template
+  DB-->>API: template + fields
+  API-->>FE: form schema
+  App->>FE: submit answers
+  FE->>API: POST /public/questionnaires/{slug}/responses
+  API->>QN: store response
+  QN->>DB: insert response
+  QN->>PC: create pre_case (status=pending)
+  PC->>DB: insert pre_cases row
+  PC->>BR: classify visa subclass + confidence
+  BR-->>PC: subclass, confidence, reasoning
+  PC->>DB: update pre_case with AI triage
+  Con->>API: GET /precases (auth)
+  API->>DB: list pre_cases scoped by org_id
+  DB-->>Con: inbox list with AI suggestions
+  </div>
+</div>
+
+<div class="diagram-card">
+  <h2>4. Production-readiness gap map</h2>
+  <p>What blocks the initial flow from going live. Color shows severity. The first row is the minimum set we need to clear before we can run a real consultant on a real domain with real applicants.</p>
+  <div class="mermaid">
+flowchart TD
+  START([Initial flow live in prod])
+
+  subgraph CRIT ["CRITICAL — blocks first consultant"]
+    G1["Set JWT_SECRET in prod env"]
+    G2["Set AWS keys + Bedrock region"]
+    G3["Wire Resend for invites + letter emails"]
+    G4["Run alembic upgrade head on first deploy"]
+    G5["Set FRONTEND_URL + CORS for prod domain"]
+  end
+
+  subgraph HIGH ["HIGH — needed before public launch"]
+    H1["Finish public letter signing portal<br/>signature canvas + PIN entry"]
+    H2["MS Graph token refresh — strict error handling"]
+    H3["Stripe checkout for billing<br/>(currently flips to active without charge)"]
+    H4["Rate limiting on public endpoints<br/>/q/*, /client-portal/*, /community/*"]
+  end
+
+  subgraph MED ["MEDIUM — harden before scale"]
+    M1["ClamAV scan on document uploads"]
+    M2["Replace mock data on Activity page"]
+    M3["Drop legacy subscription.seat_count column"]
+    M4["Wire P1 summary scheduler job (16:00)"]
+  end
+
+  subgraph DONE ["VERIFIED working today"]
+    D1["Multi-tenant org scoping (X-API-Key + JWT)"]
+    D2["Auth — login / signup / refresh"]
+    D3["Pre-case pipeline UI + API end-to-end"]
+    D4["Letter compose + render PDF to S3"]
+    D5["Manual payment + skip-payment override"]
+    D6["MS Graph OAuth + webhooks + 5-min poll"]
+    D7["Bedrock Haiku/Sonnet routing"]
+  end
+
+  CRIT --> START
+  HIGH --> START
+  DONE --> START
+  MED -.-> START
+
+  classDef crit fill:#fde8e3,stroke:#B85C50,color:#5a1f17;
+  classDef high fill:#fff5d9,stroke:#b89a3a,color:#5e4914;
+  classDef med  fill:#ece3fd,stroke:#6d3ab8,color:#361c5e;
+  classDef done fill:#e8f5e9,stroke:#4a8a4f,color:#1c3d1f;
+
+  class G1,G2,G3,G4,G5 crit;
+  class H1,H2,H3,H4 high;
+  class M1,M2,M3,M4 med;
+  class D1,D2,D3,D4,D5,D6,D7 done;
+  </div>
+</div>
+
+<div class="legend">
+  <strong>Colour key</strong><br/>
+  <span class="swim" style="background:#fde8e3"></span> Frontend / Public site / Console
+  &nbsp;&nbsp;
+  <span class="swim" style="background:#e3f0fd"></span> API routers / Middleware
+  &nbsp;&nbsp;
+  <span class="swim" style="background:#e8f5e9"></span> Agent modules / Verified working
+  &nbsp;&nbsp;
+  <span class="swim" style="background:#fff5d9"></span> Database / High-priority gaps
+  &nbsp;&nbsp;
+  <span class="swim" style="background:#ece3fd"></span> External integrations / Medium gaps
+  <br/><br/>
+  <strong>Production-readiness checklist (next steps, in order)</strong>
+  <table class="gaps">
+    <tr><th>Sev</th><th>Gap</th><th>What "done" looks like</th></tr>
+    <tr><td><span class="sev-crit">CRIT</span></td><td>Prod env vars (JWT_SECRET, AWS, FRONTEND_URL, CORS)</td><td>Heroku config set; <code>/health</code> green; login works against prod FE</td></tr>
+    <tr><td><span class="sev-crit">CRIT</span></td><td>Email delivery via Resend</td><td>Invite + engagement-letter emails actually arrive in inbox; no copy-paste fallback</td></tr>
+    <tr><td><span class="sev-crit">CRIT</span></td><td>Alembic migrations on deploy</td><td><code>alembic upgrade head</code> runs as release step on Heroku; latest schema applied</td></tr>
+    <tr><td><span class="sev-high">HIGH</span></td><td>Public letter signing portal UI</td><td>Signature canvas + PIN flow at <code>/q/sign/[token]</code> writes signature_events</td></tr>
+    <tr><td><span class="sev-high">HIGH</span></td><td>MS Graph token refresh hardening</td><td>Expired tokens auto-refresh; user-visible error if revoked</td></tr>
+    <tr><td><span class="sev-high">HIGH</span></td><td>Stripe checkout</td><td>Plan select redirects to Stripe; webhook flips subscription to active on payment</td></tr>
+    <tr><td><span class="sev-high">HIGH</span></td><td>Rate limiting on public endpoints</td><td>slowapi or equivalent on <code>/public/*</code>, <code>/client-portal/*</code>, community write paths</td></tr>
+    <tr><td><span class="sev-med">MED</span></td><td>ClamAV file scan</td><td>Uploads scanned before S3 commit; flagged files quarantined</td></tr>
+    <tr><td><span class="sev-med">MED</span></td><td>Activity page real data</td><td>Remove mock fallback; show live activity_logs</td></tr>
+    <tr><td><span class="sev-med">MED</span></td><td>P1 summary scheduler job</td><td>Daily 16:00 job wired to env var P1_SUMMARY_TIME</td></tr>
+    <tr><td><span class="sev-done">DONE</span></td><td>Phase 1 pipeline end-to-end</td><td>Query → Pre-case → Letter → Payment → Case all functional with manual overrides</td></tr>
+  </table>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    flowchart: { curve: 'basis', padding: 16 },
+    sequence: { showSequenceNumbers: true }
+  });
+</script>
+</body>
+</html>

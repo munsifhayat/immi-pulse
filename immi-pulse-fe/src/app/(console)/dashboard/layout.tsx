@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { ConsoleAtmosphere } from "@/components/layout/console-atmosphere";
 
 export default function DashboardLayout({
   children,
@@ -29,11 +30,16 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="relative flex h-screen overflow-hidden">
       <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="relative flex flex-1 flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="relative flex-1 overflow-y-auto">
+          <ConsoleAtmosphere />
+          <div className="relative z-10 mx-auto w-full max-w-[1320px] p-6 lg:p-8">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );

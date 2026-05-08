@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import {
   AlertTriangle,
   ArrowLeft,
-  Brain,
   Check,
   CheckCircle2,
   Clock,
@@ -14,13 +13,12 @@ import {
   FileText,
   Flag,
   Key,
+  ListChecks,
   Loader2,
   Mail,
   Send,
   ShieldCheck,
-  Sparkles,
   Upload,
-  Wand2,
   XCircle,
 } from "lucide-react";
 import {
@@ -160,15 +158,12 @@ function AISummaryHero({
 }) {
   return (
     <motion.div variants={fadeUp} custom={2}>
-      <Card className="overflow-hidden border-purple-200 bg-gradient-to-br from-purple-50/80 via-white to-white">
+      <Card className="overflow-hidden border-border/60">
         <div className="flex items-start gap-4 p-5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-600/10">
-            <Sparkles className="h-5 w-5 text-purple-600" />
-          </div>
           <div className="flex-1 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-purple-700">
-                AI intake summary
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Intake summary
               </p>
               {summary.source_email?.received_at && (
                 <p className="text-[11px] text-muted-foreground">
@@ -184,9 +179,6 @@ function AISummaryHero({
             {summary.proposed_visa_subclass && (
               <div className="rounded-xl border border-border/60 bg-white/80 p-4">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <Brain className="h-4 w-4 text-primary" />
-                  </div>
                   <div className="flex-1">
                     <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                       Proposed visa pathway
@@ -256,7 +248,7 @@ function ChecklistTab({
   if (items.length === 0) {
     return (
       <Card className="p-8 text-center text-muted-foreground">
-        <Wand2 className="mx-auto mb-2 h-6 w-6 text-primary/50" />
+        <ListChecks className="mx-auto mb-2 h-6 w-6 text-primary/50" />
         <p className="text-sm font-medium text-foreground">
           No checklist yet for this case.
         </p>
@@ -273,7 +265,7 @@ function ChecklistTab({
           {generate.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <Wand2 className="h-4 w-4" />
+            <ListChecks className="h-4 w-4" />
           )}
           Generate checklist
         </Button>
@@ -315,7 +307,7 @@ function ChecklistTab({
             {generate.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Wand2 className="h-4 w-4" />
+              <ListChecks className="h-4 w-4" />
             )}
             Regenerate from template
           </Button>
@@ -715,7 +707,7 @@ export default function CaseDetailPage() {
               {generateChecklist.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Wand2 className="h-4 w-4" />
+                <ListChecks className="h-4 w-4" />
               )}
               Generate checklist
             </Button>

@@ -12,13 +12,11 @@ import {
   Cpu,
   Zap,
   ChevronDown,
-  Search,
-  Users,
-  Newspaper,
 } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/motion";
 import { useState } from "react";
 import { HeroVisual } from "@/components/public/hero-visual";
+import { HeroBackground } from "@/components/public/hero-background";
 
 /* Reusable subtle grid SVG for section backgrounds */
 function GridBg({
@@ -103,30 +101,6 @@ const testimonials = [
   },
 ];
 
-const ecosystemPillars = [
-  {
-    icon: Search,
-    title: "Find Your Expert",
-    desc: "Search verified OMARA-registered immigration consultants by visa type, language, and location across Australia.",
-    cta: "Browse Directory",
-    href: "/find-consultants",
-  },
-  {
-    icon: Users,
-    title: "Join the Conversation",
-    desc: "Connect with fellow applicants, share experiences, and get answers from verified immigration professionals.",
-    cta: "Visit Community",
-    href: "/community",
-  },
-  {
-    icon: Newspaper,
-    title: "Stay Informed",
-    desc: "Real-time immigration news, policy changes, processing time updates, and expert insights that matter to you.",
-    cta: "Read Latest",
-    href: "/news",
-  },
-];
-
 const whyCards = [
   {
     icon: Shield,
@@ -159,14 +133,7 @@ export default function HomePage() {
     <div className="overflow-hidden bg-white">
       {/* ═══════════════ HERO — Full Viewport ═══════════════ */}
       <section className="relative flex min-h-[100dvh] items-center overflow-hidden bg-white">
-        {/* Grid background + gradient fades */}
-        <GridBg id="hero-grid" size={48} opacity={0.05} />
-        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-          {/* Radial fade so grid is strongest in center-right */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_70%_at_65%_45%,transparent_0%,white_100%)]" />
-          <div className="absolute -right-32 -top-32 h-[600px] w-[600px] rounded-full bg-purple/[0.04] blur-3xl" />
-          <div className="absolute -bottom-48 -left-48 h-[500px] w-[500px] rounded-full bg-purple-muted/[0.05] blur-3xl" />
-        </div>
+        <HeroBackground />
 
         <div className="relative z-10 mx-auto w-full max-w-7xl px-6 lg:px-8">
           <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-12">
@@ -337,66 +304,6 @@ export default function HomePage() {
               Explore Product
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ═══════════════ ECOSYSTEM TRIPTYCH ═══════════════ */}
-      <section className="relative overflow-hidden bg-white py-24">
-        <GridBg id="eco-grid" size={50} opacity={0.03} />
-        <div className="pointer-events-none absolute -left-32 top-0 h-[400px] w-[400px] rounded-full bg-purple-muted/[0.05] blur-3xl" aria-hidden="true" />
-        <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center"
-          >
-            <span className="text-[13px] font-semibold uppercase tracking-wider text-purple">
-              More than a platform
-            </span>
-            <h2 className="mt-3 font-heading text-[clamp(1.75rem,3.5vw,2.75rem)] font-normal tracking-[-1px] text-navy">
-              One Ecosystem. Every Part of Immigration.
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-[17px] leading-relaxed text-gray-text">
-              Whether you&apos;re a consultant, an applicant, or just staying
-              informed &mdash; IMMI-PULSE brings everything together.
-            </p>
-          </motion.div>
-
-          <motion.div
-            variants={stagger}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-60px" }}
-            className="mt-14 grid gap-8 md:grid-cols-3"
-          >
-            {ecosystemPillars.map((pillar, i) => (
-              <motion.div
-                key={pillar.title}
-                variants={fadeUp}
-                custom={i}
-                className="group rounded-2xl border border-border bg-white p-8 transition-all duration-300 hover:border-purple/20 hover:shadow-lg hover:shadow-purple/5"
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple/10">
-                  <pillar.icon className="h-6 w-6 text-purple" aria-hidden="true" />
-                </div>
-                <h3 className="mt-5 font-heading text-[20px] font-semibold text-navy">
-                  {pillar.title}
-                </h3>
-                <p className="mt-3 text-[15px] leading-relaxed text-gray-text">
-                  {pillar.desc}
-                </p>
-                <Link
-                  href={pillar.href}
-                  className="mt-5 inline-flex items-center gap-1.5 text-[14px] font-semibold text-purple transition-colors hover:text-purple-deep"
-                >
-                  {pillar.cta}
-                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-                </Link>
-              </motion.div>
-            ))}
           </motion.div>
         </div>
       </section>

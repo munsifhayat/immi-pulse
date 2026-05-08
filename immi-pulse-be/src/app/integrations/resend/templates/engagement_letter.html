@@ -1,0 +1,54 @@
+{% extends '_layout.html' %}
+{% from '_macros.html' import button, eyebrow, hairline, pin_card, cta_with_copy_link, note_block %}
+
+{% block preheader %}{{ consultant_name or firm_name }} has prepared your engagement agreement{% if visa_label %} for the {{ visa_label }}{% endif %}. Use PIN {{ pin }} to review and sign.{% endblock %}
+
+{% block content %}
+  {{ eyebrow('Engagement agreement') }}
+
+  <h1 class="h1" style="font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; font-weight: 600; font-size: 32px; line-height: 38px; letter-spacing: -0.4px; color: #101928; margin: 0 0 18px 0;">
+    Your engagement letter from {{ firm_name }} is ready to sign.
+  </h1>
+
+  <p style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 16px; line-height: 26px; color: #475367; margin: 0 0 28px 0;">
+    Hi {{ recipient_name.split()[0] if recipient_name else 'there' }} — {{ consultant_name or firm_name }} has prepared your engagement agreement{% if visa_label %} covering the <strong style="color: #101928;">{{ visa_label }}</strong>{% endif %}. Open the secure portal below, enter the one-time PIN to verify it&rsquo;s really you, then review and sign electronically.
+  </p>
+
+  {% if fee_summary %}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 28px 0; border: 1px solid #EEF0F3; border-radius: 12px;">
+    <tr>
+      <td style="padding: 18px 22px;">
+        <div style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 2.4px; line-height: 14px; color: #7A5AF8; text-transform: uppercase; margin: 0 0 12px 0;">
+          Fee summary
+        </div>
+        {% for line in fee_summary %}
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 24px; color: #475367; padding: 4px 0;">
+              {{ line.label }}
+            </td>
+            <td align="right" style="font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 24px; color: #101928; padding: 4px 0;">
+              A${{ line.amount }}
+            </td>
+          </tr>
+        </table>
+        {% endfor %}
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {{ pin_card(pin, expires_at_label, 'One-time signing PIN') }}
+
+  {{ cta_with_copy_link(sign_url, 'Review and sign') }}
+
+  {{ hairline(margin='40px 0 24px 0') }}
+
+  {{ note_block('A note on security', 'This PIN is for you only. We&rsquo;ll never ask you to share it. Your electronic signature is legally recognised under the Electronic Transactions Act 1999 (Cth). If you didn&rsquo;t expect this email, you can safely ignore it &mdash; the link will expire on its own.') }}
+
+  <div style="margin-top: 28px; font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 22px; color: #475367;">
+    Questions before you sign? Reply to this email and {{ consultant_name or firm_name }} will get back to you directly.
+  </div>
+{% endblock %}
+
+{% block footer_postscript %} You&rsquo;re receiving this because {{ firm_name }} prepared an engagement agreement for you.{% endblock %}

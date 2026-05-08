@@ -1,394 +1,466 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Area,
-  AreaChart,
-} from "recharts";
-import { Badge } from "@/components/ui/badge";
-import { dashboardService } from "@/lib/api/dashboard.service";
-import {
+  ClipboardList,
+  Inbox,
   FolderKanban,
-  FileCheck,
-  AlertTriangle,
-  TrendingUp,
-  TrendingDown,
   ArrowRight,
-  Mail,
-  BrainCircuit,
   CheckCircle2,
-  ListChecks,
+  Share2,
+  UserPlus,
+  Sparkles,
+  ShieldCheck,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { fadeUp, stagger } from "@/lib/motion";
-import type {
-  DashboardStats,
-  CaseActivityPoint,
-  VisaBreakdownPoint,
-  ActivityEntry,
-} from "@/lib/types/immigration";
+import {
+  preCasesApi,
+  questionnairesApi,
+  type PreCaseListItem,
+  type QuestionnaireListItem,
+} from "@/lib/api/services";
+import { useCases } from "@/lib/api/hooks/cases";
+import { cn } from "@/lib/utils";
 
-// ── Stat card config ────────────────────────────────
-const statCards = [
+const onboardingSteps = [
   {
-    key: "active_cases" as const,
-    title: "Active Cases",
+    icon: ClipboardList,
+    title: "Build your intake questionnaire",
+    description:
+      "Create a custom form with the questions you ask every prospect. We'll generate a public link you can share.",
+    cta: { label: "Build a questionnaire", href: "/dashboard/questionnaires/new" },
+  },
+  {
+    icon: Share2,
+    title: "Share the public link",
+    description:
+      "Add the link to your website, Instagram bio, or email signature. Prospects fill it in — no login required.",
+    cta: { label: "View questionnaires", href: "/dashboard/questionnaires" },
+  },
+  {
+    icon: Inbox,
+    title: "Review pre-cases",
+    description:
+      "Each submission lands in your Pre-Cases inbox with a structured summary. Promote the strong ones into a paying case.",
+    cta: { label: "Open pre-cases", href: "/dashboard/precases" },
+  },
+  {
     icon: FolderKanban,
-    accentColor: "text-primary",
-    accentBg: "bg-primary/10",
-    ringColor: "ring-primary/20",
-  },
-  {
-    key: "documents_pending" as const,
-    title: "Documents Pending",
-    icon: FileCheck,
-    accentColor: "text-teal-600",
-    accentBg: "bg-teal-500/10",
-    ringColor: "ring-teal-500/20",
-  },
-  {
-    key: "ai_flagged_issues" as const,
-    title: "AI Flagged Issues",
-    icon: AlertTriangle,
-    accentColor: "text-amber-600",
-    accentBg: "bg-amber-500/10",
-    ringColor: "ring-amber-500/20",
-  },
-  {
-    key: "cases_this_month" as const,
-    title: "Cases This Month",
-    icon: TrendingUp,
-    accentColor: "text-emerald-600",
-    accentBg: "bg-emerald-500/10",
-    ringColor: "ring-emerald-500/20",
+    title: "Manage cases end-to-end",
+    description:
+      "Track stages, collect documents through a secure client portal, and bill in checkpoints — all in one place.",
+    cta: { label: "Go to cases", href: "/dashboard/cases" },
   },
 ];
-
-// ── Chart configs ─────────────────────────────────────
-const activityChartConfig = {
-  cases: { label: "Cases", color: "var(--chart-1)" },
-} satisfies ChartConfig;
-
-const breakdownConfig = {
-  skilled: { label: "Skilled", color: "var(--chart-1)" },
-  family: { label: "Family", color: "var(--chart-5)" },
-  student: { label: "Student", color: "var(--chart-2)" },
-  visitor: { label: "Visitor", color: "var(--chart-3)" },
-} satisfies ChartConfig;
-
-// ── AI Agent config ──────────────────────────────────
-const agentConfig = [
-  { key: "intake", label: "Email Intake", icon: Mail, color: "text-blue-600", bg: "bg-blue-500/10", bar: "bg-blue-500" },
-  { key: "visa_classifier", label: "Visa Classifier", icon: BrainCircuit, color: "text-primary", bg: "bg-primary/10", bar: "bg-primary" },
-  { key: "document_reviewer", label: "Document Reviewer", icon: CheckCircle2, color: "text-teal-600", bg: "bg-teal-500/10", bar: "bg-teal-500" },
-  { key: "checklist_engine", label: "Checklist Engine", icon: ListChecks, color: "text-amber-600", bg: "bg-amber-500/10", bar: "bg-amber-500" },
-];
-
-const agentBadgeStyles: Record<string, string> = {
-  intake: "border-blue-200 bg-blue-50 text-blue-700",
-  visa_classifier: "border-purple-200 bg-purple-50 text-purple-700",
-  document_reviewer: "border-teal-200 bg-teal-50 text-teal-700",
-  checklist_engine: "border-amber-200 bg-amber-50 text-amber-700",
-};
-
-// ── Helpers ───────────────────────────────────────────
-function formatRelativeTime(dateStr: string): string {
-  const now = new Date();
-  const date = new Date(dateStr);
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
-}
-
-function getTrend(key: string, stats: DashboardStats) {
-  const map: Record<string, number> = {
-    active_cases: stats.active_cases_trend,
-    documents_pending: stats.documents_pending_trend,
-    ai_flagged_issues: stats.ai_flagged_trend,
-    cases_this_month: stats.cases_month_trend,
-  };
-  return map[key] ?? 0;
-}
-
-function getStatValue(key: string, stats: DashboardStats) {
-  const map: Record<string, number> = {
-    active_cases: stats.active_cases,
-    documents_pending: stats.documents_pending,
-    ai_flagged_issues: stats.ai_flagged_issues,
-    cases_this_month: stats.cases_this_month,
-  };
-  return map[key] ?? 0;
-}
-
-const statDescriptions: Record<string, string> = {
-  active_cases: "Cases in progress across all stages",
-  documents_pending: "Awaiting AI validation or review",
-  ai_flagged_issues: "Documents or cases needing attention",
-  cases_this_month: "New cases opened this month",
-};
 
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [caseActivity, setCaseActivity] = useState<CaseActivityPoint[]>([]);
-  const [visaBreakdown, setVisaBreakdown] = useState<VisaBreakdownPoint[]>([]);
-  const [recentActivity, setRecentActivity] = useState<ActivityEntry[]>([]);
+  const { user, org } = useAuth();
+  const [preCases, setPreCases] = useState<PreCaseListItem[] | null>(null);
+  const [questionnaires, setQuestionnaires] = useState<
+    QuestionnaireListItem[] | null
+  >(null);
+  const casesQuery = useCases({});
+  const cases = casesQuery.data ?? [];
 
   useEffect(() => {
-    dashboardService.getStats().then(setStats);
-    dashboardService.getCaseActivity().then(setCaseActivity);
-    dashboardService.getVisaBreakdown().then(setVisaBreakdown);
-    dashboardService.getRecentActivity(6).then(setRecentActivity);
+    preCasesApi.list().then(setPreCases).catch(() => setPreCases([]));
+    questionnairesApi.list().then(setQuestionnaires).catch(() => setQuestionnaires([]));
   }, []);
 
-  // Mock agent counts for the performance panel
-  const agentCounts: Record<string, number> = {
-    intake: 12,
-    visa_classifier: 18,
-    document_reviewer: 15,
-    checklist_engine: 8,
+  const isLoading =
+    preCases === null || questionnaires === null || casesQuery.isLoading;
+
+  const stats = {
+    activeCases: cases.filter((c) => c.stage !== "decision").length,
+    preCasesUnread: (preCases ?? []).filter(
+      (p) => p.status === "pending" && !p.read_at,
+    ).length,
+    questionnaires: (questionnaires ?? []).filter((q) => q.is_active).length,
+    casesThisMonth: cases.filter((c) => {
+      const created = new Date(c.created_at);
+      const now = new Date();
+      return (
+        created.getMonth() === now.getMonth() &&
+        created.getFullYear() === now.getFullYear()
+      );
+    }).length,
   };
-  const maxCount = Math.max(...Object.values(agentCounts), 1);
+
+  const stepStates = onboardingSteps.map((_, idx) =>
+    checkStepDone(idx, {
+      questionnaires: questionnaires ?? [],
+      preCases: preCases ?? [],
+      cases,
+    }),
+  );
+  const stepsDone = stepStates.filter(Boolean).length;
+  const setupComplete = !isLoading && stepsDone === onboardingSteps.length;
+  const isFreshAccount =
+    !isLoading &&
+    cases.length === 0 &&
+    (preCases ?? []).length === 0 &&
+    (questionnaires ?? []).length === 0;
+
+  const nextStepIndex = stepStates.findIndex((d) => !d);
+  const nextStep =
+    nextStepIndex >= 0 ? onboardingSteps[nextStepIndex] : null;
+
+  const statCards = [
+    {
+      label: "Active cases",
+      value: stats.activeCases,
+      href: "/dashboard/cases",
+      hint: "In-progress applications",
+      emptyHint: "Promote your first pre-case to open one",
+    },
+    {
+      label: "New pre-cases",
+      value: stats.preCasesUnread,
+      href: "/dashboard/precases",
+      hint: "Unread submissions waiting",
+      emptyHint: "Submissions appear here once shared",
+    },
+    {
+      label: "Live questionnaires",
+      value: stats.questionnaires,
+      href: "/dashboard/questionnaires",
+      hint: "Forms accepting submissions",
+      emptyHint: "Build one to start collecting leads",
+    },
+    {
+      label: "Cases this month",
+      value: stats.casesThisMonth,
+      href: "/dashboard/cases",
+      hint: "Opened in the current month",
+      emptyHint: "Track new engagements monthly",
+    },
+  ];
 
   return (
     <motion.div
-      className="space-y-6 text-foreground"
+      className="space-y-12"
       variants={stagger}
       initial="hidden"
       animate="visible"
     >
-      {/* Welcome greeting */}
-      <motion.div variants={fadeUp} custom={0} className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">
-            Welcome Back{user?.first_name ? `, ${user.first_name}` : ""}!
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Your immigration practice at a glance
-          </p>
-        </div>
-        <Badge variant="outline" className="w-fit border-primary/30 text-primary">
-          Demo Data
-        </Badge>
-      </motion.div>
+      {/* ── Hero ── */}
+      <section className="relative">
+        <motion.p variants={fadeUp} custom={0} className="editorial-eyebrow">
+          <span>
+            Dashboard {org?.name ? `· ${org.name}` : ""}
+          </span>
+        </motion.p>
 
-      {/* Stats cards */}
-      <motion.div variants={fadeUp} custom={1} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((card) => {
-          const value = stats ? getStatValue(card.key, stats) : "--";
-          const trend = stats ? getTrend(card.key, stats) : 0;
-          const Icon = card.icon;
-          return (
-            <div
-              key={card.key}
-              className="group relative rounded-xl border border-border/60 bg-card p-5 shadow-sm transition-all duration-200 hover:border-border hover:shadow-md"
-            >
-              <div className="flex items-start justify-between">
-                <p className="text-[13px] font-medium text-muted-foreground">{card.title}</p>
-                <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg ring-1 ring-inset", card.accentBg, card.ringColor)}>
-                  <Icon className={cn("h-4.5 w-4.5", card.accentColor)} />
-                </div>
+        <motion.h1
+          variants={fadeUp}
+          custom={1}
+          className="font-heading mt-6 max-w-[18ch] font-normal leading-[1.02] tracking-[-1.2px] text-foreground"
+          style={{ fontSize: "clamp(2.4rem, 4.6vw, 3.6rem)" }}
+        >
+          {user?.first_name ? (
+            <>
+              Welcome,{" "}
+              <span className="relative inline-block">
+                <span className="bg-gradient-to-r from-[color:var(--purple)] via-[color:var(--purple)] to-[color:var(--purple-deep)] bg-clip-text text-transparent">
+                  {user.first_name}
+                </span>
+                <svg
+                  aria-hidden
+                  className="absolute -bottom-1 left-0 h-[10px] w-full"
+                  viewBox="0 0 240 10"
+                  preserveAspectRatio="none"
+                >
+                  <path
+                    d="M0,7 Q60,2 120,5 T240,4"
+                    fill="none"
+                    stroke="url(#welcome-under)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  <defs>
+                    <linearGradient id="welcome-under" x1="0" x2="1">
+                      <stop offset="0%" stopColor="var(--purple)" stopOpacity="0.2" />
+                      <stop offset="50%" stopColor="var(--purple)" stopOpacity="0.95" />
+                      <stop offset="100%" stopColor="var(--purple-deep)" stopOpacity="0.2" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </span>
+              .
+            </>
+          ) : (
+            <>
+              Welcome <span className="text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]">back</span>.
+            </>
+          )}
+        </motion.h1>
+
+        <motion.p
+          variants={fadeUp}
+          custom={2}
+          className="mt-6 max-w-[60ch] text-[16px] leading-[1.65] text-muted-foreground"
+        >
+          {isFreshAccount
+            ? "Let's get your practice configured. Four steps, about five minutes — and you're live for intake."
+            : setupComplete
+              ? "Your practice is fully configured. Here's what's happening today."
+              : "Here's what's moving across your desk today. Triage what's new, advance what's in flight."}
+        </motion.p>
+
+        <motion.div
+          variants={fadeUp}
+          custom={3}
+          className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3 text-[13px] text-muted-foreground"
+        >
+          <span className="inline-flex items-center gap-2">
+            <span className="h-1 w-1 rounded-full bg-[color:var(--purple)]" />
+            <span className="font-medium text-foreground">Live intake</span>
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="h-1 w-1 rounded-full bg-[color:var(--purple)]" />
+            OMARA-aligned
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="h-1 w-1 rounded-full bg-[color:var(--purple)]" />
+            Australian data residency
+          </span>
+        </motion.div>
+      </section>
+
+      {/* ── Next-up callout ── */}
+      {!isLoading && nextStep && !isFreshAccount && (
+        <motion.div variants={fadeUp} custom={4}>
+          <Link
+            href={nextStep.cta.href}
+            className="group relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-[color:var(--purple)]/20 bg-gradient-to-br from-[color:var(--purple-muted)]/25 via-card to-card p-5 shadow-[0_1px_0_rgba(15,17,23,0.02)] transition-all hover:-translate-y-0.5 hover:border-[color:var(--purple)]/40 hover:shadow-[0_18px_40px_-24px_color-mix(in_srgb,var(--purple)_55%,transparent)] dark:from-[color:var(--purple)]/8 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[color:var(--purple)]/10 ring-1 ring-[color:var(--purple)]/15 transition-colors group-hover:bg-[color:var(--purple)]/15">
+                <Sparkles className="h-5 w-5 text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]" />
               </div>
-              <div className="mt-3 flex items-end gap-3">
-                <p className="text-3xl font-bold tracking-tight text-foreground">{value}</p>
-                {trend !== 0 && (
-                  <span className={cn(
-                    "mb-1 flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                    trend > 0
-                      ? "bg-emerald-500/10 text-emerald-600"
-                      : "bg-destructive/10 text-destructive"
-                  )}>
-                    {trend > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                    {Math.abs(trend)}%
-                  </span>
-                )}
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]">
+                  Next up
+                </p>
+                <p className="font-heading mt-1 text-[16px] font-semibold text-foreground">
+                  {nextStep.title}
+                </p>
               </div>
-              <p className="mt-1.5 text-xs text-muted-foreground">{statDescriptions[card.key]}</p>
             </div>
-          );
-        })}
-      </motion.div>
+            <span className="inline-flex items-center gap-1.5 self-start text-[14px] font-medium text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)] sm:self-auto">
+              {nextStep.cta.label}
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </Link>
+        </motion.div>
+      )}
 
-      {/* Charts + AI Agents Panel */}
-      <motion.div variants={fadeUp} custom={2} className="grid gap-4 lg:grid-cols-[1fr_300px]">
-        {/* Case Activity — area chart */}
-        <Card className="border-border/60 bg-card shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold tracking-tight">Case Activity</CardTitle>
-            <CardDescription className="text-xs">Cases created and updated over the last 7 days</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={activityChartConfig} className="h-[240px] w-full">
-              <AreaChart data={caseActivity} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="fillCases" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--color-cases)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="var(--color-cases)" stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/40" />
-                <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} className="text-[11px]" />
-                <YAxis tickLine={false} axisLine={false} tickMargin={8} className="text-[11px]" allowDecimals={false} />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                <Area type="monotone" dataKey="cases" stroke="var(--color-cases)" strokeWidth={2} fill="url(#fillCases)" />
-              </AreaChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        {/* AI Agents Performance */}
-        <Card className="border-border/60 bg-card shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold tracking-tight">AI Agents</CardTitle>
-            <CardDescription className="text-xs">Actions handled this period</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {agentConfig.map((agent) => {
-              const count = agentCounts[agent.key] ?? 0;
-              const barWidth = maxCount > 0 ? (count / maxCount) * 100 : 0;
-              const Icon = agent.icon;
-              return (
-                <div key={agent.key} className="flex items-center gap-3">
-                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", agent.bg)}>
-                    <Icon className={cn("h-4.5 w-4.5", agent.color)} />
+      {/* ── Stats ── */}
+      {!isFreshAccount && (
+        <motion.div
+          variants={fadeUp}
+          custom={5}
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          {statCards.map((card, idx) => {
+            const isZero = !isLoading && card.value === 0;
+            return (
+              <Link key={card.label} href={card.href} className="group block">
+                <div className="relative h-full rounded-2xl border border-border bg-card p-5 shadow-[0_1px_0_rgba(15,17,23,0.02)] transition-all hover:-translate-y-0.5 hover:border-[color:var(--purple)]/30 hover:shadow-[0_18px_40px_-24px_color-mix(in_srgb,var(--purple)_55%,transparent)]">
+                  <div className="flex items-start justify-between">
+                    <p className="font-heading text-[13.5px] font-semibold text-foreground">
+                      {card.label}
+                    </p>
+                    <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground/45">
+                      {String(idx + 1).padStart(2, "0")}
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <p className="text-[13px] font-medium text-foreground">{agent.label}</p>
-                      <span className={cn("text-sm font-bold", agent.color)}>{count}</span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-muted/60">
-                      <div
-                        className={cn("h-full rounded-full transition-all duration-500", agent.bar)}
-                        style={{ width: `${barWidth}%` }}
-                      />
-                    </div>
+                  <p
+                    className={cn(
+                      "font-heading mt-4 text-[44px] font-medium leading-none tracking-[-1.5px] tabular-nums",
+                      isZero ? "text-muted-foreground/40" : "text-foreground",
+                    )}
+                  >
+                    {isLoading ? "—" : card.value}
+                  </p>
+                  <div className="mt-4 flex items-center justify-between">
+                    <p className="text-[13px] leading-relaxed text-muted-foreground">
+                      {isZero ? card.emptyHint : card.hint}
+                    </p>
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-all group-hover:translate-x-0.5 group-hover:text-[color:var(--purple-deep)] dark:group-hover:text-[color:var(--purple-light)]" />
                   </div>
                 </div>
+              </Link>
+            );
+          })}
+        </motion.div>
+      )}
+
+      {/* ── Setup checklist ── */}
+      {!setupComplete && (
+        <motion.div variants={fadeUp} custom={6}>
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]">
+                {isFreshAccount ? "Get started" : "Setup checklist"}
+              </p>
+              <h2 className="font-heading mt-2 text-[22px] font-semibold tracking-tight text-foreground">
+                Four steps to live intake
+              </h2>
+              <p className="mt-1 text-[13.5px] text-muted-foreground">
+                Receive, qualify, and manage immigration cases in one place.
+              </p>
+            </div>
+            {!isLoading && (
+              <div className="shrink-0 text-right">
+                <p className="font-heading text-[20px] font-semibold tabular-nums text-foreground">
+                  {stepsDone}/{onboardingSteps.length}
+                </p>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
+                  Done
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {onboardingSteps.map((step, idx) => {
+              const Icon = step.icon;
+              const isDone = stepStates[idx];
+              const isNext = idx === nextStepIndex;
+              return (
+                <Link
+                  key={step.title}
+                  href={step.cta.href}
+                  className={cn(
+                    "group relative flex items-start gap-4 rounded-2xl border bg-card p-5 shadow-[0_1px_0_rgba(15,17,23,0.02)] transition-all hover:-translate-y-0.5",
+                    isDone
+                      ? "border-emerald-500/30 bg-emerald-500/[0.04] hover:border-emerald-500/50 hover:shadow-[0_18px_40px_-24px_rgba(16,185,129,0.45)]"
+                      : isNext
+                        ? "border-[color:var(--purple)]/30 hover:border-[color:var(--purple)]/45 hover:shadow-[0_18px_40px_-24px_color-mix(in_srgb,var(--purple)_55%,transparent)]"
+                        : "border-border hover:border-[color:var(--purple)]/30 hover:shadow-[0_18px_40px_-24px_color-mix(in_srgb,var(--purple)_55%,transparent)]",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 transition-colors",
+                      isDone
+                        ? "bg-emerald-500/10 ring-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                        : isNext
+                          ? "bg-[color:var(--purple)]/10 ring-[color:var(--purple)]/15 text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]"
+                          : "bg-muted/60 ring-border text-muted-foreground group-hover:bg-[color:var(--purple)]/10 group-hover:ring-[color:var(--purple)]/15 group-hover:text-[color:var(--purple-deep)] dark:group-hover:text-[color:var(--purple-light)]",
+                    )}
+                  >
+                    {isDone ? (
+                      <CheckCircle2 className="h-5 w-5" />
+                    ) : (
+                      <Icon className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-heading text-[15px] font-semibold text-foreground">
+                        {step.title}
+                      </p>
+                      {isDone ? (
+                        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700 dark:text-emerald-300">
+                          Done
+                        </span>
+                      ) : isNext ? (
+                        <span className="rounded-full border border-[color:var(--purple)]/30 bg-[color:var(--purple)]/8 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]">
+                          Next
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                      {step.description}
+                    </p>
+                    {!isDone && (
+                      <p
+                        className={cn(
+                          "mt-3 inline-flex items-center gap-1 text-[12.5px] font-medium transition-opacity",
+                          isNext
+                            ? "text-[color:var(--purple-deep)] opacity-100 dark:text-[color:var(--purple-light)]"
+                            : "text-muted-foreground opacity-0 group-hover:opacity-100",
+                        )}
+                      >
+                        {step.cta.label}
+                        <ArrowRight className="h-3 w-3" />
+                      </p>
+                    )}
+                  </div>
+                  <span
+                    aria-hidden
+                    className="ml-auto self-center font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground/40"
+                  >
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
+                </Link>
               );
             })}
+          </div>
+        </motion.div>
+      )}
 
-            {/* System health mini cards */}
-            <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border/50 pt-4">
-              <div className="rounded-lg bg-muted/30 p-3">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Response</p>
-                <p className="mt-1 text-lg font-bold text-foreground">1.2<span className="text-xs font-normal text-muted-foreground">s</span></p>
+      {/* ── Trial banner / Invite team CTA ── */}
+      {isFreshAccount ? (
+        <motion.div variants={fadeUp} custom={7}>
+          <div className="flex flex-col gap-4 rounded-2xl border border-[color:var(--purple)]/15 bg-gradient-to-br from-[color:var(--purple-muted)]/30 via-card to-card p-5 shadow-[0_1px_0_rgba(15,17,23,0.02)] dark:from-[color:var(--purple)]/8 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[color:var(--purple)]/10 ring-1 ring-[color:var(--purple)]/15">
+                <UserPlus className="h-5 w-5 text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]" />
               </div>
-              <div className="rounded-lg bg-muted/30 p-3">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">AI Actions</p>
-                <p className="mt-1 text-lg font-bold text-foreground">53</p>
-              </div>
-              <div className="rounded-lg bg-muted/30 p-3">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Accuracy</p>
-                <p className="mt-1 text-lg font-bold text-foreground">94.2<span className="text-xs font-normal text-muted-foreground">%</span></p>
-              </div>
-              <div className="rounded-lg bg-muted/30 p-3">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">AI Cost</p>
-                <p className="mt-1 text-lg font-bold text-foreground">$2.40</p>
+              <div>
+                <p className="font-heading text-[15px] font-semibold text-foreground">
+                  Bring your team along
+                </p>
+                <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                  Invite consultants and admins so everyone shares the same caseload, documents, and questionnaires.
+                </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Visa Type Breakdown — stacked bar chart */}
-      <motion.div variants={fadeUp} custom={3}>
-        <Card className="border-border/60 bg-card shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold tracking-tight">Visa Type Breakdown</CardTitle>
-            <CardDescription className="text-xs">Case activity by visa category over the last 7 days</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={breakdownConfig} className="h-[200px] w-full">
-              <BarChart data={visaBreakdown} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/40" />
-                <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} className="text-[11px]" />
-                <YAxis tickLine={false} axisLine={false} tickMargin={8} className="text-[11px]" allowDecimals={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="skilled" stackId="a" fill="var(--color-skilled)" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="family" stackId="a" fill="var(--color-family)" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="student" stackId="a" fill="var(--color-student)" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="visitor" stackId="a" fill="var(--color-visitor)" radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Recent Case Activity */}
-      <motion.div variants={fadeUp} custom={4}>
-        <Card className="border-border/60 bg-card shadow-sm">
-          <CardHeader className="flex-row items-center justify-between pb-3">
-            <div>
-              <CardTitle className="text-sm font-semibold tracking-tight">Recent Case Activity</CardTitle>
-              <CardDescription className="text-xs">Latest AI-processed immigration events</CardDescription>
-            </div>
-            <Link href="/dashboard/activity" className="flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
-              View all <ArrowRight className="h-3 w-3" />
+            <Link
+              href="/dashboard/settings/team"
+              className="inline-flex shrink-0 items-center gap-2 self-start rounded-xl border-2 border-[color:var(--purple)] bg-[color:var(--purple)] px-5 py-2.5 text-[13.5px] font-medium text-white shadow-[0_10px_24px_-10px_rgba(124,92,252,0.55)] transition-all hover:border-[color:var(--purple-deep)] hover:bg-[color:var(--purple-deep)] sm:self-auto"
+            >
+              Invite teammates
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
-          </CardHeader>
-          <CardContent className="px-0 pb-0">
-            <div className="divide-y divide-border/50">
-              {recentActivity.length > 0 ? (
-                recentActivity.map((entry) => {
-                  const badgeStyle = agentBadgeStyles[entry.agent_type] || "bg-muted text-muted-foreground border-border";
-                  const agentLabel = agentConfig.find((a) => a.key === entry.agent_type)?.label || entry.agent_type;
-                  return (
-                    <div key={entry.id} className="flex items-center gap-3 px-6 py-3 transition-colors hover:bg-muted/30">
-                      <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold", badgeStyle)}>
-                        {agentLabel}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium text-foreground">{entry.action} — {entry.client_name}</p>
-                        <p className="truncate text-xs text-muted-foreground">{entry.subject}</p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <p className="text-xs text-muted-foreground">{formatRelativeTime(entry.created_at)}</p>
-                        {entry.confidence !== undefined && (
-                          <p className="text-[11px] font-medium text-muted-foreground/70">{(entry.confidence * 100).toFixed(0)}%</p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="px-6 py-12 text-center">
-                  <FolderKanban className="mx-auto mb-3 h-8 w-8 text-muted-foreground/30" />
-                  <p className="text-sm text-muted-foreground">No case activity yet</p>
-                  <p className="mt-1 text-xs text-muted-foreground/60">AI will start processing when client communications arrive</p>
-                </div>
-              )}
+          </div>
+        </motion.div>
+      ) : (
+        !setupComplete && (
+          <motion.div variants={fadeUp} custom={7}>
+            <div className="flex items-start gap-4 rounded-2xl border border-[color:var(--purple)]/15 bg-gradient-to-br from-[color:var(--purple-muted)]/30 via-card to-card p-5 dark:from-[color:var(--purple)]/8">
+              <ShieldCheck className="mt-0.5 h-6 w-6 shrink-0 text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]" />
+              <div>
+                <p className="text-[14px] leading-relaxed text-muted-foreground">
+                  <span className="font-semibold text-foreground">Hosted in Sydney.</span>{" "}
+                  Australian data residency, encrypted end-to-end, Privacy Act 1988 aligned.
+                </p>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+          </motion.div>
+        )
+      )}
     </motion.div>
   );
+}
+
+function checkStepDone(
+  index: number,
+  data: {
+    questionnaires: QuestionnaireListItem[];
+    preCases: PreCaseListItem[];
+    cases: { id: string }[];
+  },
+): boolean {
+  if (index === 0) return data.questionnaires.length > 0;
+  if (index === 1) return data.questionnaires.some((q) => q.is_active);
+  if (index === 2) return data.preCases.length > 0;
+  if (index === 3) return data.cases.length > 0;
+  return false;
 }

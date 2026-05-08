@@ -9,6 +9,7 @@ import {
   Users,
   Mail,
   MapPin,
+  Phone,
   ArrowRight,
   Zap,
   Target,
@@ -44,24 +45,6 @@ const stats = [
   { value: "100+", label: "Visa Subclasses Covered", icon: Globe },
   { value: "10\u00d7", label: "Faster Document Review", icon: Zap },
   { value: "99.2%", label: "Classification Accuracy", icon: Target },
-];
-
-const team = [
-  {
-    name: "Coming Soon",
-    role: "Founder & CEO",
-    bio: "We\u2019re building in public. Team profiles will appear here as we grow.",
-  },
-  {
-    name: "Coming Soon",
-    role: "Head of Product",
-    bio: "Interested in joining? We\u2019re looking for people who care about immigration.",
-  },
-  {
-    name: "Coming Soon",
-    role: "Lead Engineer",
-    bio: "If you\u2019re passionate about AI and immigration, we want to hear from you.",
-  },
 ];
 
 export default function AboutPage() {
@@ -297,57 +280,6 @@ export default function AboutPage() {
         </section>
 
         {/* ═══ TEAM ═══ */}
-        <section className="border-t border-border bg-gray-light/50 py-24 lg:py-32">
-          <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <motion.div
-              variants={stagger}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-80px" }}
-              className="text-center"
-            >
-              <motion.p
-                variants={fadeUp}
-                custom={0}
-                className="text-[13px] font-semibold uppercase tracking-wider text-purple"
-              >
-                The Team
-              </motion.p>
-              <motion.h2
-                variants={fadeUp}
-                custom={1}
-                className="mt-3 font-heading text-[clamp(2rem,4vw,3rem)] font-normal tracking-[-1px] text-navy"
-              >
-                People Behind the Platform
-              </motion.h2>
-            </motion.div>
-
-            <motion.div
-              variants={stagger}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-60px" }}
-              className="mt-16 grid gap-6 sm:grid-cols-3"
-            >
-              {team.map((member, i) => (
-                <motion.div
-                  key={i}
-                  variants={fadeUp}
-                  custom={i}
-                  className="group rounded-2xl border border-border bg-white p-8 text-center transition-all duration-300 hover:border-purple/20 hover:shadow-lg hover:shadow-purple/[0.06]"
-                >
-                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-purple/[0.06]">
-                    <Users className="h-8 w-8 text-purple/30" aria-hidden="true" />
-                  </div>
-                  <h3 className="mt-5 font-heading text-lg font-semibold text-navy">{member.name}</h3>
-                  <p className="text-[15px] font-medium text-purple">{member.role}</p>
-                  <p className="mt-3 text-[15px] leading-relaxed text-gray-text">{member.bio}</p>
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
-        </section>
-
         {/* ═══ CTA ═══ */}
         <section className="relative overflow-hidden py-24 lg:py-32">
           {/* Purple gradient background */}
@@ -373,7 +305,7 @@ export default function AboutPage() {
                   href="/get-started"
                   className="inline-flex items-center gap-2 rounded-lg bg-purple px-6 py-3 text-[15px] font-semibold text-white transition-colors duration-200 hover:bg-purple-deep focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-2 focus-visible:outline-none"
                 >
-                  Book a Demo
+                  Get Started
                   <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
                 <Link
@@ -400,17 +332,24 @@ export default function AboutPage() {
               <p className="mt-4 text-[16px] text-gray-text">
                 Questions, partnerships, or just want to chat about immigration tech? We&apos;d love to hear from you.
               </p>
-              <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+              <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:flex-wrap">
                 <a
-                  href="mailto:hello@immipulse.com"
+                  href="mailto:hello@theappscompany.ai"
                   className="flex items-center gap-2 rounded-lg border border-border px-6 py-3 text-[14px] font-medium text-navy transition-colors duration-200 hover:border-purple/30 hover:bg-purple/[0.03] focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-2 focus-visible:outline-none"
                 >
                   <Mail className="h-4 w-4" aria-hidden="true" />
-                  hello@immipulse.com
+                  hello@theappscompany.ai
+                </a>
+                <a
+                  href="tel:+61415796315"
+                  className="flex items-center gap-2 rounded-lg border border-border px-6 py-3 text-[14px] font-medium text-navy transition-colors duration-200 hover:border-purple/30 hover:bg-purple/[0.03] focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-2 focus-visible:outline-none"
+                >
+                  <Phone className="h-4 w-4" aria-hidden="true" />
+                  +61 415 796 315
                 </a>
                 <span className="flex items-center gap-2 text-[14px] text-gray-text">
                   <MapPin className="h-4 w-4" aria-hidden="true" />
-                  Sydney, Australia
+                  Perth, Australia
                 </span>
               </div>
             </div>

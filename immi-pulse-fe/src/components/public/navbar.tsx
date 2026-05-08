@@ -2,73 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Menu,
-  X,
-  ChevronDown,
-  Search,
-  Users,
-  Newspaper,
-  Briefcase,
-  Heart,
-  BookOpen,
-} from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const megaMenuColumns = [
-  {
-    heading: "Discover",
-    items: [
-      {
-        label: "Find Consultants",
-        href: "/find-consultants",
-        desc: "Search verified immigration experts",
-        icon: Search,
-      },
-      {
-        label: "Community",
-        href: "/community",
-        desc: "Join the immigration conversation",
-        icon: Users,
-      },
-      {
-        label: "News",
-        href: "/news",
-        desc: "Immigration updates & insights",
-        icon: Newspaper,
-      },
-    ],
-  },
-  {
-    heading: "Learn More",
-    items: [
-      {
-        label: "For Consultants",
-        href: "/for-consultants",
-        desc: "Built for OMARA agents",
-        icon: Briefcase,
-      },
-      {
-        label: "For Applicants",
-        href: "/for-applicants",
-        desc: "Your visa journey simplified",
-        icon: Heart,
-      },
-      {
-        label: "Blog",
-        href: "/blog",
-        desc: "Guides, tips & deep dives",
-        icon: BookOpen,
-      },
-    ],
-  },
-];
 
 const navLinks = [
   { label: "Platform", href: "/features" },
-  { label: "Explore", href: "#", mega: true },
+  { label: "For Consultants", href: "/for-consultants" },
   { label: "Pricing", href: "/pricing" },
   { label: "About", href: "/about" },
 ];
@@ -77,8 +18,6 @@ export function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -88,19 +27,7 @@ export function Navbar() {
 
   useEffect(() => {
     setMobileOpen(false);
-    setDropdownOpen(false);
   }, [pathname]);
-
-  const handleDropdownKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Escape") setDropdownOpen(false);
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        setDropdownOpen((prev) => !prev);
-      }
-    },
-    []
-  );
 
   return (
     <>
@@ -166,84 +93,6 @@ export function Navbar() {
           {/* Desktop nav */}
           <div className="hidden items-center gap-1 md:flex">
             {navLinks.map((link) => {
-              if (link.mega) {
-                return (
-                  <div
-                    key={link.label}
-                    ref={dropdownRef}
-                    className="relative"
-                    onMouseEnter={() => setDropdownOpen(true)}
-                    onMouseLeave={() => setDropdownOpen(false)}
-                  >
-                    <button
-                      aria-expanded={dropdownOpen}
-                      aria-haspopup="true"
-                      onKeyDown={handleDropdownKeyDown}
-                      className="flex items-center gap-1 rounded-lg px-3.5 py-2 text-[14px] font-medium text-gray-text transition-colors hover:text-navy focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-2 focus-visible:outline-none"
-                    >
-                      {link.label}
-                      <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
-                    </button>
-                    <AnimatePresence>
-                      {dropdownOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 4 }}
-                          transition={{ duration: 0.15 }}
-                          className="absolute left-1/2 top-full mt-1 w-[480px] -translate-x-1/2 rounded-xl border border-border bg-white p-5 shadow-xl shadow-black/5"
-                          role="menu"
-                        >
-                          <div className="grid grid-cols-2 gap-6">
-                            {megaMenuColumns.map((col) => (
-                              <div key={col.heading}>
-                                <span className="text-[11px] font-semibold uppercase tracking-wider text-navy/40">
-                                  {col.heading}
-                                </span>
-                                <div className="mt-3 space-y-1">
-                                  {col.items.map((item) => (
-                                    <Link
-                                      key={item.href}
-                                      href={item.href}
-                                      role="menuitem"
-                                      className={cn(
-                                        "flex items-start gap-3 rounded-lg px-3 py-2.5 transition-colors focus-visible:bg-purple/5 focus-visible:outline-none",
-                                        pathname === item.href
-                                          ? "bg-purple/5"
-                                          : "hover:bg-gray-light"
-                                      )}
-                                    >
-                                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple/5">
-                                        <item.icon className="h-4 w-4 text-purple" aria-hidden="true" />
-                                      </div>
-                                      <div>
-                                        <p
-                                          className={cn(
-                                            "text-[14px] font-medium",
-                                            pathname === item.href
-                                              ? "text-purple"
-                                              : "text-navy"
-                                          )}
-                                        >
-                                          {item.label}
-                                        </p>
-                                        <p className="mt-0.5 text-[12px] text-gray-text">
-                                          {item.desc}
-                                        </p>
-                                      </div>
-                                    </Link>
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                );
-              }
-
               const isActive = pathname === link.href;
               return (
                 <Link
@@ -303,34 +152,6 @@ export function Navbar() {
           >
             <div className="mx-auto flex max-w-7xl flex-col gap-1 px-6 py-4 max-h-[calc(100vh-6.5rem)] overflow-y-auto">
               {navLinks.map((link) => {
-                if (link.mega) {
-                  return (
-                    <div key={link.label}>
-                      {megaMenuColumns.map((col) => (
-                        <div key={col.heading}>
-                          <span className="block px-4 py-2 text-[13px] font-semibold uppercase tracking-wider text-gray-text/50">
-                            {col.heading}
-                          </span>
-                          {col.items.map((item) => (
-                            <Link
-                              key={item.href}
-                              href={item.href}
-                              className={cn(
-                                "flex items-center gap-3 rounded-lg px-4 py-3 pl-8 text-[15px] font-medium transition-colors",
-                                pathname === item.href
-                                  ? "bg-purple/5 text-purple"
-                                  : "text-gray-text hover:bg-gray-light hover:text-navy"
-                              )}
-                            >
-                              <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                              {item.label}
-                            </Link>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  );
-                }
                 const isActive = pathname === link.href;
                 return (
                   <Link

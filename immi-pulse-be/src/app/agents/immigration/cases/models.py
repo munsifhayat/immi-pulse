@@ -43,6 +43,11 @@ class Case(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
+    # Multi-tenancy + global Client identity (added in e5f6a7b8c9d0 migration)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True, index=True)
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="SET NULL"), nullable=True, index=True)
+    pre_case_id = Column(UUID(as_uuid=True), ForeignKey("pre_cases.id", ondelete="SET NULL"), nullable=True)
+
     client_name = Column(String, nullable=False)
     client_email = Column(String, nullable=True, index=True)
     client_phone = Column(String, nullable=True)

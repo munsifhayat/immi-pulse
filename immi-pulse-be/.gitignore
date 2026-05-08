@@ -36,3 +36,6 @@ htmlcov/
 
 # Ruff
 .ruff_cache/
+
+# Local scratch / email preview output
+tmp/
