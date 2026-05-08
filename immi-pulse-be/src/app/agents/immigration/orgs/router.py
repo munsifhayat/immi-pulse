@@ -16,6 +16,7 @@ from app.agents.immigration.orgs.schemas import (
     PlanOut,
     RedeemPromoRequest,
     RedeemPromoResponse,
+    ResetPromoResponse,
     SeatOut,
     SelectPlanRequest,
 )
@@ -105,6 +106,18 @@ async def redeem_promo(
 ):
     """Apply a pilot/promo code post-signup. Idempotent for the same pilot."""
     return await org_service.redeem_promo(db, ctx.org_id, payload.code)
+
+
+@router.post("/billing/reset-promo", response_model=ResetPromoResponse)
+async def reset_promo(
+    ctx: CurrentContext = Depends(get_current_owner_or_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Detach the currently-applied pilot. Refunds credits, decrements the
+    pilot redemption counter and restores a fresh trial. Used during pilot QA
+    so the same code can be re-redeemed.
+    """
+    return await org_service.reset_promo(db, ctx.org_id)
 
 
 # Plans catalog — readable by anyone authenticated (it's also exposed publicly via pricing page).

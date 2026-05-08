@@ -237,24 +237,38 @@ function StatCard({
   accent?: boolean;
 }) {
   return (
-    <Card
+    <div
       className={cn(
-        "border-border/60 px-4 py-3",
-        accent && "border-emerald-200 bg-emerald-50/40"
+        "group relative h-full rounded-2xl border bg-card p-5 shadow-[0_1px_0_rgba(15,17,23,0.02)] transition-all hover:-translate-y-0.5",
+        accent
+          ? "border-emerald-500/30 bg-emerald-500/[0.04] hover:border-emerald-500/55 hover:shadow-[0_18px_40px_-24px_rgba(16,185,129,0.45)]"
+          : "border-border hover:border-[color:var(--purple)]/30 hover:shadow-[0_18px_40px_-24px_color-mix(in_srgb,var(--purple)_55%,transparent)]",
       )}
     >
-      <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5">
-          <Icon className="h-4 w-4 text-primary/70" />
-        </div>
-        <div>
-          <p className="text-xl font-bold leading-none">{value}</p>
-          <p className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
-            {label}
-          </p>
+      <div className="flex items-start justify-between">
+        <p className="font-heading text-[13.5px] font-semibold text-foreground">
+          {label}
+        </p>
+        <div
+          className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-xl ring-1",
+            accent
+              ? "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-300"
+              : "bg-[color:var(--purple)]/10 text-[color:var(--purple-deep)] ring-[color:var(--purple)]/15 dark:text-[color:var(--purple-light)]",
+          )}
+        >
+          <Icon className="h-4 w-4" />
         </div>
       </div>
-    </Card>
+      <p
+        className={cn(
+          "font-heading mt-4 text-[40px] font-medium leading-none tracking-[-1.2px] tabular-nums",
+          accent ? "text-emerald-700 dark:text-emerald-300" : "text-foreground",
+        )}
+      >
+        {value}
+      </p>
+    </div>
   );
 }
 

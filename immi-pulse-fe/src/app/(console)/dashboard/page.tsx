@@ -12,10 +12,10 @@ import {
   Share2,
   UserPlus,
   Sparkles,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { fadeUp, stagger } from "@/lib/motion";
-import { PageHeader } from "@/components/layout/page-header";
 import {
   preCasesApi,
   questionnairesApi,
@@ -23,7 +23,6 @@ import {
   type QuestionnaireListItem,
 } from "@/lib/api/services";
 import { useCases } from "@/lib/api/hooks/cases";
-import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 const onboardingSteps = [
@@ -105,7 +104,6 @@ export default function DashboardPage() {
     (preCases ?? []).length === 0 &&
     (questionnaires ?? []).length === 0;
 
-  // Find the next undone step so we can surface a single "next action" CTA.
   const nextStepIndex = stepStates.findIndex((d) => !d);
   const nextStep =
     nextStepIndex >= 0 ? onboardingSteps[nextStepIndex] : null;
@@ -122,7 +120,7 @@ export default function DashboardPage() {
       label: "New pre-cases",
       value: stats.preCasesUnread,
       href: "/dashboard/precases",
-      hint: "Unread submissions waiting for review",
+      hint: "Unread submissions waiting",
       emptyHint: "Submissions appear here once shared",
     },
     {
@@ -143,63 +141,116 @@ export default function DashboardPage() {
 
   return (
     <motion.div
-      className="space-y-8"
+      className="space-y-12"
       variants={stagger}
       initial="hidden"
       animate="visible"
     >
-      {/* Editorial folio header */}
-      <PageHeader
-        eyebrow="Folio Nº 001 — Practice"
-        title={
-          user?.first_name ? (
+      {/* ── Hero ── */}
+      <section className="relative">
+        <motion.p variants={fadeUp} custom={0} className="editorial-eyebrow">
+          <span>
+            Dashboard {org?.name ? `· ${org.name}` : ""}
+          </span>
+        </motion.p>
+
+        <motion.h1
+          variants={fadeUp}
+          custom={1}
+          className="font-heading mt-6 max-w-[18ch] font-normal leading-[1.02] tracking-[-1.2px] text-foreground"
+          style={{ fontSize: "clamp(2.4rem, 4.6vw, 3.6rem)" }}
+        >
+          {user?.first_name ? (
             <>
-              Welcome, <em>{user.first_name}</em>.
+              Welcome,{" "}
+              <span className="relative inline-block">
+                <span className="bg-gradient-to-r from-[color:var(--purple)] via-[color:var(--purple)] to-[color:var(--purple-deep)] bg-clip-text text-transparent">
+                  {user.first_name}
+                </span>
+                <svg
+                  aria-hidden
+                  className="absolute -bottom-1 left-0 h-[10px] w-full"
+                  viewBox="0 0 240 10"
+                  preserveAspectRatio="none"
+                >
+                  <path
+                    d="M0,7 Q60,2 120,5 T240,4"
+                    fill="none"
+                    stroke="url(#welcome-under)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  <defs>
+                    <linearGradient id="welcome-under" x1="0" x2="1">
+                      <stop offset="0%" stopColor="var(--purple)" stopOpacity="0.2" />
+                      <stop offset="50%" stopColor="var(--purple)" stopOpacity="0.95" />
+                      <stop offset="100%" stopColor="var(--purple-deep)" stopOpacity="0.2" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </span>
+              .
             </>
           ) : (
             <>
-              The <em>practice</em>.
+              Welcome <span className="text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]">back</span>.
             </>
-          )
-        }
-        description={
-          <>
-            {org?.name ? `${org.name} · ` : ""}
-            {isFreshAccount
-              ? "Let's get your practice set up — it takes about 5 minutes."
-              : setupComplete
-                ? "Your practice is fully configured. Here's what's happening today."
-                : "Here's what's happening in your practice today."}
-          </>
-        }
-        actions={
-          !isLoading && !setupComplete ? (
-            <SetupProgressStrip done={stepsDone} total={onboardingSteps.length} />
-          ) : undefined
-        }
-      />
+          )}
+        </motion.h1>
 
-      {/* Next action callout — single CTA when setup is incomplete */}
+        <motion.p
+          variants={fadeUp}
+          custom={2}
+          className="mt-6 max-w-[60ch] text-[16px] leading-[1.65] text-muted-foreground"
+        >
+          {isFreshAccount
+            ? "Let's get your practice configured. Four steps, about five minutes — and you're live for intake."
+            : setupComplete
+              ? "Your practice is fully configured. Here's what's happening today."
+              : "Here's what's moving across your desk today. Triage what's new, advance what's in flight."}
+        </motion.p>
+
+        <motion.div
+          variants={fadeUp}
+          custom={3}
+          className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3 text-[13px] text-muted-foreground"
+        >
+          <span className="inline-flex items-center gap-2">
+            <span className="h-1 w-1 rounded-full bg-[color:var(--purple)]" />
+            <span className="font-medium text-foreground">Live intake</span>
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="h-1 w-1 rounded-full bg-[color:var(--purple)]" />
+            OMARA-aligned
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="h-1 w-1 rounded-full bg-[color:var(--purple)]" />
+            Australian data residency
+          </span>
+        </motion.div>
+      </section>
+
+      {/* ── Next-up callout ── */}
       {!isLoading && nextStep && !isFreshAccount && (
-        <motion.div variants={fadeUp} custom={1}>
+        <motion.div variants={fadeUp} custom={4}>
           <Link
             href={nextStep.cta.href}
-            className="group flex flex-col gap-3 rounded-xl border border-primary/20 bg-primary/[0.04] p-4 transition-colors hover:border-primary/40 hover:bg-primary/[0.06] sm:flex-row sm:items-center sm:justify-between"
+            className="group relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-[color:var(--purple)]/20 bg-gradient-to-br from-[color:var(--purple-muted)]/25 via-card to-card p-5 shadow-[0_1px_0_rgba(15,17,23,0.02)] transition-all hover:-translate-y-0.5 hover:border-[color:var(--purple)]/40 hover:shadow-[0_18px_40px_-24px_color-mix(in_srgb,var(--purple)_55%,transparent)] dark:from-[color:var(--purple)]/8 sm:flex-row sm:items-center sm:justify-between"
           >
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                <Sparkles className="h-4 w-4" />
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[color:var(--purple)]/10 ring-1 ring-[color:var(--purple)]/15 transition-colors group-hover:bg-[color:var(--purple)]/15">
+                <Sparkles className="h-5 w-5 text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]" />
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]">
                   Next up
                 </p>
-                <p className="mt-0.5 text-sm font-semibold text-foreground">
+                <p className="font-heading mt-1 text-[16px] font-semibold text-foreground">
                   {nextStep.title}
                 </p>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1.5 self-start text-sm font-medium text-primary sm:self-auto">
+            <span className="inline-flex items-center gap-1.5 self-start text-[14px] font-medium text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)] sm:self-auto">
               {nextStep.cta.label}
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </span>
@@ -207,42 +258,40 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
-      {/* Stats — only show once there's any real data */}
+      {/* ── Stats ── */}
       {!isFreshAccount && (
         <motion.div
           variants={fadeUp}
-          custom={2}
-          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          custom={5}
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
         >
           {statCards.map((card, idx) => {
             const isZero = !isLoading && card.value === 0;
             return (
               <Link key={card.label} href={card.href} className="group block">
-                <div
-                  className={cn(
-                    "relative h-full border border-border/60 bg-card/40 p-5 transition-all",
-                    isZero
-                      ? "hover:border-border hover:bg-card/60"
-                      : "hover:border-foreground/30 hover:bg-card/70",
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono-d text-[9px] uppercase tracking-[0.24em] text-muted-foreground/70">
-                      {String(idx + 1).padStart(2, "0")} / {card.label}
+                <div className="relative h-full rounded-2xl border border-border bg-card p-5 shadow-[0_1px_0_rgba(15,17,23,0.02)] transition-all hover:-translate-y-0.5 hover:border-[color:var(--purple)]/30 hover:shadow-[0_18px_40px_-24px_color-mix(in_srgb,var(--purple)_55%,transparent)]">
+                  <div className="flex items-start justify-between">
+                    <p className="font-heading text-[13.5px] font-semibold text-foreground">
+                      {card.label}
+                    </p>
+                    <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground/45">
+                      {String(idx + 1).padStart(2, "0")}
                     </span>
-                    <ArrowRight className="h-3 w-3 text-muted-foreground/40 transition-all group-hover:translate-x-0.5 group-hover:text-foreground" />
                   </div>
                   <p
                     className={cn(
-                      "font-serif-d mt-3 text-[44px] leading-none tracking-tight tabular-nums",
-                      isZero ? "text-muted-foreground/50" : "text-foreground",
+                      "font-heading mt-4 text-[44px] font-medium leading-none tracking-[-1.5px] tabular-nums",
+                      isZero ? "text-muted-foreground/40" : "text-foreground",
                     )}
                   >
                     {isLoading ? "—" : card.value}
                   </p>
-                  <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
-                    {isZero ? card.emptyHint : card.hint}
-                  </p>
+                  <div className="mt-4 flex items-center justify-between">
+                    <p className="text-[13px] leading-relaxed text-muted-foreground">
+                      {isZero ? card.emptyHint : card.hint}
+                    </p>
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-all group-hover:translate-x-0.5 group-hover:text-[color:var(--purple-deep)] dark:group-hover:text-[color:var(--purple-light)]" />
+                  </div>
                 </div>
               </Link>
             );
@@ -250,26 +299,34 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
-      {/* Setup checklist — only show until everything's done */}
+      {/* ── Setup checklist ── */}
       {!setupComplete && (
-        <motion.div variants={fadeUp} custom={3}>
-          <div className="mb-4 flex items-baseline justify-between">
+        <motion.div variants={fadeUp} custom={6}>
+          <div className="mb-5 flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-base font-semibold tracking-tight text-foreground">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]">
                 {isFreshAccount ? "Get started" : "Setup checklist"}
+              </p>
+              <h2 className="font-heading mt-2 text-[22px] font-semibold tracking-tight text-foreground">
+                Four steps to live intake
               </h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Four steps to start receiving and managing immigration cases.
+              <p className="mt-1 text-[13.5px] text-muted-foreground">
+                Receive, qualify, and manage immigration cases in one place.
               </p>
             </div>
             {!isLoading && (
-              <p className="text-xs font-medium tabular-nums text-muted-foreground">
-                {stepsDone} of {onboardingSteps.length} done
-              </p>
+              <div className="shrink-0 text-right">
+                <p className="font-heading text-[20px] font-semibold tabular-nums text-foreground">
+                  {stepsDone}/{onboardingSteps.length}
+                </p>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
+                  Done
+                </p>
+              </div>
             )}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             {onboardingSteps.map((step, idx) => {
               const Icon = step.icon;
               const isDone = stepStates[idx];
@@ -279,22 +336,22 @@ export default function DashboardPage() {
                   key={step.title}
                   href={step.cta.href}
                   className={cn(
-                    "group flex items-start gap-4 rounded-xl border bg-card p-5 transition-all",
+                    "group relative flex items-start gap-4 rounded-2xl border bg-card p-5 shadow-[0_1px_0_rgba(15,17,23,0.02)] transition-all hover:-translate-y-0.5",
                     isDone
-                      ? "border-emerald-200/70 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-950/20"
+                      ? "border-emerald-500/30 bg-emerald-500/[0.04] hover:border-emerald-500/50 hover:shadow-[0_18px_40px_-24px_rgba(16,185,129,0.45)]"
                       : isNext
-                        ? "border-primary/40 bg-primary/[0.03] hover:border-primary/60 hover:bg-primary/[0.06]"
-                        : "border-border/60 hover:border-border hover:bg-muted/30",
+                        ? "border-[color:var(--purple)]/30 hover:border-[color:var(--purple)]/45 hover:shadow-[0_18px_40px_-24px_color-mix(in_srgb,var(--purple)_55%,transparent)]"
+                        : "border-border hover:border-[color:var(--purple)]/30 hover:shadow-[0_18px_40px_-24px_color-mix(in_srgb,var(--purple)_55%,transparent)]",
                   )}
                 >
                   <div
                     className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+                      "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 transition-colors",
                       isDone
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                        ? "bg-emerald-500/10 ring-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                         : isNext
-                          ? "bg-primary/15 text-primary"
-                          : "bg-muted text-muted-foreground",
+                          ? "bg-[color:var(--purple)]/10 ring-[color:var(--purple)]/15 text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]"
+                          : "bg-muted/60 ring-border text-muted-foreground group-hover:bg-[color:var(--purple)]/10 group-hover:ring-[color:var(--purple)]/15 group-hover:text-[color:var(--purple-deep)] dark:group-hover:text-[color:var(--purple-light)]",
                     )}
                   >
                     {isDone ? (
@@ -303,29 +360,31 @@ export default function DashboardPage() {
                       <Icon className="h-5 w-5" />
                     )}
                   </div>
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-foreground">
+                      <p className="font-heading text-[15px] font-semibold text-foreground">
                         {step.title}
                       </p>
                       {isDone ? (
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700 dark:text-emerald-300">
                           Done
                         </span>
                       ) : isNext ? (
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                        <span className="rounded-full border border-[color:var(--purple)]/30 bg-[color:var(--purple)]/8 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]">
                           Next
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
                       {step.description}
                     </p>
                     {!isDone && (
                       <p
                         className={cn(
-                          "mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary transition-opacity",
-                          isNext ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+                          "mt-3 inline-flex items-center gap-1 text-[12.5px] font-medium transition-opacity",
+                          isNext
+                            ? "text-[color:var(--purple-deep)] opacity-100 dark:text-[color:var(--purple-light)]"
+                            : "text-muted-foreground opacity-0 group-hover:opacity-100",
                         )}
                       >
                         {step.cta.label}
@@ -333,6 +392,12 @@ export default function DashboardPage() {
                       </p>
                     )}
                   </div>
+                  <span
+                    aria-hidden
+                    className="ml-auto self-center font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground/40"
+                  >
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
                 </Link>
               );
             })}
@@ -340,54 +405,48 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
-      {/* Invite team CTA — only on a brand-new account */}
-      {isFreshAccount && (
-        <motion.div variants={fadeUp} custom={4}>
-          <Card className="flex flex-col items-start gap-4 border-border/60 p-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
-                <UserPlus className="h-4 w-4 text-muted-foreground" />
+      {/* ── Trial banner / Invite team CTA ── */}
+      {isFreshAccount ? (
+        <motion.div variants={fadeUp} custom={7}>
+          <div className="flex flex-col gap-4 rounded-2xl border border-[color:var(--purple)]/15 bg-gradient-to-br from-[color:var(--purple-muted)]/30 via-card to-card p-5 shadow-[0_1px_0_rgba(15,17,23,0.02)] dark:from-[color:var(--purple)]/8 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[color:var(--purple)]/10 ring-1 ring-[color:var(--purple)]/15">
+                <UserPlus className="h-5 w-5 text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">
+                <p className="font-heading text-[15px] font-semibold text-foreground">
                   Bring your team along
                 </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Invite consultants and admins so everyone shares the same
-                  caseload, documents, and questionnaires.
+                <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                  Invite consultants and admins so everyone shares the same caseload, documents, and questionnaires.
                 </p>
               </div>
             </div>
             <Link
               href="/dashboard/settings/team"
-              className="inline-flex h-9 items-center rounded-md border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              className="inline-flex shrink-0 items-center gap-2 self-start rounded-xl border-2 border-[color:var(--purple)] bg-[color:var(--purple)] px-5 py-2.5 text-[13.5px] font-medium text-white shadow-[0_10px_24px_-10px_rgba(124,92,252,0.55)] transition-all hover:border-[color:var(--purple-deep)] hover:bg-[color:var(--purple-deep)] sm:self-auto"
             >
               Invite teammates
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
-          </Card>
+          </div>
         </motion.div>
+      ) : (
+        !setupComplete && (
+          <motion.div variants={fadeUp} custom={7}>
+            <div className="flex items-start gap-4 rounded-2xl border border-[color:var(--purple)]/15 bg-gradient-to-br from-[color:var(--purple-muted)]/30 via-card to-card p-5 dark:from-[color:var(--purple)]/8">
+              <ShieldCheck className="mt-0.5 h-6 w-6 shrink-0 text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]" />
+              <div>
+                <p className="text-[14px] leading-relaxed text-muted-foreground">
+                  <span className="font-semibold text-foreground">Hosted in Sydney.</span>{" "}
+                  Australian data residency, encrypted end-to-end, Privacy Act 1988 aligned.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )
       )}
     </motion.div>
-  );
-}
-
-function SetupProgressStrip({ done, total }: { done: number; total: number }) {
-  const pct = Math.round((done / total) * 100);
-  return (
-    <div className="flex items-center gap-3 border border-border/60 bg-card/40 px-4 py-2.5">
-      <span className="font-mono-d text-[9.5px] uppercase tracking-[0.22em] text-muted-foreground">
-        Setup
-      </span>
-      <div className="relative h-px w-32 overflow-hidden bg-border">
-        <div
-          className="absolute inset-y-0 left-0 bg-[color:var(--purple)] transition-all duration-500"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <p className="font-mono-d text-[10.5px] tabular-nums tracking-[0.12em] text-foreground">
-        {done}/{total}
-      </p>
-    </div>
   );
 }
 

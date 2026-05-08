@@ -234,6 +234,12 @@ async def get_public_questionnaire(db: AsyncSession, slug: str) -> dict:
         "name": q.name,
         "description": q.description,
         "org_name": org.name if org else "",
+        "org_omara_number": org.omara_number if org else None,
+        "org_website": org.website if org else None,
+        "org_business_phone": org.business_phone if org else None,
+        "org_contact_person": org.contact_person if org else None,
+        "org_business_hours": org.business_hours if org else None,
+        "org_social_links": org.social_links if org else None,
         "fields": fields,
     }
 
@@ -253,15 +259,19 @@ async def submit_public_questionnaire(
 
     email = payload.submitter_email.lower().strip()
 
+    phone = (payload.submitter_phone or "").strip() or None
+
     # Resolve / create Client
     client = (await db.execute(select(Client).where(Client.primary_email == email))).scalar_one_or_none()
     if not client:
-        client = Client(primary_email=email, name=payload.submitter_name)
+        client = Client(primary_email=email, name=payload.submitter_name, phone=phone)
         db.add(client)
         await db.flush()
     else:
         if not client.name and payload.submitter_name:
             client.name = payload.submitter_name
+        if not client.phone and phone:
+            client.phone = phone
 
     # Resolve / create ClientOrgLink
     link = (

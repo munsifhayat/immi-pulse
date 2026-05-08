@@ -21,6 +21,11 @@ export interface Org {
   niche?: string | null;
   omara_number?: string | null;
   country: string;
+  website?: string | null;
+  business_phone?: string | null;
+  contact_person?: string | null;
+  business_hours?: string | null;
+  social_links?: Record<string, string> | null;
   abn?: string | null;
   bsb?: string | null;
   bank_account_number?: string | null;
@@ -53,7 +58,13 @@ export interface SignupPayload {
   first_name: string;
   last_name?: string;
   firm_name: string;
+  phone?: string;
   promo_code?: string;
+  website?: string;
+  business_phone?: string;
+  contact_person?: string;
+  business_hours?: string;
+  social_links?: Record<string, string>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);

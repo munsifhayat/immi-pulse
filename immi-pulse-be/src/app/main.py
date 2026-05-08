@@ -141,8 +141,10 @@ def create_app() -> FastAPI:
         public_router as questionnaires_public_router,
     )
     from app.agents.immigration.questionnaires.router import router as questionnaires_router
+    from app.agents.immigration.newsletter.router import public_router as newsletter_public_router
 
     app.include_router(auth_router, prefix=settings.api_v1_prefix)
+    app.include_router(newsletter_public_router, prefix=settings.api_v1_prefix)
     app.include_router(orgs_router, prefix=settings.api_v1_prefix)
     app.include_router(orgs_public_router, prefix=settings.api_v1_prefix)
     app.include_router(questionnaires_router, prefix=settings.api_v1_prefix)

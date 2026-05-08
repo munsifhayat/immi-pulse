@@ -70,6 +70,17 @@ class SendLetterResponse(BaseModel):
     sign_url: str
     sign_pin: str  # plaintext, returned ONCE to the consultant; bcrypt-hashed in DB
     expires_at: datetime
+    # Email delivery context — surfaced so the UI can confirm or fall back to manual share.
+    client_email: Optional[str] = None
+    email_status: Literal["sent", "failed", "skipped"] = "skipped"
+    email_error: Optional[str] = None  # populated only when email_status == "failed"
+
+
+class ResendReminderResponse(BaseModel):
+    letter_id: UUID
+    client_email: Optional[str] = None
+    email_status: Literal["sent", "failed", "skipped"] = "skipped"
+    email_error: Optional[str] = None
 
 
 class MarkSignedManuallyRequest(BaseModel):
@@ -90,6 +101,7 @@ class LetterOut(BaseModel):
     sent_at: Optional[datetime] = None
     signed_at: Optional[datetime] = None
     sign_url: Optional[str] = None  # only when consultant calls "get send-info"
+    sign_pin: Optional[str] = None  # plaintext PIN, decrypted from at-rest ciphertext
     sign_link_expires_at: Optional[datetime] = None
     created_at: datetime
 

@@ -80,12 +80,19 @@ class PublicQuestionnaireOut(BaseModel):
     name: str
     description: Optional[str] = None
     org_name: str
+    org_omara_number: Optional[str] = None
+    org_website: Optional[str] = None
+    org_business_phone: Optional[str] = None
+    org_contact_person: Optional[str] = None
+    org_business_hours: Optional[str] = None
+    org_social_links: Optional[dict[str, str]] = None
     fields: list[QuestionField]
 
 
 class SubmitQuestionnaireRequest(BaseModel):
     submitter_email: EmailStr
     submitter_name: Optional[str] = None
+    submitter_phone: Optional[str] = None
     answers: dict[str, Any] = Field(default_factory=dict)
 
 

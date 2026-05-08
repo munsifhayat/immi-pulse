@@ -14,6 +14,7 @@ from app.agents.immigration.engagement.schemas import (
     PublicLetterView,
     PublicSignRequest,
     PublicSignResponse,
+    ResendReminderResponse,
     SendLetterRequest,
     SendLetterResponse,
     TemplateCreate,
@@ -122,6 +123,16 @@ async def mark_signed_manually(
     return await engagement_service.mark_signed_manually(
         db, ctx.org_id, pre_case_id, ctx.seat_id, payload.model_dump()
     )
+
+
+@router.post("/{letter_id}/resend-reminder", response_model=ResendReminderResponse)
+async def resend_reminder(
+    letter_id: UUID,
+    ctx: CurrentContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db),
+):
+    """Re-email the signing link to the applicant (PIN is not re-shared)."""
+    return await engagement_service.resend_reminder(db, ctx.org_id, letter_id)
 
 
 @router.post("/{letter_id}/void", status_code=status.HTTP_204_NO_CONTENT)

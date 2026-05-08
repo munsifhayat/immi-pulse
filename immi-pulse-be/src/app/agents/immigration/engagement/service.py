@@ -22,7 +22,12 @@ from app.agents.immigration.orgs.models import Organization
 from app.agents.immigration.precases.models import PreCase
 from app.agents.immigration.questionnaires.models import QuestionnaireResponse
 from app.core.config import get_settings
+from app.core.encryption import get_token_encryption
 from app.core.jwt_auth import hash_password, verify_password
+from app.integrations.resend.templates import (
+    send_engagement_letter,
+    send_engagement_letter_reminder,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -277,10 +282,13 @@ async def compose_and_send(
     if compose.get("extra_md"):
         rendered = rendered + "\n\n" + compose["extra_md"]
 
-    # Mint sign token + PIN (PIN returned to consultant once)
+    # Mint sign token + PIN. The bcrypt hash verifies what the client types;
+    # the Fernet ciphertext lets the consultant recover the plaintext to read
+    # it out if the email never lands. (Memory: "manual override at every step".)
     sign_token = secrets.token_urlsafe(32)
     sign_pin = f"{secrets.randbelow(1_000_000):06d}"
     pin_hash = hash_password(sign_pin)
+    pin_encrypted = get_token_encryption().encrypt(sign_pin)
     expires_at = datetime.now(timezone.utc) + timedelta(days=expires_days)
 
     # Void any existing letter on this pre-case
@@ -305,6 +313,7 @@ async def compose_and_send(
         status="sent",
         sign_token=sign_token,
         sign_pin_hash=pin_hash,
+        sign_pin_encrypted=pin_encrypted,
         sign_link_expires_at=expires_at,
         sent_at=datetime.now(timezone.utc),
         created_by_seat_id=seat_id,
@@ -324,11 +333,29 @@ async def compose_and_send(
     base = get_settings().frontend_url.rstrip("/") if get_settings().frontend_url else "http://localhost:3000"
     sign_url = f"{base}/q/sign/{sign_token}"
 
+    # Best-effort email dispatch — failure NEVER blocks the consultant flow.
+    # If email is unavailable (no client_email, Resend not configured, send error),
+    # the consultant still has the link + PIN in the response and can share manually.
+    email_status, email_error = await _dispatch_engagement_email(
+        to_email=client_email,
+        recipient_name=client_name,
+        firm_name=org.name,
+        sign_url=sign_url,
+        pin=sign_pin,
+        expires_at=expires_at,
+        visa_subclass=compose.get("visa_subclass"),
+        visa_name=compose.get("visa_name"),
+        fee_lines=fee_lines,
+    )
+
     return {
         "letter_id": letter.id,
         "sign_url": sign_url,
         "sign_pin": sign_pin,
         "expires_at": expires_at,
+        "client_email": client_email or None,
+        "email_status": email_status,
+        "email_error": email_error,
     }
 
 
@@ -347,6 +374,16 @@ async def get_letter_for_pre_case(db: AsyncSession, org_id: UUID, pre_case_id: U
     base = get_settings().frontend_url.rstrip("/") if get_settings().frontend_url else "http://localhost:3000"
     sign_url = f"{base}/q/sign/{letter.sign_token}" if letter.sign_token else None
 
+    # Recover the plaintext PIN from the at-rest ciphertext so the consultant
+    # can read it out manually if the email never reached the client. Only
+    # surfaced while the letter is still pending signature.
+    sign_pin: Optional[str] = None
+    if letter.sign_pin_encrypted and letter.status == "sent":
+        try:
+            sign_pin = get_token_encryption().decrypt(letter.sign_pin_encrypted)
+        except Exception as exc:  # pragma: no cover — encryption_key rotated
+            logger.warning(f"Could not decrypt sign_pin for letter {letter.id}: {exc}")
+
     return {
         "id": letter.id,
         "pre_case_id": letter.pre_case_id,
@@ -357,6 +394,7 @@ async def get_letter_for_pre_case(db: AsyncSession, org_id: UUID, pre_case_id: U
         "sent_at": letter.sent_at,
         "signed_at": letter.signed_at,
         "sign_url": sign_url,
+        "sign_pin": sign_pin,
         "sign_link_expires_at": letter.sign_link_expires_at,
         "created_at": letter.created_at,
     }
@@ -601,6 +639,175 @@ def _format_fee_table(fee_lines: list[dict]) -> str:
         amt = fl.get("amount_aud") or 0
         rows.append(f"| {fl['label']} | A${amt} |")
     return "\n".join(rows)
+
+
+def _format_visa_label(subclass: Optional[str], name: Optional[str]) -> Optional[str]:
+    s = (subclass or "").strip()
+    n = (name or "").strip()
+    if s and n:
+        return f"Subclass {s} — {n}"
+    if s:
+        return f"Subclass {s}"
+    if n:
+        return n
+    return None
+
+
+def _format_expires_label(expires_at: datetime) -> str:
+    """Human-friendly expiry shown in emails (e.g. '15 May at 4:30 PM AEDT')."""
+    return expires_at.strftime("%-d %b at %-I:%M %p UTC")
+
+
+def _fee_summary_for_email(fee_lines: list[dict]) -> list[dict]:
+    out: list[dict] = []
+    for fl in fee_lines or []:
+        amt = fl.get("amount_aud")
+        if amt is None:
+            continue
+        try:
+            if Decimal(str(amt)) <= 0:
+                continue
+        except Exception:
+            pass
+        out.append({"label": fl.get("label") or "—", "amount": str(amt)})
+    return out
+
+
+async def _dispatch_engagement_email(
+    *,
+    to_email: Optional[str],
+    recipient_name: str,
+    firm_name: str,
+    sign_url: str,
+    pin: str,
+    expires_at: datetime,
+    visa_subclass: Optional[str],
+    visa_name: Optional[str],
+    fee_lines: list[dict],
+) -> tuple[str, Optional[str]]:
+    """Send the engagement-letter email. Returns (status, error_msg).
+
+    status ∈ {"sent", "failed", "skipped"}. Never raises.
+    """
+    if not to_email:
+        return ("skipped", "no_recipient")
+    settings = get_settings()
+    if not settings.resend_configured:
+        return ("skipped", "resend_not_configured")
+    try:
+        await send_engagement_letter(
+            to=to_email,
+            recipient_name=recipient_name,
+            consultant_name=None,
+            firm_name=firm_name,
+            sign_url=sign_url,
+            pin=pin,
+            expires_at_label=_format_expires_label(expires_at),
+            visa_label=_format_visa_label(visa_subclass, visa_name),
+            fee_summary=_fee_summary_for_email(fee_lines),
+        )
+        return ("sent", None)
+    except Exception as exc:  # noqa: BLE001 — surfaced to the consultant via response
+        logger.exception("engagement letter email failed for letter to %s", to_email)
+        return ("failed", str(exc))
+
+
+async def resend_reminder(
+    db: AsyncSession,
+    org_id: UUID,
+    letter_id: UUID,
+) -> dict:
+    """Re-email the signing link (without PIN — it's hashed and unrecoverable).
+
+    Use when the applicant lost the original email but still has their PIN.
+    If they lost the PIN too, the consultant should void + reissue instead.
+    """
+    letter = (
+        await db.execute(
+            select(EngagementLetter).where(
+                EngagementLetter.id == letter_id,
+                EngagementLetter.org_id == org_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not letter:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Letter not found")
+    if letter.status != "sent":
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Cannot resend reminder for a {letter.status} letter",
+        )
+    if letter.sign_link_expires_at and letter.sign_link_expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status.HTTP_410_GONE, "Sign link has expired — reissue a new letter")
+
+    pc = (
+        await db.execute(select(PreCase).where(PreCase.id == letter.pre_case_id))
+    ).scalar_one_or_none()
+    org = (await db.execute(select(Organization).where(Organization.id == org_id))).scalar_one()
+    response = (
+        (await db.execute(select(QuestionnaireResponse).where(QuestionnaireResponse.id == pc.response_id))).scalar_one_or_none()
+        if pc and pc.response_id
+        else None
+    )
+    client = (
+        (await db.execute(select(Client).where(Client.id == pc.client_id))).scalar_one_or_none()
+        if pc and pc.client_id
+        else None
+    )
+
+    client_name = (
+        (response.submitter_name if response and response.submitter_name else None)
+        or (client.name if client else None)
+        or "there"
+    )
+    client_email = (
+        (response.submitter_email if response else None)
+        or (client.primary_email if client else None)
+        or ""
+    )
+
+    base = get_settings().frontend_url.rstrip("/") if get_settings().frontend_url else "http://localhost:3000"
+    sign_url = f"{base}/q/sign/{letter.sign_token}"
+
+    if not client_email:
+        return {
+            "letter_id": letter.id,
+            "client_email": None,
+            "email_status": "skipped",
+            "email_error": "no_recipient",
+        }
+    settings = get_settings()
+    if not settings.resend_configured:
+        return {
+            "letter_id": letter.id,
+            "client_email": client_email,
+            "email_status": "skipped",
+            "email_error": "resend_not_configured",
+        }
+    try:
+        await send_engagement_letter_reminder(
+            to=client_email,
+            recipient_name=client_name,
+            consultant_name=None,
+            firm_name=org.name,
+            sign_url=sign_url,
+            expires_at_label=_format_expires_label(letter.sign_link_expires_at) if letter.sign_link_expires_at else "soon",
+            visa_label=None,
+        )
+        return {
+            "letter_id": letter.id,
+            "client_email": client_email,
+            "email_status": "sent",
+            "email_error": None,
+        }
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("engagement letter reminder email failed for letter %s", letter.id)
+        return {
+            "letter_id": letter.id,
+            "client_email": client_email,
+            "email_status": "failed",
+            "email_error": str(exc),
+        }
 
 
 def _retainer_amount(fee_lines: list[dict], fee_defaults: Optional[dict]) -> str:

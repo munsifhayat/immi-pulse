@@ -36,6 +36,7 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
         "/api/v1/marketplace/public/",
         "/api/v1/community/public/",
         "/api/v1/public/q/",
+        "/api/v1/public/newsletter/",
     )
 
     async def dispatch(self, request: Request, call_next):

@@ -1,5 +1,8 @@
+"use client";
+
 import { ReactNode } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -12,11 +15,11 @@ interface EmptyStateProps {
   steps?: { title: string; description: string }[];
   className?: string;
   children?: ReactNode;
-  /** Optional mono uppercase eyebrow above the title. */
+  /** Optional uppercase eyebrow above the title. */
   eyebrow?: string;
 }
 
-const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
+const ease = [0.22, 1, 0.36, 1] as const;
 
 export function EmptyState({
   icon: Icon,
@@ -30,81 +33,128 @@ export function EmptyState({
   eyebrow,
 }: EmptyStateProps) {
   return (
-    <section
+    <motion.section
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease }}
       className={cn(
-        "relative overflow-hidden border border-border/60 bg-card/40 px-6 py-14 sm:px-10 sm:py-20",
+        "relative overflow-hidden rounded-2xl border border-border bg-card px-6 py-16 shadow-[0_1px_0_rgba(15,17,23,0.02)] sm:px-10 sm:py-20",
         className,
       )}
     >
-      {/* Soft atmospheric backdrop */}
+      {/* Quiet top wash — same vibe as signup feature cards */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-60"
+        className="pointer-events-none absolute inset-0 opacity-90"
         style={{
           background:
-            "radial-gradient(ellipse 50% 60% at 50% 0%, color-mix(in srgb, var(--purple) 10%, transparent), transparent 70%)",
+            "radial-gradient(ellipse 50% 60% at 50% 0%, color-mix(in srgb, var(--purple) 8%, transparent), transparent 65%)",
         }}
       />
 
       <div className="relative mx-auto flex max-w-2xl flex-col items-center text-center">
         {Icon && (
-          <div className="mb-6 flex h-14 w-14 items-center justify-center border border-[color:var(--purple)]/25 bg-[color:var(--purple)]/8">
-            <Icon className="h-5 w-5 text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]" />
-          </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.1, ease }}
+            className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[color:var(--purple)]/10 ring-1 ring-[color:var(--purple)]/15"
+          >
+            <Icon className="h-6 w-6 text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]" />
+          </motion.div>
         )}
 
         {eyebrow && (
-          <p className="editorial-eyebrow mb-4">
-            <span>{eyebrow}</span>
-          </p>
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.18, ease }}
+            className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]"
+          >
+            {eyebrow}
+          </motion.p>
         )}
 
-        <h3 className="editorial-title max-w-[18ch] text-[clamp(1.9rem,2.6vw,2.4rem)]">
+        <motion.h3
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.22, ease }}
+          className="font-heading max-w-[20ch] font-normal leading-[1.05] tracking-[-0.8px] text-foreground"
+          style={{ fontSize: "clamp(1.85rem, 2.6vw, 2.4rem)" }}
+        >
           {title}
-        </h3>
+        </motion.h3>
 
         {description && (
-          <p className="mt-4 max-w-[52ch] text-[14.5px] leading-[1.65] text-muted-foreground">
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.3, ease }}
+            className="mt-4 max-w-[54ch] text-[14.5px] leading-[1.65] text-muted-foreground"
+          >
             {description}
-          </p>
+          </motion.p>
         )}
 
         {(primaryAction || secondaryAction) && (
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-2.5">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.4, ease }}
+            className="mt-7 flex flex-wrap items-center justify-center gap-2.5"
+          >
             {primaryAction && <ActionButton {...primaryAction} variant="primary" />}
             {secondaryAction && <ActionButton {...secondaryAction} variant="ghost" />}
-          </div>
+          </motion.div>
         )}
 
         {children && <div className="mt-6 w-full">{children}</div>}
       </div>
 
       {steps && steps.length > 0 && (
-        <div className="relative mx-auto mt-12 grid max-w-4xl gap-px border border-border/60 bg-border/60 sm:grid-cols-2 lg:grid-cols-4">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: {},
+            visible: {
+              transition: { staggerChildren: 0.08, delayChildren: 0.45 },
+            },
+          }}
+          className="relative mx-auto mt-14 grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
           {steps.map((step, i) => (
-            <div
+            <motion.div
               key={i}
-              className="flex flex-col gap-2 bg-background p-5 text-left"
+              variants={{
+                hidden: { opacity: 0, y: 12 },
+                visible: {
+                  opacity: 1,
+                  y: 0,
+                  transition: { duration: 0.5, ease },
+                },
+              }}
+              className="group relative flex flex-col gap-2 rounded-2xl border border-border bg-background p-5 text-left shadow-[0_1px_0_rgba(15,17,23,0.02)] transition-all hover:-translate-y-0.5 hover:border-[color:var(--purple)]/30 hover:shadow-[0_18px_40px_-24px_color-mix(in_srgb,var(--purple)_55%,transparent)]"
             >
-              <div className="flex items-baseline gap-2">
-                <span className="font-serif-d text-[22px] italic leading-none text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]">
-                  {ROMAN[i] ?? i + 1}
-                </span>
-                <span className="font-mono-d text-[9px] uppercase tracking-[0.22em] text-muted-foreground/70">
+              <div className="flex items-baseline justify-between">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]">
                   Step {String(i + 1).padStart(2, "0")}
+                </p>
+                <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground/40">
+                  {String(i + 1).padStart(2, "0")}
                 </span>
               </div>
-              <p className="text-[13.5px] font-semibold leading-snug text-foreground">
+              <p className="font-heading mt-1 text-[15px] font-semibold leading-snug text-foreground">
                 {step.title}
               </p>
-              <p className="text-[12.5px] leading-relaxed text-muted-foreground">
+              <p className="text-[13px] leading-relaxed text-muted-foreground">
                 {step.description}
               </p>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
-    </section>
+    </motion.section>
   );
 }
 
@@ -120,21 +170,42 @@ function ActionButton({
   variant: "primary" | "ghost";
 }) {
   const cls = cn(
-    "font-mono-d inline-flex items-center gap-2.5 px-5 py-3 text-[10.5px] font-medium uppercase tracking-[0.22em] transition-all duration-300",
+    "inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13.5px] font-medium transition-all",
     variant === "primary"
-      ? "bg-foreground text-background hover:bg-[color:var(--purple-deep)] hover:text-white"
-      : "border border-foreground/15 text-foreground hover:border-foreground/40 hover:bg-foreground/5",
+      ? "border-2 border-[color:var(--purple)] bg-[color:var(--purple)] text-white shadow-[0_10px_24px_-10px_rgba(124,92,252,0.5)] hover:border-[color:var(--purple-deep)] hover:bg-[color:var(--purple-deep)]"
+      : "border border-border text-foreground hover:border-foreground/30 hover:bg-foreground/[0.04]",
   );
   if (href) {
     return (
       <Link href={href} className={cls}>
         {label}
+        <ArrowRight />
       </Link>
     );
   }
   return (
     <button type="button" onClick={onClick} className={cls}>
       {label}
+      <ArrowRight />
     </button>
+  );
+}
+
+function ArrowRight() {
+  return (
+    <svg
+      aria-hidden
+      className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
+      viewBox="0 0 16 16"
+      fill="none"
+    >
+      <path
+        d="M3 8h10m0 0L9 4m4 4l-4 4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

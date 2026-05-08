@@ -1,0 +1,68 @@
+{% extends '_layout.html' %}
+{% from '_macros.html' import button, eyebrow, hairline %}
+
+{% block preheader %}Welcome to IMMI-PULSE — your account is ready, {{ recipient_name.split()[0] if recipient_name else 'there' }}.{% endblock %}
+
+{% block content %}
+  {{ eyebrow('Account activated') }}
+
+  <h1 class="h1" style="font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; font-weight: 600; font-size: 36px; line-height: 42px; letter-spacing: -0.6px; color: #101928; margin: 0 0 18px 0;">
+    Welcome aboard,<br>{{ recipient_name.split()[0] if recipient_name else 'consultant' }}.
+  </h1>
+
+  <p style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 16px; line-height: 26px; color: #475367; margin: 0 0 32px 0;">
+    Your IMMI&#8209;PULSE workspace is ready. Below are three things to do in the next ten minutes — set them up once and the platform starts handling the busywork around your practice.
+  </p>
+
+  {# Three numbered feature blocks. Each is its own table row so Outlook respects spacing. #}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 8px 0 36px 0;">
+    {% set steps = [
+      ('01', 'Connect your inbox', 'Link Microsoft 365 so visa enquiries are auto-classified the moment they arrive — no copy-pasting subject lines into a CRM.'),
+      ('02', 'Build your case checklist', 'Pick a visa subclass and IMMI-PULSE drafts the document checklist, evidence requirements, and timeline for you to review and adjust.'),
+      ('03', 'Invite your first client', 'Send a secure upload link with a one-time PIN. Documents land directly in the case file, validated and OCR-ready.'),
+    ] %}
+    {% for num, title, body in steps %}
+    <tr>
+      <td valign="top" class="feature-num-cell" style="width: 56px; padding-top: 4px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td align="center" valign="middle" width="40" height="40" bgcolor="#F4F1FE" style="width: 40px; height: 40px; background-color: #F4F1FE; border-radius: 8px; font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 1.2px; color: #3E1C96;">
+              {{ num }}
+            </td>
+          </tr>
+        </table>
+      </td>
+      <td valign="top" style="padding: 0 0 {{ '24px' if not loop.last else '0' }} 16px;">
+        <div style="font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; font-weight: 600; font-size: 17px; line-height: 24px; color: #101928; margin: 0 0 6px 0;">
+          {{ title }}
+        </div>
+        <div style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 22px; color: #475367;">
+          {{ body }}
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td align="center" style="padding: 8px 0 4px 0;">
+        {{ button(dashboard_url, 'Open your dashboard') }}
+      </td>
+    </tr>
+  </table>
+
+  {{ hairline(margin='40px 0 28px 0') }}
+
+  {# Soft sign-off — a small stamp of personality without overdoing it. #}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 22px; color: #475367;">
+        If anything feels off, hit reply — a real person at IMMI&#8209;PULSE reads every founder-era email.
+        <div style="margin-top: 14px; font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; font-weight: 500; font-size: 14px; color: #101928;">
+          — The IMMI&#8209;PULSE team
+        </div>
+      </td>
+    </tr>
+  </table>
+{% endblock %}

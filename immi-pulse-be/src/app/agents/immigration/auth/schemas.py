@@ -9,11 +9,20 @@ from pydantic import BaseModel, EmailStr, Field
 
 class SignupRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=6)
+    password: str = Field(min_length=8)
     first_name: str
     last_name: Optional[str] = None
     firm_name: str = Field(min_length=1)
+    phone: Optional[str] = None
     promo_code: Optional[str] = None
+
+    # Step 2 (optional) — practice profile captured during signup so we can render
+    # the firm's public profile without forcing a follow-up settings trip.
+    website: Optional[str] = None
+    business_phone: Optional[str] = None
+    contact_person: Optional[str] = None
+    business_hours: Optional[str] = None
+    social_links: Optional[dict[str, str]] = None
 
 
 class LoginRequest(BaseModel):
@@ -37,6 +46,13 @@ class OrgOut(BaseModel):
     niche: Optional[str] = None
     omara_number: Optional[str] = None
     country: str
+
+    # Practice profile (captured at signup Step 2)
+    website: Optional[str] = None
+    business_phone: Optional[str] = None
+    contact_person: Optional[str] = None
+    business_hours: Optional[str] = None
+    social_links: Optional[dict[str, str]] = None
 
     # Australian payment + business details (optional — fill in Settings → Bank & ABN)
     abn: Optional[str] = None

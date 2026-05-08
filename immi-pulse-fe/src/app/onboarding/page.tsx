@@ -8,27 +8,46 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  Sparkles,
   Inbox,
   FileSearch,
   Users,
   CheckCircle2,
   X,
   Mail,
-  Info,
   Plus,
   Settings as SettingsIcon,
-  Rocket,
-  Zap,
-  Shield,
+  Sparkles,
+  ShieldCheck,
+  Briefcase,
+  GraduationCap,
+  Building2,
+  Globe,
+  User,
+  Tag,
+  Ticket,
+  ArrowUpRight,
+  RotateCcw,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { orgApi, type BillingSummary, type Plan } from "@/lib/api/services";
 import { fadeUp, stagger } from "@/lib/motion";
+import { PulseMark } from "@/components/brand/pulse-mark";
+import { ConfettiBurst } from "@/components/brand/confetti-burst";
+import {
+  CLIENT_FOCUS,
+  EXPERIENCE_BANDS,
+  EXPERTISE_GROUPS,
+  emptyProfile,
+  parseProfile,
+  profileSummary,
+  serialiseProfile,
+  type ClientFocusOption,
+  type PracticeProfile,
+} from "@/lib/practice-catalog";
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
-const steps: Array<{ label: string; sub: string }> = [
+const STEP_META: Array<{ label: string; sub: string }> = [
   { label: "Practice", sub: "Tell us about your firm" },
   { label: "Plan", sub: "Pick the right tier" },
   { label: "Team", sub: "Invite teammates" },
@@ -40,36 +59,54 @@ function GridBg({ id }: { id: string }) {
     <div className="pointer-events-none absolute inset-0" aria-hidden>
       <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <pattern id={id} x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
-            <path d="M 48 0 L 0 0 0 48" fill="none" stroke="#7C5CFC" strokeWidth="0.5" />
+          <pattern id={id} x="0" y="0" width="56" height="56" patternUnits="userSpaceOnUse">
+            <path d="M 56 0 L 0 0 0 56" fill="none" stroke="#7C5CFC" strokeWidth="0.5" />
           </pattern>
         </defs>
-        <rect width="100%" height="100%" fill={`url(#${id})`} opacity="0.04" />
+        <rect width="100%" height="100%" fill={`url(#${id})`} opacity="0.045" />
       </svg>
     </div>
   );
 }
+
+const FOCUS_ICONS: Record<ClientFocusOption["icon"], typeof User> = {
+  user: User,
+  users: Users,
+  briefcase: Briefcase,
+  graduation: GraduationCap,
+  building: Building2,
+  globe: Globe,
+};
 
 export default function OnboardingPage() {
   const router = useRouter();
   const { org, refresh } = useAuth();
   const [step, setStep] = useState<Step>(1);
 
-  // Step 1
-  const [niche, setNiche] = useState(org?.niche || "");
+  // Step 1 — practice profile (structured) + OMARA
+  const [profile, setProfile] = useState<PracticeProfile>(emptyProfile());
   const [omara, setOmara] = useState(org?.omara_number || "");
+  const [profileHydrated, setProfileHydrated] = useState(false);
 
-  // Step 2
+  useEffect(() => {
+    if (!org || profileHydrated) return;
+    setProfile(parseProfile(org.niche));
+    if (org.omara_number) setOmara(org.omara_number);
+    setProfileHydrated(true);
+  }, [org, profileHydrated]);
+
+  // Step 2 — billing
   const [billing, setBilling] = useState<BillingSummary | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [promoCode, setPromoCode] = useState("");
   const [promoMsg, setPromoMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [confettiKey, setConfettiKey] = useState(0);
+  const [showConfetti, setShowConfetti] = useState(false);
 
-  // Step 3
+  // Step 3 — team
   type InviteRole = "consultant" | "staff" | "admin";
   type InviteRow = { email: string; role: InviteRole };
   const [invites, setInvites] = useState<InviteRow[]>([
-    { email: "", role: "consultant" },
     { email: "", role: "consultant" },
   ]);
   const [inviteSent, setInviteSent] = useState<string[]>([]);
@@ -95,21 +132,31 @@ export default function OnboardingPage() {
     () => plans.find((p) => p.tier === billing?.tier),
     [plans, billing?.tier]
   );
-  const seatPrice = currentPlan?.price_per_seat_aud_monthly ?? 99;
-  const seatLabel = currentPlan?.is_custom ? "Custom" : `$${seatPrice}/seat/mo`;
+  const seatPrice = currentPlan?.price_per_seat_aud_monthly ?? 450;
+  const seatLabel = currentPlan?.is_custom ? "Custom" : `A$${seatPrice}/seat/mo`;
 
-  /* ── handlers ── */
+  /* ─── handlers ─── */
+
+  const goNext = () => setStep((s) => (Math.min(5, s + 1) as Step));
+  const goBack = () => setStep((s) => (Math.max(1, s - 1) as Step));
+  const goStep = (s: Step) => setStep(s);
+
+  const persistProfile = async (next: PracticeProfile, nextOmara: string) => {
+    const niche = serialiseProfile(next);
+    await orgApi.update({
+      niche,
+      omara_number: nextOmara || undefined,
+    });
+    await refresh();
+  };
+
   const saveStep1 = async () => {
     setError(null);
-    if (!niche.trim() && !omara.trim()) {
-      setStep(2);
-      return;
-    }
     setBusy(true);
     try {
-      await orgApi.update({ niche, omara_number: omara || undefined });
-      await refresh();
-      setStep(2);
+      // Empty profile is allowed. We still persist OMARA when set.
+      await persistProfile(profile, omara);
+      goNext();
     } catch (e) {
       const detail =
         (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
@@ -121,11 +168,17 @@ export default function OnboardingPage() {
     }
   };
 
+  const skipStep1 = async () => {
+    // Skipping must never error — we don't write anything, just advance.
+    setError(null);
+    goNext();
+  };
+
   const onSelectTier = async (tier: Plan["tier"]) => {
     if (!billing) return;
     if (billing.tier === tier) return;
     if (tier === "enterprise") {
-      setError("Enterprise is sales-led — book a call from the footer.");
+      setError("Enterprise is sales-led. Reach out from Settings → Billing once you're inside.");
       return;
     }
     setBusy(true);
@@ -143,6 +196,12 @@ export default function OnboardingPage() {
     }
   };
 
+  const fireConfetti = () => {
+    setConfettiKey((k) => k + 1);
+    setShowConfetti(true);
+    window.setTimeout(() => setShowConfetti(false), 1600);
+  };
+
   const onRedeemPromo = async () => {
     if (!promoCode.trim()) return;
     setBusy(true);
@@ -153,11 +212,14 @@ export default function OnboardingPage() {
       if (r.already_applied) {
         setPromoMsg({ kind: "ok", text: "Already applied to this account." });
       } else {
-        const credits = r.credits_added ? ` · ${r.credits_added.toLocaleString()} credits added` : "";
+        const credits = r.credits_added
+          ? ` · ${r.credits_added.toLocaleString()} credits added`
+          : "";
         setPromoMsg({
           kind: "ok",
           text: `${r.pilot_name || "Promo"} applied${credits}`,
         });
+        fireConfetti();
       }
       setPromoCode("");
     } catch (e) {
@@ -173,18 +235,42 @@ export default function OnboardingPage() {
     }
   };
 
+  const onResetPromo = async () => {
+    setBusy(true);
+    setPromoMsg(null);
+    try {
+      const r = await orgApi.resetPromo();
+      setBilling(r.billing);
+      setPromoCode("");
+      setPromoMsg({
+        kind: "ok",
+        text: r.reset
+          ? "Promo cleared. You can redeem another code now."
+          : "No promo was applied.",
+      });
+    } catch (e) {
+      const detail =
+        (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        "Could not reset promo";
+      setPromoMsg({
+        kind: "err",
+        text: typeof detail === "string" ? detail : "Could not reset promo",
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const updateInvite = (idx: number, patch: Partial<InviteRow>) =>
     setInvites((rows) => rows.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
   const addInviteRow = () =>
     setInvites((rows) => [...rows, { email: "", role: "consultant" }]);
   const removeInviteRow = (idx: number) =>
-    setInvites((rows) =>
-      rows.length <= 1 ? rows : rows.filter((_, i) => i !== idx)
-    );
+    setInvites((rows) => (rows.length <= 1 ? rows : rows.filter((_, i) => i !== idx)));
 
   const sendAllInvites = async () => {
     const pending = invites
-      .map((r, idx) => ({ ...r, idx, email: r.email.trim() }))
+      .map((r) => ({ ...r, email: r.email.trim() }))
       .filter(
         (r) =>
           r.email.length > 0 &&
@@ -225,90 +311,257 @@ export default function OnboardingPage() {
 
   const finish = () => router.push("/dashboard");
 
-  /* ── Step 5 (welcome) is a full-screen takeover ── */
+  /* Step 5 (welcome) is a full-screen takeover */
   if (step === 5) {
     return <WelcomeScreen orgName={org?.name || "your practice"} onContinue={finish} />;
   }
 
+  const stepIdx = step - 1;
+  const profileLine = profileSummary(profile);
+
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-white">
+      {/* ─── Atmospheric backdrop ─── */}
       <GridBg id="onb-grid" />
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_70%_at_50%_0%,transparent_0%,white_100%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_50%_-5%,rgba(124,92,252,0.10),transparent_70%)]"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute -right-32 -top-32 h-[500px] w-[500px] rounded-full bg-purple/[0.05] blur-3xl"
+        className="animate-orb-drift pointer-events-none absolute -right-40 top-32 h-[520px] w-[520px] rounded-full bg-purple/[0.06] blur-3xl"
+        aria-hidden
+      />
+      <div
+        className="animate-orb-drift pointer-events-none absolute -bottom-56 -left-40 h-[480px] w-[480px] rounded-full bg-purple-muted/[0.10] blur-3xl"
+        style={{ animationDelay: "-7s" }}
         aria-hidden
       />
 
-      {/* Header */}
-      <header className="relative z-10 border-b border-border bg-white/70 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4 lg:px-8">
-          <Link href="/" className="inline-flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple">
-              <span className="font-heading text-[15px] font-semibold leading-none text-white">II</span>
+      {/* ─── Top folio strip ─── */}
+      <div className="relative z-20 border-b border-white/10 bg-navy text-white">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-2.5 lg:px-8">
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.28em] text-white/55">
+            Onboarding · 04 stages
+          </span>
+          <span className="hidden items-center gap-2.5 text-[12.5px] text-white/85 md:inline-flex">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-light opacity-75" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-teal-light" />
             </span>
-            <span className="font-heading text-[18px] font-semibold tracking-tight text-navy">
-              IMMI-PULSE
-            </span>
-          </Link>
-          <button
-            onClick={finish}
-            className="text-[14px] text-gray-text transition-colors hover:text-navy"
-            type="button"
-          >
-            Skip & enter dashboard
-          </button>
-        </div>
-      </header>
-
-      {/* Stepper */}
-      <div className="relative z-10 border-b border-border bg-white/50 backdrop-blur-sm">
-        <div className="mx-auto max-w-5xl px-6 py-5 lg:px-8">
-          <Stepper current={step} />
+            {STEP_META[stepIdx]?.label} stage
+          </span>
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.28em] text-white/55">
+            {String(step).padStart(2, "0")} / 04
+          </span>
         </div>
       </div>
 
-      {/* Content */}
-      <main className="relative z-10 mx-auto max-w-3xl px-6 py-12 lg:px-8 lg:py-16">
+      {/* ─── Header ─── */}
+      <header className="relative z-10 border-b border-border bg-white/70 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 lg:px-8">
+          <Link href="/" className="inline-flex items-center gap-3">
+            <PulseMark size={36} />
+            <span className="flex flex-col leading-none">
+              <span className="font-heading text-[18px] font-semibold tracking-tight text-navy">
+                IMMI-PULSE
+              </span>
+              <span className="mt-1 font-mono text-[9.5px] uppercase tracking-[0.3em] text-gray-text/70">
+                Migration Operating System
+              </span>
+            </span>
+          </Link>
+          <div className="hidden items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-gray-text/70 md:flex">
+            <span className="text-purple">{STEP_META[stepIdx]?.label}</span>
+            <span aria-hidden>·</span>
+            <span>{STEP_META[stepIdx]?.sub}</span>
+          </div>
+        </div>
+      </header>
+
+      {/* ─── Stepper ─── */}
+      <div className="relative z-10 border-b border-border bg-white/60 backdrop-blur-sm">
+        <div className="mx-auto max-w-6xl px-6 py-5 lg:px-8">
+          <Stepper current={step} onJump={(s) => s < step && goStep(s)} />
+        </div>
+      </div>
+
+      {/* ─── Content ─── */}
+      <main className="relative z-10 mx-auto max-w-4xl px-6 pb-24 pt-14 lg:px-8 lg:pb-28 lg:pt-20">
         <AnimatePresence mode="wait">
           {step === 1 && (
             <StepShell key="s1">
               <StepHeader
-                eyebrow="Step 1 of 4"
+                eyebrow={`Step 01 / 04 · Practice`}
                 title="Tell us about your practice."
-                description="Two quick lines for the AI's context. The more it knows about your niche, the sharper its triage and document suggestions get."
+                description="Tap to teach the AI what you actually work on. Your case mix sharpens triage, document checks and lead routing. Skip anything you'd rather fill in later."
               />
 
-              <div className="mt-10 space-y-6 rounded-2xl border border-border bg-white p-8 shadow-sm">
-                <TextareaField
-                  label="Niche / area of focus"
-                  id="niche"
-                  value={niche}
-                  onChange={setNiche}
-                  placeholder="e.g. Employer-sponsored skilled (Australia), 482 / 186, 5+ yrs experience."
-                  rows={4}
-                  hint="Free-form — write how you'd describe your practice to a colleague."
-                />
-                <TextField
-                  label="OMARA number"
-                  id="omara"
-                  value={omara}
-                  onChange={setOmara}
-                  placeholder="MARN 1234567"
-                  hint="Optional — you can add this later in Settings."
-                />
-                {error && <ErrorBanner message={error} />}
-              </div>
+              {/* Visa expertise — chip groups */}
+              <SectionCard
+                title="Visa case expertise"
+                eyebrow="Section 01"
+                hint={
+                  profile.expertise.length
+                    ? `${profile.expertise.length} selected`
+                    : "Multi-select. Tap to add."
+                }
+                custom={0}
+              >
+                <div className="space-y-7">
+                  {EXPERTISE_GROUPS.map((g) => (
+                    <ExpertiseGroupBlock
+                      key={g.id}
+                      group={g}
+                      selected={profile.expertise}
+                      onToggle={(id) =>
+                        setProfile((p) => ({
+                          ...p,
+                          expertise: p.expertise.includes(id)
+                            ? p.expertise.filter((x) => x !== id)
+                            : [...p.expertise, id],
+                        }))
+                      }
+                    />
+                  ))}
+                </div>
+              </SectionCard>
+
+              {/* Client focus */}
+              <SectionCard
+                title="Client focus"
+                eyebrow="Section 02"
+                hint={
+                  profile.audience.length
+                    ? `${profile.audience.length} selected`
+                    : "Who you serve. Multi-select."
+                }
+                custom={1}
+              >
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {CLIENT_FOCUS.map((opt) => {
+                    const Icon = FOCUS_ICONS[opt.icon];
+                    const active = profile.audience.includes(opt.id);
+                    return (
+                      <button
+                        type="button"
+                        key={opt.id}
+                        onClick={() =>
+                          setProfile((p) => ({
+                            ...p,
+                            audience: active
+                              ? p.audience.filter((x) => x !== opt.id)
+                              : [...p.audience, opt.id],
+                          }))
+                        }
+                        className={`group flex items-start gap-3 rounded-xl border-2 p-4 text-left transition-all ${
+                          active
+                            ? "border-purple bg-purple/[0.04] shadow-[0_8px_24px_-12px_rgba(124,92,252,0.45)]"
+                            : "border-border bg-white hover:-translate-y-0.5 hover:border-purple/30 hover:shadow-[0_10px_28px_-18px_rgba(15,17,23,0.18)]"
+                        }`}
+                      >
+                        <span
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                            active
+                              ? "bg-purple text-white"
+                              : "bg-purple/10 text-purple-deep group-hover:bg-purple/15"
+                          }`}
+                        >
+                          <Icon className="h-5 w-5" aria-hidden />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[14.5px] font-semibold text-navy">
+                            {opt.label}
+                          </span>
+                          <span className="mt-0.5 block text-[12.5px] text-gray-text">
+                            {opt.desc}
+                          </span>
+                        </span>
+                        {active && (
+                          <Check className="ml-auto h-4 w-4 shrink-0 text-purple" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </SectionCard>
+
+              {/* Years of practice */}
+              <SectionCard
+                title="Years of practice"
+                eyebrow="Section 03"
+                hint="Pick one"
+                custom={2}
+              >
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {EXPERIENCE_BANDS.map((band) => {
+                    const active = profile.experience === band.id;
+                    return (
+                      <button
+                        type="button"
+                        key={band.id}
+                        onClick={() =>
+                          setProfile((p) => ({
+                            ...p,
+                            experience: active ? null : band.id,
+                          }))
+                        }
+                        className={`rounded-xl border-2 px-4 py-4 text-left transition-all ${
+                          active
+                            ? "border-purple bg-purple text-white shadow-[0_10px_24px_-12px_rgba(124,92,252,0.55)]"
+                            : "border-border bg-white text-navy hover:border-purple/30"
+                        }`}
+                      >
+                        <span className="block font-heading text-[18px] font-semibold leading-none tracking-tight">
+                          {band.label}
+                        </span>
+                        <span
+                          className={`mt-2 block text-[12px] ${
+                            active ? "text-white/80" : "text-gray-text"
+                          }`}
+                        >
+                          {band.desc}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </SectionCard>
+
+              {/* OMARA */}
+              <SectionCard
+                title="OMARA registration"
+                eyebrow="Section 04"
+                hint="Optional. Letters and numbers."
+                custom={3}
+              >
+                <div className="flex items-stretch overflow-hidden rounded-xl border border-border bg-white transition-shadow focus-within:border-purple focus-within:ring-2 focus-within:ring-purple/20">
+                  <span className="flex select-none items-center gap-2 border-r border-border bg-gray-light/70 px-4 font-mono text-[11px] uppercase tracking-[0.22em] text-gray-text">
+                    MARN
+                  </span>
+                  <input
+                    id="omara"
+                    value={omara}
+                    onChange={(e) => setOmara(e.target.value)}
+                    placeholder="e.g. 1234567 or 23-XXXXX"
+                    className="block w-full bg-white px-4 py-3 text-[15px] text-navy placeholder:text-gray-text/40 focus:outline-none"
+                  />
+                </div>
+                <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.22em] text-gray-text/70">
+                  You can add or change this anytime in Settings · Practice.
+                </p>
+              </SectionCard>
+
+              {error && <ErrorBanner message={error} />}
 
               <FooterNav
                 primary={{
-                  label: busy ? "Saving…" : "Continue",
+                  label: busy ? "Saving…" : "Save & continue",
                   busy,
                   onClick: saveStep1,
                 }}
-                secondary={{ label: "Skip for now", onClick: () => setStep(2) }}
+                back={null}
+                skip={{ label: "Skip this step", onClick: skipStep1 }}
+                meta={profileLine}
               />
             </StepShell>
           )}
@@ -316,67 +569,132 @@ export default function OnboardingPage() {
           {step === 2 && (
             <StepShell key="s2">
               <StepHeader
-                eyebrow="Step 2 of 4"
-                title="Choose the plan that fits."
-                description="Every plan starts with a 14-day Professional trial — full feature set, no card on file. Switch tiers any time."
+                eyebrow="Step 02 / 04 · Plan"
+                title="Pick the tier that fits the way you work."
+                description="Every plan starts on a 14-day Professional trial — full feature set, no card on file. Switch tiers any time."
               />
 
-              <div className="mt-10 space-y-4">
-                {plans.length === 0 ? (
-                  <div className="rounded-2xl border border-border bg-white p-8 text-center text-[14px] text-gray-text">
-                    Loading plans…
-                  </div>
-                ) : (
-                  plans.map((p, idx) => (
-                    <PlanCard
-                      key={p.tier}
-                      plan={p}
-                      current={billing?.tier === p.tier}
-                      recommended={p.is_default_signup}
-                      disabled={busy}
-                      onSelect={() => onSelectTier(p.tier)}
-                      idx={idx}
-                    />
-                  ))
-                )}
-              </div>
+              <motion.div
+                variants={stagger}
+                initial="hidden"
+                animate="visible"
+                className="mt-10 grid gap-5 lg:grid-cols-3"
+              >
+                {plans.length === 0
+                  ? [0, 1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="h-[320px] animate-pulse rounded-2xl border border-border bg-white"
+                      />
+                    ))
+                  : plans.map((p, idx) => (
+                      <PlanCard
+                        key={p.tier}
+                        plan={p}
+                        current={billing?.tier === p.tier}
+                        recommended={p.is_default_signup}
+                        disabled={busy}
+                        onSelect={() => onSelectTier(p.tier)}
+                        idx={idx}
+                      />
+                    ))}
+              </motion.div>
 
               {/* Promo code */}
-              <div className="mt-8 rounded-2xl border border-border bg-white p-6">
-                <label htmlFor="promo" className="text-[13px] font-medium text-navy">
-                  Pilot or promo code{" "}
-                  <span className="font-normal text-gray-text">(optional)</span>
-                </label>
-                <div className="mt-2 flex gap-2">
-                  <input
-                    id="promo"
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                    placeholder="PILOT-AU-2026"
-                    className="flex-1 rounded-lg border border-border bg-white px-3.5 py-2.5 text-[15px] text-navy placeholder:text-gray-text/40 focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/20"
-                  />
-                  <button
-                    type="button"
-                    onClick={onRedeemPromo}
-                    disabled={busy || !promoCode.trim()}
-                    className="inline-flex items-center gap-2 rounded-lg border-2 border-border bg-white px-5 py-2.5 text-[14px] font-medium text-navy transition-colors hover:border-purple/30 disabled:opacity-40"
-                  >
-                    {busy ? "Redeeming…" : "Redeem"}
-                  </button>
+              <motion.div
+                variants={fadeUp}
+                initial="hidden"
+                animate="visible"
+                custom={3}
+                className="relative mt-8 overflow-hidden rounded-2xl border border-border bg-white"
+              >
+                <div className="flex items-center justify-between border-b border-border/70 bg-gradient-to-b from-gray-light to-white px-6 py-3.5">
+                  <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] text-gray-text/75">
+                    <Ticket className="h-3 w-3" />
+                    Pilot or promo code
+                  </span>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-gray-text/55">
+                    {billing?.pilot_code ? "Applied" : "Optional"}
+                  </span>
                 </div>
-                {promoMsg && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`mt-3 text-[13px] ${
-                      promoMsg.kind === "ok" ? "text-teal" : "text-red-600"
-                    }`}
-                  >
-                    {promoMsg.kind === "ok" ? "✓ " : "⚠ "}
-                    {promoMsg.text}
-                  </motion.p>
-                )}
-              </div>
+                <div className="relative p-6">
+                  {/* Confetti origin — sits behind the redeem button */}
+                  {showConfetti && (
+                    <span className="pointer-events-none absolute right-12 top-12">
+                      <ConfettiBurst key={confettiKey} />
+                    </span>
+                  )}
+
+                  {billing?.pilot_code ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex flex-col gap-3 rounded-xl border border-teal/25 bg-teal/[0.04] p-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal/15 text-teal">
+                          <CheckCircle2 className="h-4.5 w-4.5" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-teal">
+                            Pilot active · {billing.pilot_code}
+                          </p>
+                          <p className="mt-1 truncate text-[14px] font-semibold text-navy">
+                            {billing.pilot_name || "Pilot benefits applied"}
+                          </p>
+                          <p className="mt-0.5 text-[12.5px] text-gray-text">
+                            {billing.plan_name} unlocked · trial waived · credits granted.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={onResetPromo}
+                        disabled={busy}
+                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-border bg-white px-4 py-2.5 text-[13px] font-medium text-navy transition-colors hover:border-purple/30 hover:text-purple-deep disabled:opacity-40"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        {busy ? "Resetting…" : "Reset & re-test"}
+                      </button>
+                    </motion.div>
+                  ) : (
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        id="promo"
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                        placeholder="ENTER PILOT CODE"
+                        className="flex-1 rounded-xl border border-border bg-white px-4 py-3 text-[15px] tracking-[0.05em] text-navy placeholder:text-gray-text/40 focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/20"
+                      />
+                      <button
+                        type="button"
+                        onClick={onRedeemPromo}
+                        disabled={busy || !promoCode.trim()}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-navy bg-navy px-6 py-3 text-[14px] font-medium text-white transition-all hover:bg-navy-light disabled:opacity-40"
+                      >
+                        {busy ? "Redeeming…" : "Redeem code"}
+                      </button>
+                    </div>
+                  )}
+
+                  {promoMsg && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`mt-3 inline-flex items-center gap-1.5 text-[13px] ${
+                        promoMsg.kind === "ok" ? "text-teal" : "text-red-600"
+                      }`}
+                    >
+                      {promoMsg.kind === "ok" ? (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      ) : (
+                        <X className="h-3.5 w-3.5" />
+                      )}
+                      {promoMsg.text}
+                    </motion.p>
+                  )}
+                </div>
+              </motion.div>
 
               {error && (
                 <div className="mt-6">
@@ -385,8 +703,9 @@ export default function OnboardingPage() {
               )}
 
               <FooterNav
-                primary={{ label: "Continue", onClick: () => setStep(3) }}
-                secondary={{ label: "Back", onClick: () => setStep(1) }}
+                primary={{ label: "Continue", onClick: goNext }}
+                back={{ label: "Back", onClick: goBack }}
+                skip={{ label: "Skip this step", onClick: goNext }}
               />
             </StepShell>
           )}
@@ -394,35 +713,32 @@ export default function OnboardingPage() {
           {step === 3 && (
             <StepShell key="s3">
               <StepHeader
-                eyebrow="Step 3 of 4"
+                eyebrow="Step 03 / 04 · Team"
                 title="Bring your team along — or fly solo."
-                description="Add associates, paralegals, or admins now, or invite them later from Settings → Team."
+                description="Add associates, paralegals or admins now, or invite them later from Settings → Team. Seats are prorated, so you only pay for what you use."
               />
 
-              {/* Educational seat-pricing card */}
               <motion.div
                 variants={fadeUp}
                 initial="hidden"
                 animate="visible"
                 custom={0}
-                className="mt-10 rounded-2xl border border-purple/20 bg-purple/[0.03] p-6"
+                className="mt-10 overflow-hidden rounded-2xl border border-purple/15 bg-gradient-to-br from-purple-muted/25 via-white to-white"
               >
-                <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple/10">
-                    <Info className="h-5 w-5 text-purple" aria-hidden />
-                  </div>
+                <div className="flex items-start gap-4 p-6">
+                  <PulseMark size={44} rings={false} />
                   <div className="flex-1">
                     <h3 className="font-heading text-[16px] font-semibold text-navy">
                       How seats work
                     </h3>
                     <p className="mt-1.5 text-[14px] leading-relaxed text-gray-text">
-                      Each teammate you invite is a separate seat on the{" "}
+                      Each teammate is a separate seat on the{" "}
                       <span className="font-semibold text-navy">
                         {currentPlan?.name || "Professional"}
                       </span>{" "}
                       plan, billed at{" "}
                       <span className="font-semibold text-purple">{seatLabel}</span>{" "}
-                      after your trial ends. Add or remove seats anytime — we prorate.
+                      after your trial ends. Add or remove seats anytime.
                     </p>
                     <ul className="mt-4 grid gap-2 sm:grid-cols-3">
                       <SeatPerk label="Consultants" desc="Lodge cases" />
@@ -439,18 +755,17 @@ export default function OnboardingPage() {
                 initial="hidden"
                 animate="visible"
                 custom={1}
-                className="mt-6 rounded-2xl border border-border bg-white p-6 shadow-sm"
+                className="mt-6 overflow-hidden rounded-2xl border border-border bg-white"
               >
-                <div className="flex items-baseline justify-between">
-                  <h3 className="text-[14px] font-semibold text-navy">
-                    Invite teammates
-                  </h3>
-                  <span className="text-[12px] text-gray-text">
-                    {invites.length} {invites.length === 1 ? "seat" : "seats"} pending
+                <div className="flex items-center justify-between border-b border-border/70 bg-gradient-to-b from-gray-light to-white px-6 py-3.5">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-gray-text/75">
+                    Roster · pending invites
+                  </span>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-gray-text/55">
+                    {invites.length} {invites.length === 1 ? "seat" : "seats"}
                   </span>
                 </div>
-
-                <div className="mt-4 space-y-3">
+                <div className="space-y-3 p-6">
                   {invites.map((row, idx) => {
                     const removable = invites.length > 1;
                     return (
@@ -467,26 +782,19 @@ export default function OnboardingPage() {
                               updateInvite(idx, { email: e.target.value })
                             }
                             placeholder="teammate@yourfirm.com"
-                            className="w-full rounded-lg border border-border bg-white py-2.5 pl-10 pr-3.5 text-[15px] text-navy placeholder:text-gray-text/40 focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/20"
+                            className="w-full rounded-xl border border-border bg-white py-3 pl-10 pr-3.5 text-[15px] text-navy placeholder:text-gray-text/40 focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/20"
                           />
                         </div>
-                        <select
+                        <RoleSelect
                           value={row.role}
-                          onChange={(e) =>
-                            updateInvite(idx, { role: e.target.value as InviteRole })
-                          }
-                          className="rounded-lg border border-border bg-white px-3 py-2.5 text-[14px] text-navy focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/20 sm:w-40"
-                        >
-                          <option value="consultant">Consultant</option>
-                          <option value="staff">Staff</option>
-                          <option value="admin">Admin</option>
-                        </select>
+                          onChange={(role) => updateInvite(idx, { role })}
+                        />
                         <button
                           type="button"
                           onClick={() => removeInviteRow(idx)}
                           disabled={!removable}
                           aria-label="Remove row"
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border text-gray-text transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-border disabled:hover:bg-transparent disabled:hover:text-gray-text"
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border text-gray-text transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-border disabled:hover:bg-transparent disabled:hover:text-gray-text"
                         >
                           <X className="h-4 w-4" />
                         </button>
@@ -495,7 +803,7 @@ export default function OnboardingPage() {
                   })}
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-gray-light/40 px-6 py-3.5">
                   <button
                     type="button"
                     onClick={addInviteRow}
@@ -528,41 +836,37 @@ export default function OnboardingPage() {
                   </button>
                 </div>
 
-                <p className="mt-3 text-[12px] text-gray-text">
-                  Each invite link expires in 14 days. We&apos;ll send a friendly email
-                  with setup instructions.
-                </p>
-
                 {inviteSent.length > 0 && (
                   <motion.ul
                     variants={stagger}
                     initial="hidden"
                     animate="visible"
-                    className="mt-5 space-y-2 border-t border-border pt-5"
+                    className="space-y-2 border-t border-border bg-teal/[0.03] p-6"
                   >
                     {inviteSent.map((e) => (
                       <motion.li
                         key={e}
                         variants={fadeUp}
                         custom={0}
-                        className="flex items-center gap-3 rounded-lg border border-teal/20 bg-teal/[0.04] px-4 py-2.5 text-[14px]"
+                        className="flex items-center gap-3 rounded-lg border border-teal/20 bg-white px-4 py-2.5 text-[14px]"
                       >
                         <CheckCircle2 className="h-4 w-4 shrink-0 text-teal" />
                         <span className="flex-1 truncate text-navy">{e}</span>
-                        <span className="text-[12px] font-medium text-teal">Invited</span>
+                        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-teal">
+                          Invited
+                        </span>
                       </motion.li>
                     ))}
                   </motion.ul>
                 )}
 
                 {error && (
-                  <div className="mt-4">
+                  <div className="border-t border-border p-6">
                     <ErrorBanner message={error} />
                   </div>
                 )}
               </motion.div>
 
-              {/* Where to manage seats later */}
               <motion.div
                 variants={fadeUp}
                 initial="hidden"
@@ -572,18 +876,19 @@ export default function OnboardingPage() {
               >
                 <SettingsIcon className="mt-0.5 h-4 w-4 shrink-0 text-gray-text" />
                 <p className="text-[13px] leading-relaxed text-gray-text">
-                  You can add, remove, and resend invites anytime from{" "}
+                  You can add, remove and resend invites anytime from{" "}
                   <span className="font-semibold text-navy">Settings → Team</span>.
-                  Seats are prorated, so you&apos;re only billed for what you use.
+                  Each invite link expires in 14 days.
                 </p>
               </motion.div>
 
               <FooterNav
                 primary={{
                   label: inviteSent.length > 0 ? "Continue" : "Continue solo",
-                  onClick: () => setStep(4),
+                  onClick: goNext,
                 }}
-                secondary={{ label: "Back", onClick: () => setStep(2) }}
+                back={{ label: "Back", onClick: goBack }}
+                skip={{ label: "Skip this step", onClick: goNext }}
               />
             </StepShell>
           )}
@@ -591,25 +896,32 @@ export default function OnboardingPage() {
           {step === 4 && (
             <StepShell key="s4">
               <StepHeader
-                eyebrow="Step 4 of 4"
-                title="Ready to begin."
-                description={
-                  billing?.status === "active"
-                    ? "Your pilot benefits are live — full access from minute one."
-                    : "Fourteen days, full feature set, no card on file. We'll remind you before it ends."
-                }
+                eyebrow="Step 04 / 04 · Confirm"
+                title="One last look before launch."
+                description="Here's how your workspace is configured. Confirm to wrap up onboarding. Everything below stays editable in Settings, so refine as you go."
               />
 
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="mt-10 rounded-2xl border border-border bg-white p-8 shadow-sm"
+                className="mt-10 overflow-hidden rounded-2xl border border-border bg-white shadow-[0_30px_80px_-50px_rgba(15,17,23,0.18)]"
               >
-                <div className="grid gap-6 sm:grid-cols-3">
+                <div className="flex items-center justify-between border-b border-border/70 bg-gradient-to-b from-gray-light to-white px-7 py-3.5">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-gray-text/75">
+                    Trial summary · {STEP_META[stepIdx]?.label}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-teal/20 bg-teal/5 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-teal">
+                    <ShieldCheck className="h-2.5 w-2.5" />
+                    Secured
+                  </span>
+                </div>
+
+                <div className="grid gap-6 p-7 sm:grid-cols-3">
                   <SummaryStat
                     label="Plan"
-                    value={billing?.plan_name || "Professional"}
+                    value={billing?.plan_name || currentPlan?.name || "Professional"}
+                    sub={billing?.price_label || currentPlan?.price_label}
                   />
                   <SummaryStat
                     label={billing?.status === "active" ? "Status" : "Trial length"}
@@ -620,14 +932,38 @@ export default function OnboardingPage() {
                         ? `${daysLeft(billing.trial_ends_at)} days`
                         : "14 days"
                     }
+                    sub={
+                      billing?.status === "active"
+                        ? billing?.pilot_code
+                          ? `Pilot · ${billing.pilot_code}`
+                          : "Trial waived"
+                        : "Full feature set"
+                    }
                   />
-                  <SummaryStat label="Card on file" value="Not required" />
+                  <SummaryStat label="Card on file" value="Not required" sub="Add later in Billing" />
+                </div>
+
+                <div className="grid gap-px bg-border sm:grid-cols-2">
+                  <SummaryRow
+                    label="Practice profile"
+                    value={profileLine || "Free-form"}
+                    icon={Tag}
+                  />
+                  <SummaryRow
+                    label="Team seats"
+                    value={
+                      inviteSent.length
+                        ? `${inviteSent.length} invited · 1 owner`
+                        : "Solo · 1 owner"
+                    }
+                    icon={Users}
+                  />
                 </div>
 
                 {billing?.trial_ends_at && billing.status === "trial" && (
-                  <p className="mt-6 border-t border-border pt-4 text-[13px] text-gray-text">
+                  <p className="border-t border-border px-7 py-4 font-mono text-[10.5px] uppercase tracking-[0.22em] text-gray-text/75">
                     Trial ends{" "}
-                    <span className="font-semibold text-navy">
+                    <span className="text-navy">
                       {fmtDate(billing.trial_ends_at)}
                     </span>{" "}
                     · then {billing.price_label}
@@ -639,27 +975,16 @@ export default function OnboardingPage() {
                 primary={{
                   label:
                     billing?.status === "active"
-                      ? "Enter your dashboard"
+                      ? "Confirm & continue"
                       : "Start my 14-day trial",
-                  onClick: () => setStep(5),
+                  onClick: goNext,
                 }}
-                secondary={{ label: "Back", onClick: () => setStep(3) }}
+                back={{ label: "Back", onClick: goBack }}
+                skip={null}
               />
             </StepShell>
           )}
         </AnimatePresence>
-
-        <div className="mt-12 border-t border-border pt-6 text-center">
-          <p className="text-[14px] text-gray-text">
-            Need a guided tour?{" "}
-            <Link
-              href="/contact"
-              className="font-semibold text-purple hover:text-purple-deep"
-            >
-              Book a call →
-            </Link>
-          </p>
-        </div>
       </main>
     </div>
   );
@@ -682,37 +1007,58 @@ function fmtDate(iso: string): string {
 
 /* ─────────────────────── COMPONENTS ─────────────────────── */
 
-function Stepper({ current }: { current: Step }) {
+function Stepper({
+  current,
+  onJump,
+}: {
+  current: Step;
+  onJump: (s: Step) => void;
+}) {
   return (
     <ol className="flex items-center gap-2 sm:gap-4">
-      {steps.map((s, i) => {
+      {STEP_META.map((s, i) => {
         const idx = (i + 1) as Step;
         const isCurrent = idx === current;
         const isDone = idx < current;
+        const clickable = isDone;
+        const Tag = clickable ? "button" : "div";
         return (
           <li key={s.label} className="flex flex-1 items-center gap-2 sm:gap-3">
-            <div
-              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold transition-colors ${
-                isDone
-                  ? "bg-purple text-white"
-                  : isCurrent
-                  ? "border-2 border-purple bg-white text-purple"
-                  : "border border-border bg-white text-gray-text/60"
+            <Tag
+              {...(clickable ? { type: "button", onClick: () => onJump(idx) } : {})}
+              className={`group flex flex-1 items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors sm:gap-3 ${
+                clickable ? "hover:bg-purple/5" : "cursor-default"
               }`}
             >
-              {isDone ? <Check className="h-3.5 w-3.5" /> : i + 1}
-            </div>
-            <div className="hidden min-w-0 flex-1 sm:block">
-              <p
-                className={`truncate text-[13px] font-medium ${
-                  isCurrent || isDone ? "text-navy" : "text-gray-text/70"
+              <div
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold transition-colors ${
+                  isDone
+                    ? "bg-purple text-white"
+                    : isCurrent
+                    ? "border-2 border-purple bg-white text-purple shadow-[0_0_0_4px_rgba(124,92,252,0.12)]"
+                    : "border border-border bg-white text-gray-text/60"
                 }`}
               >
-                {s.label}
-              </p>
-              <p className="truncate text-[11px] text-gray-text/60">{s.sub}</p>
-            </div>
-            {i < steps.length - 1 && (
+                {isDone ? <Check className="h-3.5 w-3.5" /> : i + 1}
+              </div>
+              <div className="hidden min-w-0 flex-1 sm:block">
+                <p
+                  className={`truncate font-mono text-[10.5px] uppercase tracking-[0.22em] ${
+                    isCurrent || isDone ? "text-navy" : "text-gray-text/55"
+                  }`}
+                >
+                  Step 0{i + 1}
+                </p>
+                <p
+                  className={`mt-0.5 truncate text-[13px] font-medium ${
+                    isCurrent || isDone ? "text-navy" : "text-gray-text/70"
+                  }`}
+                >
+                  {s.label}
+                </p>
+              </div>
+            </Tag>
+            {i < STEP_META.length - 1 && (
               <span
                 aria-hidden
                 className={`hidden h-px flex-1 sm:block ${
@@ -730,10 +1076,10 @@ function Stepper({ current }: { current: Step }) {
 function StepShell({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10, transition: { duration: 0.25 } }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
     </motion.div>
@@ -750,86 +1096,156 @@ function StepHeader({
   description: string;
 }) {
   return (
-    <div className="text-center">
-      <span className="text-[12px] font-semibold uppercase tracking-wider text-purple">
-        {eyebrow}
+    <div className="mx-auto max-w-2xl text-center">
+      <span className="editorial-eyebrow justify-center">
+        <span>{eyebrow}</span>
       </span>
-      <h1 className="mt-3 font-heading text-[clamp(1.875rem,3.5vw,2.5rem)] font-normal leading-tight tracking-[-1px] text-navy">
+      <h1
+        className="mt-5 font-heading font-normal leading-[1.05] tracking-[-1.3px] text-navy"
+        style={{ fontSize: "clamp(2.1rem, 4.2vw, 3.2rem)" }}
+      >
         {title}
       </h1>
-      <p className="mx-auto mt-3 max-w-xl text-[16px] leading-relaxed text-gray-text">
+      <p className="mx-auto mt-4 max-w-xl text-[16px] leading-[1.6] text-gray-text">
         {description}
       </p>
     </div>
   );
 }
 
-function TextField({
-  label,
-  id,
-  value,
-  onChange,
-  placeholder,
+function SectionCard({
+  title,
+  eyebrow,
   hint,
-  type = "text",
+  children,
+  custom,
 }: {
-  label: string;
-  id: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
+  title: string;
+  eyebrow: string;
   hint?: string;
-  type?: string;
+  children: React.ReactNode;
+  custom: number;
+}) {
+  return (
+    <motion.section
+      variants={fadeUp}
+      initial="hidden"
+      animate="visible"
+      custom={custom}
+      className="mt-6 overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_0_rgba(15,17,23,0.02)]"
+    >
+      <header className="flex items-center justify-between border-b border-border/70 bg-gradient-to-b from-gray-light to-white px-6 py-3.5">
+        <div className="flex items-baseline gap-3">
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-gray-text/75">
+            {eyebrow}
+          </span>
+          <span className="font-heading text-[15px] font-semibold text-navy">
+            {title}
+          </span>
+        </div>
+        {hint && (
+          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-gray-text/65">
+            {hint}
+          </span>
+        )}
+      </header>
+      <div className="p-6">{children}</div>
+    </motion.section>
+  );
+}
+
+function ExpertiseGroupBlock({
+  group,
+  selected,
+  onToggle,
+}: {
+  group: (typeof EXPERTISE_GROUPS)[number];
+  selected: string[];
+  onToggle: (id: string) => void;
 }) {
   return (
     <div>
-      <label htmlFor={id} className="text-[13px] font-medium text-navy">
-        {label}
-      </label>
-      <input
-        id={id}
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="mt-1.5 block w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-[15px] text-navy placeholder:text-gray-text/40 focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/20"
-      />
-      {hint && <p className="mt-1.5 text-[12px] text-gray-text">{hint}</p>}
+      <div className="mb-3 flex items-baseline justify-between gap-3">
+        <div>
+          <p className="font-heading text-[14px] font-semibold text-navy">
+            {group.title}
+          </p>
+          <p className="mt-0.5 text-[12.5px] text-gray-text">
+            {group.description}
+          </p>
+        </div>
+        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-gray-text/55">
+          {group.options.filter((o) => selected.includes(o.id)).length || ""}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {group.options.map((opt) => {
+          const active = selected.includes(opt.id);
+          return (
+            <button
+              type="button"
+              key={opt.id}
+              onClick={() => onToggle(opt.id)}
+              className={`group inline-flex items-center gap-2 rounded-full border-2 px-3.5 py-1.5 text-[13px] font-medium transition-all ${
+                active
+                  ? "border-purple bg-purple text-white shadow-[0_6px_18px_-10px_rgba(124,92,252,0.55)]"
+                  : "border-border bg-white text-navy hover:-translate-y-px hover:border-purple/40"
+              }`}
+            >
+              <span
+                className={`relative inline-flex h-1.5 w-1.5 rounded-full ${
+                  active ? "bg-white" : "bg-purple/40"
+                }`}
+              />
+              <span>{opt.label}</span>
+              {opt.hint && (
+                <span
+                  className={`text-[11px] font-normal ${
+                    active ? "text-white/80" : "text-gray-text"
+                  }`}
+                >
+                  {opt.hint}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-function TextareaField({
-  label,
-  id,
+function RoleSelect({
   value,
   onChange,
-  placeholder,
-  hint,
-  rows = 3,
 }: {
-  label: string;
-  id: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  hint?: string;
-  rows?: number;
+  value: "consultant" | "staff" | "admin";
+  onChange: (v: "consultant" | "staff" | "admin") => void;
 }) {
+  const options: Array<{ id: "consultant" | "staff" | "admin"; label: string }> = [
+    { id: "consultant", label: "Consultant" },
+    { id: "staff", label: "Staff" },
+    { id: "admin", label: "Admin" },
+  ];
   return (
-    <div>
-      <label htmlFor={id} className="text-[13px] font-medium text-navy">
-        {label}
-      </label>
-      <textarea
-        id={id}
-        rows={rows}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="mt-1.5 block w-full resize-none rounded-lg border border-border bg-white px-3.5 py-2.5 text-[15px] leading-relaxed text-navy placeholder:text-gray-text/40 focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/20"
-      />
-      {hint && <p className="mt-1.5 text-[12px] text-gray-text">{hint}</p>}
+    <div className="inline-flex h-11 shrink-0 items-stretch overflow-hidden rounded-xl border border-border bg-white text-[12.5px] sm:w-auto">
+      {options.map((o) => {
+        const active = value === o.id;
+        return (
+          <button
+            type="button"
+            key={o.id}
+            onClick={() => onChange(o.id)}
+            className={`px-3 font-medium transition-colors ${
+              active
+                ? "bg-navy text-white"
+                : "text-gray-text hover:bg-gray-light/70 hover:text-navy"
+            }`}
+          >
+            {o.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -849,59 +1265,92 @@ function PlanCard({
   onSelect: () => void;
   idx: number;
 }) {
+  const accent = recommended || current;
   return (
     <motion.button
       type="button"
       onClick={onSelect}
       disabled={disabled || current || plan.is_custom}
       variants={fadeUp}
-      initial="hidden"
-      animate="visible"
       custom={idx}
-      className={`group relative block w-full rounded-2xl border-2 bg-white p-6 text-left transition-all ${
+      className={`group relative block w-full overflow-hidden rounded-2xl border-2 bg-white p-6 text-left transition-all ${
         current
-          ? "border-purple shadow-lg shadow-purple/15"
-          : "border-border hover:border-purple/40 hover:shadow-md"
-      } ${plan.is_custom ? "cursor-not-allowed opacity-90" : ""}`}
+          ? "border-purple shadow-[0_24px_60px_-30px_rgba(124,92,252,0.55)]"
+          : recommended
+          ? "border-purple/60 shadow-[0_18px_50px_-30px_rgba(124,92,252,0.4)] hover:border-purple"
+          : "border-border hover:-translate-y-1 hover:border-purple/40 hover:shadow-[0_18px_40px_-22px_rgba(15,17,23,0.18)]"
+      } ${plan.is_custom ? "cursor-not-allowed opacity-95" : ""}`}
     >
-      {recommended && !current && (
-        <span className="absolute -top-3 left-6 rounded-full bg-purple px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
-          Recommended
-        </span>
-      )}
-      {current && (
-        <span className="absolute -top-3 right-6 inline-flex items-center gap-1 rounded-full bg-purple px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
-          <Check className="h-3 w-3" /> Current
-        </span>
+      {accent && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-purple via-purple to-purple-deep"
+        />
       )}
 
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <h3 className="font-heading text-[20px] font-semibold text-navy">
-            {plan.name}
-          </h3>
-          <p className="mt-1 text-[14px] leading-relaxed text-gray-text">
-            {plan.description}
-          </p>
-        </div>
-        <div className="shrink-0 text-right">
-          <p className="font-heading text-[28px] font-semibold leading-none text-navy">
-            {plan.is_custom ? "Custom" : `$${plan.price_per_seat_aud_monthly}`}
-          </p>
-          {!plan.is_custom && (
-            <p className="mt-1 text-[12px] text-gray-text">/seat/month</p>
-          )}
-        </div>
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-gray-text/70">
+          Tier · {plan.tier === "pro" ? "professional" : plan.tier}
+        </span>
+        {current ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-purple px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white">
+            <Check className="h-3 w-3" /> Current
+          </span>
+        ) : recommended ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-purple/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-purple-deep">
+            <Sparkles className="h-3 w-3" /> Recommended
+          </span>
+        ) : null}
       </div>
 
-      <ul className="mt-5 grid gap-2 sm:grid-cols-2">
-        {plan.features.slice(0, 4).map((f) => (
-          <li key={f} className="flex items-start gap-2 text-[13px] text-gray-text">
+      <h3 className="mt-4 font-heading text-[24px] font-semibold tracking-tight text-navy">
+        {plan.name}
+      </h3>
+      <p className="mt-1.5 text-[13.5px] leading-relaxed text-gray-text">
+        {plan.description}
+      </p>
+
+      <div className="mt-5 flex items-baseline gap-2">
+        {plan.is_custom ? (
+          <span className="font-heading text-[28px] font-semibold leading-none text-navy">
+            Custom
+          </span>
+        ) : (
+          <>
+            <span className="font-heading text-[36px] font-semibold leading-none tracking-tight text-navy">
+              A${plan.price_per_seat_aud_monthly}
+            </span>
+            <span className="text-[12.5px] text-gray-text">/ seat / month</span>
+          </>
+        )}
+      </div>
+      <p className="mt-1.5 font-mono text-[10.5px] uppercase tracking-[0.22em] text-gray-text/65">
+        {plan.is_custom ? "Talk to sales" : "Billed monthly · prorated"}
+      </p>
+
+      <div className="mt-5 h-px bg-border" />
+
+      <ul className="mt-5 space-y-2">
+        {plan.features.slice(0, 6).map((f) => (
+          <li key={f} className="flex items-start gap-2 text-[13px] leading-snug text-gray-text">
             <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-purple" />
-            <span className="leading-snug">{f}</span>
+            <span>{f}</span>
           </li>
         ))}
       </ul>
+
+      {!current && !plan.is_custom && (
+        <div className="mt-6 inline-flex items-center gap-1.5 text-[13px] font-medium text-purple group-hover:text-purple-deep">
+          Select {plan.name}
+          <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+        </div>
+      )}
+      {plan.is_custom && (
+        <div className="mt-6 inline-flex items-center gap-1.5 text-[13px] font-medium text-gray-text">
+          Sales-led from inside Settings
+          <ArrowUpRight className="h-3.5 w-3.5" />
+        </div>
+      )}
     </motion.button>
   );
 }
@@ -910,53 +1359,109 @@ function SeatPerk({ label, desc }: { label: string; desc: string }) {
   return (
     <li className="rounded-lg border border-border bg-white px-3 py-2.5">
       <p className="text-[13px] font-semibold text-navy">{label}</p>
-      <p className="mt-0.5 text-[11px] text-gray-text">{desc}</p>
+      <p className="mt-0.5 text-[11.5px] text-gray-text">{desc}</p>
     </li>
   );
 }
 
-function SummaryStat({ label, value }: { label: string; value: string }) {
+function SummaryStat({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+}) {
   return (
-    <div className="text-center sm:text-left">
-      <p className="text-[12px] font-semibold uppercase tracking-wider text-gray-text/70">
+    <div>
+      <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-gray-text/70">
         {label}
       </p>
-      <p className="mt-2 font-heading text-[20px] font-semibold text-navy">
+      <p className="mt-2 font-heading text-[22px] font-semibold leading-tight tracking-tight text-navy">
         {value}
       </p>
+      {sub && (
+        <p className="mt-1 text-[12.5px] text-gray-text">{sub}</p>
+      )}
+    </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  icon: typeof Tag;
+}) {
+  return (
+    <div className="flex items-center gap-3 bg-white px-7 py-4">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple/10 text-purple-deep">
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-gray-text/70">
+          {label}
+        </p>
+        <p className="mt-0.5 truncate text-[14px] text-navy">{value}</p>
+      </div>
     </div>
   );
 }
 
 function FooterNav({
   primary,
-  secondary,
+  back,
+  skip,
+  meta,
 }: {
   primary: { label: string; onClick: () => void; busy?: boolean };
-  secondary?: { label: string; onClick: () => void };
+  back: { label: string; onClick: () => void } | null;
+  skip: { label: string; onClick: () => void } | null;
+  meta?: string;
 }) {
   return (
-    <div className="mt-10 flex items-center justify-between gap-4">
-      {secondary ? (
-        <button
-          type="button"
-          onClick={secondary.onClick}
-          className="inline-flex items-center gap-2 rounded-lg border-2 border-border bg-white px-5 py-3 text-[14px] font-medium text-navy transition-colors hover:border-purple/30"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {secondary.label}
-        </button>
-      ) : (
-        <span />
-      )}
+    <div className="mt-10 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center gap-3">
+        {back ? (
+          <button
+            type="button"
+            onClick={back.onClick}
+            className="inline-flex items-center gap-2 rounded-xl border-2 border-border bg-white px-5 py-3 text-[14px] font-medium text-navy transition-colors hover:border-purple/30 hover:text-purple-deep"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {back.label}
+          </button>
+        ) : (
+          <span aria-hidden className="hidden h-11 w-px bg-transparent" />
+        )}
+        {skip && (
+          <button
+            type="button"
+            onClick={skip.onClick}
+            className="text-[13px] font-medium text-gray-text underline-offset-4 transition-colors hover:text-navy hover:underline"
+          >
+            {skip.label}
+          </button>
+        )}
+        {meta && (
+          <span className="hidden font-mono text-[10.5px] uppercase tracking-[0.22em] text-gray-text/65 sm:inline">
+            {meta}
+          </span>
+        )}
+      </div>
       <button
         type="button"
         onClick={primary.onClick}
         disabled={primary.busy}
-        className="inline-flex items-center gap-2 rounded-lg border-2 border-purple bg-purple px-7 py-3 text-[15px] font-medium text-white shadow-lg shadow-purple/25 transition-all hover:border-purple-deep hover:bg-purple-deep hover:shadow-purple-deep/25 disabled:opacity-60"
+        className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl border-2 border-purple bg-purple px-7 py-3.5 text-[15px] font-medium text-white shadow-[0_14px_28px_-12px_rgba(124,92,252,0.55)] transition-all hover:border-purple-deep hover:bg-purple-deep hover:shadow-[0_18px_36px_-12px_rgba(91,58,219,0.6)] disabled:opacity-60"
       >
-        {primary.label}
-        <ArrowRight className="h-4 w-4" />
+        <span aria-hidden className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
+        <span className="relative">{primary.label}</span>
+        <ArrowRight className="relative h-4 w-4 transition-transform group-hover:translate-x-0.5" />
       </button>
     </div>
   );
@@ -967,7 +1472,7 @@ function ErrorBanner({ message }: { message: string }) {
     <motion.div
       initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700"
+      className="mt-6 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700"
     >
       <X className="mt-0.5 h-3.5 w-3.5 shrink-0" />
       <span>{message}</span>
@@ -981,20 +1486,17 @@ const capabilities = [
   {
     icon: Inbox,
     title: "Triage every email",
-    desc: "AI reads, classifies, and queues every client message by visa subclass and urgency.",
-    color: "purple",
+    desc: "AI reads, classifies and queues every client message by visa subclass and urgency.",
   },
   {
     icon: FileSearch,
     title: "Validate documents",
-    desc: "Upload a passport, skills assessment, or payslip — get instant validation against AU migration rules.",
-    color: "teal",
+    desc: "Upload a passport, skills assessment or payslip. Get instant validation against AU migration rules.",
   },
   {
     icon: Users,
     title: "Manage every case",
-    desc: "From pre-case enquiry to lodgement — one workspace, one timeline, zero spreadsheets.",
-    color: "purple-deep",
+    desc: "From pre-case enquiry to lodgement. One workspace, one timeline, zero spreadsheets.",
   },
 ];
 
@@ -1006,56 +1508,95 @@ function WelcomeScreen({
   onContinue: () => void;
 }) {
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-gradient-to-br from-white via-purple/[0.03] to-purple-muted/[0.08] px-6 py-12">
+    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-white px-6 py-14">
       {/* Backdrop */}
-      <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="welcome-grid" x="0" y="0" width="56" height="56" patternUnits="userSpaceOnUse">
-              <path d="M 56 0 L 0 0 0 56" fill="none" stroke="#7C5CFC" strokeWidth="0.5" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#welcome-grid)" opacity="0.04" />
-        </svg>
+      <GridBg id="welcome-grid" />
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_55%_50%_at_50%_0%,rgba(124,92,252,0.13),transparent_70%)]"
+        aria-hidden
+      />
+      <div
+        className="animate-orb-drift pointer-events-none absolute -right-40 -top-40 h-[600px] w-[600px] rounded-full bg-purple/[0.08] blur-3xl"
+        aria-hidden
+      />
+      <div
+        className="animate-orb-drift pointer-events-none absolute -bottom-40 -left-40 h-[520px] w-[520px] rounded-full bg-purple-muted/[0.12] blur-3xl"
+        style={{ animationDelay: "-7s" }}
+        aria-hidden
+      />
+
+      {/* Top folio strip */}
+      <div className="absolute inset-x-0 top-0 z-20 border-b border-white/10 bg-navy text-white">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-2.5 lg:px-8">
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.28em] text-white/55">
+            Onboarding · Complete
+          </span>
+          <span className="hidden items-center gap-2.5 text-[12.5px] text-white/85 md:inline-flex">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-light opacity-75" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-teal-light" />
+            </span>
+            Your trial is now live
+          </span>
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.28em] text-white/55">
+            04 / 04
+          </span>
+        </div>
       </div>
-      <div
-        className="pointer-events-none absolute -right-40 -top-40 h-[600px] w-[600px] rounded-full bg-purple/[0.08] blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -bottom-40 -left-40 h-[500px] w-[500px] rounded-full bg-purple-muted/[0.1] blur-3xl"
-        aria-hidden
-      />
 
       <div className="relative z-10 mx-auto w-full max-w-5xl text-center">
-        {/* Confetti spark */}
+        {/* Mascot */}
         <motion.div
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-          className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-purple to-purple-deep shadow-xl shadow-purple/30"
+          initial={{ scale: 0.6, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
+          className="mx-auto"
         >
-          <Rocket className="h-9 w-9 text-white" aria-hidden />
+          <PulseMark size={84} />
         </motion.div>
 
-        <motion.p
+        <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.25 }}
-          className="mt-8 text-[13px] font-semibold uppercase tracking-wider text-purple"
+          className="editorial-eyebrow mt-7 justify-center"
         >
-          Welcome to IMMI-PULSE
-        </motion.p>
+          <span>Welcome aboard</span>
+        </motion.div>
 
         <motion.h1
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.35 }}
-          className="mt-4 font-heading text-[clamp(2.25rem,5vw,3.75rem)] font-normal leading-[1.05] tracking-[-1.5px] text-navy"
+          className="mt-5 font-heading font-normal leading-[1.02] tracking-[-1.6px] text-navy"
+          style={{ fontSize: "clamp(2.5rem, 5.4vw, 4.25rem)" }}
         >
           You&apos;re in,{" "}
-          <span className="bg-gradient-to-r from-purple to-purple-deep bg-clip-text text-transparent">
-            {orgName}
+          <span className="relative inline-block">
+            <span className="bg-gradient-to-r from-purple via-purple to-purple-deep bg-clip-text text-transparent">
+              {orgName}
+            </span>
+            <svg
+              aria-hidden
+              className="absolute -bottom-1 left-0 h-[10px] w-full"
+              viewBox="0 0 240 10"
+              preserveAspectRatio="none"
+            >
+              <path
+                d="M0,7 Q60,2 120,5 T240,4"
+                fill="none"
+                stroke="url(#welcome-under)"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <defs>
+                <linearGradient id="welcome-under" x1="0" x2="1">
+                  <stop offset="0%" stopColor="#7C5CFC" stopOpacity="0.2" />
+                  <stop offset="50%" stopColor="#7C5CFC" stopOpacity="0.95" />
+                  <stop offset="100%" stopColor="#5B3ADB" stopOpacity="0.2" />
+                </linearGradient>
+              </defs>
+            </svg>
           </span>
           .
         </motion.h1>
@@ -1064,10 +1605,11 @@ function WelcomeScreen({
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.45 }}
-          className="mx-auto mt-5 max-w-2xl text-[17px] leading-relaxed text-gray-text"
+          className="mx-auto mt-6 max-w-2xl text-[17px] leading-[1.55] text-gray-text"
         >
-          Your 14-day Professional trial is live. Here&apos;s what you can do from
-          minute one.
+          Your workspace is ready. Set up your first intake form to start
+          receiving enquiries, or import a live case to watch the AI work end
+          to end.
         </motion.p>
 
         {/* Capability cards */}
@@ -1075,22 +1617,25 @@ function WelcomeScreen({
           variants={stagger}
           initial="hidden"
           animate="visible"
-          className="mt-14 grid gap-5 sm:grid-cols-3"
+          className="mt-12 grid gap-5 sm:grid-cols-3"
         >
           {capabilities.map((c, i) => (
             <motion.div
               key={c.title}
               variants={fadeUp}
               custom={i + 5}
-              className="group relative overflow-hidden rounded-2xl border border-border bg-white p-6 text-left transition-all hover:-translate-y-1 hover:border-purple/30 hover:shadow-xl hover:shadow-purple/10"
+              className="group relative overflow-hidden rounded-2xl border border-border bg-white p-6 text-left transition-all hover:-translate-y-1 hover:border-purple/30 hover:shadow-[0_24px_50px_-24px_rgba(124,92,252,0.25)]"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple/10">
-                <c.icon className="h-5 w-5 text-purple" aria-hidden />
+              <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-gray-text/70">
+                Capability · 0{i + 1}
+              </span>
+              <div className="mt-4 flex h-12 w-12 items-center justify-center rounded-xl bg-purple/10 ring-1 ring-purple/15">
+                <c.icon className="h-5 w-5 text-purple-deep" aria-hidden />
               </div>
               <h3 className="mt-5 font-heading text-[17px] font-semibold text-navy">
                 {c.title}
               </h3>
-              <p className="mt-2 text-[14px] leading-relaxed text-gray-text">
+              <p className="mt-2 text-[13.5px] leading-relaxed text-gray-text">
                 {c.desc}
               </p>
             </motion.div>
@@ -1102,16 +1647,16 @@ function WelcomeScreen({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.95 }}
-          className="mx-auto mt-10 flex max-w-2xl flex-wrap items-center justify-center gap-x-6 gap-y-3 text-[13px] text-gray-text"
+          className="mx-auto mt-10 flex max-w-2xl flex-wrap items-center justify-center gap-x-8 gap-y-3 font-mono text-[11px] uppercase tracking-[0.22em] text-gray-text/75"
         >
           <span className="inline-flex items-center gap-1.5">
-            <Shield className="h-4 w-4 text-purple" /> SOC 2 compliant
+            <ShieldCheck className="h-3.5 w-3.5 text-purple" /> Encrypted
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <Zap className="h-4 w-4 text-purple" /> Full feature set
+            <Sparkles className="h-3.5 w-3.5 text-purple" /> Full feature set
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <Sparkles className="h-4 w-4 text-purple" /> No credit card needed
+            <Check className="h-3.5 w-3.5 text-purple" /> No card required
           </span>
         </motion.div>
 
@@ -1125,13 +1670,14 @@ function WelcomeScreen({
           <button
             type="button"
             onClick={onContinue}
-            className="inline-flex items-center gap-2 rounded-lg border-2 border-purple bg-purple px-9 py-4 text-[16px] font-medium text-white shadow-xl shadow-purple/30 transition-all hover:border-purple-deep hover:bg-purple-deep hover:shadow-purple-deep/30"
+            className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl border-2 border-purple bg-purple px-9 py-4 text-[16px] font-medium text-white shadow-[0_18px_36px_-10px_rgba(124,92,252,0.55)] transition-all hover:border-purple-deep hover:bg-purple-deep hover:shadow-[0_24px_44px_-12px_rgba(91,58,219,0.6)]"
           >
-            Enter your dashboard
-            <ArrowRight className="h-4 w-4" />
+            <span aria-hidden className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
+            <span className="relative">Enter your dashboard</span>
+            <ArrowRight className="relative h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </button>
-          <p className="mt-4 text-[13px] text-gray-text">
-            Tip: start by setting up your first intake form to receive client enquiries.
+          <p className="mt-4 font-mono text-[10.5px] uppercase tracking-[0.22em] text-gray-text/65">
+            Tip · start with your first intake form to receive enquiries
           </p>
         </motion.div>
       </div>

@@ -33,6 +33,13 @@ class Organization(Base):
     country = Column(String, nullable=False, default="AU")
     stripe_customer_id = Column(String, nullable=True)
 
+    # Public-facing practice profile — captured at signup Step 2, editable in Settings.
+    website = Column(String, nullable=True)
+    business_phone = Column(String, nullable=True)
+    contact_person = Column(String, nullable=True)
+    business_hours = Column(String, nullable=True)
+    social_links = Column(JSONB, nullable=True)
+
     # Australian business + payment details — auto-rendered into payment instructions
     abn = Column(String, nullable=True)
     bsb = Column(String, nullable=True)

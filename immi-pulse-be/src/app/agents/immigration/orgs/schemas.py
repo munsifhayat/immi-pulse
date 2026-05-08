@@ -12,6 +12,13 @@ class OrgUpdate(BaseModel):
     niche: Optional[str] = None
     omara_number: Optional[str] = None
 
+    # Practice profile
+    website: Optional[str] = None
+    business_phone: Optional[str] = None
+    contact_person: Optional[str] = None
+    business_hours: Optional[str] = None
+    social_links: Optional[dict[str, str]] = None
+
     # Australian payment + business details
     abn: Optional[str] = None
     bsb: Optional[str] = None
@@ -87,6 +94,10 @@ class BillingSummary(BaseModel):
     role_counts: dict[str, int]  # per-role counts for display only (not billing input)
     monthly_total_aud: int
     features: list[str]
+    # Currently-applied pilot/promo (null when none). Lets the FE render the
+    # "applied" pill and a reset action without a second round-trip.
+    pilot_code: Optional[str] = None
+    pilot_name: Optional[str] = None
 
 
 class SelectPlanRequest(BaseModel):
@@ -102,4 +113,9 @@ class RedeemPromoResponse(BaseModel):
     already_applied: bool
     credits_added: int = 0
     pilot_name: Optional[str] = None
+    billing: BillingSummary
+
+
+class ResetPromoResponse(BaseModel):
+    reset: bool
     billing: BillingSummary

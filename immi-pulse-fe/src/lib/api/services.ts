@@ -153,6 +153,8 @@ export interface BillingSummary {
   role_counts: Record<string, number>;
   monthly_total_aud: number;
   features: string[];
+  pilot_code: string | null;
+  pilot_name: string | null;
 }
 
 export const orgApi = {
@@ -161,6 +163,11 @@ export const orgApi = {
       name: string;
       niche: string;
       omara_number: string;
+      website: string;
+      business_phone: string;
+      contact_person: string;
+      business_hours: string;
+      social_links: Record<string, string>;
       abn: string;
       bsb: string;
       bank_account_number: string;
@@ -191,6 +198,10 @@ export const orgApi = {
     pilot_name: string | null;
     billing: BillingSummary;
   }> => (await apiClient.post("/org/billing/redeem-promo", { code })).data,
+  resetPromo: async (): Promise<{
+    reset: boolean;
+    billing: BillingSummary;
+  }> => (await apiClient.post("/org/billing/reset-promo")).data,
 };
 
 // ---- Questionnaires ----
@@ -232,12 +243,23 @@ export const publicQuestionnairesApi = {
     name: string;
     description: string | null;
     org_name: string;
+    org_omara_number: string | null;
+    org_website: string | null;
+    org_business_phone: string | null;
+    org_contact_person: string | null;
+    org_business_hours: string | null;
+    org_social_links: Record<string, string> | null;
     fields: QuestionField[];
   }> => (await apiClient.get(`/public/q/${slug}`)).data,
 
   submit: async (
     slug: string,
-    payload: { submitter_email: string; submitter_name?: string; answers: Record<string, unknown> }
+    payload: {
+      submitter_email: string;
+      submitter_name?: string;
+      submitter_phone?: string;
+      answers: Record<string, unknown>;
+    }
   ): Promise<{ response_id: string; pre_case_id: string; message: string }> =>
     (await apiClient.post(`/public/q/${slug}/submit`, payload)).data,
 };
@@ -370,6 +392,7 @@ export interface LetterOut {
   sent_at?: string | null;
   signed_at?: string | null;
   sign_url?: string | null;
+  sign_pin?: string | null;
   sign_link_expires_at?: string | null;
   created_at: string;
 }
@@ -385,11 +408,23 @@ export interface PublicLetterView {
   status: string;
 }
 
+export type EmailDeliveryStatus = "sent" | "failed" | "skipped";
+
 export interface SendLetterResponse {
   letter_id: string;
   sign_url: string;
   sign_pin: string;
   expires_at: string;
+  client_email: string | null;
+  email_status: EmailDeliveryStatus;
+  email_error: string | null;
+}
+
+export interface ResendReminderResponse {
+  letter_id: string;
+  client_email: string | null;
+  email_status: EmailDeliveryStatus;
+  email_error: string | null;
 }
 
 export const lettersApi = {
@@ -436,6 +471,8 @@ export const lettersApi = {
     (await apiClient.post(`/engagement-letters/by-precase/${preCaseId}/mark-signed-manually`, payload)).data,
   void: async (letterId: string) =>
     (await apiClient.post(`/engagement-letters/${letterId}/void`)).data,
+  resendReminder: async (letterId: string): Promise<ResendReminderResponse> =>
+    (await apiClient.post(`/engagement-letters/${letterId}/resend-reminder`)).data,
 };
 
 export const publicLettersApi = {

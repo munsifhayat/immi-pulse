@@ -1,6 +1,11 @@
 """
-AI Gateway — AWS Bedrock inference with usage tracking.
-Simplified from AgentOS: Bedrock-only, no user scoping.
+AI Gateway — OpenAI inference via the Strands Agents SDK, with usage tracking.
+
+Strands is provider-agnostic: `Agent(model=...)` accepts any model implementation,
+so callers (`classify`, `analyze`, `summarize`, `classify_comprehensive`) keep
+the exact same interface regardless of which provider is wired in. We use
+`strands.models.openai.OpenAIModel` so the OpenAI key in `OPENAI_API_KEY`
+drives all AI features (precase triage, intake classifier, document analyzer).
 """
 
 import asyncio
@@ -18,30 +23,26 @@ from app.core.config import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# Approximate Bedrock pricing per 1M tokens.
-# Keys match Bedrock model IDs as well as the cross-region inference profile prefixes
-# (apac.*, us.*, eu.*, global.*). _normalize_model_id strips the profile prefix
-# before lookup, so we only need one entry per underlying model.
+# Approximate OpenAI pricing per 1M tokens (May 2026 published rates).
+# Used for telemetry only — never gates a request.
 MODEL_PRICING = {
-    # Legacy Claude 3 family (kept for backwards-compat with old usage logs)
-    "anthropic.claude-3-haiku-20240307-v1:0": {"input_per_1m": 0.25, "output_per_1m": 1.25},
-    "anthropic.claude-3-5-haiku-20241022-v1:0": {"input_per_1m": 0.80, "output_per_1m": 4.00},
-    "anthropic.claude-sonnet-4-20250514-v1:0": {"input_per_1m": 3.00, "output_per_1m": 15.00},
-    # Current generation
-    "anthropic.claude-haiku-4-5-20251001-v1:0": {"input_per_1m": 1.00, "output_per_1m": 5.00},
-    "anthropic.claude-sonnet-4-5-20250929-v1:0": {"input_per_1m": 3.00, "output_per_1m": 15.00},
-    "anthropic.claude-sonnet-4-6-20251218-v1:0": {"input_per_1m": 3.00, "output_per_1m": 15.00},
-    "anthropic.claude-opus-4-7-20260420-v1:0": {"input_per_1m": 15.00, "output_per_1m": 75.00},
-    "default": {"input_per_1m": 1.00, "output_per_1m": 5.00},
+    "gpt-4o-mini": {"input_per_1m": 0.15, "output_per_1m": 0.60},
+    "gpt-4o": {"input_per_1m": 2.50, "output_per_1m": 10.00},
+    "gpt-4.1-mini": {"input_per_1m": 0.40, "output_per_1m": 1.60},
+    "gpt-4.1": {"input_per_1m": 2.00, "output_per_1m": 8.00},
+    "o4-mini": {"input_per_1m": 1.10, "output_per_1m": 4.40},
+    "default": {"input_per_1m": 0.50, "output_per_1m": 2.00},
 }
 
 
 def _normalize_model_id(model_id: str) -> str:
-    """Strip CRIS profile prefix (apac./us./eu./global.) for pricing lookup."""
-    for prefix in ("global.", "apac.", "us.", "eu."):
-        if model_id.startswith(prefix):
-            return model_id[len(prefix):]
-    return model_id
+    """Strip provider/version suffixes (e.g. `-2024-08-06`) for pricing lookup."""
+    base = model_id.split(":")[0]
+    # Trim any trailing date suffix like "gpt-4o-2024-08-06" → "gpt-4o"
+    parts = base.split("-")
+    while len(parts) > 1 and parts[-1].isdigit() and len(parts[-1]) >= 2:
+        parts.pop()
+    return "-".join(parts) if parts else base
 
 
 @dataclass
@@ -81,7 +82,7 @@ class AIGateway:
         return await self._invoke(
             prompt=content,
             system_prompt=system_prompt,
-            model_id=settings.bedrock_analyzer_model,
+            model_id=settings.openai_analyzer_model,
             agent_name=agent_name,
             operation="classify",
             max_tokens=max_tokens,
@@ -98,7 +99,7 @@ class AIGateway:
         return await self._invoke(
             prompt=content,
             system_prompt=system_prompt,
-            model_id=settings.bedrock_drafter_model,
+            model_id=settings.openai_drafter_model,
             agent_name=agent_name,
             operation="analyze",
             max_tokens=max_tokens,
@@ -115,7 +116,7 @@ class AIGateway:
         return await self._invoke(
             prompt=content,
             system_prompt=system_prompt,
-            model_id=settings.bedrock_drafter_model,
+            model_id=settings.openai_drafter_model,
             agent_name=agent_name,
             operation="classify_comprehensive",
             max_tokens=max_tokens,
@@ -132,7 +133,7 @@ class AIGateway:
         return await self._invoke(
             prompt=content,
             system_prompt=system_prompt,
-            model_id=settings.bedrock_drafter_model,
+            model_id=settings.openai_drafter_model,
             agent_name=agent_name,
             operation="summarize",
             max_tokens=max_tokens,
@@ -157,7 +158,7 @@ class AIGateway:
                     raw_result=None,
                     metrics=AIMetrics(0, 0, 0, 0, model_id, 0.0),
                     success=False,
-                    error="Failed to initialize AI agent — AWS credentials may not be configured",
+                    error="Failed to initialize AI agent — OPENAI_API_KEY is not configured",
                 )
 
             result = await asyncio.to_thread(agent, prompt)
@@ -200,24 +201,30 @@ class AIGateway:
 
         try:
             from strands import Agent
-            from strands.models.bedrock import BedrockModel
+            from strands.models.openai import OpenAIModel
 
-            if not settings.aws_access_key_id or not settings.aws_secret_access_key:
-                logger.warning("AWS credentials not configured for AI Gateway")
+            if not settings.openai_api_key:
+                logger.warning("OPENAI_API_KEY not configured for AI Gateway")
                 return None
 
-            model = BedrockModel(
+            model = OpenAIModel(
+                client_args={
+                    "api_key": settings.openai_api_key,
+                    "timeout": settings.openai_request_timeout_seconds,
+                },
                 model_id=model_id,
-                region_name=settings.aws_region,
-                max_tokens=max_tokens,
+                params={"max_tokens": max_tokens},
             )
             agent = Agent(model=model, system_prompt=system_prompt)
             self._agents[cache_key] = agent
-            logger.info(f"AI Gateway: Created agent for {model_id}")
+            logger.info(f"AI Gateway: Created OpenAI agent for {model_id}")
             return agent
 
         except ImportError as e:
-            logger.error(f"Strands SDK not installed: {e}")
+            logger.error(
+                f"Strands OpenAI provider not installed: {e}. "
+                f"Run `pip install 'strands-agents[openai]'`."
+            )
             return None
         except Exception as e:
             logger.error(f"Failed to create agent: {e}")

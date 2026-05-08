@@ -243,16 +243,24 @@ function StatCard({
   return (
     <div
       className={cn(
-        "relative border border-border/60 bg-card/40 px-4 py-4 transition-colors hover:border-border",
-        accent &&
-          "border-emerald-500/30 bg-emerald-500/[0.04] hover:border-emerald-500/50",
+        "group relative h-full rounded-2xl border bg-card p-5 shadow-[0_1px_0_rgba(15,17,23,0.02)] transition-all hover:-translate-y-0.5",
+        accent
+          ? "border-emerald-500/30 bg-emerald-500/[0.04] hover:border-emerald-500/55 hover:shadow-[0_18px_40px_-24px_rgba(16,185,129,0.45)]"
+          : "border-border hover:border-[color:var(--purple)]/30 hover:shadow-[0_18px_40px_-24px_color-mix(in_srgb,var(--purple)_55%,transparent)]",
       )}
     >
-      <p className="font-serif-d text-[34px] leading-none tracking-tight tabular-nums text-foreground">
-        {value}
-      </p>
-      <p className="font-mono-d mt-2 text-[9.5px] uppercase tracking-[0.22em] text-muted-foreground">
+      <p className="font-heading text-[13.5px] font-semibold text-foreground">
         {label}
+      </p>
+      <p
+        className={cn(
+          "font-heading mt-4 text-[40px] font-medium leading-none tracking-[-1.2px] tabular-nums",
+          accent
+            ? "text-emerald-700 dark:text-emerald-300"
+            : "text-foreground",
+        )}
+      >
+        {value}
       </p>
     </div>
   );

@@ -1,0 +1,30 @@
+{% extends '_layout.html' %}
+{% from '_macros.html' import button, eyebrow, hairline, pin_card, cta_with_copy_link, note_block %}
+
+{% block preheader %}{{ consultant_name }} at {{ firm_name }} has requested documents for your case. Use PIN {{ pin }} to upload securely.{% endblock %}
+
+{% block content %}
+  {{ eyebrow('Secure document request') }}
+
+  <h1 class="h1" style="font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; font-weight: 600; font-size: 32px; line-height: 38px; letter-spacing: -0.4px; color: #101928; margin: 0 0 18px 0;">
+    {{ firm_name }} has requested documents for your visa application.
+  </h1>
+
+  <p style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 16px; line-height: 26px; color: #475367; margin: 0 0 32px 0;">
+    Hi {{ recipient_name.split()[0] if recipient_name else 'there' }} — {{ consultant_name }} has set up a secure portal where you can upload the documents needed for your case. Use the one-time PIN below to verify it&rsquo;s really you, then drop your files in.
+  </p>
+
+  {{ pin_card(pin, expires_at_label, 'One-time access PIN') }}
+
+  {{ cta_with_copy_link(upload_url, 'Upload documents securely') }}
+
+  {{ hairline(margin='40px 0 24px 0') }}
+
+  {{ note_block('A note on security', 'Don&rsquo;t share this PIN with anyone, including IMMI&#8209;PULSE staff. We&rsquo;ll never ask for it. If you didn&rsquo;t expect this email, you can safely ignore it &mdash; the link will expire on its own.') }}
+
+  <div style="margin-top: 28px; font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 22px; color: #475367;">
+    Questions about the documents themselves? Reply to this email and {{ consultant_name }} will get back to you directly.
+  </div>
+{% endblock %}
+
+{% block footer_postscript %} You&rsquo;re receiving this because {{ firm_name }} added you as a client.{% endblock %}

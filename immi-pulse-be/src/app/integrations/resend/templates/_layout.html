@@ -1,0 +1,134 @@
+{# Base layout — every IMMI-PULSE email extends this. Blocks: preheader, content. #}
+<!DOCTYPE html>
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light">
+  <title>IMMI-PULSE</title>
+
+  <!--[if !mso]><!-->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <!--<![endif]-->
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+    /* Reset for stubborn clients */
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+    body { margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #F4F5F7; }
+    a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+
+    /* Mobile */
+    @media screen and (max-width: 620px) {
+      .container { width: 100% !important; max-width: 100% !important; }
+      .px-lg { padding-left: 24px !important; padding-right: 24px !important; }
+      .py-lg { padding-top: 40px !important; padding-bottom: 40px !important; }
+      .h1 { font-size: 28px !important; line-height: 34px !important; letter-spacing: -0.4px !important; }
+      .pin-digit { font-size: 30px !important; letter-spacing: 8px !important; }
+      .feature-num-cell { width: 44px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; width: 100%; background-color: #F4F5F7; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
+
+  {# Preheader — hidden inbox preview text. #}
+  <div style="display: none; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden; mso-hide: all; visibility: hidden; color: #F4F5F7;">
+    {% block preheader %}{% endblock %}
+    &#847; &zwnj; &nbsp; &#8199; &#65279; &#847; &zwnj; &nbsp; &#8199; &#65279; &#847; &zwnj; &nbsp; &#8199; &#65279; &#847; &zwnj; &nbsp; &#8199; &#65279;
+  </div>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #F4F5F7;">
+    <tr>
+      <td align="center" style="padding: 32px 12px;">
+
+        {# 4px purple top-stripe — tiny brand accent that survives every client. #}
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="container" style="width: 600px; max-width: 600px; border-collapse: separate;">
+          <tr>
+            <td height="4" bgcolor="#7A5AF8" style="font-size: 0; line-height: 0; height: 4px; background-color: #7A5AF8; border-top-left-radius: 14px; border-top-right-radius: 14px;">&nbsp;</td>
+          </tr>
+        </table>
+
+        {# Card #}
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="container" style="width: 600px; max-width: 600px; background-color: #FFFFFF; border-collapse: separate; border-bottom-left-radius: 14px; border-bottom-right-radius: 14px;">
+
+          {# Header — wordmark #}
+          <tr>
+            <td class="px-lg" style="padding: 28px 56px 24px 56px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td valign="middle" style="padding-right: 12px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td width="14" height="14" bgcolor="#7A5AF8" style="font-size: 0; line-height: 0; height: 14px; width: 14px; background-color: #7A5AF8; border-radius: 3px;">&nbsp;</td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td valign="middle" style="font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; font-weight: 700; font-size: 13px; line-height: 14px; letter-spacing: 2.8px; color: #101928; text-transform: uppercase;">
+                    IMMI&#8209;PULSE
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          {# Hairline below header #}
+          <tr>
+            <td class="px-lg" style="padding: 0 56px;">
+              <div style="border-top: 1px solid #EEF0F3; font-size: 0; line-height: 0; height: 0;">&nbsp;</div>
+            </td>
+          </tr>
+
+          {# Content #}
+          <tr>
+            <td class="px-lg py-lg" style="padding: 56px 56px 56px 56px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;">
+              {% block content %}{% endblock %}
+            </td>
+          </tr>
+
+          {# Footer hairline #}
+          <tr>
+            <td class="px-lg" style="padding: 0 56px;">
+              <div style="border-top: 1px solid #EEF0F3; font-size: 0; line-height: 0; height: 0;">&nbsp;</div>
+            </td>
+          </tr>
+
+          {# Footer #}
+          <tr>
+            <td class="px-lg" style="padding: 28px 56px 36px 56px; font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif;">
+              <div style="font-size: 11px; font-weight: 600; letter-spacing: 2.4px; line-height: 14px; color: #7A5AF8; text-transform: uppercase; margin-bottom: 10px;">IMMI&#8209;PULSE</div>
+              <div style="font-size: 13px; line-height: 20px; color: #475367; margin-bottom: 14px;">
+                Australian immigration intelligence — built with consultants, for consultants.
+              </div>
+              <div style="font-size: 12px; line-height: 18px; color: #98A2B3;">
+                Need help? Reply to this email or write to
+                <a href="mailto:{{ support_email|default('support@immi-pulse.com') }}" style="color: #475367; text-decoration: none; border-bottom: 1px solid #D9D6FE;">{{ support_email|default('support@immi-pulse.com') }}</a>.
+              </div>
+              <div style="font-size: 12px; line-height: 18px; color: #98A2B3; margin-top: 14px;">
+                &copy; {{ year|default(2026) }} IMMI&#8209;PULSE Pty Ltd &nbsp;&middot;&nbsp; Sydney, Australia
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        {# Bottom spacer #}
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="container" style="width: 600px; max-width: 600px;">
+          <tr>
+            <td style="padding: 24px 0; font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 11px; line-height: 16px; color: #98A2B3; text-align: center;">
+              You received this email from IMMI&#8209;PULSE.
+              {% block footer_postscript %}{% endblock %}
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

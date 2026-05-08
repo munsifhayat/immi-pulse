@@ -3,11 +3,23 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, ChevronsUpDown, Settings } from "lucide-react";
+import {
+  LayoutDashboard,
+  Inbox,
+  Briefcase,
+  Users,
+  FolderOpen,
+  ClipboardList,
+  Settings as SettingsIcon,
+  LogOut,
+  ChevronsUpDown,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { preCasesApi } from "@/lib/api/services";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { PulseMark } from "@/components/brand/pulse-mark";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,14 +30,19 @@ import {
 
 type Counters = { inbox: number; precases: number };
 
-const navigation = [
-  { num: "01", name: "Overview", href: "/dashboard", badgeKey: null as keyof Counters | null },
-  { num: "02", name: "Inbox", href: "/dashboard/inbox", badgeKey: "inbox" as const },
-  { num: "03", name: "Pre-cases", href: "/dashboard/precases", badgeKey: "precases" as const },
-  { num: "04", name: "Clients", href: "/dashboard/clients", badgeKey: null as keyof Counters | null },
-  { num: "05", name: "Cases", href: "/dashboard/cases", badgeKey: null as keyof Counters | null },
-  { num: "06", name: "Forms", href: "/dashboard/questionnaires", badgeKey: null as keyof Counters | null },
-  { num: "07", name: "Settings", href: "/dashboard/settings", badgeKey: null as keyof Counters | null },
+const navigation: {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+  badgeKey: keyof Counters | null;
+}[] = [
+  { name: "Overview", href: "/dashboard", icon: LayoutDashboard, badgeKey: null },
+  { name: "Inbox", href: "/dashboard/inbox", icon: Inbox, badgeKey: "inbox" },
+  { name: "Pre-cases", href: "/dashboard/precases", icon: Briefcase, badgeKey: "precases" },
+  { name: "Clients", href: "/dashboard/clients", icon: Users, badgeKey: null },
+  { name: "Cases", href: "/dashboard/cases", icon: FolderOpen, badgeKey: null },
+  { name: "Forms", href: "/dashboard/questionnaires", icon: ClipboardList, badgeKey: null },
+  { name: "Settings", href: "/dashboard/settings", icon: SettingsIcon, badgeKey: null },
 ];
 
 const INBOX_STATUSES = new Set(["pending", "in_review"]);
@@ -43,11 +60,13 @@ export function Sidebar() {
       try {
         const items = await preCasesApi.list();
         if (!mounted) return;
-        const inbox = items.filter((p) => INBOX_STATUSES.has(p.status) && p.read_at === null).length;
+        const inbox = items.filter(
+          (p) => INBOX_STATUSES.has(p.status) && p.read_at === null,
+        ).length;
         const precases = items.filter((p) => PRECASE_STATUSES.has(p.status)).length;
         setCounters({ inbox, precases });
       } catch {
-        // Silent — sidebar shouldn't error on bg fetch
+        // silent
       }
     };
     load();
@@ -59,37 +78,35 @@ export function Sidebar() {
   }, [isAuthenticated, pathname]);
 
   const userInitials = user
-    ? `${user.first_name?.[0] || ""}${user.last_name?.[0] || ""}`.toUpperCase() || user.email[0].toUpperCase()
+    ? `${user.first_name?.[0] || ""}${user.last_name?.[0] || ""}`.toUpperCase() ||
+      user.email[0].toUpperCase()
     : "U";
 
   return (
-    <aside className="relative flex h-full w-[244px] flex-col border-r border-border/70 bg-sidebar">
-      {/* Brand block — folio header */}
-      <div className="relative border-b border-border/70 px-5 pb-5 pt-6">
+    <aside className="relative flex h-full w-[252px] flex-col border-r border-border bg-sidebar">
+      {/* Brand block */}
+      <div className="flex items-center gap-3 border-b border-border px-5 py-5">
         <Link href="/dashboard" className="group flex items-center gap-3">
-          <span className="block h-2 w-2 rotate-45 bg-[color:var(--purple)] transition-transform duration-500 group-hover:rotate-[225deg]" />
-          <div className="flex min-w-0 flex-col">
-            <span className="font-mono-d text-[11px] font-medium uppercase leading-none tracking-[0.22em] text-foreground">
+          <PulseMark size={32} label="II" rings={false} />
+          <div className="flex min-w-0 flex-col leading-none">
+            <span className="font-heading text-[15px] font-semibold tracking-tight text-foreground">
               IMMI-PULSE
             </span>
-            <span className="font-mono-d mt-1.5 truncate text-[9.5px] uppercase leading-none tracking-[0.22em] text-muted-foreground/80">
-              {org?.name || "—"}
+            <span className="font-mono mt-1 truncate text-[9.5px] uppercase tracking-[0.22em] text-muted-foreground">
+              {org?.name || "Migration OS"}
             </span>
           </div>
         </Link>
       </div>
 
-      {/* Editorial section label */}
-      <div className="px-5 pb-3 pt-5">
-        <p className="font-mono-d text-[9.5px] uppercase tracking-[0.28em] text-muted-foreground/65">
-          ◆ Manifest
-        </p>
-      </div>
-
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-3">
-        <ul className="space-y-px">
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <p className="px-2 pb-2 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground/70">
+          Workspace
+        </p>
+        <ul className="space-y-0.5">
           {navigation.map((item) => {
+            const Icon = item.icon;
             const isActive =
               item.href === "/dashboard"
                 ? pathname === item.href
@@ -100,35 +117,23 @@ export function Sidebar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    "group relative flex items-center gap-3 px-2.5 py-2.5 text-sm transition-all",
+                    "group relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-[13.5px] transition-all",
                     isActive
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground",
+                      ? "bg-[color:var(--purple)]/8 text-foreground"
+                      : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
                   )}
                 >
-                  {/* Left active rail */}
-                  <span
-                    aria-hidden
+                  <Icon
                     className={cn(
-                      "absolute inset-y-1.5 left-0 w-px transition-all",
+                      "h-4 w-4 shrink-0 transition-colors",
                       isActive
-                        ? "bg-[color:var(--purple)]"
-                        : "bg-transparent group-hover:bg-foreground/20",
+                        ? "text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]"
+                        : "text-muted-foreground/70 group-hover:text-foreground",
                     )}
                   />
                   <span
                     className={cn(
-                      "font-mono-d w-7 text-[10px] tracking-[0.16em] transition-colors",
-                      isActive
-                        ? "text-[color:var(--purple-deep)] dark:text-[color:var(--purple-light)]"
-                        : "text-muted-foreground/60",
-                    )}
-                  >
-                    {item.num}
-                  </span>
-                  <span
-                    className={cn(
-                      "flex-1 truncate text-[13px] tracking-[0.01em]",
+                      "flex-1 truncate",
                       isActive ? "font-medium" : "font-normal",
                     )}
                   >
@@ -137,10 +142,10 @@ export function Sidebar() {
                   {badge > 0 && (
                     <span
                       className={cn(
-                        "font-mono-d flex h-[18px] min-w-[22px] items-center justify-center px-1.5 text-[9.5px] tabular-nums tracking-[0.05em] transition-colors",
+                        "flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10.5px] font-medium tabular-nums transition-colors",
                         isActive
                           ? "bg-[color:var(--purple)] text-white"
-                          : "bg-foreground/8 text-foreground/70 group-hover:bg-foreground/12",
+                          : "bg-foreground/8 text-foreground/70",
                       )}
                     >
                       {badge}
@@ -153,20 +158,12 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      {/* Folio seal — bottom decorative meta */}
-      <div className="px-5 py-4">
-        <div className="flex items-center justify-between font-mono-d text-[9px] uppercase tracking-[0.24em] text-muted-foreground/50">
-          <span>Folio Nº 001</span>
-          <span>EST · 2026</span>
-        </div>
-      </div>
-
       {/* User menu */}
-      <div className="border-t border-border/70 p-3">
+      <div className="border-t border-border p-3">
         <DropdownMenu>
-          <DropdownMenuTrigger className="group flex w-full items-center gap-2.5 px-2 py-2 text-left transition-colors hover:bg-foreground/5">
-            <Avatar className="h-8 w-8 rounded-none bg-foreground text-background">
-              <AvatarFallback className="font-mono-d rounded-none bg-foreground text-[10px] uppercase tracking-[0.1em] text-background">
+          <DropdownMenuTrigger className="group flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-foreground/[0.04]">
+            <Avatar className="h-8 w-8 rounded-full bg-gradient-to-br from-[color:var(--purple)] to-[color:var(--purple-deep)] text-white">
+              <AvatarFallback className="rounded-full bg-transparent text-[11px] font-semibold text-white">
                 {userInitials}
               </AvatarFallback>
             </Avatar>
@@ -174,7 +171,7 @@ export function Sidebar() {
               <p className="truncate text-[13px] font-medium leading-tight text-foreground">
                 {user?.first_name} {user?.last_name}
               </p>
-              <p className="font-mono-d truncate text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground/70">
+              <p className="truncate text-[11.5px] leading-tight text-muted-foreground">
                 {user?.email}
               </p>
             </div>
@@ -183,7 +180,7 @@ export function Sidebar() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem asChild>
               <Link href="/dashboard/settings">
-                <Settings className="mr-2 h-4 w-4" />
+                <SettingsIcon className="mr-2 h-4 w-4" />
                 Team & settings
               </Link>
             </DropdownMenuItem>

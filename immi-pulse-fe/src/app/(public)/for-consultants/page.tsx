@@ -14,9 +14,6 @@ import {
   Zap,
   Shield,
   Users,
-  Globe,
-  Star,
-  BadgeCheck,
 } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/motion";
 
@@ -78,29 +75,6 @@ const workflowSteps = [
   { label: "Lodgement Ready", desc: "Case complete" },
 ];
 
-const marketplaceBenefits = [
-  {
-    icon: Globe,
-    title: "Reach More Clients",
-    desc: "Visa applicants across Australia search our directory to find verified agents. Get discovered by people actively looking for help.",
-  },
-  {
-    icon: BadgeCheck,
-    title: "OMARA Verified Badge",
-    desc: "Every listing goes through OMARA registration check, credential review, and practice validation. Applicants trust our directory because we've done the due diligence.",
-  },
-  {
-    icon: Star,
-    title: "Build Your Reputation",
-    desc: "Showcase your specializations, languages, and experience. Let your expertise speak for itself.",
-  },
-  {
-    icon: Users,
-    title: "Free to List",
-    desc: "There's no cost to register. Submit your details, get verified, and start appearing in our directory.",
-  },
-];
-
 export default function ForConsultantsPage() {
   return (
     <div className="overflow-hidden">
@@ -157,10 +131,10 @@ export default function ForConsultantsPage() {
             className="text-center"
           >
             <span className="text-[13px] font-semibold uppercase tracking-wider text-purple">
-              Choose Your Path
+              The Platform
             </span>
             <h2 className="mt-2 text-balance font-heading text-[clamp(1.75rem,3.5vw,2.75rem)] font-normal tracking-[-1px] text-navy">
-              Two Ways to Benefit
+              Built for Your Practice
             </h2>
           </motion.div>
 
@@ -169,7 +143,7 @@ export default function ForConsultantsPage() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-60px" }}
-            className="mt-12 grid gap-8 md:grid-cols-2"
+            className="mx-auto mt-12 grid max-w-2xl gap-8"
           >
             {/* Path 1: Platform / Product */}
             <motion.div
@@ -209,117 +183,15 @@ export default function ForConsultantsPage() {
               </div>
               <div className="mt-auto pt-8">
                 <Link
-                  href="/login"
+                  href="/get-started"
                   className="flex w-full items-center justify-center gap-2.5 rounded-lg bg-purple px-7 py-3.5 text-[16px] font-medium text-white transition-colors duration-200 hover:bg-purple-deep"
                 >
-                  Start Free Trial
+                  Get Started
                   <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
               </div>
             </motion.div>
 
-            {/* Path 2: Marketplace Listing */}
-            <motion.div
-              variants={fadeUp}
-              custom={1}
-              className="relative flex flex-col overflow-hidden rounded-3xl border-2 border-teal/20 bg-white p-8 transition-all duration-300 hover:border-teal/40 hover:shadow-xl hover:shadow-teal/10 md:p-10"
-            >
-              <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-teal/[0.04] blur-2xl" />
-              <div className="relative">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-teal to-teal-light text-white shadow-lg shadow-teal/20">
-                  <Globe className="h-7 w-7" aria-hidden="true" />
-                </div>
-                <span className="mt-4 inline-block rounded-full bg-teal/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-teal">
-                  Marketplace
-                </span>
-                <h3 className="mt-4 font-heading text-2xl font-semibold text-navy">
-                  Get Listed in Our Directory
-                </h3>
-                <p className="mt-3 text-[16px] leading-relaxed text-gray-text">
-                  Join our verified consultant directory and let visa applicants
-                  find you. Submit your details, and our team will verify your
-                  OMARA registration, review your credentials, and validate
-                  your practice before your profile goes live.
-                </p>
-                <ul className="mt-6 space-y-3">
-                  {[
-                    "Verified OMARA badge on your profile",
-                    "Showcase specializations & languages",
-                    "Appear in city & visa type searches",
-                    "Completely free to list",
-                  ].map((item) => (
-                    <li key={item} className="flex items-start gap-2.5 text-[15px] text-gray-text">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal" aria-hidden="true" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="mt-auto pt-8">
-                <Link
-                  href="/find-consultants/apply"
-                  className="flex w-full items-center justify-center gap-2.5 rounded-lg border-2 border-teal bg-teal px-7 py-3.5 text-[16px] font-medium text-white transition-colors duration-200 hover:bg-teal/90"
-                >
-                  Register Your Practice
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </Link>
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ═══ MARKETPLACE BENEFITS ═══ */}
-      <section className="py-24">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <motion.div
-            variants={stagger}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
-            className="text-center"
-          >
-            <motion.p
-              variants={fadeUp}
-              custom={0}
-              className="text-[13px] font-semibold uppercase tracking-wider text-teal"
-            >
-              Marketplace
-            </motion.p>
-            <motion.h2
-              variants={fadeUp}
-              custom={1}
-              className="mt-3 font-heading text-[clamp(2rem,4vw,3rem)] font-normal tracking-[-1px] text-navy"
-            >
-              Why List on IMMI-PULSE?
-            </motion.h2>
-          </motion.div>
-
-          <motion.div
-            variants={stagger}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-60px" }}
-            className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
-          >
-            {marketplaceBenefits.map((benefit, i) => (
-              <motion.div
-                key={benefit.title}
-                variants={fadeUp}
-                custom={i}
-                className="rounded-2xl border border-border bg-white p-7 transition-all duration-300 hover:border-teal/20 hover:shadow-lg hover:shadow-teal/5"
-              >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal/10 text-teal">
-                  <benefit.icon className="h-5 w-5" aria-hidden="true" />
-                </div>
-                <h3 className="mt-4 font-heading text-[17px] font-semibold text-navy">
-                  {benefit.title}
-                </h3>
-                <p className="mt-2 text-[15px] leading-relaxed text-gray-text">
-                  {benefit.desc}
-                </p>
-              </motion.div>
-            ))}
           </motion.div>
         </div>
       </section>
@@ -535,22 +407,21 @@ export default function ForConsultantsPage() {
                 Ready to Get Started?
               </h2>
               <p className="mx-auto mt-4 max-w-lg text-lg text-white/70">
-                Try our AI platform free, or register to appear in our consultant
-                directory — your choice.
+                Create your account in minutes — no credit card required.
               </p>
               <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <Link
-                  href="/login"
+                  href="/get-started"
                   className="inline-flex items-center gap-2.5 rounded-lg bg-white px-8 py-3.5 text-[16px] font-semibold text-navy transition-all duration-200 hover:shadow-xl"
                 >
-                  Start Free Trial
+                  Get Started
                   <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
                 <Link
-                  href="/find-consultants/apply"
+                  href="/about#contact"
                   className="inline-flex items-center gap-2.5 rounded-lg border-2 border-white/30 px-8 py-3.5 text-[16px] font-semibold text-white transition-all duration-200 hover:border-white/60 hover:bg-white/10"
                 >
-                  Get Listed Free
+                  Talk to Sales
                   <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
               </div>

@@ -20,6 +20,7 @@ class User(Base):
     email_verified = Column(Boolean, nullable=False, default=True)
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
     role = Column(String, nullable=False, default="consultant")
     tdop_user_id = Column(String, nullable=True, index=True)
     status = Column(String, nullable=False, default="active")

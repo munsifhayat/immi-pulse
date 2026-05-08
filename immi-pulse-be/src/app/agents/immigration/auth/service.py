@@ -25,7 +25,8 @@ from app.agents.immigration.questionnaires.models import (
     QuestionnaireVersion,
 )
 from app.agents.immigration.users.models import User
-from app.core.jwt_auth import hash_password, verify_password
+from app.core.jwt_auth import hash_password, needs_rehash, verify_password
+from app.core.password_policy import PasswordPolicyError, assert_password_acceptable
 
 logger = logging.getLogger(__name__)
 
@@ -127,10 +128,28 @@ async def _create_seed_questionnaires(db: AsyncSession, org: Organization, seat:
 
 
 async def signup(db: AsyncSession, payload: SignupRequest) -> dict:
+    # Normalise email — lowercase + trim — to keep one identity per inbox.
+    email_norm = payload.email.strip().lower()
+
     # Reject duplicate email
-    existing = (await db.execute(select(User).where(User.email == payload.email.lower()))).scalar_one_or_none()
+    existing = (await db.execute(select(User).where(User.email == email_norm))).scalar_one_or_none()
     if existing:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "An account with this email already exists")
+
+    # Password policy — complexity + breach corpus + similarity to identifiers.
+    # Raises with a user-safe message when the password is unacceptable.
+    try:
+        await assert_password_acceptable(
+            payload.password,
+            also_compare=[
+                email_norm.split("@", 1)[0],
+                payload.first_name or "",
+                payload.last_name or "",
+                payload.firm_name or "",
+            ],
+        )
+    except PasswordPolicyError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc))
 
     # Resolve pilot program
     pilot: Optional[PilotProgram] = None
@@ -144,19 +163,28 @@ async def signup(db: AsyncSession, payload: SignupRequest) -> dict:
 
     # Create user
     user = User(
-        email=payload.email.lower(),
+        email=email_norm,
         password_hash=hash_password(payload.password),
         email_verified=True,  # Skip OTP per current scope
         first_name=payload.first_name,
         last_name=payload.last_name,
+        phone=payload.phone,
         role="consultant",
         status="active",
     )
     db.add(user)
     await db.flush()
 
-    # Create Org
-    org = Organization(name=payload.firm_name, country="AU")
+    # Create Org — pull through any optional Step 2 practice profile fields.
+    org = Organization(
+        name=payload.firm_name,
+        country="AU",
+        website=payload.website,
+        business_phone=payload.business_phone,
+        contact_person=payload.contact_person,
+        business_hours=payload.business_hours,
+        social_links=payload.social_links,
+    )
     db.add(org)
     await db.flush()
 
@@ -213,11 +241,29 @@ async def signup(db: AsyncSession, payload: SignupRequest) -> dict:
 
 
 async def login(db: AsyncSession, email: str, password: str) -> dict:
-    user = (await db.execute(select(User).where(User.email == email.lower()))).scalar_one_or_none()
-    if not user or not verify_password(password, user.password_hash):
+    email_norm = email.strip().lower()
+    user = (await db.execute(select(User).where(User.email == email_norm))).scalar_one_or_none()
+
+    # Single error path covers "no such user" and "wrong password" so callers
+    # cannot enumerate which emails are registered. Verify even when the user
+    # is missing to keep the response time roughly constant.
+    valid = bool(user) and verify_password(password, user.password_hash)
+    if not user or not valid:
+        if user is None:
+            verify_password(password, None)  # constant-time-ish dummy path
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid email or password")
     if user.status != "active":
         raise HTTPException(status.HTTP_403_FORBIDDEN, f"Account is {user.status}")
+
+    # Lazy rehash — silently upgrades legacy hashes (pre-pepper or weaker
+    # cost factor) at the next successful login. No forced password reset.
+    rehashed = False
+    if needs_rehash(password, user.password_hash):
+        try:
+            user.password_hash = hash_password(password)
+            rehashed = True
+        except Exception:
+            logger.exception("Lazy password rehash failed for user %s", user.id)
 
     seat = (
         await db.execute(
@@ -230,6 +276,9 @@ async def login(db: AsyncSession, email: str, password: str) -> dict:
     org = (await db.execute(select(Organization).where(Organization.id == seat.org_id))).scalar_one_or_none()
     sub = (await db.execute(select(Subscription).where(Subscription.org_id == seat.org_id))).scalar_one_or_none()
     wallet = (await db.execute(select(CreditWallet).where(CreditWallet.org_id == seat.org_id))).scalar_one_or_none()
+
+    if rehashed:
+        await db.commit()
 
     return {"user": user, "org": org, "subscription": sub, "wallet": wallet, "seat": seat}
 

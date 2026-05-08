@@ -9,6 +9,8 @@ JWT validates the *user* (and their tenant). Endpoints that need tenant
 scoping inject `current_seat`.
 """
 
+import hashlib
+import hmac
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -35,16 +37,87 @@ def _jwt_secret() -> str:
     return get_settings().effective_jwt_secret
 
 
+# ────────────────────────────────────────────────────────────────
+# Password hashing — bcrypt + optional server-side pepper.
+#
+# Storage flow (signup):
+#   plain ─► HMAC-SHA256(plain, pepper) ─► bcrypt(hmac, cost=12) ─► db
+#
+# Verification accepts both the peppered hash and legacy un-peppered
+# hashes so existing users keep logging in. Use needs_rehash() on
+# successful login and re-hash transparently — see auth/service.login.
+#
+# Why HMAC before bcrypt instead of just concat: bcrypt silently
+# truncates input at 72 bytes; HMAC-SHA256 outputs a fixed 32 bytes,
+# so long passwords stay fully covered. Spec: OWASP ASVS V2.4.5,
+# NIST SP 800-63B §5.1.1.2.
+# ────────────────────────────────────────────────────────────────
+
+
+def _pepper_bytes() -> Optional[bytes]:
+    p = get_settings().password_pepper
+    return p.encode("utf-8") if p else None
+
+
+def _prepare(plain: str) -> bytes:
+    raw = plain.encode("utf-8")
+    pepper = _pepper_bytes()
+    if pepper:
+        return hmac.new(pepper, raw, hashlib.sha256).digest()
+    return raw
+
+
 def hash_password(plain: str) -> str:
-    return bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    rounds = max(10, get_settings().password_bcrypt_rounds)
+    return bcrypt.hashpw(_prepare(plain), bcrypt.gensalt(rounds=rounds)).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: Optional[str]) -> bool:
     if not hashed:
         return False
+    hashed_bytes = hashed.encode("utf-8")
+    # Current format (peppered when configured)
     try:
-        return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+        if bcrypt.checkpw(_prepare(plain), hashed_bytes):
+            return True
     except Exception:
+        pass
+    # Legacy fallback: hashes created before the pepper was introduced
+    if _pepper_bytes() is not None:
+        try:
+            return bcrypt.checkpw(plain.encode("utf-8"), hashed_bytes)
+        except Exception:
+            return False
+    return False
+
+
+def needs_rehash(plain: str, hashed: Optional[str]) -> bool:
+    """True when the stored hash is a legacy/weaker variant and should be
+    re-hashed on the user's next successful login.
+
+    Triggers on (a) legacy un-peppered hash with a pepper now configured,
+    or (b) bcrypt cost lower than the current configured rounds.
+    """
+    if not hashed:
+        return False
+    hashed_bytes = hashed.encode("utf-8")
+
+    # (a) Legacy un-peppered hash that we now accept via the fallback.
+    if _pepper_bytes() is not None:
+        try:
+            if bcrypt.checkpw(plain.encode("utf-8"), hashed_bytes):
+                # Verifies under legacy path → upgrade.
+                return True
+        except Exception:
+            return False
+
+    # (b) Cost factor was bumped since this hash was written.
+    try:
+        # bcrypt hashes look like $2b$12$… — the segment between the 2nd
+        # and 3rd '$' is the cost. Cheap to parse, no need for passlib.
+        cost = int(hashed_bytes.split(b"$")[2])
+        return cost < max(10, get_settings().password_bcrypt_rounds)
+    except (IndexError, ValueError):
         return False
 
 

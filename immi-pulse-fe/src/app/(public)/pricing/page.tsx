@@ -15,7 +15,7 @@ const plans = [
   {
     name: "Starter",
     desc: "Lean essentials for solo agents and small firms running their first cases on AI",
-    price: "$29",
+    price: "A$200",
     period: "/seat/month",
     cta: "Get Started",
     ctaStyle: "border border-border text-navy hover:bg-gray-light",
@@ -24,23 +24,22 @@ const plans = [
       "Email intake & classification",
       "Basic visa checklists",
       "Client portal (read-only)",
-      "Community support",
+      "Email support",
     ],
     highlighted: false,
   },
   {
     name: "Professional",
     desc: "The full AI platform for established practices that want to scale",
-    price: "$99",
+    price: "A$450",
     period: "/seat/month",
-    cta: "Start Free Trial",
+    cta: "Get Started",
     ctaStyle: "bg-purple text-white hover:bg-purple-deep",
     features: [
       "Unlimited active cases",
       "AI document validation & OCR",
       "Smart checklists with progress tracking",
       "Predictive case analytics & insights",
-      "Marketplace listing for new client leads",
       "Client communication tools",
       "Priority support",
     ],
@@ -68,12 +67,12 @@ const plans = [
 
 const faqs = [
   {
-    q: "Is there a free trial?",
-    a: "Yes \u2014 every new account starts on a 14-day Professional trial automatically. Full feature set, no credit card required. After the trial you can stay on Professional, switch to Starter, or talk to us about Enterprise.",
+    q: "Do I need to pay to get started?",
+    a: "No \u2014 during early access you can create an account and use the platform free. We'll let you know in advance before any plan starts billing. No credit card required to sign up.",
   },
   {
     q: "How are seats priced?",
-    a: "Every seat is billed at the plan\u2019s per-seat price \u2014 Starter $29, Professional $99, Enterprise custom. There are no seat caps and no role-based pricing differences; pay for the people you have, add or remove anytime.",
+    a: "Every seat is billed at the plan\u2019s per-seat price \u2014 Starter A$200, Professional A$450, Enterprise custom. There are no seat caps and no role-based pricing differences; pay for the people you have, add or remove anytime.",
   },
   {
     q: "What\u2019s the difference between Consultant, Staff, and Admin roles?",
@@ -178,7 +177,7 @@ export default function PricingPage() {
                 </p>
 
                 <Link
-                  href={plan.name === "Enterprise" ? "/contact" : "/get-started"}
+                  href={plan.name === "Enterprise" ? "/about#contact" : "/get-started"}
                   className={`mt-8 flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-[15px] font-medium transition-all ${plan.ctaStyle}`}
                 >
                   {plan.cta}

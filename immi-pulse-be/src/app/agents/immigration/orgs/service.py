@@ -19,6 +19,7 @@ from app.agents.immigration.orgs.models import (
     Subscription,
 )
 from app.agents.immigration.orgs.plans import (
+    DEFAULT_SIGNUP_TIER,
     PLAN_CATALOG,
     TRIAL_DAYS,
     get_plan,
@@ -242,6 +243,18 @@ async def get_billing_summary(db: AsyncSession, org_id: UUID) -> dict:
     seat_price = price_per_seat(sub.tier)
     monthly_total = total_seats * seat_price
 
+    pilot_code: Optional[str] = None
+    pilot_name: Optional[str] = None
+    if sub.pilot_program_id:
+        pilot = (
+            await db.execute(
+                select(PilotProgram).where(PilotProgram.id == sub.pilot_program_id)
+            )
+        ).scalar_one_or_none()
+        if pilot:
+            pilot_code = pilot.code
+            pilot_name = pilot.name
+
     return {
         "tier": sub.tier,
         "status": sub.status,
@@ -255,6 +268,8 @@ async def get_billing_summary(db: AsyncSession, org_id: UUID) -> dict:
         "role_counts": role_counts,
         "monthly_total_aud": monthly_total,
         "features": plan["features"] if plan else [],
+        "pilot_code": pilot_code,
+        "pilot_name": pilot_name,
     }
 
 
@@ -328,6 +343,62 @@ async def redeem_promo(db: AsyncSession, org_id: UUID, code: str) -> dict:
         "billing": await get_billing_summary(db, org_id),
         "credits_added": credit_grant,
         "pilot_name": pilot.name,
+    }
+
+
+async def reset_promo(db: AsyncSession, org_id: UUID) -> dict:
+    """Detach the currently-applied pilot from this org so it can be re-tested.
+
+    Used during pilot/QA flows. Reverts the subscription to the default signup
+    tier with a fresh 14-day trial, refunds the credit grant, and decrements the
+    pilot's `redemptions_used` so the same code can be redeemed again. No-op
+    when no pilot is attached.
+    """
+    sub = await get_subscription(db, org_id)
+    if not sub:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Subscription not found")
+
+    if not sub.pilot_program_id:
+        return {
+            "reset": False,
+            "billing": await get_billing_summary(db, org_id),
+        }
+
+    pilot = (
+        await db.execute(select(PilotProgram).where(PilotProgram.id == sub.pilot_program_id))
+    ).scalar_one_or_none()
+
+    wallet = (
+        await db.execute(select(CreditWallet).where(CreditWallet.org_id == org_id))
+    ).scalar_one_or_none()
+
+    # Refund credits — clamp at zero so we never end up negative if the user
+    # already burned through some during testing.
+    if pilot and wallet and pilot.credit_grant:
+        wallet.balance = max(0, (wallet.balance or 0) - pilot.credit_grant)
+
+    # Decrement the redemption counter so the code can be redeemed again.
+    if pilot and pilot.redemptions_used and pilot.redemptions_used > 0:
+        pilot.redemptions_used = pilot.redemptions_used - 1
+
+    # Restore subscription to the default signup state — fresh 14-day trial on Pro.
+    now = datetime.now(timezone.utc)
+    default_plan = get_plan(DEFAULT_SIGNUP_TIER)
+    sub.pilot_program_id = None
+    if default_plan:
+        sub.tier = DEFAULT_SIGNUP_TIER
+    sub.status = "trial"
+    sub.trial_ends_at = now + timedelta(days=TRIAL_DAYS)
+    sub.current_period_end = now + timedelta(days=30)
+
+    await db.commit()
+    await db.refresh(sub)
+    if wallet:
+        await db.refresh(wallet)
+
+    return {
+        "reset": True,
+        "billing": await get_billing_summary(db, org_id),
     }
 
 

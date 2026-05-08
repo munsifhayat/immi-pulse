@@ -89,9 +89,13 @@ class EngagementLetter(Base):
 
     status = Column(String, nullable=False, default="draft")
 
-    # Public signing — token + PIN (PIN is bcrypt hashed)
+    # Public signing — token + PIN.
+    # `sign_pin_hash` is bcrypt(PIN), used to verify what the client types.
+    # `sign_pin_encrypted` is Fernet(PIN) so a consultant can recover the
+    # plaintext to read it out manually if the email never reached the client.
     sign_token = Column(String, nullable=True, unique=True, index=True)
     sign_pin_hash = Column(String, nullable=True)
+    sign_pin_encrypted = Column(Text, nullable=True)
     sign_attempt_count = Column(Numeric(3, 0), nullable=False, default=0)
     sign_link_expires_at = Column(DateTime(timezone=True), nullable=True)
 
