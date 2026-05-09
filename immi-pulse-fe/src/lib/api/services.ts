@@ -256,8 +256,9 @@ export const publicQuestionnairesApi = {
     slug: string,
     payload: {
       submitter_email: string;
-      submitter_name?: string;
-      submitter_phone?: string;
+      submitter_first_name: string;
+      submitter_last_name: string;
+      submitter_phone: string;
       answers: Record<string, unknown>;
     }
   ): Promise<{ response_id: string; pre_case_id: string; message: string }> =>
@@ -266,8 +267,23 @@ export const publicQuestionnairesApi = {
 
 // ---- Pre-Cases ----
 
+export interface PreCaseListResponse {
+  items: PreCaseListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface PreCaseListParams {
+  status?: string;
+  group?: "inbox" | "precase" | "terminal";
+  q?: string;
+  limit?: number;
+  offset?: number;
+}
+
 export const preCasesApi = {
-  list: async (params?: { status?: string; group?: "inbox" | "precase" | "terminal" }): Promise<PreCaseListItem[]> =>
+  list: async (params?: PreCaseListParams): Promise<PreCaseListResponse> =>
     (
       await apiClient.get("/precases", {
         params,
@@ -279,6 +295,11 @@ export const preCasesApi = {
     (await apiClient.post(`/precases/${id}/archive`)).data,
   qualify: async (id: string, note?: string): Promise<PreCaseDetail> =>
     (await apiClient.post(`/precases/${id}/qualify`, { note })).data,
+  transition: async (
+    id: string,
+    targetStatus: "in_review" | "qualified" | "letter_sent" | "letter_signed" | "paid"
+  ): Promise<PreCaseDetail> =>
+    (await apiClient.post(`/precases/${id}/transition`, { target_status: targetStatus })).data,
   promote: async (id: string): Promise<{ case_id: string }> =>
     (await apiClient.post(`/precases/${id}/promote`)).data,
   forceConvert: async (

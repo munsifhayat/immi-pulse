@@ -119,7 +119,7 @@ function TemplatePicker({
         <p className="text-[13px] leading-[1.6] text-foreground">
           <span className="font-medium">Always collected on every form:</span>{" "}
           <span className="text-muted-foreground">
-            full name, email, and phone. The questions below are{" "}
+            first name, last name, email, and phone. The questions below are{" "}
             <span className="font-medium text-foreground">added on top</span> for
             this specific audience.
           </span>

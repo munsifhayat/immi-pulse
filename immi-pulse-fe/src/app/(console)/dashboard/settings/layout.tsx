@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BookOpen,
   Building2,
   CreditCard,
   FileSignature,
@@ -20,6 +21,7 @@ const tabs = [
   { name: "Plan & Billing", href: "/dashboard/settings/billing", icon: CreditCard },
   { name: "Team", href: "/dashboard/settings/team", icon: Users },
   { name: "Integrations", href: "/dashboard/settings/integrations", icon: Plug },
+  { name: "How it works", href: "/dashboard/how-it-works", icon: BookOpen },
 ];
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {

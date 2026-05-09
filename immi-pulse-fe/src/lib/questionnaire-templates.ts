@@ -5,8 +5,8 @@
  * pick one as a starting point, then customize. Stable `key` values are
  * provided so renaming labels doesn't break downstream answer mapping.
  *
- * Note: full name, email, and phone are auto-collected on every public form,
- * so templates focus on audience-specific questions only.
+ * Note: first name, last name, email, and phone are auto-collected on every
+ * public form, so templates focus on audience-specific questions only.
  */
 
 import type { QuestionField } from "@/lib/api/services";

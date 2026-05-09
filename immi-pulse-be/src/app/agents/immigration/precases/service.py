@@ -39,9 +39,18 @@ TERMINAL_STATUSES = ("converted", "archived")
 
 
 async def list_precases(
-    db: AsyncSession, org_id: UUID, status_filter: Optional[str] = None, group: Optional[str] = None
-) -> list[dict]:
-    """List pre-cases. `group` is one of: inbox | precase | terminal | None (all)."""
+    db: AsyncSession,
+    org_id: UUID,
+    status_filter: Optional[str] = None,
+    group: Optional[str] = None,
+    q: Optional[str] = None,
+    limit: int = 25,
+    offset: int = 0,
+) -> dict:
+    """List pre-cases (paginated). `group` is one of: inbox | precase | terminal | None (all).
+    Returns: {items, total, limit, offset}.
+    Search (`q`) is applied across hydrated fields (client name/email, questionnaire, summary).
+    """
     stmt = select(PreCase).where(PreCase.org_id == org_id)
 
     if status_filter:
@@ -68,11 +77,11 @@ async def list_precases(
                 await db.execute(select(QuestionnaireResponse).where(QuestionnaireResponse.id == pc.response_id))
             ).scalar_one_or_none()
             if response:
-                q = (
+                quest = (
                     await db.execute(select(Questionnaire).where(Questionnaire.id == response.questionnaire_id))
                 ).scalar_one_or_none()
-                if q:
-                    questionnaire_name = q.name
+                if quest:
+                    questionnaire_name = quest.name
         items.append(
             {
                 "id": pc.id,
@@ -85,8 +94,8 @@ async def list_precases(
                 "client_id": pc.client_id,
                 "client_email": (response.submitter_email if response else (client.primary_email if client else None)),
                 "client_name": (
-                    response.submitter_name
-                    if response and response.submitter_name
+                    response.submitter_full_name
+                    if response and response.submitter_full_name
                     else (client.name if client else None)
                 ),
                 "submitted_at": response.submitted_at if response else None,
@@ -102,7 +111,22 @@ async def list_precases(
                 "created_at": pc.created_at,
             }
         )
-    return items
+
+    if q:
+        needle = q.strip().lower()
+        if needle:
+            def _matches(it: dict) -> bool:
+                hay = " ".join(
+                    str(it.get(k) or "")
+                    for k in ("client_name", "client_email", "questionnaire_name", "ai_summary")
+                ).lower()
+                return needle in hay
+
+            items = [it for it in items if _matches(it)]
+
+    total = len(items)
+    paged = items[offset : offset + limit]
+    return {"items": paged, "total": total, "limit": limit, "offset": offset}
 
 
 async def get_precase_detail(db: AsyncSession, org_id: UUID, precase_id: UUID) -> dict:
@@ -157,8 +181,8 @@ async def get_precase_detail(db: AsyncSession, org_id: UUID, precase_id: UUID) -
         "client_id": pc.client_id,
         "client_email": (response.submitter_email if response else (client.primary_email if client else None)),
         "client_name": (
-            response.submitter_name
-            if response and response.submitter_name
+            response.submitter_full_name
+            if response and response.submitter_full_name
             else (client.name if client else None)
         ),
         "answers": response.answers if response else {},
@@ -208,6 +232,88 @@ async def qualify_precase(db: AsyncSession, org_id: UUID, precase_id: UUID, note
     return await get_precase_detail(db, org_id, precase_id)
 
 
+# Allowed target stages for the generic transition endpoint. `converted` and
+# `archived` deliberately route through their dedicated endpoints so the
+# heavier side-effects (case creation, audit reasons) are explicit.
+TRANSITION_TARGETS = ("in_review", "qualified", "letter_sent", "letter_signed", "paid")
+_STAGE_RANK = {
+    "pending": 0,
+    "in_review": 1,
+    "qualified": 2,
+    "letter_sent": 3,
+    "letter_signed": 4,
+    "paid": 5,
+    "converted": 6,
+}
+
+
+async def transition_precase(
+    db: AsyncSession,
+    org_id: UUID,
+    precase_id: UUID,
+    target_status: str,
+) -> dict:
+    """Move a pre-case to an earlier (or equal) lifecycle stage.
+
+    Used by the clickable stage stepper so consultants can revert a mistaken
+    progression. Rules:
+      - target must be one of TRANSITION_TARGETS
+      - current status must not be terminal (converted / archived)
+      - target must not be ahead of current rank (forward progression goes
+        through the dedicated endpoints which create artifacts)
+      - lifecycle timestamps for stages now in the future are cleared so the
+        UI reflects reality on the next forward pass
+    """
+    if target_status not in TRANSITION_TARGETS:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Invalid transition target: {target_status}",
+        )
+
+    pc = (
+        await db.execute(select(PreCase).where(PreCase.id == precase_id, PreCase.org_id == org_id))
+    ).scalar_one_or_none()
+    if not pc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "PreCase not found")
+
+    if pc.status in TERMINAL_STATUSES:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Cannot transition a {pc.status} pre-case",
+        )
+
+    current_rank = _STAGE_RANK.get(pc.status, 0)
+    target_rank = _STAGE_RANK[target_status]
+    if target_rank > current_rank:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Forward transitions must go through the dedicated endpoint "
+            "(qualify, send letter, mark signed, record payment, promote).",
+        )
+
+    # Apply the new status. For "in_review" we keep read_at intact (the
+    # consultant has still seen the submission); we only clear lifecycle
+    # timestamps for stages now in the future.
+    pc.status = target_status
+
+    if target_rank < _STAGE_RANK["qualified"]:
+        pc.qualified_at = None
+    if target_rank < _STAGE_RANK["letter_sent"]:
+        pc.letter_sent_at = None
+    if target_rank < _STAGE_RANK["letter_signed"]:
+        pc.letter_signed_at = None
+        pc.skipped_letter = None
+    if target_rank < _STAGE_RANK["paid"]:
+        pc.paid_at = None
+        pc.skipped_payment = None
+
+    if target_status == "qualified" and not pc.qualified_at:
+        pc.qualified_at = datetime.now(timezone.utc)
+
+    await db.commit()
+    return await get_precase_detail(db, org_id, precase_id)
+
+
 async def promote_to_case(
     db: AsyncSession, org_id: UUID, precase_id: UUID, seat_id: UUID
 ) -> UUID:
@@ -233,7 +339,7 @@ async def promote_to_case(
         ).scalar_one_or_none()
 
     client_name = (
-        (response.submitter_name if response and response.submitter_name else None)
+        (response.submitter_full_name if response and response.submitter_full_name else None)
         or (client.name if client else None)
         or (response.submitter_email if response else "Unknown client")
     )
@@ -308,7 +414,7 @@ async def force_convert(
         ).scalar_one_or_none()
 
     client_name = (
-        (response.submitter_name if response and response.submitter_name else None)
+        (response.submitter_full_name if response and response.submitter_full_name else None)
         or (client.name if client else None)
         or (response.submitter_email if response else "Unknown client")
     )
