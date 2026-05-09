@@ -137,7 +137,7 @@ async def run_triage(precase_id: UUID) -> None:
             "questionnaire_name": questionnaire.name if questionnaire else None,
             "questionnaire_audience": questionnaire.audience if questionnaire else None,
             "submitter_email": response.submitter_email if response else None,
-            "submitter_name": response.submitter_name if response else None,
+            "submitter_name": response.submitter_full_name if response else None,
             "answers": answers,
         }
 

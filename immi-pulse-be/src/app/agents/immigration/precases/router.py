@@ -11,9 +11,10 @@ from app.agents.immigration.precases import service as pc_service
 from app.agents.immigration.precases.schemas import (
     ForceConvertRequest,
     PreCaseDetail,
-    PreCaseListItem,
+    PreCaseListResponse,
     PromoteResponse,
     QualifyRequest,
+    TransitionRequest,
 )
 from app.agents.immigration.precases.triage import run_triage_async
 from app.core.jwt_auth import CurrentContext, get_current_context
@@ -24,17 +25,22 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/precases", tags=["Pre-Cases"])
 
 
-@router.get("", response_model=list[PreCaseListItem])
+@router.get("", response_model=PreCaseListResponse)
 async def list_precases(
     status_filter: Optional[str] = Query(None, alias="status"),
     group: Optional[str] = Query(None, description="inbox | precase | terminal"),
+    q: Optional[str] = Query(None, description="Search by client name, email, questionnaire, or AI summary"),
+    limit: int = Query(25, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     ctx: CurrentContext = Depends(get_current_context),
     db: AsyncSession = Depends(get_db),
 ):
-    """List pre-cases. Use `group=inbox` for the Inbox page (queries),
+    """List pre-cases (paginated). Use `group=inbox` for the Inbox page (queries),
     `group=precase` for the Pre-cases page (qualified+).
     """
-    return await pc_service.list_precases(db, ctx.org_id, status_filter, group)
+    return await pc_service.list_precases(
+        db, ctx.org_id, status_filter, group, q=q, limit=limit, offset=offset
+    )
 
 
 @router.get("/{precase_id}", response_model=PreCaseDetail)
@@ -65,6 +71,24 @@ async def qualify_precase(
 ):
     """Move from inbox (query) to pre-cases (qualified)."""
     return await pc_service.qualify_precase(db, ctx.org_id, precase_id, payload.note)
+
+
+@router.post("/{precase_id}/transition", response_model=PreCaseDetail)
+async def transition_precase(
+    precase_id: UUID,
+    payload: TransitionRequest,
+    ctx: CurrentContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db),
+):
+    """Move a pre-case backwards (or idempotently) to an earlier stage.
+
+    Powers the clickable stage stepper. Forward progression past `qualified`
+    must still go through the dedicated endpoints (send letter, mark signed,
+    record payment, promote) since they create real artifacts.
+    """
+    return await pc_service.transition_precase(
+        db, ctx.org_id, precase_id, payload.target_status
+    )
 
 
 @router.post("/{precase_id}/promote", response_model=PromoteResponse)

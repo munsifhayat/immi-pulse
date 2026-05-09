@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { RefreshCw, Sun, Moon } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "next-themes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { dispatchAppRefresh } from "@/lib/use-app-refresh";
 
 const segmentLabels: Record<string, string> = {
   dashboard: "Overview",
@@ -47,9 +49,19 @@ function buildCrumbs(pathname: string) {
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { theme, setTheme } = useTheme();
   const crumbs = buildCrumbs(pathname);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    queryClient.invalidateQueries();
+    router.refresh();
+    dispatchAppRefresh();
+    window.setTimeout(() => setRefreshing(false), 600);
+  };
 
   return (
     <header className="relative flex h-12 shrink-0 items-center justify-between border-b border-border/70 bg-background/85 px-6 backdrop-blur-md">
@@ -92,10 +104,11 @@ export function Header() {
             <button
               type="button"
               aria-label="Refresh data"
-              onClick={() => queryClient.invalidateQueries()}
-              className="font-mono-d inline-flex h-8 items-center gap-1.5 border border-transparent px-2.5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/80 transition-all hover:border-foreground/15 hover:text-foreground"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="font-mono-d inline-flex h-8 items-center gap-1.5 border border-transparent px-2.5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/80 transition-all hover:border-foreground/15 hover:text-foreground disabled:opacity-60"
             >
-              <RefreshCw className="h-3 w-3" />
+              <RefreshCw className={cn("h-3 w-3", refreshing && "animate-spin")} />
               <span className="hidden sm:inline">Refresh</span>
             </button>
           </TooltipTrigger>

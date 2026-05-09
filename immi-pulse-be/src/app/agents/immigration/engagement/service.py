@@ -250,7 +250,7 @@ async def compose_and_send(
     )
 
     client_name = (
-        (response.submitter_name if response and response.submitter_name else None)
+        (response.submitter_full_name if response and response.submitter_full_name else None)
         or (client.name if client else None)
         or (response.submitter_email if response else "Client")
     )
@@ -756,7 +756,7 @@ async def resend_reminder(
     )
 
     client_name = (
-        (response.submitter_name if response and response.submitter_name else None)
+        (response.submitter_full_name if response and response.submitter_full_name else None)
         or (client.name if client else None)
         or "there"
     )

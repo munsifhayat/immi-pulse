@@ -73,7 +73,8 @@ export default function PublicQuestionnairePage() {
   const [data, setData] = useState<FormData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [submitterName, setSubmitterName] = useState("");
+  const [submitterFirstName, setSubmitterFirstName] = useState("");
+  const [submitterLastName, setSubmitterLastName] = useState("");
   const [submitterEmail, setSubmitterEmail] = useState("");
   const [submitterPhone, setSubmitterPhone] = useState("");
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
@@ -92,8 +93,10 @@ export default function PublicQuestionnairePage() {
     setAnswers((a) => ({ ...a, [key]: val }));
 
   const validate = (): string | null => {
-    if (!submitterName.trim()) return "Please enter your full name";
+    if (!submitterFirstName.trim()) return "Please enter your first name";
+    if (!submitterLastName.trim()) return "Please enter your last name";
     if (!submitterEmail.trim()) return "Please enter your email";
+    if (!submitterPhone.trim()) return "Please enter your phone number";
     if (!data) return null;
     for (const f of data.fields) {
       if (f.required) {
@@ -123,8 +126,9 @@ export default function PublicQuestionnairePage() {
     try {
       await publicQuestionnairesApi.submit(params.slug, {
         submitter_email: submitterEmail.trim(),
-        submitter_name: submitterName.trim(),
-        submitter_phone: submitterPhone.trim() || undefined,
+        submitter_first_name: submitterFirstName.trim(),
+        submitter_last_name: submitterLastName.trim(),
+        submitter_phone: submitterPhone.trim(),
         answers,
       });
       setSubmitted(true);
@@ -148,7 +152,7 @@ export default function PublicQuestionnairePage() {
   if (submitted)
     return (
       <PageShell>
-        <SuccessState orgName={data.org_name} submitterName={submitterName} />
+        <SuccessState orgName={data.org_name} submitterName={submitterFirstName} />
       </PageShell>
     );
 
@@ -168,8 +172,10 @@ export default function PublicQuestionnairePage() {
           <div className="lg:col-span-7">
             <FormPanel
               data={data}
-              submitterName={submitterName}
-              setSubmitterName={setSubmitterName}
+              submitterFirstName={submitterFirstName}
+              setSubmitterFirstName={setSubmitterFirstName}
+              submitterLastName={submitterLastName}
+              setSubmitterLastName={setSubmitterLastName}
               submitterEmail={submitterEmail}
               setSubmitterEmail={setSubmitterEmail}
               submitterPhone={submitterPhone}
@@ -435,8 +441,10 @@ function TrustItem({ icon, label }: { icon: React.ReactNode; label: string }) {
 
 function FormPanel({
   data,
-  submitterName,
-  setSubmitterName,
+  submitterFirstName,
+  setSubmitterFirstName,
+  submitterLastName,
+  setSubmitterLastName,
   submitterEmail,
   setSubmitterEmail,
   submitterPhone,
@@ -448,8 +456,10 @@ function FormPanel({
   onSubmit,
 }: {
   data: FormData;
-  submitterName: string;
-  setSubmitterName: (v: string) => void;
+  submitterFirstName: string;
+  setSubmitterFirstName: (v: string) => void;
+  submitterLastName: string;
+  setSubmitterLastName: (v: string) => void;
   submitterEmail: string;
   setSubmitterEmail: (v: string) => void;
   submitterPhone: string;
@@ -489,13 +499,22 @@ function FormPanel({
             <Section index="01" title="About you">
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field
-                  id="full-name"
-                  label="Full name"
+                  id="first-name"
+                  label="First name"
                   required
-                  value={submitterName}
-                  onChange={setSubmitterName}
-                  autoComplete="name"
-                  placeholder="Jane Doe"
+                  value={submitterFirstName}
+                  onChange={setSubmitterFirstName}
+                  autoComplete="given-name"
+                  placeholder="Jane"
+                />
+                <Field
+                  id="last-name"
+                  label="Last name"
+                  required
+                  value={submitterLastName}
+                  onChange={setSubmitterLastName}
+                  autoComplete="family-name"
+                  placeholder="Doe"
                 />
                 <Field
                   id="full-email"
@@ -507,19 +526,17 @@ function FormPanel({
                   autoComplete="email"
                   placeholder="you@example.com"
                 />
-                <div className="sm:col-span-2">
-                  <Field
-                    id="full-phone"
-                    label="Phone"
-                    type="tel"
-                    value={submitterPhone}
-                    onChange={setSubmitterPhone}
-                    autoComplete="tel"
-                    placeholder="+61 4XX XXX XXX"
-                    optional
-                    helper="Best number for a callback. Country code helps."
-                  />
-                </div>
+                <Field
+                  id="full-phone"
+                  label="Phone"
+                  required
+                  type="tel"
+                  value={submitterPhone}
+                  onChange={setSubmitterPhone}
+                  autoComplete="tel"
+                  placeholder="+61 4XX XXX XXX"
+                  helper="Best number for a callback. Country code helps."
+                />
               </div>
             </Section>
 

@@ -245,13 +245,6 @@ export default function SignupPage() {
           </Link>
 
           <div className="flex items-center gap-5">
-            <Link
-              href="/contact"
-              className="hidden text-[13.5px] text-gray-text transition-colors hover:text-navy md:inline-flex"
-            >
-              Talk to us
-            </Link>
-            <span aria-hidden className="hidden h-4 w-px bg-border md:block" />
             <p className="text-[13.5px] text-gray-text">
               Already a member?{" "}
               <Link

@@ -91,8 +91,9 @@ class PublicQuestionnaireOut(BaseModel):
 
 class SubmitQuestionnaireRequest(BaseModel):
     submitter_email: EmailStr
-    submitter_name: Optional[str] = None
-    submitter_phone: Optional[str] = None
+    submitter_first_name: str = Field(min_length=1)
+    submitter_last_name: str = Field(min_length=1)
+    submitter_phone: str = Field(min_length=1)
     answers: dict[str, Any] = Field(default_factory=dict)
 
 

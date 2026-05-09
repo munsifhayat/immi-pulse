@@ -246,8 +246,8 @@ export function QuestionnaireBuilder({
             <p className="text-[13px] leading-[1.55] text-foreground">
               <span className="font-medium">Always collected:</span>{" "}
               <span className="text-muted-foreground">
-                full name, email, phone (mandatory on every form). Add the questions
-                specific to this audience below.
+                first name, last name, email, phone (mandatory on every form). Add the
+                questions specific to this audience below.
               </span>
             </p>
           </div>

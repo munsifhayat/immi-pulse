@@ -102,7 +102,17 @@ class QuestionnaireResponse(Base):
     )
     answers = Column(JSONB, nullable=False)
     submitter_email = Column(String, nullable=False)
-    submitter_name = Column(String, nullable=True)
+    submitter_first_name = Column(String, nullable=True)
+    submitter_last_name = Column(String, nullable=True)
     ip_address = Column(String, nullable=True)
     user_agent = Column(String, nullable=True)
     submitted_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    @property
+    def submitter_full_name(self) -> str | None:
+        parts = [
+            (self.submitter_first_name or "").strip(),
+            (self.submitter_last_name or "").strip(),
+        ]
+        full = " ".join(p for p in parts if p)
+        return full or None

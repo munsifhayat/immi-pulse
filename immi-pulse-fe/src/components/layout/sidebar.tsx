@@ -58,12 +58,12 @@ export function Sidebar() {
     let mounted = true;
     const load = async () => {
       try {
-        const items = await preCasesApi.list();
+        const data = await preCasesApi.list({ limit: 200 });
         if (!mounted) return;
-        const inbox = items.filter(
+        const inbox = data.items.filter(
           (p) => INBOX_STATUSES.has(p.status) && p.read_at === null,
         ).length;
-        const precases = items.filter((p) => PRECASE_STATUSES.has(p.status)).length;
+        const precases = data.items.filter((p) => PRECASE_STATUSES.has(p.status)).length;
         setCounters({ inbox, precases });
       } catch {
         // silent

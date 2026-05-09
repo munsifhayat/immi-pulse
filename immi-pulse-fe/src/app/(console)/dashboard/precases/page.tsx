@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAppRefresh } from "@/lib/use-app-refresh";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,21 +42,23 @@ export default function PreCasesPage() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await preCasesApi.list({ group: "precase" });
-      setItems(data);
+      const data = await preCasesApi.list({ group: "precase", limit: 200 });
+      setItems(data.items);
     } catch {
       setItems([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
+
+  useAppRefresh(load);
 
   const filtered = useMemo(() => {
     if (!items) return null;

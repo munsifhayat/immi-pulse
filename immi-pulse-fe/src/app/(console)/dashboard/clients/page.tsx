@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAppRefresh } from "@/lib/use-app-refresh";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -52,7 +53,7 @@ export default function ClientsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const data = await clientsApi.list();
@@ -62,11 +63,13 @@ export default function ClientsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
+
+  useAppRefresh(load);
 
   const filtered = useMemo(() => {
     if (!items) return null;
