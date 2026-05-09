@@ -61,6 +61,7 @@ import {
   type SendLetterResponse,
 } from "@/lib/api/services";
 import { cn } from "@/lib/utils";
+import { useAppRefresh } from "@/lib/use-app-refresh";
 
 const OUTCOME_LABEL: Record<string, { label: string; tone: string; dot: string }> = {
   likely_fit: {
@@ -139,6 +140,8 @@ export function PreCaseDetail({ precaseId }: { precaseId: string }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  useAppRefresh(load);
 
   if (loading || !pc) {
     return (
