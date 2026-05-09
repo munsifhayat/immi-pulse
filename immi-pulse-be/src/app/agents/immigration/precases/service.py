@@ -77,11 +77,11 @@ async def list_precases(
                 await db.execute(select(QuestionnaireResponse).where(QuestionnaireResponse.id == pc.response_id))
             ).scalar_one_or_none()
             if response:
-                q = (
+                quest = (
                     await db.execute(select(Questionnaire).where(Questionnaire.id == response.questionnaire_id))
                 ).scalar_one_or_none()
-                if q:
-                    questionnaire_name = q.name
+                if quest:
+                    questionnaire_name = quest.name
         items.append(
             {
                 "id": pc.id,
