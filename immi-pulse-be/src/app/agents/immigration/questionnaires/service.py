@@ -258,19 +258,21 @@ async def submit_public_questionnaire(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Questionnaire not found")
 
     email = payload.submitter_email.lower().strip()
-
-    phone = (payload.submitter_phone or "").strip() or None
+    first_name = payload.submitter_first_name.strip()
+    last_name = payload.submitter_last_name.strip()
+    full_name = f"{first_name} {last_name}".strip()
+    phone = payload.submitter_phone.strip()
 
     # Resolve / create Client
     client = (await db.execute(select(Client).where(Client.primary_email == email))).scalar_one_or_none()
     if not client:
-        client = Client(primary_email=email, name=payload.submitter_name, phone=phone)
+        client = Client(primary_email=email, name=full_name, phone=phone)
         db.add(client)
         await db.flush()
     else:
-        if not client.name and payload.submitter_name:
-            client.name = payload.submitter_name
-        if not client.phone and phone:
+        if not client.name:
+            client.name = full_name
+        if not client.phone:
             client.phone = phone
 
     # Resolve / create ClientOrgLink
@@ -299,7 +301,8 @@ async def submit_public_questionnaire(
         client_id=client.id,
         answers=payload.answers,
         submitter_email=email,
-        submitter_name=payload.submitter_name,
+        submitter_first_name=first_name,
+        submitter_last_name=last_name,
         ip_address=ip_address,
         user_agent=user_agent,
     )

@@ -31,6 +31,14 @@ class PreCaseListItem(BaseModel):
     created_at: datetime
 
 
+class PreCaseListResponse(BaseModel):
+    """Paginated list response for the inbox / pre-cases tabs."""
+    items: list[PreCaseListItem]
+    total: int
+    limit: int
+    offset: int
+
+
 class PreCaseDetail(BaseModel):
     id: UUID
     status: str
@@ -72,6 +80,11 @@ class PreCaseDecision(BaseModel):
 class QualifyRequest(BaseModel):
     """Mark this query as qualified — a real lead worth pursuing."""
     note: Optional[str] = Field(None, max_length=2000)
+
+
+class TransitionRequest(BaseModel):
+    """Move a pre-case to an earlier lifecycle stage (clickable stage stepper)."""
+    target_status: Literal["in_review", "qualified", "letter_sent", "letter_signed", "paid"]
 
 
 class ForceConvertRequest(BaseModel):
