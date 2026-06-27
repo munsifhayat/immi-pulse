@@ -64,6 +64,11 @@ class Settings(BaseSettings):
     portal_session_ttl_minutes: int = 15
     portal_pin_max_attempts: int = 5
 
+    # Persistent client-portal *account* sessions (the account flow that replaces
+    # the per-action PIN). Longer-lived than the PIN session.
+    portal_account_session_ttl_hours: int = 12
+    portal_account_max_login_attempts: int = 8
+
     # --- Console JWT (multi-tenant Owner/Seat auth) ---
     # Dedicated secret. Falls back to portal_session_jwt_secret in dev only.
     jwt_secret: str = ""

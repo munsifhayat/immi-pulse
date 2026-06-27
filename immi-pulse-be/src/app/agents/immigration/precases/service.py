@@ -167,6 +167,19 @@ async def get_precase_detail(db: AsyncSession, org_id: UUID, precase_id: UUID) -
         await db.commit()
         await db.refresh(pc)
 
+    # Client portal access card (present once the account exists, i.e. post-qualify).
+    client_access = None
+    if pc.client_id:
+        from app.agents.immigration.orgs.models import Organization
+        from app.agents.immigration.portal import service as portal_service
+
+        org = (await db.execute(select(Organization).where(Organization.id == org_id))).scalar_one_or_none()
+        if org is not None:
+            access = await portal_service.access_for_client(db, org, pc.client_id)
+            if access is not None:
+                client_access = access.model_dump(mode="json")
+                await db.commit()
+
     return {
         "id": pc.id,
         "status": pc.status,
@@ -196,6 +209,7 @@ async def get_precase_detail(db: AsyncSession, org_id: UUID, precase_id: UUID) -
         "skipped_letter": pc.skipped_letter,
         "skipped_payment": pc.skipped_payment,
         "created_at": pc.created_at,
+        "client_access": client_access,
     }
 
 
@@ -212,7 +226,16 @@ async def archive_precase(db: AsyncSession, org_id: UUID, precase_id: UUID) -> N
 
 
 async def qualify_precase(db: AsyncSession, org_id: UUID, precase_id: UUID, note: Optional[str] = None) -> dict:
-    """Move pre-case from query state → qualified state (now visible in Pre-cases page)."""
+    """Move pre-case from query state → qualified state (now visible in Pre-cases page).
+
+    The pivotal moment: qualifying also provisions the client's persistent, org-scoped
+    portal account (created once per client–agent pair) and emails them their access.
+    The issued credentials surface on the consultant's "Client access" card via the
+    `client_access` field of the returned detail.
+    """
+    from app.agents.immigration.orgs.models import Organization
+    from app.agents.immigration.portal import service as portal_service
+
     pc = (
         await db.execute(select(PreCase).where(PreCase.id == precase_id, PreCase.org_id == org_id))
     ).scalar_one_or_none()
@@ -228,7 +251,46 @@ async def qualify_precase(db: AsyncSession, org_id: UUID, precase_id: UUID, note
     pc.status = "qualified"
     if not pc.qualified_at:
         pc.qualified_at = datetime.now(timezone.utc)
+
+    # Resolve client identity (same precedence as get_precase_detail).
+    client = None
+    if pc.client_id:
+        client = (await db.execute(select(Client).where(Client.id == pc.client_id))).scalar_one_or_none()
+    response = None
+    if pc.response_id:
+        response = (
+            await db.execute(select(QuestionnaireResponse).where(QuestionnaireResponse.id == pc.response_id))
+        ).scalar_one_or_none()
+    client_email = (response.submitter_email if response else None) or (
+        client.primary_email if client else None
+    )
+    client_name = (
+        (response.submitter_full_name if response and response.submitter_full_name else None)
+        or (client.name if client else None)
+    )
+
+    created = False
+    account = None
+    org = None
+    if pc.client_id and client_email:
+        org = (await db.execute(select(Organization).where(Organization.id == org_id))).scalar_one()
+        await portal_service.ensure_account_slug(db, org)
+        account, created = await portal_service.create_or_get_account(
+            db, org=org, client_id=pc.client_id, email=client_email
+        )
+
     await db.commit()
+
+    # Fire the welcome email after commit (best-effort; never blocks qualify).
+    if created and account is not None and org is not None:
+        await portal_service.send_welcome_email(
+            org=org,
+            account=account,
+            temp_password=portal_service.current_temp_password(account),
+            client_name=client_name,
+            org_slug=org.portal_slug,
+        )
+
     return await get_precase_detail(db, org_id, precase_id)
 
 

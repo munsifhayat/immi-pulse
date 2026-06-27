@@ -33,6 +33,10 @@ class Organization(Base):
     country = Column(String, nullable=False, default="AU")
     stripe_customer_id = Column(String, nullable=True)
 
+    # Per-agent client-portal entry point: /portal/{portal_slug}. Backfilled for
+    # existing orgs in migration; lazily ensured at qualify for any that lack it.
+    portal_slug = Column(String, nullable=True, unique=True, index=True)
+
     # Public-facing practice profile — captured at signup Step 2, editable in Settings.
     website = Column(String, nullable=True)
     business_phone = Column(String, nullable=True)

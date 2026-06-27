@@ -1,0 +1,200 @@
+{
+  "_description": "Shared test fixture for the questionnaire rules engine. Mirrored exactly by the FE port (src/lib/questionnaires/rulesEngine.ts) — if either side diverges, both BE pytest and FE vitest must fail.",
+  "cases": [
+    {
+      "name": "always-visible-default",
+      "field": {"key": "name", "label": "Name", "type": "short_text", "required": false},
+      "answers": {},
+      "expected_visible": true,
+      "expected_required": false
+    },
+    {
+      "name": "show-if-equals-true",
+      "field": {
+        "key": "visa_status",
+        "label": "Visa status",
+        "type": "short_text",
+        "required": false,
+        "logic": {"visibility": {"mode": "show_if", "rules": [{"field_key": "country", "operator": "equals", "value": "Australia"}]}}
+      },
+      "answers": {"country": "Australia"},
+      "expected_visible": true,
+      "expected_required": false
+    },
+    {
+      "name": "show-if-equals-false",
+      "field": {
+        "key": "visa_status",
+        "label": "Visa status",
+        "type": "short_text",
+        "required": false,
+        "logic": {"visibility": {"mode": "show_if", "rules": [{"field_key": "country", "operator": "equals", "value": "Australia"}]}}
+      },
+      "answers": {"country": "India"},
+      "expected_visible": false,
+      "expected_required": false
+    },
+    {
+      "name": "hide-if-equals-true",
+      "field": {
+        "key": "employer",
+        "label": "Employer",
+        "type": "short_text",
+        "required": true,
+        "logic": {"visibility": {"mode": "hide_if", "rules": [{"field_key": "self_employed", "operator": "equals", "value": "yes"}]}}
+      },
+      "answers": {"self_employed": "yes"},
+      "expected_visible": false,
+      "expected_required": false
+    },
+    {
+      "name": "is-one-of-true",
+      "field": {
+        "key": "occupation",
+        "label": "Occupation",
+        "type": "short_text",
+        "required": false,
+        "logic": {"visibility": {"mode": "show_if", "rules": [{"field_key": "visa", "operator": "is_one_of", "value": ["482", "186"]}]}}
+      },
+      "answers": {"visa": "482"},
+      "expected_visible": true,
+      "expected_required": false
+    },
+    {
+      "name": "is-one-of-false",
+      "field": {
+        "key": "occupation",
+        "label": "Occupation",
+        "type": "short_text",
+        "required": false,
+        "logic": {"visibility": {"mode": "show_if", "rules": [{"field_key": "visa", "operator": "is_one_of", "value": ["482", "186"]}]}}
+      },
+      "answers": {"visa": "189"},
+      "expected_visible": false,
+      "expected_required": false
+    },
+    {
+      "name": "required-if-true",
+      "field": {
+        "key": "expiry",
+        "label": "Expiry",
+        "type": "date",
+        "required": false,
+        "logic": {"required_if": [{"field_key": "in_australia", "operator": "equals", "value": "yes"}]}
+      },
+      "answers": {"in_australia": "yes"},
+      "expected_visible": true,
+      "expected_required": true
+    },
+    {
+      "name": "required-if-false",
+      "field": {
+        "key": "expiry",
+        "label": "Expiry",
+        "type": "date",
+        "required": false,
+        "logic": {"required_if": [{"field_key": "in_australia", "operator": "equals", "value": "yes"}]}
+      },
+      "answers": {"in_australia": "no"},
+      "expected_visible": true,
+      "expected_required": false
+    },
+    {
+      "name": "is-empty-true",
+      "field": {
+        "key": "elaborate",
+        "label": "Elaborate",
+        "type": "long_text",
+        "required": false,
+        "logic": {"visibility": {"mode": "show_if", "rules": [{"field_key": "notes", "operator": "is_empty"}]}}
+      },
+      "answers": {},
+      "expected_visible": true,
+      "expected_required": false
+    },
+    {
+      "name": "is-not-empty-true",
+      "field": {
+        "key": "elaborate",
+        "label": "Elaborate",
+        "type": "long_text",
+        "required": false,
+        "logic": {"visibility": {"mode": "show_if", "rules": [{"field_key": "notes", "operator": "is_not_empty"}]}}
+      },
+      "answers": {"notes": "anything"},
+      "expected_visible": true,
+      "expected_required": false
+    },
+    {
+      "name": "contains-string-true",
+      "field": {
+        "key": "details",
+        "label": "Details",
+        "type": "long_text",
+        "required": false,
+        "logic": {"visibility": {"mode": "show_if", "rules": [{"field_key": "story", "operator": "contains", "value": "sponsor"}]}}
+      },
+      "answers": {"story": "My employer is happy to sponsor me"},
+      "expected_visible": true,
+      "expected_required": false
+    },
+    {
+      "name": "contains-list-true",
+      "field": {
+        "key": "details",
+        "label": "Details",
+        "type": "short_text",
+        "required": false,
+        "logic": {"visibility": {"mode": "show_if", "rules": [{"field_key": "pathways", "operator": "contains", "value": "Partner"}]}}
+      },
+      "answers": {"pathways": ["Skilled", "Partner"]},
+      "expected_visible": true,
+      "expected_required": false
+    },
+    {
+      "name": "and-composition-all-pass",
+      "field": {
+        "key": "urgent_note",
+        "label": "Why urgent?",
+        "type": "long_text",
+        "required": false,
+        "logic": {"visibility": {"mode": "show_if", "rules": [
+          {"field_key": "in_australia", "operator": "equals", "value": "yes"},
+          {"field_key": "urgency", "operator": "is_one_of", "value": ["Urgent", "Critical"]}
+        ]}}
+      },
+      "answers": {"in_australia": "yes", "urgency": "Urgent"},
+      "expected_visible": true,
+      "expected_required": false
+    },
+    {
+      "name": "and-composition-one-fails",
+      "field": {
+        "key": "urgent_note",
+        "label": "Why urgent?",
+        "type": "long_text",
+        "required": false,
+        "logic": {"visibility": {"mode": "show_if", "rules": [
+          {"field_key": "in_australia", "operator": "equals", "value": "yes"},
+          {"field_key": "urgency", "operator": "is_one_of", "value": ["Urgent", "Critical"]}
+        ]}}
+      },
+      "answers": {"in_australia": "yes", "urgency": "Standard"},
+      "expected_visible": false,
+      "expected_required": false
+    },
+    {
+      "name": "hidden-not-required-even-when-required-flag",
+      "field": {
+        "key": "employer_name",
+        "label": "Employer name",
+        "type": "short_text",
+        "required": true,
+        "logic": {"visibility": {"mode": "show_if", "rules": [{"field_key": "visa", "operator": "equals", "value": "482"}]}}
+      },
+      "answers": {"visa": "189"},
+      "expected_visible": false,
+      "expected_required": false
+    }
+  ]
+}

@@ -19,6 +19,10 @@ from app.agents.immigration.questionnaires.models import (
     QuestionnaireResponse,
     QuestionnaireVersion,
 )
+from app.agents.immigration.questionnaires.rules_engine import (
+    clean_answers,
+    missing_required,
+)
 from app.agents.immigration.questionnaires.schemas import (
     QuestionField,
     QuestionnaireCreate,
@@ -257,6 +261,26 @@ async def submit_public_questionnaire(
     if not q:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Questionnaire not found")
 
+    # Load the schema snapshot so we can apply conditional logic server-side.
+    version = (
+        await db.execute(
+            select(QuestionnaireVersion).where(QuestionnaireVersion.id == q.current_version_id)
+        )
+    ).scalar_one_or_none()
+    schema_fields: list[dict] = (
+        version.schema.get("fields", []) if version else []
+    )
+
+    # Server-side rules pass — drop answers for fields hidden by logic
+    # (defends against tampered submissions) then enforce required-if.
+    safe_answers = clean_answers(schema_fields, payload.answers or {})
+    missing = missing_required(schema_fields, safe_answers)
+    if missing:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Missing required answer(s): {', '.join(missing)}",
+        )
+
     email = payload.submitter_email.lower().strip()
     first_name = payload.submitter_first_name.strip()
     last_name = payload.submitter_last_name.strip()
@@ -293,13 +317,14 @@ async def submit_public_questionnaire(
         db.add(link)
         await db.flush()
 
-    # Save response
+    # Save response (only the visible-field answers — hidden answers are
+    # already dropped by clean_answers above)
     response = QuestionnaireResponse(
         questionnaire_id=q.id,
         version_id=q.current_version_id,
         org_id=q.org_id,
         client_id=client.id,
-        answers=payload.answers,
+        answers=safe_answers,
         submitter_email=email,
         submitter_first_name=first_name,
         submitter_last_name=last_name,

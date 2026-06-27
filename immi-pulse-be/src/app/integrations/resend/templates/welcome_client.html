@@ -1,0 +1,42 @@
+{% extends '_layout.html' %}
+{% from '_macros.html' import button, eyebrow, hairline, cta_with_copy_link, note_block %}
+
+{% block preheader %}{{ firm_name }} has set up your secure client portal — sign in to track your application.{% endblock %}
+
+{% block content %}
+  {{ eyebrow('Your client portal is ready') }}
+
+  <h1 class="h1" style="font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; font-weight: 600; font-size: 32px; line-height: 38px; letter-spacing: -0.4px; color: #101928; margin: 0 0 18px 0;">
+    Welcome{{ ' ' + recipient_name.split()[0] if recipient_name else '' }} — {{ firm_name }} has set up your portal.
+  </h1>
+
+  <p style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 16px; line-height: 26px; color: #475367; margin: 0 0 28px 0;">
+    This is your secure home for everything to do with your application — sign your engagement letter, upload documents, and track progress in one place. No PIN codes to chase; just one login.
+  </p>
+
+  {# Credentials card — email + temporary password #}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 4px 0 28px 0;">
+    <tr>
+      <td bgcolor="#F4F1FE" style="background-color: #F4F1FE; border-radius: 12px; padding: 24px 24px;">
+        <div style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 2.4px; line-height: 14px; color: #3E1C96; text-transform: uppercase; margin: 0 0 14px 0;">
+          Your sign-in details
+        </div>
+        <div style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 13px; line-height: 20px; color: #475367; margin: 0 0 4px 0;">Email</div>
+        <div style="font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; font-weight: 600; font-size: 17px; line-height: 24px; color: #101928; margin: 0 0 16px 0;">{{ login_email }}</div>
+        {% if temp_password %}
+        <div style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 13px; line-height: 20px; color: #475367; margin: 0 0 4px 0;">Temporary password</div>
+        <div style="font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; font-weight: 600; font-size: 22px; line-height: 28px; letter-spacing: 1px; color: #101928;">{{ temp_password }}</div>
+        <div style="font-family: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 12px; line-height: 18px; color: #98A2B3; margin: 10px 0 0 0;">You'll set your own password the first time you sign in.</div>
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+
+  {{ cta_with_copy_link(portal_url, 'Open my portal') }}
+
+  {{ hairline(margin='40px 0 24px 0') }}
+
+  {{ note_block('A note on security', 'Keep your password private. If you didn&rsquo;t expect this email, you can safely ignore it. Questions? Just reply and your agent will get back to you.') }}
+{% endblock %}
+
+{% block footer_postscript %} You&rsquo;re receiving this because {{ firm_name }} added you as a client.{% endblock %}

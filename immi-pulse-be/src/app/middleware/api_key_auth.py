@@ -37,6 +37,8 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
         "/api/v1/community/public/",
         "/api/v1/public/q/",
         "/api/v1/public/newsletter/",
+        "/api/v1/public/letters/",   # engagement-letter public view/sign (was missing)
+        "/api/v1/public/portal/",    # persistent client-portal account API
     )
 
     async def dispatch(self, request: Request, call_next):

@@ -55,6 +55,41 @@ async def send_welcome(
     )
 
 
+async def send_client_portal_welcome(
+    *,
+    to: str,
+    recipient_name: str,
+    firm_name: str,
+    portal_url: str,
+    login_email: str,
+    temp_password: Optional[str] = None,
+    support_email: str = "support@immi-pulse.com",
+    subject: Optional[str] = None,
+    reply_to: Optional[str] = None,
+) -> dict:
+    """Welcome the client to their persistent portal account (created at qualify).
+
+    `temp_password` is the one-time plaintext to include; omit on a plain re-share
+    once the client has set their own password.
+    """
+    html = render(
+        "welcome_client.html",
+        recipient_name=recipient_name,
+        firm_name=firm_name,
+        portal_url=portal_url,
+        login_email=login_email,
+        temp_password=temp_password,
+        support_email=support_email,
+    )
+    return await send_email(
+        to=to,
+        subject=subject or f"Your client portal is ready — {firm_name}",
+        html=html,
+        reply_to=reply_to,
+        tags=[{"name": "template", "value": "welcome_client"}],
+    )
+
+
 async def send_upload_link(
     *,
     to: str,

@@ -596,6 +596,79 @@ async def public_sign_letter(
     return {"success": True, "signed_at": letter.signed_at, "download_url": None}
 
 
+async def portal_sign_letter(
+    db: AsyncSession,
+    *,
+    pre_case_id: UUID,
+    org_id: UUID,
+    payload: dict,
+    ip_address: Optional[str],
+    user_agent: Optional[str],
+) -> dict:
+    """Sign the active engagement letter for a pre-case from inside the portal.
+
+    The client is already authenticated via their portal-account session, so no
+    PIN is required — an authenticated, logged-in signature is *stronger* evidence
+    than the emailed PIN flow. We still record the full ETA-1999 SignatureEvent
+    (body hash, IP/UA, consent text) and flip the pre-case to letter_signed.
+    """
+    letter = (
+        await db.execute(
+            select(EngagementLetter)
+            .where(EngagementLetter.pre_case_id == pre_case_id)
+            .where(EngagementLetter.org_id == org_id)
+            .where(EngagementLetter.status == "sent")
+            .order_by(desc(EngagementLetter.created_at))
+        )
+    ).scalars().first()
+    if not letter:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No engagement letter is waiting to be signed.")
+    if letter.sign_link_expires_at and letter.sign_link_expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status.HTTP_410_GONE, "The signing window has expired — ask your agent to resend.")
+
+    if not payload.get("consent_given"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Consent must be given to sign electronically")
+
+    method = payload.get("method", "typed_name")
+    if method == "drawn" and not payload.get("signature_image_b64"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "signature_image_b64 required for drawn signatures")
+
+    body_hash = hashlib.sha256((letter.rendered_body_md or "").encode("utf-8")).hexdigest()
+    consent_text = (
+        "I have read and agree to the terms of this engagement agreement. "
+        "I consent to electronic signature under the Electronic Transactions Act 1999 (Cth). "
+        "Signed while authenticated to my client portal."
+    )
+
+    event = SignatureEvent(
+        letter_id=letter.id,
+        method=method,
+        signer_name=payload["signer_name"],
+        signature_image_s3=None,
+        body_hash_sha256=body_hash,
+        ip_address=ip_address,
+        user_agent=user_agent,
+        consent_text=consent_text,
+        consent_given=True,
+    )
+    db.add(event)
+
+    letter.status = "signed"
+    letter.signed_at = datetime.now(timezone.utc)
+
+    pc = (
+        await db.execute(select(PreCase).where(PreCase.id == letter.pre_case_id))
+    ).scalar_one_or_none()
+    if pc:
+        pc.status = "letter_signed"
+        if not pc.letter_sent_at:
+            pc.letter_sent_at = letter.sent_at or datetime.now(timezone.utc)
+        pc.letter_signed_at = datetime.now(timezone.utc)
+
+    await db.commit()
+    return {"success": True, "signed_at": letter.signed_at}
+
+
 # ── Helpers ────────────────────────────────────────────────────────────────
 
 def _template_to_dict(t: EngagementLetterTemplate) -> dict:
