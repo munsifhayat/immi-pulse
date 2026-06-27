@@ -42,7 +42,7 @@ export default function EditQuestionnairePage() {
   };
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       {/* ── Page header — editorial folio ── */}
       <header>
         <div className="editorial-eyebrow">Folio nº 006 · Form editor</div>
@@ -56,7 +56,7 @@ export default function EditQuestionnairePage() {
               keep their original schema.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col items-start gap-2 sm:items-end">
             <span
               className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono-d text-[10px] uppercase tracking-[0.2em] ${
                 q.is_active
@@ -71,56 +71,31 @@ export default function EditQuestionnairePage() {
               />
               {q.is_active ? "Active" : "Paused"}
             </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="max-w-[220px] truncate font-mono text-[11px] text-muted-foreground sm:max-w-[320px]">
+                {publicUrl}
+              </span>
+              <button
+                type="button"
+                onClick={onCopy}
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-foreground hover:border-purple/40"
+              >
+                {copied ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                {copied ? "Copied" : "Copy link"}
+              </button>
+              <a
+                href={publicUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-foreground hover:border-purple/40"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Open
+              </a>
+            </div>
           </div>
         </div>
       </header>
-
-      {/* ── Public link panel ── */}
-      <section className="overflow-hidden rounded-2xl border border-border bg-card">
-        <div className="flex items-center gap-3 border-b border-border/60 bg-muted/40 px-6 py-3.5">
-          <span className="font-mono-d text-[10.5px] uppercase tracking-[0.28em] text-purple">
-            Public link
-          </span>
-          <span className="hidden text-[12px] text-muted-foreground sm:inline">
-            · Share anywhere — submissions land in your Pre-Cases inbox
-          </span>
-        </div>
-        <div className="flex flex-col gap-3 p-6 sm:flex-row sm:items-center">
-          <div className="flex-1 overflow-hidden rounded-lg border border-border bg-background px-3.5 py-2.5">
-            <span className="block truncate font-mono text-[13px] text-foreground">
-              {publicUrl}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onCopy}
-              className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3.5 py-2.5 text-[13px] font-medium text-foreground transition-all hover:border-purple/40 hover:bg-purple/5 hover:text-purple"
-            >
-              {copied ? (
-                <>
-                  <Check className="h-3.5 w-3.5 text-emerald-600" />
-                  <span className="text-emerald-700">Copied</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="h-3.5 w-3.5" />
-                  Copy
-                </>
-              )}
-            </button>
-            <a
-              href={publicUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3.5 py-2.5 text-[13px] font-medium text-foreground transition-all hover:border-purple/40 hover:bg-purple/5 hover:text-purple"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              Open
-            </a>
-          </div>
-        </div>
-      </section>
 
       {/* ── Builder ── */}
       <QuestionnaireBuilder
@@ -128,8 +103,10 @@ export default function EditQuestionnairePage() {
         initialDescription={q.description || ""}
         initialAudience={q.audience}
         initialFields={q.fields}
+        questionnaireId={q.id}
         saving={saving}
-        saveLabel="Save changes"
+        saveLabel="Save & publish"
+        modeStorageKey={`questionnaire-builder-mode:${q.id}`}
         onSave={async (payload) => {
           setSaving(true);
           try {

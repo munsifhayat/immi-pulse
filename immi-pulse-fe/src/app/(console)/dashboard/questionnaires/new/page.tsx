@@ -8,11 +8,15 @@ import {
   ArrowUpRight,
   CheckCircle2,
   Sparkles,
+  GitBranch,
+  Clock,
 } from "lucide-react";
 import { QuestionnaireBuilder } from "@/components/QuestionnaireBuilder";
 import { questionnairesApi } from "@/lib/api/services";
 import {
-  TEMPLATES,
+  STANDARD_TEMPLATES,
+  RECIPE_TEMPLATES,
+  BLANK_TEMPLATE,
   ACCENT_CLASSES,
   type QuestionnaireTemplate,
 } from "@/lib/questionnaire-templates";
@@ -27,7 +31,7 @@ export default function NewQuestionnairePage() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <header>
         <button
           type="button"
@@ -52,11 +56,20 @@ export default function NewQuestionnairePage() {
               {chosen.description} Tweak the questions below before publishing.
             </p>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-purple/20 bg-purple/[0.06] px-3 py-1 font-mono-d text-[10px] uppercase tracking-[0.22em] text-purple-deep">
-            <Sparkles className="h-3 w-3" />
-            Pre-filled · {chosen.fields.length}{" "}
-            {chosen.fields.length === 1 ? "question" : "questions"}
-          </span>
+          <div className="flex items-center gap-2">
+            {chosen.kind === "recipe" ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-purple/20 bg-purple/[0.06] px-3 py-1 font-mono-d text-[10px] uppercase tracking-[0.22em] text-purple-deep">
+                <GitBranch className="h-3 w-3" />
+                {chosen.branchCount ?? "?"} branches · {chosen.fields.length} fields
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-purple/20 bg-purple/[0.06] px-3 py-1 font-mono-d text-[10px] uppercase tracking-[0.22em] text-purple-deep">
+                <Sparkles className="h-3 w-3" />
+                Pre-filled · {chosen.fields.length}{" "}
+                {chosen.fields.length === 1 ? "question" : "questions"}
+              </span>
+            )}
+          </div>
         </div>
       </header>
 
@@ -65,8 +78,10 @@ export default function NewQuestionnairePage() {
         initialDescription={chosen.description}
         initialAudience={chosen.audience}
         initialFields={chosen.fields}
+        draftId={`new:${chosen.id}`}
         saving={saving}
         saveLabel="Save & publish"
+        modeStorageKey={`questionnaire-builder-mode:new:${chosen.id}`}
         onSave={async (payload) => {
           setSaving(true);
           try {
@@ -88,9 +103,6 @@ function TemplatePicker({
 }: {
   onPick: (t: QuestionnaireTemplate) => void;
 }) {
-  const real = TEMPLATES.filter((t) => t.id !== "blank");
-  const blank = TEMPLATES.find((t) => t.id === "blank")!;
-
   return (
     <div className="space-y-12">
       {/* Header */}
@@ -103,12 +115,12 @@ function TemplatePicker({
             </h1>
             <p className="mt-3 max-w-[64ch] text-[14px] leading-[1.6] text-muted-foreground">
               Each template comes pre-loaded with the right questions for that
-              audience. You can rename, reorder, and edit anything before
-              publishing — these are starting points, not rules.
+              audience. Logic recipes ship with branching rules already wired up.
+              You can rename, reorder, and edit anything before publishing.
             </p>
           </div>
           <div className="hidden font-mono-d text-[10.5px] uppercase tracking-[0.28em] text-muted-foreground sm:block">
-            {real.length} templates · 1 blank
+            {STANDARD_TEMPLATES.length} standard · {RECIPE_TEMPLATES.length} logic recipes
           </div>
         </div>
       </header>
@@ -126,41 +138,71 @@ function TemplatePicker({
         </p>
       </div>
 
-      {/* Template grid */}
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        variants={{
-          visible: { transition: { staggerChildren: 0.06 } },
-        }}
-        className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3"
-      >
-        {real.map((t) => (
-          <TemplateCard key={t.id} template={t} onPick={onPick} />
-        ))}
-      </motion.div>
+      {/* Standard templates */}
+      <section>
+        <div className="mb-5 flex items-baseline gap-3">
+          <span className="font-mono-d text-[10.5px] uppercase tracking-[0.28em] text-purple">
+            Standard templates
+          </span>
+          <span className="text-[12.5px] text-muted-foreground">
+            · use as-is or customise
+          </span>
+        </div>
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={{ visible: { transition: { staggerChildren: 0.04 } } }}
+          className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3"
+        >
+          {STANDARD_TEMPLATES.map((t) => (
+            <TemplateCard key={t.id} template={t} onPick={onPick} />
+          ))}
+        </motion.div>
+      </section>
+
+      {/* Logic recipes */}
+      <section>
+        <div className="mb-5 flex items-baseline gap-3">
+          <span className="font-mono-d text-[10.5px] uppercase tracking-[0.28em] text-purple">
+            Logic recipes
+          </span>
+          <span className="text-[12.5px] text-muted-foreground">
+            · pre-wired branching forms for common immigration scenarios
+          </span>
+        </div>
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={{ visible: { transition: { staggerChildren: 0.04 } } }}
+          className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3"
+        >
+          {RECIPE_TEMPLATES.map((t) => (
+            <TemplateCard key={t.id} template={t} onPick={onPick} isRecipe />
+          ))}
+        </motion.div>
+      </section>
 
       {/* Blank option */}
       <div>
         <div className="editorial-rule" />
         <button
           type="button"
-          onClick={() => onPick(blank)}
+          onClick={() => onPick(BLANK_TEMPLATE)}
           className="group mt-6 flex w-full items-center justify-between gap-4 rounded-2xl border border-dashed border-border bg-card/40 p-5 text-left transition-all hover:-translate-y-0.5 hover:border-foreground/30 hover:bg-card"
         >
           <div className="flex items-center gap-4">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted text-muted-foreground transition-colors group-hover:bg-foreground group-hover:text-background">
-              <blank.icon className="h-4 w-4" />
+              <BLANK_TEMPLATE.icon className="h-4 w-4" />
             </span>
             <div>
               <div className="font-mono-d text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">
-                {blank.shortName}
+                {BLANK_TEMPLATE.shortName}
               </div>
               <div className="mt-0.5 font-heading text-[16px] font-medium tracking-tight text-foreground">
-                {blank.name}
+                {BLANK_TEMPLATE.name}
               </div>
               <p className="mt-0.5 text-[12.5px] text-muted-foreground">
-                {blank.description}
+                {BLANK_TEMPLATE.description}
               </p>
             </div>
           </div>
@@ -177,13 +219,14 @@ function TemplatePicker({
 function TemplateCard({
   template,
   onPick,
+  isRecipe,
 }: {
   template: QuestionnaireTemplate;
   onPick: (t: QuestionnaireTemplate) => void;
+  isRecipe?: boolean;
 }) {
   const Icon = template.icon;
   const accent = ACCENT_CLASSES[template.accent];
-  // Show up to 4 of the most informative field labels as a preview
   const previewFields = template.fields.slice(0, 4);
   const remaining = Math.max(0, template.fields.length - previewFields.length);
 
@@ -204,11 +247,19 @@ function TemplateCard({
         >
           <Icon className="h-4 w-4" />
         </span>
-        <span
-          className={`font-mono-d text-[9.5px] uppercase tracking-[0.22em] ${accent.chip} rounded-full px-2.5 py-1`}
-        >
-          {template.shortName}
-        </span>
+        <div className="flex flex-col items-end gap-1">
+          <span
+            className={`font-mono-d text-[9.5px] uppercase tracking-[0.22em] ${accent.chip} rounded-full px-2.5 py-1`}
+          >
+            {template.shortName}
+          </span>
+          {isRecipe && template.branchCount !== undefined && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-purple/30 bg-purple/[0.06] px-2 py-0.5 font-mono-d text-[9px] uppercase tracking-[0.2em] text-purple-deep">
+              <GitBranch className="h-2.5 w-2.5" />
+              {template.branchCount} branches
+            </span>
+          )}
+        </div>
       </div>
 
       <h3 className="mt-5 font-heading text-[18px] font-medium leading-tight tracking-tight text-foreground">
@@ -218,7 +269,6 @@ function TemplateCard({
         {template.description}
       </p>
 
-      {/* Field preview */}
       <div className="mt-5 space-y-1.5">
         {previewFields.map((f) => (
           <div
@@ -232,6 +282,10 @@ function TemplateCard({
                 req
               </span>
             )}
+            {f.logic?.visibility?.mode &&
+              f.logic.visibility.mode !== "always" && (
+                <GitBranch className="h-2.5 w-2.5 shrink-0 text-purple" />
+              )}
           </div>
         ))}
         {remaining > 0 && (
@@ -241,11 +295,17 @@ function TemplateCard({
         )}
       </div>
 
-      {/* Footer */}
       <div className="mt-5 flex items-center justify-between border-t border-border/60 pt-4">
-        <span className="font-mono-d text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">
-          {template.fields.length}{" "}
-          {template.fields.length === 1 ? "question" : "questions"}
+        <span className="inline-flex items-center gap-3 font-mono-d text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">
+          <span>
+            {template.fields.length}{" "}
+            {template.fields.length === 1 ? "question" : "questions"}
+          </span>
+          {template.estimatedMinutes !== undefined && (
+            <span className="inline-flex items-center gap-1">
+              <Clock className="h-2.5 w-2.5" />~{template.estimatedMinutes} min
+            </span>
+          )}
         </span>
         <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-foreground transition-colors group-hover:text-purple">
           Use this
