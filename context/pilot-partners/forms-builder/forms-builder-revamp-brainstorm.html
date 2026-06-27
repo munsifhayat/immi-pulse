@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Form Builder Revamp — Visual Brainstorm · IMMI-PULSE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root {
+    --bg: #FBFAF7;
+    --bg-alt: #FFFFFF;
+    --surface: #FFFFFF;
+    --surface-tint: #F7F5FF;
+    --navy: #101928;
+    --text: #101928;
+    --muted: #475367;
+    --muted-soft: #6B7280;
+    --accent: #7A5AF8;
+    --accent-deep: #3E1C96;
+    --accent-soft: #EFEBFF;
+    --accent-tint: #F4F1FF;
+    --teal: #1B7B6F;
+    --teal-soft: #E6F2F0;
+    --warn: #B85C50;
+    --warn-soft: #FDEFEA;
+    --good: #3F8C5C;
+    --good-soft: #E7F3EB;
+    --rose: #BE4B4B;
+    --rose-soft: #FEF2F2;
+    --border: rgba(16,25,40,0.07);
+    --border-strong: rgba(16,25,40,0.12);
+    --shadow: 0 1px 2px rgba(16,25,40,0.04), 0 8px 24px rgba(16,25,40,0.05);
+    --shadow-lg: 0 1px 2px rgba(16,25,40,0.04), 0 24px 48px rgba(16,25,40,0.08);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, .heading { font-family: 'Outfit', 'Inter', system-ui, sans-serif; letter-spacing: -0.015em; }
+  .container { max-width: 1180px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 72px); }
+  section { padding: 88px 0; }
+  @media (max-width: 720px) { section { padding: 56px 0; } }
+
+  /* Nav pills */
+  .nav-strip {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(251,250,247,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 0;
+  }
+  .nav-inner {
+    display: flex; gap: 8px; overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav-inner::-webkit-scrollbar { display: none; }
+  .nav-pill {
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 999px;
+    font-size: 12.5px; font-weight: 500; text-decoration: none;
+    color: var(--muted); border: 1px solid var(--border);
+    background: var(--surface); transition: all 0.2s;
+  }
+  .nav-pill:hover { border-color: var(--accent); color: var(--accent-deep); background: var(--accent-soft); }
+  .nav-pill .icon { width: 14px; height: 14px; }
+
+  /* Hero */
+  .hero {
+    position: relative; overflow: hidden;
+    padding-top: 72px; padding-bottom: 64px;
+    background:
+      radial-gradient(ellipse 70% 55% at 85% -5%, rgba(122,90,248,0.16) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 40% at 5% 100%, rgba(62,28,150,0.08) 0%, transparent 55%),
+      var(--bg);
+  }
+  .hero-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center;
+  }
+  @media (max-width: 900px) { .hero-grid { grid-template-columns: 1fr; } }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--accent); margin-bottom: 16px;
+  }
+  .eyebrow .icon { width: 14px; height: 14px; }
+  h1 {
+    font-size: clamp(36px, 5.5vw, 56px);
+    font-weight: 700; line-height: 1.06; margin: 0 0 16px;
+  }
+  h1 .accent { color: var(--accent-deep); }
+  .hero-sub { font-size: 18px; color: var(--muted); max-width: 520px; margin: 0 0 28px; }
+  .hero-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px;
+    font-size: 12px; font-weight: 500;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .chip .icon { width: 13px; height: 13px; color: var(--accent); }
+
+  /* Mini split mock in hero */
+  .hero-mock {
+    background: var(--navy); border-radius: 16px;
+    box-shadow: var(--shadow-lg); overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .mock-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .dots { display: flex; gap: 5px; }
+  .dots span { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2); }
+  .mock-url { flex: 1; text-align: center; font-size: 11px; color: rgba(255,255,255,0.45); }
+  .mock-body { display: grid; grid-template-columns: 1fr 1fr; min-height: 280px; }
+  @media (max-width: 500px) { .mock-body { grid-template-columns: 1fr; } }
+  .mock-left, .mock-right { padding: 14px; }
+  .mock-left { background: rgba(255,255,255,0.03); border-right: 1px solid rgba(255,255,255,0.06); }
+  .mock-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(255,255,255,0.35); margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
+  .mock-label .icon { width: 11px; height: 11px; }
+  .mock-field {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 11px; margin-bottom: 7px; border-radius: 8px;
+    font-size: 11.5px; font-weight: 500; color: rgba(255,255,255,0.88);
+    background: rgba(255,255,255,0.06);
+  }
+  .mock-field .icon { width: 13px; height: 13px; color: var(--accent); flex-shrink: 0; }
+  .mock-field.logic {
+    background: rgba(122,90,248,0.15); border: 1px dashed rgba(122,90,248,0.45);
+    color: #C4B5FD; font-weight: 600;
+  }
+  .mock-field.logic .icon { color: #C4B5FD; }
+  .mock-field.urgent {
+    background: rgba(184,92,80,0.15); border: 1px dashed rgba(184,92,80,0.45);
+    color: #FCA5A5;
+  }
+  .mock-field.urgent .icon { color: #FCA5A5; }
+  .mock-field .tag { margin-left: auto; font-size: 9px; color: rgba(255,255,255,0.35); font-weight: 400; }
+  .mock-phone {
+    background: white; border-radius: 12px; padding: 12px;
+    max-width: 180px; margin: 0 auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  }
+  .mock-phone-title { font-size: 11px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+  .mock-phone-q { font-size: 10px; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+  .mock-phone-input {
+    height: 24px; border-radius: 6px; background: #F0F2F5;
+    border: 1px solid var(--border); margin-bottom: 8px;
+  }
+  .mock-phone-btn {
+    height: 26px; border-radius: 6px; background: var(--navy);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 600; color: white;
+  }
+  .mock-outcome {
+    margin-top: 10px; padding: 6px 10px; border-radius: 8px;
+    background: var(--good-soft); font-size: 10px; font-weight: 600; color: var(--good);
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .mock-outcome .icon { width: 11px; height: 11px; }
+
+  /* Section heads */
+  .section-head { max-width: 640px; margin-bottom: 48px; }
+  h2 { font-size: clamp(28px, 4vw, 38px); font-weight: 700; margin: 0 0 12px; }
+  .section-intro { color: var(--muted); font-size: 17px; margin: 0; }
+
+  /* Today vs Tomorrow */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 720px) { .compare { grid-template-columns: 1fr; } }
+  .compare-col {
+    border-radius: 16px; padding: 28px; border: 1px solid var(--border);
+    background: var(--surface); box-shadow: var(--shadow);
+  }
+  .compare-col.today { border-color: rgba(184,92,80,0.2); }
+  .compare-col.tomorrow { border-color: rgba(63,140,92,0.25); background: linear-gradient(180deg, var(--good-soft) 0%, var(--surface) 40%); }
+  .compare-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px;
+  }
+  .compare-col.today .compare-badge { background: var(--warn-soft); color: var(--warn); }
+  .compare-col.tomorrow .compare-badge { background: var(--good-soft); color: var(--good); }
+  .compare-col h3 { font-size: 20px; margin: 0 0 20px; }
+  .compare-item {
+    display: flex; gap: 12px; padding: 12px 0;
+    border-bottom: 1px solid var(--border); font-size: 14px; color: var(--muted);
+  }
+  .compare-item:last-child { border-bottom: none; }
+  .compare-item .icon { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+  .compare-col.today .compare-item .icon { color: var(--warn); }
+  .compare-col.tomorrow .compare-item .icon { color: var(--good); }
+  .compare-item strong { color: var(--text); display: block; font-size: 14px; margin-bottom: 2px; }
+
+  /* Pain grid */
+  .pain-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 900px) { .pain-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .pain-grid { grid-template-columns: 1fr; } }
+  .pain-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 22px; box-shadow: var(--shadow);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .pain-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+  .pain-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 14px;
+  }
+  .pain-card h3 { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
+  .pain-card p { margin: 0; font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+
+  /* Three options */
+  .options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: stretch; }
+  @media (max-width: 960px) { .options { grid-template-columns: 1fr; } }
+  .option {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 18px; overflow: hidden; box-shadow: var(--shadow);
+    display: flex; flex-direction: column;
+  }
+  .option.recommended {
+    border-color: rgba(122,90,248,0.35);
+    box-shadow: 0 0 0 1px rgba(122,90,248,0.12), var(--shadow-lg);
+  }
+  .option-header { padding: 24px 24px 16px; }
+  .option-num {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--accent); margin-bottom: 8px;
+  }
+  .option h3 { font-size: 22px; margin: 0 0 8px; }
+  .option-tagline { font-size: 14px; color: var(--muted); margin: 0 0 16px; }
+  .rec-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent-deep);
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 10px;
+  }
+  .rec-badge .icon { width: 12px; height: 12px; }
+  .option-visual {
+    flex: 1; margin: 0 16px 16px; border-radius: 12px;
+    background: var(--surface-tint); border: 1px solid var(--border);
+    padding: 16px; min-height: 200px;
+  }
+  .option-pros { padding: 0 24px 24px; }
+  .pro-item {
+    display: flex; gap: 8px; font-size: 13px; color: var(--muted);
+    padding: 6px 0;
+  }
+  .pro-item .icon { width: 15px; height: 15px; color: var(--good); flex-shrink: 0; margin-top: 2px; }
+  .con-item .icon { color: var(--warn); }
+
+  /* Flow mock for option B */
+  .flow-mini { display: flex; flex-direction: column; gap: 6px; align-items: center; padding: 8px 0; }
+  .flow-node {
+    padding: 8px 14px; border-radius: 8px; font-size: 11px; font-weight: 600;
+    background: white; border: 1px solid var(--border); text-align: center; min-width: 140px;
+  }
+  .flow-node.if { background: var(--accent-soft); border-color: rgba(122,90,248,0.3); color: var(--accent-deep); }
+  .flow-arrow { font-size: 14px; color: var(--muted-soft); }
+
+  /* AI mock for option C */
+  .ai-prompt {
+    background: white; border-radius: 10px; padding: 12px;
+    font-size: 12px; color: var(--muted); border: 1px solid var(--border);
+    margin-bottom: 10px; line-height: 1.45;
+  }
+  .ai-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; margin-bottom: 5px; border-radius: 8px;
+    background: white; border: 1px solid var(--border); font-size: 11.5px;
+  }
+  .ai-row .icon { width: 13px; height: 13px; color: var(--good); }
+  .ai-row.branch .icon { color: var(--accent); }
+  .ai-row .pill { margin-left: auto; font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: var(--accent-soft); color: var(--accent-deep); }
+
+  /* Recommended stack */
+  .stack-visual {
+    background: var(--navy); border-radius: 20px; padding: 32px;
+    color: white; box-shadow: var(--shadow-lg);
+  }
+  .stack-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.5); margin-bottom: 24px; }
+  .stack-layers { display: flex; flex-direction: column; gap: 10px; }
+  .stack-layer {
+    display: flex; align-items: center; gap: 16px;
+    padding: 16px 20px; border-radius: 12px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+  }
+  .stack-layer.highlight { background: rgba(122,90,248,0.2); border-color: rgba(122,90,248,0.35); }
+  .stack-phase {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--accent); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; flex-shrink: 0;
+  }
+  .stack-layer.future .stack-phase { background: rgba(255,255,255,0.15); }
+  .stack-layer h4 { margin: 0 0 2px; font-size: 16px; font-weight: 600; }
+  .stack-layer p { margin: 0; font-size: 13px; color: rgba(255,255,255,0.65); }
+  .stack-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .stack-tag {
+    font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px;
+    background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8);
+  }
+
+  /* Full split mock */
+  .full-mock {
+    border-radius: 20px; overflow: hidden;
+    border: 1px solid var(--border-strong); box-shadow: var(--shadow-lg);
+    background: var(--surface);
+  }
+  .full-mock-top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; background: var(--surface-tint);
+    border-bottom: 1px solid var(--border);
+  }
+  .mode-seg {
+    display: inline-flex; padding: 3px; border-radius: 10px;
+    background: white; border: 1px solid var(--border);
+  }
+  .mode-seg span {
+    padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 500;
+    color: var(--muted); cursor: default;
+  }
+  .mode-seg span.active { background: var(--navy); color: white; }
+  .mode-seg span.soon { opacity: 0.5; }
+  .autosave { font-size: 12px; color: var(--good); display: flex; align-items: center; gap: 5px; }
+  .autosave .icon { width: 13px; height: 13px; }
+  .full-mock-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; min-height: 420px; }
+  @media (max-width: 800px) { .full-mock-grid { grid-template-columns: 1fr; } }
+  .panel-left { padding: 24px; border-right: 1px solid var(--border); }
+  .panel-right { padding: 24px; background: #F4F2FB; }
+  .panel-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-soft); margin-bottom: 16px; display: flex; align-items: center; gap: 6px; }
+  .panel-title .icon { width: 14px; height: 14px; }
+  .canvas-field {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 14px 16px; margin-bottom: 8px; border-radius: 12px;
+    background: var(--bg); border: 1px solid var(--border);
+    cursor: default; transition: border-color 0.15s;
+  }
+  .canvas-field:hover { border-color: rgba(122,90,248,0.35); }
+  .canvas-field.selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(122,90,248,0.12); }
+  .drag-handle { color: var(--muted-soft); cursor: grab; padding-top: 2px; }
+  .drag-handle .icon { width: 16px; height: 16px; }
+  .field-content { flex: 1; min-width: 0; }
+  .field-label { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .field-meta { font-size: 11px; color: var(--muted-soft); }
+  .logic-block {
+    padding: 12px 16px; margin-bottom: 8px; border-radius: 12px;
+    background: var(--accent-soft); border: 1px dashed rgba(122,90,248,0.4);
+    font-size: 12.5px; font-weight: 500; color: var(--accent-deep);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .logic-block .icon { width: 15px; height: 15px; flex-shrink: 0; }
+  .logic-block.urgent { background: var(--warn-soft); border-color: rgba(184,92,80,0.4); color: var(--warn); }
+  .logic-block.urgent .icon { color: var(--warn); }
+  .add-row {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px; border-radius: 12px; border: 1px dashed var(--border-strong);
+    color: var(--muted); font-size: 13px; font-weight: 500;
+  }
+  .add-row .icon { width: 15px; height: 15px; }
+  .preview-tabs {
+    display: inline-flex; padding: 3px; border-radius: 8px;
+    background: white; border: 1px solid var(--border); margin-bottom: 16px;
+  }
+  .preview-tabs span {
+    padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 500; color: var(--muted);
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .preview-tabs span.active { background: var(--navy); color: white; }
+  .preview-tabs span .icon { width: 12px; height: 12px; }
+  .phone-large {
+    background: white; border-radius: 20px; padding: 20px;
+    max-width: 260px; margin: 0 auto;
+    box-shadow: 0 12px 40px rgba(16,25,40,0.12);
+    border: 8px solid var(--navy); border-bottom-width: 12px;
+  }
+  .phone-notch { width: 60px; height: 5px; background: #E5E7EB; border-radius: 99px; margin: 0 auto 16px; }
+  .preview-form-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .preview-form-desc { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+  .preview-q { font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+  .preview-input {
+    width: 100%; padding: 10px 12px; border-radius: 8px;
+    border: 1px solid var(--border); font-size: 12px; margin-bottom: 12px;
+    background: var(--bg);
+  }
+  .preview-select {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .preview-opt {
+    padding: 6px 12px; border-radius: 999px; font-size: 11px; font-weight: 500;
+    border: 1px solid var(--border); background: white;
+  }
+  .preview-opt.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-deep); }
+  .outcome-strip {
+    margin-top: 16px; padding: 10px 14px; border-radius: 10px;
+    background: var(--good-soft); display: flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 600; color: var(--good);
+  }
+  .outcome-strip .icon { width: 14px; height: 14px; }
+
+  /* Logic sentence builder mock */
+  .sentence-builder {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px; box-shadow: var(--shadow);
+  }
+  .sentence-row {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    font-size: 15px; line-height: 2;
+  }
+  .sent-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 500;
+    border: 1px solid var(--border); background: var(--bg);
+    color: var(--text);
+  }
+  .sent-chip.field { background: var(--accent-soft); border-color: rgba(122,90,248,0.25); color: var(--accent-deep); }
+  .sent-chip.action { background: var(--teal-soft); border-color: rgba(27,123,111,0.25); color: var(--teal); }
+  .sent-chip.flag { background: var(--warn-soft); border-color: rgba(184,92,80,0.25); color: var(--warn); }
+  .sent-chip .icon { width: 13px; height: 13px; }
+  .sent-plain { color: var(--muted); font-weight: 500; }
+
+  /* Personas */
+  .personas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 800px) { .personas { grid-template-columns: 1fr; } }
+  .persona {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 22px; text-align: center;
+  }
+  .persona-avatar {
+    width: 52px; height: 52px; border-radius: 50%; margin: 0 auto 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 16px;
+  }
+  .persona h3 { font-size: 15px; margin: 0 0 4px; }
+  .persona .role { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .persona p { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.5; }
+
+  /* Questions */
+  .questions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  @media (max-width: 640px) { .questions { grid-template-columns: 1fr; } }
+  .q-card {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 16px 18px; border-radius: 12px;
+    background: var(--surface); border: 1px solid var(--border);
+  }
+  .q-num {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    background: var(--accent-soft); color: var(--accent-deep);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .q-card p { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.45; }
+  .q-card strong { color: var(--text); display: block; font-size: 14px; margin-bottom: 2px; }
+
+  /* CTA */
+  .cta {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--accent-deep) 55%, var(--accent) 100%);
+    border-radius: 20px; padding: 48px 40px; text-align: center; color: white;
+  }
+  .cta h2 { color: white; font-size: 28px; margin-bottom: 10px; }
+  .cta p { color: rgba(255,255,255,0.8); max-width: 480px; margin: 0 auto 24px; font-size: 16px; }
+  .cta-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+  .cta-chip {
+    padding: 10px 18px; border-radius: 999px;
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+    color: white; font-size: 13px; font-weight: 500;
+  }
+
+  footer { padding: 40px 0 64px; text-align: center; color: var(--muted-soft); font-size: 12px; }
+  .icon { width: 20px; height: 20px; stroke-width: 1.75; }
+</style>
+</head>
+<body>
+
+<!-- Sticky nav -->
+<nav class="nav-strip">
+  <div class="container nav-inner">
+    <a class="nav-pill" href="#today"><i data-lucide="arrow-left-right" class="icon"></i> Today vs New</a>
+    <a class="nav-pill" href="#pain"><i data-lucide="flame" class="icon"></i> Pain points</a>
+    <a class="nav-pill" href="#options"><i data-lucide="layers" class="icon"></i> 3 directions</a>
+    <a class="nav-pill" href="#recommend"><i data-lucide="star" class="icon"></i> Recommendation</a>
+    <a class="nav-pill" href="#mock"><i data-lucide="layout" class="icon"></i> Full mockup</a>
+    <a class="nav-pill" href="#logic"><i data-lucide="git-branch" class="icon"></i> Logic UX</a>
+    <a class="nav-pill" href="#questions"><i data-lucide="message-circle" class="icon"></i> Decisions</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="container hero-grid">
+    <div>
+      <span class="eyebrow"><i data-lucide="sparkles" class="icon"></i> Form builder revamp</span>
+      <h1>Build on the left.<br><span class="accent">See the truth</span> on the right.</h1>
+      <p class="hero-sub">One interactive canvas. Drag questions. Add rules in plain English. Watch exactly what your client will see — live.</p>
+      <div class="hero-chips">
+        <span class="chip"><i data-lucide="layout-template" class="icon"></i> Templates</span>
+        <span class="chip"><i data-lucide="wand-2" class="icon"></i> AI draft (phase 2)</span>
+        <span class="chip"><i data-lucide="git-branch" class="icon"></i> Branching logic</span>
+        <span class="chip"><i data-lucide="zap" class="icon"></i> Outcome flags</span>
+      </div>
+    </div>
+    <div class="hero-mock">
+      <div class="mock-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="mock-url">forms / employer-intake</div>
+        <span style="font-size:10px;color:rgba(255,255,255,0.4);">Draft · saved</span>
+      </div>
+      <div class="mock-body">
+        <div class="mock-left">
+          <div class="mock-label"><i data-lucide="hammer" class="icon"></i> Builder</div>
+          <div class="mock-field"><i data-lucide="globe" class="icon"></i> Which country are you in?<span class="tag">choice</span></div>
+          <div class="mock-field logic"><i data-lucide="git-branch" class="icon"></i> IF Australia → ask visa status</div>
+          <div class="mock-field"><i data-lucide="file-badge" class="icon"></i> Current visa?<span class="tag">dropdown</span></div>
+          <div class="mock-field urgent"><i data-lucide="alert-triangle" class="icon"></i> IF Unlawful → flag URGENT</div>
+        </div>
+        <div class="mock-right">
+          <div class="mock-label"><i data-lucide="eye" class="icon"></i> Live preview</div>
+          <div class="mock-phone">
+            <div class="mock-phone-title">Employer intake</div>
+            <div class="mock-phone-q">Current visa?</div>
+            <div class="mock-phone-input"></div>
+            <div class="mock-phone-btn">Continue</div>
+          </div>
+          <div class="mock-outcome"><i data-lucide="check-circle" class="icon"></i> Outcome: Qualified</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- TODAY VS TOMORROW -->
+<section id="today" style="background: var(--surface);">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow"><i data-lucide="arrow-left-right" class="icon"></i> The shift</span>
+      <h2>Today vs what we're proposing</h2>
+      <p class="section-intro">Same engine underneath. Completely different feel.</p>
+    </div>
+    <div class="compare">
+      <div class="compare-col today">
+        <span class="compare-badge"><i data-lucide="x-circle" class="icon"></i> Today</span>
+        <h3>List editing</h3>
+        <div class="compare-item">
+          <i data-lucide="list" class="icon"></i>
+          <div><strong>Stacked field cards</strong>Feels like configuring settings, not designing an intake.</div>
+        </div>
+        <div class="compare-item">
+          <i data-lucide="panel-right" class="icon"></i>
+          <div><strong>Preview hidden in Advanced</strong>Only appears below the builder — surprise on publish.</div>
+        </div>
+        <div class="compare-item">
+          <i data-lucide="settings-2" class="icon"></i>
+          <div><strong>Logic in a popover</strong>Operators, field keys — technical, not human.</div>
+        </div>
+        <div class="compare-item">
+          <i data-lucide="arrow-up-down" class="icon"></i>
+          <div><strong>Reorder via arrows</strong>Marketing says drag-and-drop — grip icon only.</div>
+        </div>
+        <div class="compare-item">
+          <i data-lucide="save" class="icon"></i>
+          <div><strong>Save & publish only</strong>No autosave — consultants hesitate to experiment.</div>
+        </div>
+      </div>
+      <div class="compare-col tomorrow">
+        <span class="compare-badge"><i data-lucide="check-circle" class="icon"></i> Proposed</span>
+        <h3>Interactive canvas</h3>
+        <div class="compare-item">
+          <i data-lucide="layout" class="icon"></i>
+          <div><strong>Split-pane workspace</strong>Build left, live client preview right — always on.</div>
+        </div>
+        <div class="compare-item">
+          <i data-lucide="mouse-pointer-2" class="icon"></i>
+          <div><strong>Real drag-and-drop</strong>Fields + logic blocks reorder naturally.</div>
+        </div>
+        <div class="compare-item">
+          <i data-lucide="message-square-quote" class="icon"></i>
+          <div><strong>Plain-English rules</strong>"When visa is 482 → show Employer name"</div>
+        </div>
+        <div class="compare-item">
+          <i data-lucide="blocks" class="icon"></i>
+          <div><strong>Logic as visible blocks</strong>Purple cards between questions — not buried.</div>
+        </div>
+        <div class="compare-item">
+          <i data-lucide="cloud" class="icon"></i>
+          <div><strong>Autosave drafts</strong>Experiment freely. Publish when ready.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PAIN POINTS -->
+<section id="pain">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow"><i data-lucide="flame" class="icon"></i> Why revamp</span>
+      <h2>7 things holding the builder back</h2>
+    </div>
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="pain-icon" style="background:var(--warn-soft);"><i data-lucide="list" class="icon" style="color:var(--warn);"></i></div>
+        <h3>Not form designing</h3>
+        <p>Consultants think in scenarios, not field rows.</p>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon" style="background:var(--rose-soft);"><i data-lucide="eye-off" class="icon" style="color:var(--rose);"></i></div>
+        <h3>Preview disconnected</h3>
+        <p>Can't see client view while editing logic.</p>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon" style="background:var(--accent-soft);"><i data-lucide="code" class="icon" style="color:var(--accent);"></i></div>
+        <h3>Logic too technical</h3>
+        <p>equals / is_one_of / field keys scare people.</p>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon" style="background:var(--teal-soft);"><i data-lucide="grip-vertical" class="icon" style="color:var(--teal);"></i></div>
+        <h3>No real drag</h3>
+        <p>Arrows + icon ≠ the promised experience.</p>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon" style="background:var(--accent-soft);"><i data-lucide="rows-3" class="icon" style="color:var(--accent);"></i></div>
+        <h3>No sections</h3>
+        <p>Long forms feel like one flat scroll.</p>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon" style="background:var(--warn-soft);"><i data-lucide="alert-circle" class="icon" style="color:var(--warn);"></i></div>
+        <h3>Scary save model</h3>
+        <p>One button to publish — no safe drafts.</p>
+      </div>
+      <div class="pain-card" style="grid-column: span 1;">
+        <div class="pain-icon" style="background:var(--good-soft);"><i data-lucide="quote" class="icon" style="color:var(--good);"></i></div>
+        <h3>Gideon's ask</h3>
+        <p>"Drag and drop, like Legal Fun — user-friendly for complex forms."</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THREE OPTIONS -->
+<section id="options" style="background: var(--surface);">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow"><i data-lucide="compass" class="icon"></i> Three directions</span>
+      <h2>Pick your primary surface</h2>
+      <p class="section-intro">Not three separate apps — three ways into the same canvas.</p>
+    </div>
+    <div class="options">
+      <!-- A -->
+      <div class="option recommended">
+        <div class="option-header">
+          <span class="rec-badge"><i data-lucide="star" class="icon"></i> Recommended first</span>
+          <div class="option-num">Option A</div>
+          <h3>Split-pane canvas</h3>
+          <p class="option-tagline">Typeform meets Notion. WYSIWYG form design.</p>
+        </div>
+        <div class="option-visual">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;height:100%;">
+            <div style="background:white;border-radius:8px;padding:10px;border:1px solid var(--border);">
+              <div style="font-size:9px;font-weight:700;color:var(--muted-soft);margin-bottom:8px;">BUILDER</div>
+              <div style="height:22px;background:var(--bg);border-radius:6px;margin-bottom:5px;"></div>
+              <div style="height:22px;background:var(--accent-soft);border-radius:6px;margin-bottom:5px;border:1px dashed rgba(122,90,248,0.3);"></div>
+              <div style="height:22px;background:var(--bg);border-radius:6px;"></div>
+            </div>
+            <div style="background:#F4F2FB;border-radius:8px;padding:10px;display:flex;align-items:center;justify-content:center;">
+              <div style="width:70px;height:120px;background:white;border-radius:10px;border:3px solid var(--navy);"></div>
+            </div>
+          </div>
+        </div>
+        <div class="option-pros">
+          <div class="pro-item"><i data-lucide="check" class="icon"></i> Matches vision doc + Gideon feedback</div>
+          <div class="pro-item"><i data-lucide="check" class="icon"></i> Reuses existing renderer + rules engine</div>
+          <div class="pro-item con-item"><i data-lucide="minus" class="icon"></i> Medium build — layout + DnD</div>
+        </div>
+      </div>
+      <!-- B -->
+      <div class="option">
+        <div class="option-header">
+          <div class="option-num">Option B</div>
+          <h3>Flow-first</h3>
+          <p class="option-tagline">Decision tree as the main surface.</p>
+        </div>
+        <div class="option-visual">
+          <div class="flow-mini">
+            <div class="flow-node">Country?</div>
+            <div class="flow-arrow">↓ Australia</div>
+            <div class="flow-node if">Visa status?</div>
+            <div class="flow-arrow">↓ 482</div>
+            <div class="flow-node">Employer?</div>
+          </div>
+        </div>
+        <div class="option-pros">
+          <div class="pro-item"><i data-lucide="check" class="icon"></i> Perfect for complex branching</div>
+          <div class="pro-item"><i data-lucide="check" class="icon"></i> Impressive in demos</div>
+          <div class="pro-item con-item"><i data-lucide="minus" class="icon"></i> Steep for simple 5-question forms</div>
+        </div>
+      </div>
+      <!-- C -->
+      <div class="option">
+        <div class="option-header">
+          <div class="option-num">Option C</div>
+          <h3>AI + canvas</h3>
+          <p class="option-tagline">Describe it. Review suggestions. Refine visually.</p>
+        </div>
+        <div class="option-visual">
+          <div class="ai-prompt">"Form for skilled migrants from India — 189 or 190"</div>
+          <div class="ai-row"><i data-lucide="check" class="icon"></i> Occupation (ANZSCO)<span class="pill">accept</span></div>
+          <div class="ai-row"><i data-lucide="check" class="icon"></i> English test score<span class="pill">accept</span></div>
+          <div class="ai-row branch"><i data-lucide="git-branch" class="icon"></i> IF 190 → State<span class="pill">branch</span></div>
+        </div>
+        <div class="option-pros">
+          <div class="pro-item"><i data-lucide="check" class="icon"></i> Differentiator vs generic tools</div>
+          <div class="pro-item con-item"><i data-lucide="minus" class="icon"></i> Needs AI endpoint (phase 2)</div>
+          <div class="pro-item con-item"><i data-lucide="minus" class="icon"></i> V0 = smart template matching</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PERSONAS -->
+<section>
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow"><i data-lucide="users" class="icon"></i> Three consultants</span>
+      <h2>One canvas, three entry ramps</h2>
+    </div>
+    <div class="personas">
+      <div class="persona">
+        <div class="persona-avatar" style="background:var(--teal-soft);color:var(--teal);">ST</div>
+        <h3>Ship today</h3>
+        <p class="role">Solo practitioner</p>
+        <p>Pick template → copy link → done in 30 seconds.</p>
+      </div>
+      <div class="persona">
+        <div class="persona-avatar" style="background:var(--accent-soft);color:var(--accent-deep);">KN</div>
+        <h3>Knows what they want</h3>
+        <p class="role">Experienced agent</p>
+        <p>"482 holders in Brisbane" — AI drafts, they tweak.</p>
+      </div>
+      <div class="persona">
+        <div class="persona-avatar" style="background:var(--warn-soft);color:var(--warn);">PR</div>
+        <h3>Process expert</h3>
+        <p class="role">Firm with intake SOPs</p>
+        <p>Mirror real logic visually — branching is the hero.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RECOMMENDATION / PHASES -->
+<section id="recommend" style="background: var(--surface);">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow"><i data-lucide="map" class="icon"></i> Recommended path</span>
+      <h2>A now → B as tab → C in phase 2</h2>
+      <p class="section-intro">Don't throw away what exists. Reskin and restructure.</p>
+    </div>
+    <div class="stack-visual">
+      <div class="stack-title">Build phases</div>
+      <div class="stack-layers">
+        <div class="stack-layer highlight">
+          <div class="stack-phase">1</div>
+          <div>
+            <h4>Canvas + split pane — the "feel" revamp</h4>
+            <p>Real drag-and-drop · inline editing · logic blocks · autosave · sections</p>
+            <div class="stack-tags">
+              <span class="stack-tag">QuestionnaireRenderer</span>
+              <span class="stack-tag">RuleEditor refactor</span>
+              <span class="stack-tag">@dnd-kit</span>
+              <span class="stack-tag">~1–2 weeks</span>
+            </div>
+          </div>
+        </div>
+        <div class="stack-layer">
+          <div class="stack-phase">2</div>
+          <div>
+            <h4>Intelligence layer</h4>
+            <p>Recommended tab · test walkthrough · forms library upgrade · outcome preview</p>
+            <div class="stack-tags">
+              <span class="stack-tag">AI or template match</span>
+              <span class="stack-tag">Play as applicant</span>
+            </div>
+          </div>
+        </div>
+        <div class="stack-layer future">
+          <div class="stack-phase">3</div>
+          <div>
+            <h4>Power features</h4>
+            <p>Editable flow canvas · calculations · multi-page forms</p>
+            <div class="stack-tags">
+              <span class="stack-tag">React Flow editable</span>
+              <span class="stack-tag">Age from DOB</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FULL MOCKUP -->
+<section id="mock">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow"><i data-lucide="monitor" class="icon"></i> Target UI</span>
+      <h2>What the new builder could look like</h2>
+      <p class="section-intro">Static mock — click nothing breaks. This is the north star layout.</p>
+    </div>
+    <div class="full-mock">
+      <div class="full-mock-top">
+        <div class="mode-seg">
+          <span>Standard</span>
+          <span class="soon">Recommended</span>
+          <span class="active">Advanced</span>
+        </div>
+        <div class="autosave"><i data-lucide="check-circle" class="icon"></i> Draft saved · 2s ago</div>
+      </div>
+      <div class="full-mock-grid">
+        <div class="panel-left">
+          <div class="panel-title"><i data-lucide="hammer" class="icon"></i> Canvas</div>
+          <div class="canvas-field selected">
+            <span class="drag-handle"><i data-lucide="grip-vertical" class="icon"></i></span>
+            <div class="field-content">
+              <div class="field-label">Which country are you currently in?</div>
+              <div class="field-meta">Single choice · Required</div>
+            </div>
+          </div>
+          <div class="logic-block"><i data-lucide="git-branch" class="icon"></i> When Country is Australia → Show "Current visa"</div>
+          <div class="canvas-field">
+            <span class="drag-handle"><i data-lucide="grip-vertical" class="icon"></i></span>
+            <div class="field-content">
+              <div class="field-label">What is your current visa?</div>
+              <div class="field-meta">Dropdown · 482, 485, 600, Other…</div>
+            </div>
+          </div>
+          <div class="logic-block urgent"><i data-lucide="alert-triangle" class="icon"></i> When Visa is Unlawful → Flag URGENT + route to senior partner</div>
+          <div class="canvas-field">
+            <span class="drag-handle"><i data-lucide="grip-vertical" class="icon"></i></span>
+            <div class="field-content">
+              <div class="field-label">Who is your employer?</div>
+              <div class="field-meta">Short text · Required if visa = 482</div>
+            </div>
+          </div>
+          <div class="add-row"><i data-lucide="plus" class="icon"></i> Add field or rule block</div>
+        </div>
+        <div class="panel-right">
+          <div class="panel-title"><i data-lucide="eye" class="icon"></i> Preview</div>
+          <div class="preview-tabs">
+            <span class="active"><i data-lucide="smartphone" class="icon"></i> Live</span>
+            <span><i data-lucide="git-branch" class="icon"></i> Flow</span>
+            <span><i data-lucide="play" class="icon"></i> Test</span>
+          </div>
+          <div class="phone-large">
+            <div class="phone-notch"></div>
+            <div class="preview-form-title">Employer sponsorship intake</div>
+            <div class="preview-form-desc">Tell us about your situation — takes ~3 min.</div>
+            <div class="preview-q">What is your current visa?</div>
+            <div class="preview-select">
+              <span class="preview-opt">482 (TSS)</span>
+              <span class="preview-opt on">485</span>
+              <span class="preview-opt">600</span>
+            </div>
+            <div class="preview-q">Who is your employer?</div>
+            <input class="preview-input" placeholder="Company name" readonly>
+          </div>
+          <div class="outcome-strip"><i data-lucide="zap" class="icon"></i> Simulated outcome: Qualified · Normal priority</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LOGIC UX -->
+<section id="logic" style="background: var(--surface);">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow"><i data-lucide="message-square-quote" class="icon"></i> Logic made human</span>
+      <h2>Sentence builder — not operator dropdowns</h2>
+      <p class="section-intro">Same data model underneath. Completely different surface.</p>
+    </div>
+    <div class="sentence-builder">
+      <div class="sentence-row">
+        <span class="sent-plain">When</span>
+        <span class="sent-chip field"><i data-lucide="chevrons-down" class="icon"></i> Current visa</span>
+        <span class="sent-plain">is</span>
+        <span class="sent-chip">482 (TSS)</span>
+        <span class="sent-plain">→</span>
+        <span class="sent-chip action"><i data-lucide="eye" class="icon"></i> Show</span>
+        <span class="sent-chip field">Employer name</span>
+        <span class="sent-plain">+</span>
+        <span class="sent-chip action"><i data-lucide="asterisk" class="icon"></i> Require</span>
+        <span class="sent-chip field">Occupation</span>
+      </div>
+      <div class="sentence-row" style="margin-top:16px;">
+        <span class="sent-plain">When</span>
+        <span class="sent-chip field">Current visa</span>
+        <span class="sent-plain">is</span>
+        <span class="sent-chip">Unlawful</span>
+        <span class="sent-plain">→</span>
+        <span class="sent-chip flag"><i data-lucide="alert-triangle" class="icon"></i> Flag URGENT</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REUSE -->
+<section>
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow"><i data-lucide="recycle" class="icon"></i> Keep & reuse</span>
+      <h2>Don't rebuild — reskin</h2>
+    </div>
+    <div class="pain-grid" style="grid-template-columns: repeat(4, 1fr);">
+      <div class="pain-card"><h3>QuestionnaireRenderer</h3><p>Right-panel live preview</p></div>
+      <div class="pain-card"><h3>rulesEngine.ts</h3><p>All validation + runtime</p></div>
+      <div class="pain-card"><h3>RuleEditor logic</h3><p>Refactor UI, same JSON</p></div>
+      <div class="pain-card"><h3>Templates + recipes</h3><p>Library + AI seed data</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- QUESTIONS -->
+<section id="questions" style="background: var(--surface);">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow"><i data-lucide="help-circle" class="icon"></i> Your call</span>
+      <h2>7 decisions before we build</h2>
+    </div>
+    <div class="questions">
+      <div class="q-card"><div class="q-num">1</div><div><strong>Primary user?</strong><p>Solo practitioner vs firm with junior staff building forms?</p></div></div>
+      <div class="q-card"><div class="q-num">2</div><div><strong>Default complexity?</strong><p>Hide logic for most users, or branching from day one?</p></div></div>
+      <div class="q-card"><div class="q-num">3</div><div><strong>AI in v1?</strong><p>Real LLM, or smart template matching first?</p></div></div>
+      <div class="q-card"><div class="q-num">4</div><div><strong>Typical form length?</strong><p>5–8 questions or 20+? Drives sections vs pages.</p></div></div>
+      <div class="q-card"><div class="q-num">5</div><div><strong>Mobile builder?</strong><p>Must work on iPad, or desktop-only OK?</p></div></div>
+      <div class="q-card"><div class="q-num">6</div><div><strong>Draft vs publish?</strong><p>Expose "Save draft" separately from "Publish"?</p></div></div>
+      <div class="q-card"><div class="q-num">7</div><div><strong>Scope?</strong><p>Builder only, or also forms list + public `/q/` page?</p></div></div>
+      <div class="q-card"><div class="q-num">→</div><div><strong>What next?</strong><p>Pick a section to go deeper — layout, logic UX, AI mode, or phasing.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section>
+  <div class="container">
+    <div class="cta">
+      <h2>North star in one line</h2>
+      <p>Design your intake the way you think — question by question, rule by rule — and watch exactly what your client will see, live.</p>
+      <div class="cta-chips">
+        <span class="cta-chip">Split pane</span>
+        <span class="cta-chip">Plain-English logic</span>
+        <span class="cta-chip">Immigration templates</span>
+        <span class="cta-chip">Outcome flags → pre-case</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">IMMI-PULSE · Form Builder Revamp Brainstorm · May 2026 · Scroll the nav above to jump sections</div>
+</footer>
+
+<script>
+  if (window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>

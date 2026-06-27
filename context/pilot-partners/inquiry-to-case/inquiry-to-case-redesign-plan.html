@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>From Inquiry to Open Case — the redesign &amp; the client portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --navy:#101928; --purple:#7A5AF8; --purple-deep:#3E1C96;
+    --purple-light:#BDB4FE; --purple-muted:#EBE9FE; --purple-tint:#F4F3FF;
+    --teal:#1B7B6F; --teal-light:#2DD4BF; --amber:#B54708; --amber-bg:#FEF6EE;
+    --rose:#B42318; --rose-bg:#FEF3F2;
+    --ink:#101928; --body:#475367; --muted:#667085; --faint:#98A2B3;
+    --bg:#ffffff; --soft:#F7F7FC; --soft2:#F0F2F5; --line:#E4E7EC; --line2:#EEF0F3;
+    --r:18px; --rs:12px;
+    --shadow:0 1px 2px rgba(16,25,40,.04), 0 12px 32px -12px rgba(16,25,40,.12);
+    --shadow-lg:0 24px 60px -20px rgba(62,28,150,.28);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--body);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  h1,h2,h3,h4{font-family:'Outfit',sans-serif;color:var(--ink);line-height:1.15;letter-spacing:-.02em}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+  .eyebrow{font-family:'Outfit';font-weight:700;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--purple)}
+
+  /* progress + nav */
+  #bar{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--purple),var(--teal-light));z-index:100;transition:width .12s linear}
+  nav{position:sticky;top:0;z-index:90;background:rgba(255,255,255,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line2)}
+  nav .inner{display:flex;align-items:center;justify-content:space-between;height:62px;max-width:1120px;margin:0 auto;padding:0 28px}
+  .brand{display:flex;align-items:center;gap:10px;font-family:'Outfit';font-weight:800;color:var(--ink);font-size:16px}
+  .dot{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));display:grid;place-items:center}
+  .dot span{width:9px;height:9px;border-radius:50%;background:#fff}
+  .navlinks{display:flex;gap:4px}
+  .navlinks a{font-size:13.5px;font-weight:500;color:var(--muted);padding:7px 12px;border-radius:8px;transition:.15s}
+  .navlinks a:hover{color:var(--ink);background:var(--soft2)}
+  .navlinks a.active{color:var(--purple-deep);background:var(--purple-tint)}
+  @media(max-width:880px){.navlinks{display:none}}
+
+  /* hero */
+  .hero{position:relative;padding:74px 0 64px;overflow:hidden}
+  .hero::before{content:"";position:absolute;inset:0;background:
+     radial-gradient(60% 70% at 82% -8%, rgba(122,90,248,.13), transparent 60%),
+     radial-gradient(50% 60% at 8% 4%, rgba(45,212,191,.10), transparent 55%);z-index:-1}
+  .hero h1{font-size:clamp(34px,5vw,58px);font-weight:800;max-width:16ch}
+  .hero h1 .g{background:linear-gradient(120deg,var(--purple),var(--purple-deep) 60%,var(--teal));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{font-size:clamp(17px,2vw,20px);max-width:60ch;margin-top:20px;color:var(--body)}
+  .herometa{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+  .pill{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 14px;box-shadow:var(--shadow)}
+  .pill svg{width:15px;height:15px}
+  .pill.acc{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+  section{padding:62px 0;border-top:1px solid var(--line2)}
+  .head{max-width:62ch;margin-bottom:38px}
+  .head h2{font-size:clamp(26px,3.4vw,38px);font-weight:700;margin-top:12px}
+  .head p{font-size:17px;margin-top:14px;color:var(--body)}
+
+  /* story */
+  .story{display:grid;grid-template-columns:1.05fr .95fr;gap:30px;align-items:stretch}
+  @media(max-width:860px){.story{grid-template-columns:1fr}}
+  .quote{background:linear-gradient(160deg,var(--navy),#1c2a3f);color:#fff;border-radius:var(--r);padding:34px;position:relative;box-shadow:var(--shadow-lg)}
+  .quote .mark{font-family:'Outfit';font-size:64px;line-height:.6;color:var(--purple-light);opacity:.7}
+  .quote p{color:#E4E7EC;font-size:16.5px;margin-top:6px}
+  .quote .who{margin-top:20px;font-size:13.5px;color:var(--purple-light);font-weight:600}
+  .takeaway{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:30px;box-shadow:var(--shadow);display:flex;flex-direction:column;justify-content:center}
+  .takeaway h3{font-size:21px}
+  .takeaway p{margin-top:12px;font-size:15.5px}
+  .takeaway .hl{background:var(--purple-tint);border-left:3px solid var(--purple);padding:14px 16px;border-radius:0 10px 10px 0;margin-top:18px;font-size:14.5px;color:var(--ink)}
+
+  /* journey strip */
+  .journey{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#fff;box-shadow:var(--shadow)}
+  @media(max-width:960px){.journey{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:520px){.journey{grid-template-columns:1fr}}
+  .jstep{position:relative;padding:22px 18px;border-right:1px solid var(--line2);cursor:pointer;transition:.18s;background:#fff}
+  .jstep:last-child{border-right:none}
+  .jstep:hover{background:var(--soft)}
+  .jnum{font-family:'Outfit';font-weight:700;font-size:12px;color:var(--faint)}
+  .jstep h4{font-size:15.5px;margin:10px 0 6px}
+  .jstep p{font-size:13px;color:var(--muted);line-height:1.45}
+  .jstep .tag{display:inline-block;margin-top:12px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:4px 9px;border-radius:6px}
+  .t-setup{background:var(--soft2);color:var(--muted)}
+  .t-live{background:var(--purple-muted);color:var(--purple-deep)}
+  .t-unlock{background:linear-gradient(135deg,var(--teal),var(--teal-light));color:#fff}
+  .jstep.is-unlock{background:linear-gradient(180deg,#F2FBF9,#fff)}
+  .jstep.is-unlock::after{content:"";position:absolute;left:0;top:0;height:3px;width:100%;background:linear-gradient(90deg,var(--teal),var(--teal-light))}
+
+  /* toggle */
+  .seg{display:inline-flex;background:var(--soft2);border-radius:11px;padding:4px;gap:4px;border:1px solid var(--line2)}
+  .seg button{font-family:'Inter';font-weight:600;font-size:13.5px;color:var(--muted);border:none;background:transparent;padding:8px 18px;border-radius:8px;cursor:pointer;transition:.15s}
+  .seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(16,25,40,.12)}
+
+  /* today vs tomorrow mock */
+  .vs{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:8px}
+  @media(max-width:820px){.vs{grid-template-columns:1fr}}
+  .panel{border:1px solid var(--line);border-radius:var(--r);background:#fff;box-shadow:var(--shadow);overflow:hidden}
+  .panel .ptop{padding:14px 18px;border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:10px;font-weight:700;font-family:'Outfit';font-size:14px}
+  .panel.bad .ptop{color:var(--amber)}
+  .panel.good .ptop{color:var(--teal)}
+  .ptop .ic{width:24px;height:24px;border-radius:7px;display:grid;place-items:center}
+  .panel.bad .ic{background:var(--amber-bg)}
+  .panel.good .ic{background:#E7F6F3}
+  .pbody{padding:20px 18px}
+  /* mock: horizontal stepper */
+  .mockh{display:flex;align-items:center;gap:6px;margin-bottom:18px}
+  .mockh .n{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:10px;font-weight:700;color:var(--faint);flex:none}
+  .mockh .n.f{background:var(--purple);border-color:var(--purple);color:#fff}
+  .mockh .ln{height:2px;flex:1;background:var(--line)}
+  .mockbtn{background:var(--purple);color:#fff;font-weight:600;font-size:13px;padding:9px 14px;border-radius:9px;display:inline-block}
+  .kebab{display:inline-flex;align-items:center;gap:7px;margin-left:8px;color:var(--muted);font-size:12.5px;vertical-align:middle}
+  .kebab .dots{font-weight:800;letter-spacing:1px;border:1px solid var(--line);border-radius:7px;padding:5px 9px;color:var(--muted)}
+  .hiddenpop{margin-top:14px;border:1px dashed var(--amber);background:var(--amber-bg);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--amber)}
+  .hiddenpop b{color:var(--amber)}
+  .problemlist{list-style:none;margin-top:16px;display:flex;flex-direction:column;gap:9px}
+  .problemlist li{font-size:13.5px;display:flex;gap:9px;align-items:flex-start;color:var(--body)}
+  .problemlist li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--amber);margin-top:8px;flex:none}
+  .good .problemlist li::before{background:var(--teal)}
+  /* mock: vertical mini */
+  .mockv{display:flex;flex-direction:column;gap:0}
+  .mvrow{display:flex;gap:12px;padding:9px 0}
+  .mvrail{display:flex;flex-direction:column;align-items:center;flex:none}
+  .mvnode{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:800;color:#fff;flex:none}
+  .mvnode.done{background:var(--teal)}
+  .mvnode.now{background:var(--purple);box-shadow:0 0 0 4px var(--purple-muted)}
+  .mvnode.next{background:#fff;border:2px solid var(--line);color:var(--faint)}
+  .mvline{width:2px;flex:1;background:var(--line2);margin:2px 0}
+  .mvbody{padding-bottom:4px}
+  .mvbody .t{font-weight:600;font-size:13.5px;color:var(--ink)}
+  .mvbody .s{font-size:12px;color:var(--muted)}
+  .mvbody .skip{font-size:11.5px;color:var(--purple);font-weight:600;margin-top:3px;display:inline-block;border-bottom:1px dashed var(--purple-light)}
+
+  /* vertical timeline (centerpiece) */
+  .tl{position:relative;margin-top:10px}
+  .tlitem{position:relative;display:grid;grid-template-columns:64px 1fr;gap:0}
+  .rail{display:flex;flex-direction:column;align-items:center}
+  .node{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-family:'Outfit';font-weight:800;font-size:15px;color:#fff;flex:none;z-index:2;transition:.2s;box-shadow:0 6px 16px -6px rgba(62,28,150,.5)}
+  .node.auto{background:linear-gradient(135deg,#8B9AAE,#5E6B7E);box-shadow:none}
+  .node.needs{background:linear-gradient(135deg,var(--purple),var(--purple-deep))}
+  .node.unlock{background:linear-gradient(135deg,var(--teal),var(--teal-light))}
+  .conn{width:3px;flex:1;background:linear-gradient(var(--purple-light),var(--line2));margin:4px 0;border-radius:2px}
+  .tlitem:last-child .conn{display:none}
+  .card{margin:0 0 16px 18px;flex:1;background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;transition:.2s}
+  .card:hover{border-color:var(--purple-light)}
+  .chead{display:flex;align-items:center;gap:14px;padding:18px 20px;cursor:pointer;user-select:none}
+  .chead .meta{flex:1}
+  .chead h3{font-size:17px}
+  .chead .sub{font-size:13px;color:var(--muted);margin-top:2px}
+  .status{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:5px 10px;border-radius:7px;white-space:nowrap}
+  .s-auto{background:var(--soft2);color:var(--muted)}
+  .s-needs{background:var(--purple-muted);color:var(--purple-deep)}
+  .s-opt{background:var(--amber-bg);color:var(--amber)}
+  .s-unlock{background:#E7F6F3;color:var(--teal)}
+  .chev{width:30px;height:30px;border-radius:8px;background:var(--soft);display:grid;place-items:center;color:var(--muted);transition:.25s;flex:none}
+  .card.open .chev{transform:rotate(180deg);background:var(--purple-tint);color:var(--purple)}
+  .cbody{max-height:0;overflow:hidden;transition:max-height .35s ease}
+  .cinner{padding:2px 20px 22px;border-top:1px solid var(--line2)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  @media(max-width:680px){.grid2{grid-template-columns:1fr}}
+  .mini{background:var(--soft);border-radius:12px;padding:14px 16px}
+  .mini .lab{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);display:flex;align-items:center;gap:7px}
+  .mini p{font-size:13.5px;color:var(--body);margin-top:7px}
+  .mini.nextup{background:var(--purple-tint)}
+  .mini.nextup .lab{color:var(--purple)}
+  .override{display:flex;align-items:center;gap:12px;margin-top:16px;background:#fff;border:1px dashed var(--purple-light);border-radius:12px;padding:13px 16px}
+  .override .badge{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--purple-deep);background:var(--purple-muted);padding:5px 10px;border-radius:7px;flex:none}
+  .override p{font-size:13px;color:var(--body)}
+  .tip{display:flex;gap:11px;margin-top:14px;font-size:13px;color:var(--teal);background:#F2FBF9;border-radius:10px;padding:12px 15px}
+  .tip svg{flex:none;margin-top:1px}
+
+  /* visa */
+  .chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px}
+  .chip{font-family:'Inter';font-weight:600;font-size:13.5px;color:var(--body);background:#fff;border:1px solid var(--line);border-radius:999px;padding:9px 16px;cursor:pointer;transition:.15s}
+  .chip:hover{border-color:var(--purple-light);color:var(--ink)}
+  .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .visawrap{display:grid;grid-template-columns:1fr 1.1fr;gap:24px}
+  @media(max-width:820px){.visawrap{grid-template-columns:1fr}}
+  .visacard{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:26px}
+  .visacard .sc{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 4px}
+  .scode{font-family:'Outfit';font-weight:700;font-size:12.5px;background:var(--purple-tint);color:var(--purple-deep);border-radius:7px;padding:5px 11px}
+  .checklist{list-style:none;display:flex;flex-direction:column;gap:2px;margin-top:6px}
+  .checklist li{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid var(--line2);font-size:14px;color:var(--body)}
+  .checklist li:last-child{border-bottom:none}
+  .ck{width:20px;height:20px;border-radius:6px;background:#E7F6F3;display:grid;place-items:center;flex:none}
+  .doctype{margin-left:auto;font-size:11px;font-weight:600;color:var(--faint);background:var(--soft2);padding:3px 9px;border-radius:6px}
+  .editnote{margin-top:18px;font-size:13px;color:var(--purple-deep);background:var(--purple-tint);border-radius:10px;padding:13px 15px;display:flex;gap:10px}
+
+  /* unlock banner */
+  .unlockband{background:linear-gradient(135deg,var(--navy),#163027 120%);color:#fff;border-radius:24px;padding:40px;position:relative;overflow:hidden;box-shadow:var(--shadow-lg)}
+  .unlockband::before{content:"";position:absolute;right:-60px;top:-60px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.35),transparent 65%)}
+  .unlockband .eyebrow{color:var(--teal-light)}
+  .unlockband h2{color:#fff;font-size:clamp(24px,3vw,34px);margin-top:10px;max-width:20ch}
+  .unlockband p{color:#CDD5E0;margin-top:14px;max-width:58ch;font-size:16px}
+  .triggerflow{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:28px}
+  .tnode{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:13px 16px;font-size:13.5px;font-weight:600;color:#fff;backdrop-filter:blur(6px)}
+  .tnode .s{display:block;font-size:11.5px;font-weight:500;color:var(--purple-light);margin-top:2px}
+  .arr{color:var(--teal-light);font-size:18px;font-weight:700}
+
+  /* portal */
+  .portalwrap{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start;margin-top:8px}
+  @media(max-width:860px){.portalwrap{grid-template-columns:1fr}}
+  .portalui{border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow-lg);overflow:hidden;background:#fff}
+  .puitop{background:linear-gradient(120deg,var(--purple-deep),var(--purple));padding:18px 20px;color:#fff;display:flex;align-items:center;justify-content:space-between}
+  .puitop .hi{font-family:'Outfit';font-weight:700;font-size:16px}
+  .puitop .av{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center;font-weight:700;font-size:14px}
+  .puibody{padding:20px}
+  .progblock{display:flex;align-items:center;gap:18px;background:var(--purple-tint);border-radius:14px;padding:16px;margin-bottom:16px}
+  .ring{--p:60;width:62px;height:62px;border-radius:50%;flex:none;background:conic-gradient(var(--purple) calc(var(--p)*1%),var(--purple-muted) 0);display:grid;place-items:center}
+  .ring .inner{width:46px;height:46px;border-radius:50%;background:#fff;display:grid;place-items:center;font-family:'Outfit';font-weight:800;font-size:15px;color:var(--purple-deep)}
+  .progblock .pt{font-weight:700;color:var(--ink);font-size:14.5px;font-family:'Outfit'}
+  .progblock .ps{font-size:12.5px;color:var(--muted)}
+  .puisec{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin:18px 0 10px}
+  .pend{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--line2);font-size:13.5px}
+  .pend:last-child{border-bottom:none}
+  .pend .st{width:18px;height:18px;border-radius:5px;flex:none;display:grid;place-items:center}
+  .pend .st.ok{background:#E7F6F3}
+  .pend .st.wait{background:var(--amber-bg);border:1px dashed var(--amber)}
+  .pend .lab2{flex:1;color:var(--body)}
+  .pend .ministat{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px}
+  .ministat.done{background:#E7F6F3;color:var(--teal)}
+  .ministat.todo{background:var(--amber-bg);color:var(--amber)}
+  .chatbox{background:var(--soft);border-radius:14px;padding:14px;margin-top:6px}
+  .msg{max-width:82%;padding:9px 13px;border-radius:13px;font-size:13px;margin-bottom:8px;line-height:1.4}
+  .msg.them{background:#fff;border:1px solid var(--line2);border-bottom-left-radius:4px}
+  .msg.you{background:var(--purple);color:#fff;margin-left:auto;border-bottom-right-radius:4px}
+  .msg .nm{font-size:10.5px;font-weight:700;opacity:.7;display:block;margin-bottom:2px}
+  .chatin{display:flex;gap:8px;margin-top:6px}
+  .chatin .fld{flex:1;background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:12.5px;color:var(--faint)}
+  .chatin .snd{background:var(--purple);color:#fff;border-radius:10px;padding:9px 14px;font-size:12.5px;font-weight:600}
+  .consultside .featrow{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--line2)}
+  .consultside .featrow:last-child{border-bottom:none}
+  .consultside .fic{width:40px;height:40px;border-radius:11px;background:var(--purple-tint);display:grid;place-items:center;flex:none;color:var(--purple)}
+  .consultside h4{font-size:15px}
+  .consultside .featrow p{font-size:13.5px;color:var(--body);margin-top:3px}
+
+  /* gap table */
+  .gaps{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+  .grow{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:0}
+  .grow.h{background:var(--navy)}
+  .grow.h div{color:#fff;font-family:'Outfit';font-weight:700;font-size:13px;padding:14px 18px;letter-spacing:.02em}
+  .grow .gc{padding:15px 18px;border-top:1px solid var(--line2);font-size:13.5px;border-right:1px solid var(--line2)}
+  .grow .gc:last-child{border-right:none}
+  .grow .gc.feat{font-weight:600;color:var(--ink)}
+  .state{display:inline-flex;align-items:center;gap:7px;font-weight:600}
+  .state.have{color:var(--teal)}
+  .state.partial{color:var(--amber)}
+  .state.build{color:var(--purple-deep)}
+  .stbubble{width:9px;height:9px;border-radius:50%}
+  .have .stbubble{background:var(--teal)}
+  .partial .stbubble{background:var(--amber)}
+  .build .stbubble{background:var(--purple)}
+  @media(max-width:720px){.grow{grid-template-columns:1fr}.grow.h{display:none}.grow .gc{border-right:none}.grow .gc.feat{background:var(--soft);font-size:14px}}
+
+  /* phases */
+  .phases{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  @media(max-width:820px){.phases{grid-template-columns:1fr}}
+  .phase{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:26px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .phase .pn{font-family:'Outfit';font-weight:800;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--purple)}
+  .phase h3{font-size:19px;margin:8px 0 4px}
+  .phase .when{font-size:12.5px;color:var(--muted);font-weight:600}
+  .phase ul{list-style:none;margin-top:16px;display:flex;flex-direction:column;gap:10px}
+  .phase ul li{font-size:13.5px;display:flex;gap:10px;align-items:flex-start;color:var(--body)}
+  .phase ul li svg{flex:none;margin-top:3px;color:var(--teal)}
+  .phase .ribbon{position:absolute;top:0;left:0;height:4px;width:100%}
+  .p1 .ribbon{background:var(--purple)} .p2 .ribbon{background:var(--teal)} .p3 .ribbon{background:var(--faint)}
+
+  footer{background:var(--navy);color:#fff;padding:54px 0;border:none}
+  footer h3{color:#fff;font-size:24px}
+  footer p{color:#98A2B3;margin-top:12px;max-width:60ch}
+  .foot-pills{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+  .foot-pills span{font-size:12.5px;color:#CDD5E0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:7px 14px}
+
+  .fade{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+  .fade.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+
+<nav>
+  <div class="inner">
+    <div class="brand"><span class="dot"><span></span></span> IMMI&#8209;PULSE</div>
+    <div class="navlinks">
+      <a href="#journey">The journey</a>
+      <a href="#precase">The pre-case fix</a>
+      <a href="#visa">Visa &amp; checklists</a>
+      <a href="#unlock">The unlock</a>
+      <a href="#portal">Client portal</a>
+      <a href="#rollout">Rollout</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow fade">Product walkthrough &middot; Inquiry &rarr; Open case</div>
+    <h1 class="fade">One guided path from <span class="g">first hello</span> to a signed, paying client &mdash; with the client right there beside you.</h1>
+    <p class="lead fade">Today the moment that turns a stranger into a client is hidden behind three buttons and a horizontal bar nobody reads. We&rsquo;re turning it into a calm, vertical, step&#8209;by&#8209;step journey that teaches as it goes &mdash; and at the exact moment a case opens, the client gets their own portal. One shared space. No more chasing on WhatsApp.</p>
+    <div class="herometa fade">
+      <span class="pill acc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-11"/></svg> Built on what you already have</span>
+      <span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 12h6"/></svg> Vertical, guided, skippable</span>
+      <span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg> Compliance baked in</span>
+    </div>
+  </div>
+</header>
+
+<!-- STORY -->
+<section id="why">
+  <div class="wrap">
+    <div class="head fade">
+      <div class="eyebrow">Why this matters</div>
+      <h2>A real week, lost &mdash; because the first hello had nowhere to land</h2>
+      <p>This is the story that started it all, from one of our pilot consultants. It&rsquo;s the whole product in one anecdote.</p>
+    </div>
+    <div class="story">
+      <div class="quote fade">
+        <div class="mark">&ldquo;</div>
+        <p>&ldquo;He messaged me on WhatsApp &mdash; +91, so my brain said &lsquo;probably a general inquiry.&rsquo; Our timing never matched. &lsquo;I&rsquo;ll call you Saturday at 9&rsquo;&hellip; missed it&hellip; &lsquo;sorry, Wednesday?&rsquo; This went on for a <em>week</em>. Turns out he was a <strong>482 holder in Brisbane, an electrical engineer, who wanted to bring his wife over.</strong> A real, high&#8209;value client &mdash; and we almost lost him to a scheduling mismatch.&rdquo;</p>
+        <div class="who">&mdash; Gideon, registered migration agent &amp; pilot partner</div>
+      </div>
+      <div class="takeaway fade">
+        <h3>The fix isn&rsquo;t more chasing. It&rsquo;s structure.</h3>
+        <p>One link captures the right questions up front &mdash; which country are you in, what visa, what&rsquo;s your situation &mdash; so the valuable cases surface themselves. From that first answer, every step has a clear home, and the client is brought into the same room as the consultant.</p>
+        <div class="hl"><strong>The shift:</strong> stop managing leads in your head and across five apps. Give every inquiry one path, and give every client one door.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- JOURNEY STRIP -->
+<section id="journey">
+  <div class="wrap">
+    <div class="head fade">
+      <div class="eyebrow">The whole picture</div>
+      <h2>Six moments, one straight line</h2>
+      <p>Here&rsquo;s the entire path at a glance. The first two are set&#8209;up done once. The middle is the daily work. The fifth &mdash; in teal &mdash; is the unlock where the client portal switches on. Tap any step to jump to it.</p>
+    </div>
+    <div class="journey fade">
+      <a class="jstep" data-go="#precase">
+        <div class="jnum">01</div><h4>Set up your forms &amp; checklists</h4>
+        <p>Build an intake form that asks the visa question first. Define what documents each visa needs.</p>
+        <span class="tag t-setup">Once</span>
+      </a>
+      <a class="jstep" data-go="#precase">
+        <div class="jnum">02</div><h4>Share one link</h4>
+        <p>Drop it in your WhatsApp auto&#8209;reply, Instagram, email. It works on mobile, it&rsquo;s always on.</p>
+        <span class="tag t-setup">Once</span>
+      </a>
+      <a class="jstep" data-go="#precase">
+        <div class="jnum">03</div><h4>Inquiry becomes a Query</h4>
+        <p>They fill it in. It lands in your inbox, already read and summarised for you.</p>
+        <span class="tag t-live">Daily</span>
+      </a>
+      <a class="jstep" data-go="#precase">
+        <div class="jnum">04</div><h4>Qualify into a Pre-case</h4>
+        <p>The guided vertical timeline: letter, signature, payment &mdash; each step explained, each one skippable.</p>
+        <span class="tag t-live">Daily</span>
+      </a>
+      <a class="jstep is-unlock" data-go="#unlock">
+        <div class="jnum">05</div><h4>Open the case &mdash; portal goes live</h4>
+        <p>The client gets an account and an email. One login, forever. This is the moment everything connects.</p>
+        <span class="tag t-unlock">The unlock</span>
+      </a>
+      <a class="jstep" data-go="#portal">
+        <div class="jnum">06</div><h4>Work the case together</h4>
+        <p>Checklist, documents, progress and messages &mdash; all in one shared space for both of you.</p>
+        <span class="tag t-live">Daily</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- TODAY VS TOMORROW -->
+<section id="precase">
+  <div class="wrap">
+    <div class="head fade">
+      <div class="eyebrow">The core redesign</div>
+      <h2>The pre-case, rebuilt: from a guessing game to a guided path</h2>
+      <p>Right now, moving a lead forward means decoding a horizontal bar and a single button that changes its label as you go &mdash; while the &ldquo;I did this manually&rdquo; options hide inside a three&#8209;dot menu. Here&rsquo;s the before and after.</p>
+    </div>
+    <div class="vs">
+      <div class="panel bad fade">
+        <div class="ptop"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 8v5M12 16h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></span> Today &mdash; everything in three buttons</div>
+        <div class="pbody">
+          <div class="mockh">
+            <div class="n f">&#10003;</div><div class="ln"></div>
+            <div class="n f">&#10003;</div><div class="ln"></div>
+            <div class="n">3</div><div class="ln"></div>
+            <div class="n">4</div><div class="ln"></div>
+            <div class="n">5</div><div class="ln"></div>
+            <div class="n">6</div>
+          </div>
+          <div><span class="mockbtn">Send engagement letter</span><span class="kebab"><span class="dots">&#8943;</span> overrides</span></div>
+          <div class="hiddenpop">The manual steps &mdash; <b>mark signed myself</b>, <b>skip payment</b>, <b>force convert</b> &mdash; are buried in that &ldquo;&#8943;&rdquo; menu. Most people never find them.</div>
+          <ul class="problemlist">
+            <li>You can&rsquo;t see what the next step is, or why it matters.</li>
+            <li>The single button quietly changes meaning at every stage.</li>
+            <li>&ldquo;I already did this offline&rdquo; is hidden, so people feel stuck.</li>
+            <li>No teaching &mdash; new consultants have to be shown how it works.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="panel good fade">
+        <div class="ptop"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg></span> Tomorrow &mdash; a vertical timeline that guides you</div>
+        <div class="pbody">
+          <div class="mockv">
+            <div class="mvrow"><div class="mvrail"><div class="mvnode done">&#10003;</div><div class="mvline"></div></div><div class="mvbody"><div class="t">Lead qualified</div><div class="s">Done &middot; 2 days ago</div></div></div>
+            <div class="mvrow"><div class="mvrail"><div class="mvnode done">&#10003;</div><div class="mvline"></div></div><div class="mvbody"><div class="t">Engagement letter sent</div><div class="s">Done &middot; awaiting signature</div></div></div>
+            <div class="mvrow"><div class="mvrail"><div class="mvnode now">3</div><div class="mvline"></div></div><div class="mvbody"><div class="t">Client signs the agreement</div><div class="s">You&rsquo;re here &mdash; next, take the deposit</div><span class="skip">Signed in person? Mark it done &rarr;</span></div></div>
+            <div class="mvrow"><div class="mvrail"><div class="mvnode next">4</div><div class="mvline"></div></div><div class="mvbody"><div class="t">Record the payment</div><div class="s">Or waive it for family / pro&#8209;bono</div></div></div>
+            <div class="mvrow"><div class="mvrail"><div class="mvnode next">5</div></div><div class="mvbody"><div class="t">Open the case</div><div class="s">The client&rsquo;s portal switches on here</div></div></div>
+          </div>
+          <ul class="problemlist">
+            <li>Always shows where you are and what comes next.</li>
+            <li>Every step explains itself in plain language.</li>
+            <li>&ldquo;I did this manually&rdquo; sits right on the step &mdash; never hidden.</li>
+            <li>Skip anything; the path keeps making sense.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VERTICAL TIMELINE CENTERPIECE -->
+<section style="background:var(--soft)">
+  <div class="wrap">
+    <div class="head fade">
+      <div class="eyebrow">Step by step</div>
+      <h2>What each step looks like &mdash; expand any one</h2>
+      <p>This is the new pre-case detail screen. Each step tells you what just happened, what it unlocks next, and always offers a manual way through. Click to open them.</p>
+    </div>
+    <div class="tl" id="tl">
+      <!-- 1 -->
+      <div class="tlitem fade">
+        <div class="rail"><div class="node auto">1</div><div class="conn"></div></div>
+        <div class="card">
+          <div class="chead"><div class="meta"><h3>A new inquiry lands &mdash; read for you</h3><div class="sub">Becomes a <strong>Query</strong> in your inbox, already summarised</div></div><span class="status s-auto">Automatic</span><span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span></div>
+          <div class="cbody"><div class="cinner">
+            <div class="grid2">
+              <div class="mini"><div class="lab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg> What happens</div><p>Someone completes your form. We capture their visa interest and situation, and write a one&#8209;paragraph summary with a suggested fit &mdash; so you triage in seconds, not minutes.</p></div>
+              <div class="mini nextup"><div class="lab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Unlocks next</div><p>You decide: qualify it into a pre-case, or set it aside. Nothing is committed yet.</p></div>
+            </div>
+            <div class="tip"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0-4 10c.7.7 1 1.3 1 2v1h6v-1c0-.7.3-1.3 1-2a6 6 0 0 0-4-10Z"/><path d="M9 20h6"/></svg> Why it&rsquo;s a &ldquo;Query&rdquo; first: you may get thousands of these. A Query is just an unactioned inbox item &mdash; no pressure, no clutter in your real pipeline.</div>
+          </div></div>
+        </div>
+      </div>
+      <!-- 2 -->
+      <div class="tlitem fade">
+        <div class="rail"><div class="node needs">2</div><div class="conn"></div></div>
+        <div class="card">
+          <div class="chead"><div class="meta"><h3>Qualify it &rarr; now it&rsquo;s a Pre-case</h3><div class="sub">Your call: this one&rsquo;s worth pursuing</div></div><span class="status s-needs">Needs you</span><span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span></div>
+          <div class="cbody"><div class="cinner">
+            <div class="grid2">
+              <div class="mini"><div class="lab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg> What happens</div><p>One tap marks the lead qualified. It leaves the noisy inbox and enters your real working pipeline as a pre&#8209;case &mdash; a genuine prospect you intend to convert.</p></div>
+              <div class="mini nextup"><div class="lab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Unlocks next</div><p>The engagement letter &mdash; your costs agreement &mdash; becomes the clear next action.</p></div>
+            </div>
+            <div class="override"><span class="badge">Manual</span><p>Already spoke to them and want to skip straight ahead? <strong>Open a case directly</strong> from the client&rsquo;s profile &mdash; no need to walk every step.</p></div>
+            <div class="tip"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0-4 10c.7.7 1 1.3 1 2v1h6v-1c0-.7.3-1.3 1-2a6 6 0 0 0-4-10Z"/><path d="M9 20h6"/></svg> Clears up the old confusion: Query = haven&rsquo;t actioned it. Pre-case = you&rsquo;ve said yes, but nothing&rsquo;s signed or paid yet.</div>
+          </div></div>
+        </div>
+      </div>
+      <!-- 3 -->
+      <div class="tlitem fade">
+        <div class="rail"><div class="node needs">3</div><div class="conn"></div></div>
+        <div class="card">
+          <div class="chead"><div class="meta"><h3>Send the engagement letter</h3><div class="sub">Scope, fees and disbursements &mdash; the compliance gate</div></div><span class="status s-needs">Needs you</span><span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span></div>
+          <div class="cbody"><div class="cinner">
+            <div class="grid2">
+              <div class="mini"><div class="lab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg> What happens</div><p>You compose the costs agreement &mdash; visa subclass, scope, professional fee, disbursements, retainer &mdash; from your saved template. It emails to the client with a secure signing link.</p></div>
+              <div class="mini nextup"><div class="lab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Unlocks next</div><p>The client signs &mdash; online, or you mark it signed on their behalf.</p></div>
+            </div>
+            <div class="override"><span class="badge">Manual</span><p>Prefer your own letterhead? <strong>Send your standard letter offline</strong> and record it here. The step still completes &mdash; the system never forces its template on you.</p></div>
+            <div class="tip"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg> This is the legal line. Under the Code of Conduct you can&rsquo;t start paid work without a written services-and-fees agreement &mdash; so this step protects you, not just the client.</div>
+          </div></div>
+        </div>
+      </div>
+      <!-- 4 -->
+      <div class="tlitem fade">
+        <div class="rail"><div class="node needs">4</div><div class="conn"></div></div>
+        <div class="card">
+          <div class="chead"><div class="meta"><h3>The client signs</h3><div class="sub">Type, draw, or you attest on their behalf</div></div><span class="status s-opt">Skippable</span><span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span></div>
+          <div class="cbody"><div class="cinner">
+            <div class="grid2">
+              <div class="mini"><div class="lab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg> What happens</div><p>The client opens the link, enters a one&#8209;time PIN, and signs &mdash; by typing their name or drawing it. We keep a tamper&#8209;proof record of exactly what they agreed to and when.</p></div>
+              <div class="mini nextup"><div class="lab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Unlocks next</div><p>Take the deposit &mdash; or move on if no money changes hands.</p></div>
+            </div>
+            <div class="override"><span class="badge">Manual</span><p>Signed in your office, on paper, or over a video call? <strong>Mark signed manually</strong> &mdash; right on this step &mdash; with a note of how it happened. Upload the scan if you have one.</p></div>
+            <div class="tip"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0-4 10c.7.7 1 1.3 1 2v1h6v-1c0-.7.3-1.3 1-2a6 6 0 0 0-4-10Z"/><path d="M9 20h6"/></svg> Every signature method &mdash; online or manual &mdash; is logged for your file. That record is exactly what keeps you compliant.</div>
+          </div></div>
+        </div>
+      </div>
+      <!-- 5 -->
+      <div class="tlitem fade">
+        <div class="rail"><div class="node needs">5</div><div class="conn"></div></div>
+        <div class="card">
+          <div class="chead"><div class="meta"><h3>Record the deposit</h3><div class="sub">Bank transfer, PayID, cash &mdash; or waive it</div></div><span class="status s-opt">Skippable</span><span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span></div>
+          <div class="cbody"><div class="cinner">
+            <div class="grid2">
+              <div class="mini"><div class="lab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg> What happens</div><p>Log the retainer you received &mdash; method, amount, reference, date. A receipt number is generated for the file. No card processing required; you stay in control of the money.</p></div>
+              <div class="mini nextup"><div class="lab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Unlocks next</div><p>The big one &mdash; open the case and switch on the client&rsquo;s portal.</p></div>
+            </div>
+            <div class="override"><span class="badge">Manual</span><p>Family member or pro&#8209;bono? <strong>Skip payment</strong> with a reason. It records a clean waiver for your audit trail &mdash; the path doesn&rsquo;t break.</p></div>
+            <div class="tip"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0-4 10c.7.7 1 1.3 1 2v1h6v-1c0-.7.3-1.3 1-2a6 6 0 0 0-4-10Z"/><path d="M9 20h6"/></svg> Manual payments first, by design. We start where you already are &mdash; you mark money as received. Automated collection can come later.</div>
+          </div></div>
+        </div>
+      </div>
+      <!-- 6 -->
+      <div class="tlitem fade">
+        <div class="rail"><div class="node unlock">6</div></div>
+        <div class="card" style="border-color:var(--teal-light)">
+          <div class="chead"><div class="meta"><h3>Open the case &mdash; and the portal goes live</h3><div class="sub">This is the moment the client joins you inside the platform</div></div><span class="status s-unlock">The unlock</span><span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span></div>
+          <div class="cbody"><div class="cinner">
+            <div class="grid2">
+              <div class="mini"><div class="lab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg> What happens</div><p>The pre-case becomes a real case. We generate the document checklist for the chosen visa, <strong>create the client&rsquo;s account, and email them a temporary PIN to log in</strong> &mdash; all automatically.</p></div>
+              <div class="mini nextup"><div class="lab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Unlocks next</div><p>Both of you now work the case in one shared space &mdash; documents, progress and messages.</p></div>
+            </div>
+            <div class="override"><span class="badge">Manual</span><p>Need to jump the queue? <strong>Force convert</strong> with a reason skips the remaining gates &mdash; useful for offline or high&#8209;touch deals. Everything is still logged.</p></div>
+            <div class="tip"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-11"/></svg> See the next sections for exactly what gets created at this moment, and what the client sees when they log in.</div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VISA FIRST -->
+<section id="visa">
+  <div class="wrap">
+    <div class="head fade">
+      <div class="eyebrow">Know the visa first</div>
+      <h2>Ask the visa question up front &mdash; then the right checklist builds itself</h2>
+      <p>Today the visa is buried in free text and guessed at later. Instead, we capture it as a real choice on the intake form. That single answer decides which documents to ask for &mdash; and you stay in charge of those lists. Pick a category to see a sample.</p>
+    </div>
+    <div class="chips fade" id="chips">
+      <button class="chip on" data-v="skilled">Skilled (points-tested)</button>
+      <button class="chip" data-v="employer">Employer-sponsored</button>
+      <button class="chip" data-v="partner">Partner &amp; family</button>
+      <button class="chip" data-v="student">Student</button>
+      <button class="chip" data-v="visitor">Visitor</button>
+      <button class="chip" data-v="business">Business / Innovation</button>
+    </div>
+    <div class="visawrap">
+      <div class="visacard fade">
+        <div class="eyebrow" style="color:var(--muted)">The category your client picks</div>
+        <h3 id="vname" style="font-size:22px;margin-top:8px">Skilled &mdash; points-tested</h3>
+        <p id="vdesc" style="font-size:14.5px;margin-top:8px">Independent and state-nominated skilled migration, driven by the points test and a skills assessment.</p>
+        <div class="sc" id="vcodes"></div>
+        <div class="editnote">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:none"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          <span>These are starting points &mdash; <strong>you edit them</strong>. Add, remove or rename items, and set which document types you&rsquo;ll accept for each. Build a checklist per visa type that matches how <em>you</em> practise.</span>
+        </div>
+      </div>
+      <div class="visacard fade">
+        <div class="eyebrow" style="color:var(--purple)">Documents requested</div>
+        <ul class="checklist" id="vlist"></ul>
+        <p style="font-size:12.5px;color:var(--muted);margin-top:14px">Plus the cross&#8209;cutting basics on every file &mdash; identity, Form 80, agent appointment (Form 956), health (HAP ID) and police clearances.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THE UNLOCK -->
+<section id="unlock">
+  <div class="wrap">
+    <div class="unlockband fade">
+      <div class="eyebrow">The key moment</div>
+      <h2>When the case opens, the client gets their own door &mdash; automatically</h2>
+      <p>This is the single change that ties the whole ecosystem together. No more sharing a fresh PIN for every action, no more &ldquo;did you get my email?&rdquo; The instant you convert to a case, the platform creates the client&rsquo;s account and sends them in.</p>
+      <div class="triggerflow">
+        <div class="tnode">Case opened<span class="s">your action</span></div>
+        <span class="arr">&rarr;</span>
+        <div class="tnode">Account created<span class="s">email + temporary PIN</span></div>
+        <span class="arr">&rarr;</span>
+        <div class="tnode">Welcome email sent<span class="s">one login, forever</span></div>
+        <span class="arr">&rarr;</span>
+        <div class="tnode">Portal is live<span class="s">shared space opens</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PORTAL -->
+<section id="portal" style="background:var(--soft)">
+  <div class="wrap">
+    <div class="head fade" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:18px;max-width:none">
+      <div style="max-width:60ch">
+        <div class="eyebrow">Inside the portal</div>
+        <h2>One shared space &mdash; from both sides of the desk</h2>
+        <p>The same case, seen by the client and by you. Switch the view to see each perspective.</p>
+      </div>
+      <div class="seg fade" id="pseg"><button class="on" data-side="client">Client&rsquo;s view</button><button data-side="consult">Consultant&rsquo;s view</button></div>
+    </div>
+
+    <!-- CLIENT VIEW -->
+    <div class="portalwrap" id="clientView">
+      <div class="portalui fade">
+        <div class="puitop"><div class="hi">Welcome back, Priya</div><div class="av">P</div></div>
+        <div class="puibody">
+          <div class="progblock">
+            <div class="ring"><div class="inner">60%</div></div>
+            <div><div class="pt">Your 482 application is taking shape</div><div class="ps">Stage 4 of 7 &middot; Document collection</div></div>
+          </div>
+          <div class="puisec">What&rsquo;s pending from you</div>
+          <div class="pend"><span class="st ok"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span><span class="lab2">Passport</span><span class="ministat done">Uploaded</span></div>
+          <div class="pend"><span class="st ok"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span><span class="lab2">English test (PTE)</span><span class="ministat done">Uploaded</span></div>
+          <div class="pend"><span class="st wait"></span><span class="lab2">Employment references</span><span class="ministat todo">Needed</span></div>
+          <div class="pend"><span class="st wait"></span><span class="lab2">Police clearance</span><span class="ministat todo">Needed</span></div>
+          <div class="puisec">Your agreement</div>
+          <div class="pend"><span class="st ok"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span><span class="lab2">Costs agreement &mdash; signed 12 June</span><span class="ministat done">Signed</span></div>
+          <div class="puisec">Messages</div>
+          <div class="chatbox">
+            <div class="msg them"><span class="nm">Gideon &middot; your agent</span>Hi Priya &mdash; once your two references are in, we&rsquo;re ready to lodge. No rush, but aim for this week if you can.</div>
+            <div class="msg you"><span class="nm">You</span>Thanks! Chasing my manager today, will upload tonight.</div>
+            <div class="chatin"><div class="fld">Write a message&hellip;</div><div class="snd">Send</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="consultside fade">
+        <h3 style="font-size:20px">What the client finally gets</h3>
+        <p style="font-size:15px;margin-top:10px">Everything they keep asking you for &mdash; in one place they can check themselves.</p>
+        <div style="margin-top:18px">
+          <div class="featrow"><div class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div><h4>Where things stand</h4><p>A clear progress view, so they stop asking &ldquo;any update?&rdquo; every few days.</p></div></div>
+          <div class="featrow"><div class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-11"/></svg></div><div><h4>Exactly what&rsquo;s pending</h4><p>Their personalised checklist &mdash; what&rsquo;s done, what&rsquo;s still needed &mdash; with upload built in.</p></div></div>
+          <div class="featrow"><div class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H7l-3 3z"/></svg></div><div><h4>A real conversation</h4><p>Messages with you, kept on the file &mdash; no more lost WhatsApp threads.</p></div></div>
+          <div class="featrow"><div class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><rect x="4" y="4" width="16" height="16" rx="3"/></svg></div><div><h4>Their signed agreement</h4><p>Always there to revisit &mdash; scope, fees and what they agreed to.</p></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONSULTANT VIEW -->
+    <div class="portalwrap" id="consultViewWrap" style="display:none">
+      <div class="consultside fade">
+        <h3 style="font-size:20px">What happens on your side</h3>
+        <p style="font-size:15px;margin-top:10px">You never leave your dashboard. The portal is just the client&rsquo;s window into the same case you&rsquo;re already managing.</p>
+        <div style="margin-top:18px">
+          <div class="featrow"><div class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M16 11h6"/></svg></div><div><h4>The account is made for you</h4><p>On case open, the client&rsquo;s login is created and their PIN emailed &mdash; you do nothing extra.</p></div></div>
+          <div class="featrow"><div class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H7l-3 3z"/></svg></div><div><h4>Reply from your inbox</h4><p>Their messages land in your dashboard. You answer there; they see it in their portal.</p></div></div>
+          <div class="featrow"><div class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M5 3h9l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg></div><div><h4>Documents arrive sorted</h4><p>Uploads slot straight into the right checklist item, ready for your review &mdash; no email attachments to wrangle.</p></div></div>
+          <div class="featrow"><div class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg></div><div><h4>Your file builds itself</h4><p>Messages, documents, signatures and status changes are all logged &mdash; the record-keeping you owe is simply done.</p></div></div>
+        </div>
+      </div>
+      <div class="portalui fade">
+        <div class="puitop" style="background:linear-gradient(120deg,var(--navy),#1c2a3f)"><div class="hi">Case &middot; Priya Sharma &middot; 482</div><div class="av" style="background:rgba(255,255,255,.16)">G</div></div>
+        <div class="puibody">
+          <div class="puisec" style="margin-top:4px">Case stage</div>
+          <div class="progblock" style="background:var(--soft)"><div class="ring" style="--p:55"><div class="inner">4/7</div></div><div><div class="pt">Document collection</div><div class="ps">2 of 4 client documents in</div></div></div>
+          <div class="puisec">Client portal</div>
+          <div class="pend"><span class="st ok"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span><span class="lab2">Account created &amp; PIN emailed</span><span class="ministat done">Live</span></div>
+          <div class="pend"><span class="st ok"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span><span class="lab2">Last login &mdash; 2 hours ago</span><span class="ministat done">Active</span></div>
+          <div class="puisec">Unread from client</div>
+          <div class="chatbox">
+            <div class="msg them"><span class="nm">Priya</span>Thanks! Chasing my manager today, will upload tonight.</div>
+            <div class="chatin"><div class="fld">Reply to Priya&hellip;</div><div class="snd">Send</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GAP TABLE -->
+<section id="gaps">
+  <div class="wrap">
+    <div class="head fade">
+      <div class="eyebrow">An honest map</div>
+      <h2>What&rsquo;s already built vs what we add</h2>
+      <p>Good news: most of the spine exists. The redesign is mainly about <em>surfacing</em> what&rsquo;s there and connecting the last mile. Here&rsquo;s the honest breakdown.</p>
+    </div>
+    <div class="gaps fade">
+      <div class="grow h"><div>The piece</div><div>Where it stands</div><div>What we do</div></div>
+      <div class="grow">
+        <div class="gc feat">The pre-case steps &amp; manual overrides</div>
+        <div class="gc"><span class="state have"><span class="stbubble"></span>Already built</span></div>
+        <div class="gc">Re-present them as a vertical, self-explaining timeline &mdash; overrides on each step, not in a menu.</div>
+      </div>
+      <div class="grow">
+        <div class="gc feat">E-sign &amp; engagement letters</div>
+        <div class="gc"><span class="state have"><span class="stbubble"></span>Already built</span></div>
+        <div class="gc">Keep as-is. Surface the signed agreement inside the new client portal.</div>
+      </div>
+      <div class="grow">
+        <div class="gc feat">Per-visa document checklists</div>
+        <div class="gc"><span class="state partial"><span class="stbubble"></span>Built, but fixed in code</span></div>
+        <div class="gc">Make them editable by you &mdash; add, rename, set accepted document types per visa.</div>
+      </div>
+      <div class="grow">
+        <div class="gc feat">Visa category capture</div>
+        <div class="gc"><span class="state partial"><span class="stbubble"></span>Free text only</span></div>
+        <div class="gc">Turn it into a real choice on the form, so the right checklist builds automatically.</div>
+      </div>
+      <div class="grow">
+        <div class="gc feat">Client portal &amp; document upload</div>
+        <div class="gc"><span class="state partial"><span class="stbubble"></span>Exists, but PIN-per-action</span></div>
+        <div class="gc">Unify into one persistent client login &mdash; created automatically when the case opens.</div>
+      </div>
+      <div class="grow">
+        <div class="gc feat">Two-way messaging</div>
+        <div class="gc"><span class="state build"><span class="stbubble"></span>Not yet built</span></div>
+        <div class="gc">New: a simple inbox / chat between consultant and client, kept on the case file.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROLLOUT -->
+<section id="rollout" style="background:var(--soft)">
+  <div class="wrap">
+    <div class="head fade">
+      <div class="eyebrow">Recommended sequence</div>
+      <h2>How we&rsquo;d roll it out &mdash; value first, plumbing later</h2>
+      <p>Three steps, each shippable on its own. We lead with the visible redesign, then connect the client, then add conversation.</p>
+    </div>
+    <div class="phases">
+      <div class="phase p1 fade">
+        <div class="ribbon"></div>
+        <div class="pn">Phase 1</div>
+        <h3>The guided path</h3>
+        <div class="when">First to ship &middot; mostly re-using what exists</div>
+        <ul>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>Vertical, educational pre-case timeline</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>Manual overrides surfaced on every step</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>Visa category as a real choice on intake</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>Plain-language &ldquo;what&rsquo;s next&rdquo; everywhere</li>
+        </ul>
+      </div>
+      <div class="phase p2 fade">
+        <div class="ribbon"></div>
+        <div class="pn">Phase 2</div>
+        <h3>The unlock</h3>
+        <div class="when">The connecting moment</div>
+        <ul>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>Auto-create the client account on case open</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>One persistent login replaces scattered PINs</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>Welcome email with temporary PIN</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>Editable checklists &amp; portal progress view</li>
+        </ul>
+      </div>
+      <div class="phase p3 fade">
+        <div class="ribbon"></div>
+        <div class="pn">Phase 3</div>
+        <h3>The conversation</h3>
+        <div class="when">Makes it sticky</div>
+        <ul>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>Two-way messaging on the case file</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>Consultant replies from their inbox</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>Document upload tied to checklist items</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>Everything logged for compliant record-keeping</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="eyebrow" style="color:var(--teal-light)">Where we land</div>
+    <h3 style="margin-top:10px">Every inquiry gets one clear path. Every client gets one door.</h3>
+    <p>The lead never falls through the cracks of a missed WhatsApp. The consultant always knows the next step and never feels boxed in by automation. And the day a case opens, the client walks through their own front door &mdash; into the same room you&rsquo;re already working in.</p>
+    <div class="foot-pills">
+      <span>Query &rarr; Pre-case &rarr; Case</span>
+      <span>Vertical, guided, skippable</span>
+      <span>Manual override at every step</span>
+      <span>Visa-first checklists</span>
+      <span>One client login</span>
+      <span>Shared messaging</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // progress bar
+  var bar=document.getElementById('bar');
+  function onScroll(){
+    var h=document.documentElement;
+    var sc=(h.scrollTop)/(h.scrollHeight-h.clientHeight);
+    bar.style.width=(sc*100)+'%';
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+  // scrollspy
+  var links=[].slice.call(document.querySelectorAll('.navlinks a'));
+  var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function spy(){
+    var pos=window.scrollY+120,cur=-1;
+    secs.forEach(function(s,i){if(s&&s.offsetTop<=pos)cur=i;});
+    links.forEach(function(a,i){a.classList.toggle('active',i===cur);});
+  }
+  window.addEventListener('scroll',spy,{passive:true});spy();
+
+  // journey jumps
+  [].forEach.call(document.querySelectorAll('[data-go]'),function(el){
+    el.addEventListener('click',function(){
+      var t=document.querySelector(el.getAttribute('data-go'));
+      if(t)window.scrollTo({top:t.offsetTop-70,behavior:'smooth'});
+    });
+  });
+
+  // timeline accordion
+  [].forEach.call(document.querySelectorAll('#tl .card'),function(card,i){
+    var head=card.querySelector('.chead'),body=card.querySelector('.cbody');
+    function set(open){
+      card.classList.toggle('open',open);
+      body.style.maxHeight=open?(body.scrollHeight+40)+'px':'0px';
+    }
+    head.addEventListener('click',function(){set(!card.classList.contains('open'));});
+    if(i===0)set(true);
+    window.addEventListener('resize',function(){if(card.classList.contains('open'))body.style.maxHeight=(body.scrollHeight+40)+'px';});
+  });
+
+  // visa data
+  var DATA={
+    skilled:{name:'Skilled — points-tested',desc:'Independent and state-nominated skilled migration, driven by the points test and a skills assessment.',codes:['189 Independent','190 Nominated','491 Regional'],
+      docs:[['Passport','Identity'],['Skills assessment','Assessment'],['English test (IELTS / PTE)','Test result'],['Qualifications &amp; transcripts','Education'],['CV / résumé','Document'],['Employment references &amp; payslips','Evidence'],['Police clearances','Clearance'],['EOI / invitation reference','Reference']]},
+    employer:{name:'Employer-sponsored',desc:'Temporary skilled and permanent employer-nominated visas — a three-party sponsor, nomination and visa structure.',codes:['482 Skills in Demand','186 ENS','494 Regional'],
+      docs:[['Passport','Identity'],['Sponsor &amp; nomination documents','Sponsor'],['Employment contract &amp; salary evidence','Evidence'],['English test','Test result'],['CV / résumé','Document'],['References','Evidence'],['Police clearances','Clearance']]},
+    partner:{name:'Partner &amp; family',desc:'Onshore and offshore partner visas — granted in two stages and very evidence-heavy.',codes:['820 / 801 Onshore','309 / 100 Offshore','300 Prospective'],
+      docs:[['Passports (both partners)','Identity'],['Relationship evidence — financial','Evidence'],['Relationship evidence — household','Evidence'],['Relationship evidence — social','Evidence'],['Statutory declarations (Form 888)','Declaration'],['Marriage / de-facto registration','Document'],['Police clearances','Clearance']]},
+    student:{name:'Student',desc:'Student visas tied to enrolment, with a genuine-student requirement and financial capacity evidence.',codes:['500 Student','485 Graduate'],
+      docs:[['Passport','Identity'],['Confirmation of Enrolment (CoE)','Document'],['Genuine Student statement','Statement'],['Financial capacity evidence','Evidence'],['Health cover (OSHC)','Insurance'],['English results','Test result'],['Academic transcripts','Education']]},
+    visitor:{name:'Visitor',desc:'Tourist, business-visitor and sponsored-family streams — high volume, faster turnaround.',codes:['600 Visitor','601 ETA'],
+      docs:[['Passport','Identity'],['Proof of funds','Evidence'],['Travel itinerary','Document'],['Invitation letter','Document'],['Employment / ties evidence','Evidence']]},
+    business:{name:'Business / Innovation',desc:'Business, investor and national innovation streams. Note several legacy streams now route into the National Innovation Visa.',codes:['188 / 888 Business','858 Innovation'],
+      docs:[['Passport','Identity'],['Business &amp; financial statements','Financials'],['Investment evidence','Evidence'],['Expression of Interest','Reference'],['State / territory nomination','Nomination']]}
+  };
+  function renderVisa(key){
+    var d=DATA[key];if(!d)return;
+    document.getElementById('vname').innerHTML=d.name;
+    document.getElementById('vdesc').innerHTML=d.desc;
+    document.getElementById('vcodes').innerHTML=d.codes.map(function(c){return '<span class="scode">'+c+'</span>';}).join('');
+    document.getElementById('vlist').innerHTML=d.docs.map(function(it){
+      return '<li><span class="ck"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>'+it[0]+'<span class="doctype">'+it[1]+'</span></li>';
+    }).join('');
+  }
+  renderVisa('skilled');
+  [].forEach.call(document.querySelectorAll('#chips .chip'),function(c){
+    c.addEventListener('click',function(){
+      document.querySelectorAll('#chips .chip').forEach(function(x){x.classList.remove('on');});
+      c.classList.add('on');renderVisa(c.getAttribute('data-v'));
+    });
+  });
+
+  // portal toggle
+  var cView=document.getElementById('clientView'),kView=document.getElementById('consultViewWrap');
+  [].forEach.call(document.querySelectorAll('#pseg button'),function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('#pseg button').forEach(function(x){x.classList.remove('on');});
+      b.classList.add('on');
+      var client=b.getAttribute('data-side')==='client';
+      cView.style.display=client?'':'none';
+      kView.style.display=client?'none':'';
+    });
+  });
+
+  // reveal on scroll
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});
+  },{threshold:.12});
+  [].forEach.call(document.querySelectorAll('.fade'),function(el){io.observe(el);});
+})();
+</script>
+</body>
+</html>

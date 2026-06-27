@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Forms Builder v1 — Implementation Plan</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    margin: 0;
+    padding: 32px 48px;
+    background: #fafafa;
+    color: #1a1a1a;
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  h1 { font-size: 28px; margin: 0 0 8px; font-weight: 600; }
+  .subtitle { color: #666; margin-bottom: 8px; font-size: 14px; }
+  .scope {
+    background: #eef2ff;
+    border-left: 4px solid #6366f1;
+    padding: 14px 18px;
+    border-radius: 6px;
+    margin: 16px 0 32px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #312e81;
+  }
+  .scope strong { color: #1e1b4b; }
+  .diagram-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px 28px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    overflow-x: auto;
+    margin-bottom: 24px;
+  }
+  .diagram-card h2 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #2563eb;
+  }
+  .diagram-card p.intro {
+    margin: 0 0 20px;
+    color: #555;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .diagram-card .mermaid {
+    text-align: center;
+  }
+  .legend {
+    background: white;
+    border-radius: 12px;
+    padding: 22px 28px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    font-size: 14px;
+    line-height: 1.7;
+    margin-bottom: 24px;
+  }
+  .legend strong { color: #1a1a1a; }
+  .legend code {
+    background: #f4f4f5;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #312e81;
+  }
+  .swim {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-right: 6px;
+    border: 1px solid rgba(0,0,0,0.1);
+  }
+  /* Risk matrix table */
+  .risk-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4px;
+    font-size: 14px;
+  }
+  .risk-table th, .risk-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+    vertical-align: top;
+  }
+  .risk-table th {
+    background: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .risk-table td.severity-high { color: #b91c1c; font-weight: 600; }
+  .risk-table td.severity-med { color: #b45309; font-weight: 600; }
+  .risk-table td.severity-low { color: #15803d; font-weight: 600; }
+  .risk-table code {
+    background: #f4f4f5;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  /* File list */
+  .files-card {
+    background: white;
+    border-radius: 12px;
+    padding: 22px 28px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+  .files-card h2 {
+    margin: 0 0 16px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #2563eb;
+  }
+  .files-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+  @media (max-width: 800px) { .files-grid { grid-template-columns: 1fr; } }
+  .files-grid h3 { font-size: 14px; margin: 0 0 8px; color: #374151; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .files-grid ul { list-style: none; padding: 0; margin: 0; }
+  .files-grid li {
+    padding: 6px 0;
+    font-family: ui-monospace, "SF Mono", Monaco, monospace;
+    font-size: 12.5px;
+    color: #1f2937;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .files-grid li .tag {
+    display: inline-block;
+    background: #ecfeff;
+    color: #155e75;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .files-grid li .tag.new { background: #dcfce7; color: #14532d; }
+  .files-grid li .tag.touch { background: #fef3c7; color: #78350f; }
+  .estimate-banner {
+    background: linear-gradient(90deg, #2563eb 0%, #6366f1 100%);
+    color: white;
+    padding: 20px 28px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .estimate-banner .stat .num { font-size: 26px; font-weight: 700; line-height: 1; }
+  .estimate-banner .stat .lbl { font-size: 12px; opacity: 0.85; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .deferred {
+    background: #fef2f2;
+    border-left: 4px solid #ef4444;
+    padding: 14px 18px;
+    border-radius: 6px;
+    margin: 16px 0 32px;
+    font-size: 14px;
+    color: #7f1d1d;
+  }
+  .deferred strong { color: #450a0a; }
+  .deferred ul { margin: 8px 0 0; padding-left: 20px; }
+</style>
+</head>
+<body>
+
+<h1>IMMI-PULSE — Forms Builder v1 Implementation Plan</h1>
+<div class="subtitle">Technical plan · for the dev team · post call 3 with Gideon · 17 May 2026</div>
+
+<div class="scope">
+  <strong>Scope.</strong> Ship two of the three builder modes: <strong>Standard</strong> (polish existing template picker + add immigration-specific templates) and <strong>Advanced</strong> (full conditional-logic builder with Live + Flow previews). <strong>Recommended</strong> (AI-drafted forms via Bedrock) is deferred to a follow-up sprint.<br/><br/>
+  <strong>Critical insight from the codebase audit:</strong> <code>questionnaire_versions.schema</code> is already <code>JSONB</code>. The entire conditional-logic layer ships with <strong>zero Alembic migrations</strong> — we extend the Pydantic shape and persist as JSON. React Flow (<code>@xyflow/react@^12.10.1</code>) is already in the frontend's <code>package.json</code>.
+</div>
+
+<div class="estimate-banner">
+  <div class="stat"><div class="num">8</div><div class="lbl">phases</div></div>
+  <div class="stat"><div class="num">~10–11</div><div class="lbl">dev-days (solo)</div></div>
+  <div class="stat"><div class="num">~7</div><div class="lbl">calendar days (parallelized)</div></div>
+  <div class="stat"><div class="num">0</div><div class="lbl">DB migrations</div></div>
+  <div class="stat"><div class="num">8</div><div class="lbl">new files</div></div>
+  <div class="stat"><div class="num">5</div><div class="lbl">files touched</div></div>
+</div>
+
+<!-- DIAGRAM 1 — Phase Dependency Graph -->
+<div class="diagram-card">
+  <h2>1. Phase dependency graph</h2>
+  <p class="intro">Eight phases across two tracks. The backend (Phase 2) and the frontend's independent phases (1 + 3) can start on day 1 in parallel. Phase 4 (the logic editor) is the only true bottleneck — everything visible to the user depends on it. Phase 1 (Standard polish) can ship on its own as an early win.</p>
+  <div class="mermaid">
+flowchart LR
+    subgraph BE ["Backend track"]
+        P2["Phase 2<br/>Logic schema + engine<br/>~1 day"]:::be
+    end
+    subgraph FA ["Frontend — independent"]
+        P1["Phase 1<br/>Standard polish<br/>~1 day"]:::fe
+        P3["Phase 3<br/>Builder shell<br/>~0.5 day"]:::fe
+    end
+    subgraph FB ["Frontend — depends on P2 + P3"]
+        P4["Phase 4<br/>Logic editor UI<br/>~2-3 days"]:::fe
+        P5["Phase 5<br/>Live Preview<br/>~1 day"]:::fe
+        P6["Phase 6<br/>Flow Preview<br/>~2 days"]:::fe
+        P7["Phase 7<br/>Public page logic<br/>~0.5 day"]:::fe
+        P8["Phase 8<br/>Logic recipes<br/>~1 day"]:::fe
+    end
+    SHIP(["v1 ships"]):::ship
+
+    P2 --> P4
+    P3 --> P4
+    P4 --> P5
+    P4 --> P6
+    P4 --> P7
+    P1 --> SHIP
+    P5 --> P8
+    P6 --> P8
+    P7 --> P8
+    P8 --> SHIP
+
+    classDef fe fill:#fde8e3,stroke:#B85C50,color:#5a1f17
+    classDef be fill:#e3f0fd,stroke:#3a6db8,color:#1c365e
+    classDef ship fill:#e8f5e9,stroke:#4a8a4f,color:#1c3d1f
+  </div>
+</div>
+
+<!-- DIAGRAM 2 — Delivery Gantt -->
+<div class="diagram-card">
+  <h2>2. Delivery timeline (parallelized)</h2>
+  <p class="intro">If one engineer pairs FE and BE work, the critical path is P3 → P4 → P6 → P8, landing in roughly seven calendar days. P1, P2, and P3 all start on day 1. P5 and P6 run in parallel after P4 lands.</p>
+  <div class="mermaid">
+gantt
+    title Forms Builder v1 — parallelized delivery
+    dateFormat YYYY-MM-DD
+    axisFormat %d %b
+    section Backend
+    P2 Logic schema + engine       :be1, 2026-05-18, 1d
+    Backend tests                  :be2, after be1, 1d
+    section FE - Standard
+    P1 Template polish             :fe1, 2026-05-18, 1d
+    section FE - Shell
+    P3 Segmented control + tabs    :fe2, 2026-05-18, 1d
+    section FE - Advanced
+    P4 Logic editor UI             :fe3, after fe2 be1, 3d
+    P5 Live Preview                :fe4, after fe3, 1d
+    P6 Flow Preview                :fe5, after fe3, 2d
+    P7 Public page logic           :fe6, after fe4, 1d
+    P8 Logic recipes               :fe7, after fe5 fe6, 1d
+    section Ship
+    v1 ships                       :milestone, ship, after fe7, 0d
+  </div>
+</div>
+
+<!-- DIAGRAM 3 — Schema extension -->
+<div class="diagram-card">
+  <h2>3. Backend schema extension — current vs extended</h2>
+  <p class="intro">The Pydantic <code>QuestionField</code> in <code>schemas.py</code> grows two optional fields: <code>logic</code> (visibility + required-if rules) and <code>flags</code> (outcome tags for Flow Preview colour-coding). Because the column type is <code>JSONB</code>, this is a code-only change — no Alembic migration. A Pydantic root validator enforces that every <code>field_key</code> referenced by a rule exists in the same form.</p>
+  <div class="mermaid">
+classDiagram
+    direction LR
+
+    class QuestionField_v1 {
+        +str key
+        +str label
+        +FieldType type
+        +bool required
+        +list~str~ options
+        +str placeholder
+        +str helper_text
+    }
+
+    class QuestionField_v2 {
+        +str key
+        +str label
+        +FieldType type
+        +bool required
+        +list~str~ options
+        +str placeholder
+        +str helper_text
+        +FieldLogic logic
+        +list~OutcomeFlag~ flags
+    }
+
+    class FieldLogic {
+        +VisibilityConfig visibility
+        +list~Rule~ required_if
+    }
+
+    class VisibilityConfig {
+        +VisibilityMode mode
+        +list~Rule~ rules
+    }
+
+    class Rule {
+        +str field_key
+        +Operator operator
+        +Any value
+    }
+
+    class Operator {
+        <<enum>>
+        equals
+        not_equals
+        is_one_of
+        is_not_one_of
+        is_empty
+        is_not_empty
+        contains
+    }
+
+    class VisibilityMode {
+        <<enum>>
+        always
+        show_if
+        hide_if
+    }
+
+    class OutcomeFlag {
+        <<enum>>
+        urgent
+        disqualified
+        qualified
+        custom
+    }
+
+    QuestionField_v1 ..> QuestionField_v2 : extended by
+    QuestionField_v2 --> FieldLogic
+    FieldLogic --> VisibilityConfig
+    VisibilityConfig --> Rule
+    FieldLogic --> Rule
+    Rule --> Operator
+    VisibilityConfig --> VisibilityMode
+    QuestionField_v2 --> OutcomeFlag
+  </div>
+</div>
+
+<!-- DIAGRAM 4 — Rule evaluation sequence -->
+<div class="diagram-card">
+  <h2>4. Rule evaluation — client-side live + server-side at submit</h2>
+  <p class="intro">The rules engine runs in two places. Client-side (TypeScript port) evaluates rules in real time as the applicant types, showing or hiding fields without a network round-trip. Server-side (Python) re-evaluates at submission to drop answers for fields that were hidden — preventing tampering and validating required-if rules. Both implementations share a JSON fixture of <code>{ rules, answers, expected_visible }</code> tuples to stay in lockstep.</p>
+  <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as Visa applicant
+    participant FE as Public form page
+    participant TSE as TS rules engine
+    participant API as FastAPI submit endpoint
+    participant PYE as Python rules engine
+    participant DB as Postgres
+    participant TR as Async triage
+
+    U->>FE: types answer in a field
+    FE->>TSE: evaluate(rules, answers)
+    TSE-->>FE: visible field set
+    FE->>FE: re-render — show or hide fields
+    Note over FE,TSE: Repeats on every keystroke or selection
+
+    U->>FE: clicks Submit
+    FE->>FE: validate required visible fields
+    FE->>API: "POST /public/q/{slug}/submit"
+    API->>PYE: evaluate(rules, answers)
+    PYE-->>API: visible set + cleaned answers
+    API->>API: drop answers for hidden fields
+    API->>API: enforce required_if rules
+    API->>DB: insert response + client + pre_case
+    API->>TR: enqueue AI triage (fail-open)
+    API-->>FE: "{ response_id, pre_case_id }"
+    FE-->>U: thank-you screen
+  </div>
+</div>
+
+<!-- DIAGRAM 5 — UI component tree -->
+<div class="diagram-card">
+  <h2>5. UI architecture — builder + preview component tree</h2>
+  <p class="intro">The builder page wraps a segmented control. <strong>Standard</strong> reuses today's field editor unchanged. <strong>Advanced</strong> mounts a two-pane canvas: the field list on the left (each row owns a <code>RuleEditor</code> popover) and the preview pane on the right with two tabs. The <code>QuestionnaireRenderer</code> is extracted into a shared component so the Live Preview and the public fill page render identical output — single source of truth.</p>
+  <div class="mermaid">
+flowchart TD
+    PAGE["dashboard/questionnaires/[id]/page.tsx<br/>+ /new/page.tsx"]:::fe
+    PAGE --> SEG["Segmented control<br/>Standard | Advanced | Recommended (soon)"]:::fe
+
+    SEG --> SE["StandardEditor<br/>(existing field editor)"]:::fe
+    SEG --> AC["AdvancedCanvas<br/>builder/AdvancedCanvas.tsx"]:::fenew
+
+    AC --> FL["FieldList (left pane)"]:::fenew
+    FL --> FR["FieldRow"]:::fenew
+    FR --> RE["RuleEditor popover<br/>builder/RuleEditor.tsx"]:::fenew
+
+    AC --> PP["PreviewPane (right pane)"]:::fenew
+    PP --> PT["Preview tabs"]:::fenew
+    PT --> LP["LivePreview<br/>preview/LivePreview.tsx"]:::fenew
+    PT --> FP["FlowPreview<br/>preview/FlowPreview.tsx"]:::fenew
+
+    LP --> QR["QuestionnaireRenderer<br/>(extracted shared component)"]:::shared
+    PUB["public/q/[slug]/page.tsx"]:::fe --> QR
+
+    QR --> TSE["lib/questionnaires/rulesEngine.ts<br/>(TS port of BE engine)"]:::shared
+    RE --> TSE
+    FP --> XY["@xyflow/react<br/>(already installed)"]:::ext
+
+    classDef fe fill:#fde8e3,stroke:#B85C50,color:#5a1f17
+    classDef fenew fill:#fce7f3,stroke:#be185d,color:#500724
+    classDef shared fill:#fff5d9,stroke:#b89a3a,color:#5e4914
+    classDef ext fill:#ece3fd,stroke:#6d3ab8,color:#361c5e
+  </div>
+</div>
+
+<!-- DIAGRAM 6 — Data flow lifecycle -->
+<div class="diagram-card">
+  <h2>6. Data flow — from draft to pre-case</h2>
+  <p class="intro">A logic-bearing form follows the same lifecycle as today's flat forms — versioning, public link, submission, downstream pre-case creation, and async AI triage. The only thing that changes is what's inside <code>QuestionnaireVersion.schema</code>: now each field can carry <code>logic</code> and <code>flags</code>. Past responses still snap to their version's frozen schema, so historical data is never affected by edits.</p>
+  <div class="mermaid">
+flowchart LR
+    subgraph BUILD ["1. Build (consultant)"]
+        D["Draft form<br/>fields + rules + flags"]:::fe
+    end
+    subgraph PUB ["2. Publish"]
+        V[("QuestionnaireVersion<br/>schema = JSONB")]:::db
+    end
+    subgraph SHARE ["3. Share"]
+        L[/"Public link<br/>/q/{slug}"/]:::ext
+    end
+    subgraph FILL ["4. Fill (applicant)"]
+        FORM["Public form<br/>conditional rendering"]:::fe
+    end
+    subgraph SUBMIT ["5. Submit"]
+        API["FastAPI<br/>submit_public_questionnaire()"]:::be
+        VAL["rules_engine.py<br/>drop hidden + enforce required_if"]:::be
+        RESP[("QuestionnaireResponse")]:::db
+    end
+    subgraph DOWN ["6. Downstream"]
+        CLI[("Client + ClientOrgLink")]:::db
+        PC[("PreCase status=pending<br/>ai_status=pending")]:::db
+        AI["Async AI triage<br/>(fail-open)"]:::be
+    end
+
+    D --> V
+    V --> L
+    L --> FORM
+    FORM --> API
+    API --> VAL
+    VAL --> RESP
+    RESP --> CLI
+    RESP --> PC
+    PC --> AI
+
+    classDef fe fill:#fde8e3,stroke:#B85C50,color:#5a1f17
+    classDef be fill:#e3f0fd,stroke:#3a6db8,color:#1c365e
+    classDef db fill:#fff5d9,stroke:#b89a3a,color:#5e4914
+    classDef ext fill:#ece3fd,stroke:#6d3ab8,color:#361c5e
+  </div>
+</div>
+
+<!-- File list -->
+<div class="files-card">
+  <h2>7. Files to touch</h2>
+  <div class="files-grid">
+    <div>
+      <h3>Backend</h3>
+      <ul>
+        <li>src/app/agents/immigration/questionnaires/schemas.py <span class="tag touch">extend</span></li>
+        <li>src/app/agents/immigration/questionnaires/service.py <span class="tag touch">touch</span></li>
+        <li>src/app/agents/immigration/questionnaires/rules_engine.py <span class="tag new">new</span></li>
+        <li>tests/agents/immigration/test_questionnaire_logic.py <span class="tag new">new</span></li>
+        <li>tests/fixtures/rule_eval_cases.json <span class="tag new">new — shared with FE</span></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Frontend</h3>
+      <ul>
+        <li>src/lib/questionnaire-templates.ts <span class="tag touch">expand</span></li>
+        <li>src/app/(console)/dashboard/questionnaires/[id]/page.tsx <span class="tag touch">touch</span></li>
+        <li>src/app/(console)/dashboard/questionnaires/new/page.tsx <span class="tag touch">touch</span></li>
+        <li>src/app/(public)/q/[slug]/page.tsx <span class="tag touch">touch</span></li>
+        <li>src/lib/api/services.ts <span class="tag touch">type only</span></li>
+        <li>src/components/questionnaires/QuestionnaireRenderer.tsx <span class="tag new">new — shared</span></li>
+        <li>src/components/questionnaires/builder/AdvancedCanvas.tsx <span class="tag new">new</span></li>
+        <li>src/components/questionnaires/builder/RuleEditor.tsx <span class="tag new">new</span></li>
+        <li>src/components/questionnaires/preview/LivePreview.tsx <span class="tag new">new</span></li>
+        <li>src/components/questionnaires/preview/FlowPreview.tsx <span class="tag new">new</span></li>
+        <li>src/lib/questionnaires/rulesEngine.ts <span class="tag new">new — TS port</span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Risk matrix -->
+<div class="files-card">
+  <h2>8. Risk matrix</h2>
+  <table class="risk-table">
+    <thead>
+      <tr>
+        <th>Risk</th>
+        <th style="width: 90px;">Severity</th>
+        <th style="width: 90px;">Likelihood</th>
+        <th>Mitigation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Rule references a deleted/renamed field <code>key</code></td>
+        <td class="severity-high">High</td>
+        <td class="severity-med">Medium</td>
+        <td>Pydantic root validator rejects on save; UI shows inline red border + tooltip on the offending field row; "Rename field" action in the builder offers to auto-update all rule references.</td>
+      </tr>
+      <tr>
+        <td>Client-side and server-side rule evaluation drift</td>
+        <td class="severity-high">High</td>
+        <td class="severity-med">Medium</td>
+        <td>Single JSON fixture (<code>tests/fixtures/rule_eval_cases.json</code>) of <code>{ rules, answers, expected_visible }</code> tuples — consumed by both BE pytest and FE vitest. CI fails if either implementation drifts.</td>
+      </tr>
+      <tr>
+        <td><code>QuestionnaireVersion</code> table floods on every keystroke save</td>
+        <td class="severity-med">Medium</td>
+        <td class="severity-high">High</td>
+        <td>Only bump a new version on explicit publish; draft state lives in a transient column or localStorage. Confirm with service.py — today every <code>update_questionnaire()</code> with field changes bumps; we'll gate behind a <code>publish=true</code> flag.</td>
+      </tr>
+      <tr>
+        <td>React Flow auto-layout looks ugly for forms with many fields/rules</td>
+        <td class="severity-med">Medium</td>
+        <td class="severity-med">Medium</td>
+        <td>Cap recipe complexity at ~15 fields and ~8 rules for v1; use <code>dagre</code> for layered layout; add a manual "fit to view" button. If still ugly at v1, ship Flow Preview behind an "early access" badge.</td>
+      </tr>
+      <tr>
+        <td>Past responses break when schema shape evolves (e.g. <code>logic</code> field added)</td>
+        <td class="severity-high">High</td>
+        <td class="severity-low">Low</td>
+        <td>Versioning already solves this — responses snap to the <code>QuestionnaireVersion</code> they were submitted against. Pydantic schema for <code>QuestionField</code> uses <code>logic: Optional[FieldLogic] = None</code> so v1 schemas deserialize fine.</td>
+      </tr>
+      <tr>
+        <td>Tampered submission with extra answers for hidden fields</td>
+        <td class="severity-med">Medium</td>
+        <td class="severity-low">Low</td>
+        <td>Server-side rules engine drops answers for hidden fields before persisting; never trust the client to filter. Validation error if a required-visible field is missing.</td>
+      </tr>
+      <tr>
+        <td>Public fill page mobile UX degrades with many conditional fields</td>
+        <td class="severity-med">Medium</td>
+        <td class="severity-med">Medium</td>
+        <td>QuestionnaireRenderer is mobile-first; conditional fields use <code>framer-motion</code> for smooth show/hide; explicit mobile test pass before ship (Gideon asked about this specifically on the call).</td>
+      </tr>
+      <tr>
+        <td>Engineer drags in <code>@dnd-kit</code> for drag-reorder when not strictly needed</td>
+        <td class="severity-low">Low</td>
+        <td class="severity-med">Medium</td>
+        <td>v1 uses up/down arrows (already implemented); defer drag-reorder to v1.1. Avoids adding a dep just for nicety.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Deferred -->
+<div class="deferred">
+  <strong>Explicitly cut from v1:</strong>
+  <ul>
+    <li><strong>Mode 2 — Recommended (AI-drafted forms via Bedrock).</strong> Wait until usage/cost shape from existing AI calls settles. Estimated as a separate 1-week sprint once unlocked.</li>
+    <li><strong>Calculated fields</strong> (age from DOB, visa expiry countdown). Nice-to-have; the rules engine is forward-compatible.</li>
+    <li><strong>OR-composition of rules.</strong> v1 is AND-only between rules on a single field. OR can be layered on without breaking existing forms.</li>
+    <li><strong>Editing logic from the Flow Preview canvas.</strong> v1 is read-only; edits happen via <code>RuleEditor</code> popovers in the field list.</li>
+    <li><strong>Drag-and-drop field reordering.</strong> Up/down arrows ship; <code>@dnd-kit</code> waits for v1.1.</li>
+  </ul>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <strong>Colour key</strong><br/>
+  <span class="swim" style="background:#fde8e3"></span> Frontend (existing or touched)
+  &nbsp;&nbsp;
+  <span class="swim" style="background:#fce7f3"></span> Frontend (new component)
+  &nbsp;&nbsp;
+  <span class="swim" style="background:#e3f0fd"></span> Backend
+  &nbsp;&nbsp;
+  <span class="swim" style="background:#fff5d9"></span> Database / shared
+  &nbsp;&nbsp;
+  <span class="swim" style="background:#ece3fd"></span> External (React Flow, public URL)
+  &nbsp;&nbsp;
+  <span class="swim" style="background:#e8f5e9"></span> Ship milestone
+  <br/><br/>
+  <strong>Key takeaways</strong>
+  <ul style="margin: 8px 0 0; padding-left: 20px;">
+    <li><strong>Zero migrations.</strong> The JSONB schema column means we ship the entire logic layer as a code-only change.</li>
+    <li><strong>Single source of truth for rendering.</strong> Extracting <code>QuestionnaireRenderer</code> means the consultant's Live Preview and the applicant's actual form are guaranteed identical — no "looked fine in preview" surprises.</li>
+    <li><strong>Two-place rules engine, one fixture.</strong> TS and Python implementations share a JSON test fixture so CI catches drift before it ships.</li>
+    <li><strong>P4 is the bottleneck.</strong> Logic editor (Phase 4) blocks Live Preview, Flow Preview, and the public-page logic — front-load it.</li>
+    <li><strong>Phase 1 is shippable on its own.</strong> Better Standard templates can ship to Gideon on day 2 as an early signal, even before Advanced lands.</li>
+    <li><strong>React Flow is already paid for.</strong> <code>@xyflow/react@^12.10.1</code> is in <code>package.json</code> — no new dep, no bundle-size justification needed.</li>
+  </ul>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    flowchart: { curve: 'basis', padding: 16 },
+    sequence: { showSequenceNumbers: true },
+    gantt: { fontSize: 12, sectionFontSize: 13 }
+  });
+</script>
+</body>
+</html>

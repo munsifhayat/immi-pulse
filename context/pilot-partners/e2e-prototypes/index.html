@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IMMI-PULSE — Three End-to-End Approaches</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root{
+    --navy:#101928; --navy-2:#1E293B; --purple:#7A5AF8; --purple-deep:#3E1C96;
+    --purple-lite:#BDB4FE; --purple-mute:#D9D6FE; --teal:#1B7B6F; --teal-lite:#2DD4BF;
+    --gray-text:#475367; --gray-lite:#F0F2F5; --bg:#FFFFFF; --amber:#D97706; --rose:#E11D48;
+    --line:#E6E8EF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--navy);background:#FAFAFE;line-height:1.55;-webkit-font-smoothing:antialiased;font-feature-settings:'tnum'}
+  h1,h2,h3,h4,.h{font-family:'Outfit',sans-serif;font-weight:600;letter-spacing:-.02em;color:var(--navy)}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+  .eyebrow{font-family:'Outfit';font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--purple)}
+  a{text-decoration:none;color:inherit}
+
+  /* hero */
+  .hero{position:relative;overflow:hidden;background:
+      radial-gradient(900px 480px at 78% -10%, rgba(122,90,248,.22), transparent 60%),
+      radial-gradient(700px 420px at 12% 8%, rgba(27,123,111,.14), transparent 62%),
+      linear-gradient(180deg,#0c1220 0%, #101928 56%, #14203a 100%);
+    color:#fff;padding:30px 0 70px}
+  .hero .wrap{position:relative;z-index:2}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:8px 0 40px}
+  .brandmark{display:flex;align-items:center;gap:11px;font-family:'Outfit';font-weight:600;font-size:16px;color:#fff}
+  .seal{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));display:grid;place-items:center;box-shadow:0 8px 24px -8px rgba(122,90,248,.7)}
+  .seal svg{width:18px;height:18px;color:#fff}
+  .pill{font-size:12px;color:var(--purple-lite);border:1px solid rgba(189,180,254,.3);padding:6px 13px;border-radius:999px;background:rgba(122,90,248,.08)}
+  .hero h1{color:#fff;font-size:clamp(2.3rem,4.6vw,3.7rem);line-height:1.04;font-weight:600;max-width:16ch}
+  .hero h1 em{font-style:normal;background:linear-gradient(120deg,var(--purple-lite),var(--teal-lite));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{margin-top:22px;max-width:62ch;color:#C7CEDB;font-size:18px}
+  .herodemo{margin-top:30px;display:inline-flex;gap:10px;align-items:center;font-size:13px;color:#9aa4b6}
+  .herodemo .dot{width:7px;height:7px;border-radius:50%;background:var(--teal-lite);box-shadow:0 0 0 4px rgba(45,212,191,.18)}
+
+  /* founding story strip */
+  .story{margin-top:42px;display:grid;grid-template-columns:1fr;gap:0;border:1px solid rgba(189,180,254,.18);border-radius:18px;background:rgba(255,255,255,.04);backdrop-filter:blur(6px);overflow:hidden}
+  .story .row{display:flex;gap:18px;padding:20px 24px;align-items:flex-start}
+  .story .ic{flex:0 0 auto;width:38px;height:38px;border-radius:11px;background:rgba(122,90,248,.16);display:grid;place-items:center;color:var(--purple-lite)}
+  .story .ic svg{width:19px;height:19px}
+  .story .label{font-family:'Outfit';font-weight:600;color:#fff;font-size:14px;margin-bottom:3px}
+  .story .txt{color:#AEB6C6;font-size:14.5px;max-width:88ch}
+  .story .txt b{color:#E6E9F1;font-weight:600}
+
+  /* sections */
+  section{padding:74px 0}
+  .sec-head{max-width:62ch;margin-bottom:14px}
+  .sec-head h2{font-size:clamp(1.7rem,2.8vw,2.4rem);margin-top:10px}
+  .sec-head p{color:var(--gray-text);font-size:17px;margin-top:12px}
+
+  /* journey spine */
+  .spine{margin-top:40px;position:relative}
+  .spine .track{position:absolute;left:0;right:0;top:34px;height:2px;background:linear-gradient(90deg,var(--purple-mute),var(--teal-lite))}
+  .steps{display:grid;grid-template-columns:repeat(9,1fr);gap:10px;position:relative}
+  .step{position:relative;padding-top:0;text-align:center}
+  .step .node{width:34px;height:34px;border-radius:50%;margin:0 auto 14px;background:#fff;border:2px solid var(--purple);color:var(--purple-deep);display:grid;place-items:center;font-family:'Outfit';font-weight:600;font-size:13px;position:relative;z-index:2;box-shadow:0 4px 14px -6px rgba(122,90,248,.5)}
+  .step:nth-child(n+8) .node{border-color:var(--teal);color:var(--teal)}
+  .step .nm{font-size:12.5px;font-weight:600;color:var(--navy);font-family:'Outfit';line-height:1.25}
+  .step .sub{font-size:11px;color:var(--gray-text);margin-top:3px;line-height:1.3}
+  .heroflag{display:inline-flex;align-items:center;gap:6px;margin-top:7px;font-size:10px;font-weight:600;color:var(--purple-deep);background:var(--purple-mute);padding:3px 8px;border-radius:999px;font-family:'Outfit';letter-spacing:.04em}
+
+  /* approach cards */
+  .approaches{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:14px}
+  .card{position:relative;border-radius:22px;padding:30px 28px 26px;background:#fff;border:1px solid var(--line);box-shadow:0 30px 60px -40px rgba(16,25,40,.35);transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s;display:flex;flex-direction:column;overflow:hidden}
+  .card:hover{transform:translateY(-6px);box-shadow:0 44px 80px -38px rgba(16,25,40,.45)}
+  .card .topglow{position:absolute;inset:0 0 auto 0;height:5px}
+  .card.a .topglow{background:linear-gradient(90deg,var(--purple),var(--purple-deep))}
+  .card.b .topglow{background:linear-gradient(90deg,#7A5AF8,#2DD4BF)}
+  .card.c .topglow{background:linear-gradient(90deg,var(--teal),var(--teal-lite))}
+  .badge{display:inline-flex;align-items:center;gap:7px;font-family:'Outfit';font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:6px 12px;border-radius:999px;margin-bottom:18px;width:fit-content}
+  .card.a .badge{color:var(--purple-deep);background:var(--purple-mute)}
+  .card.b .badge{color:#0b6b5f;background:#d6f7f0}
+  .card.c .badge{color:var(--teal);background:#dcf4ef}
+  .card .num{font-family:'Outfit';font-size:13px;color:var(--gray-text);font-weight:500;margin-bottom:4px}
+  .card h3{font-size:1.5rem;margin-bottom:6px}
+  .card .who{font-size:13px;color:var(--purple-deep);font-weight:600;font-family:'Outfit';margin-bottom:16px}
+  .card .desc{font-size:14.5px;color:var(--gray-text);margin-bottom:18px}
+  .feat{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:24px}
+  .feat li{display:flex;gap:10px;font-size:13.5px;color:var(--navy);align-items:flex-start}
+  .feat li svg{width:16px;height:16px;flex:0 0 auto;margin-top:2px;color:var(--teal)}
+  .card .foot{margin-top:auto;display:flex;flex-direction:column;gap:10px}
+  .launch{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:13px 18px;border-radius:13px;font-family:'Outfit';font-weight:600;font-size:14.5px;color:#fff;background:linear-gradient(135deg,var(--navy),var(--navy-2));transition:filter .2s,transform .2s}
+  .card.a .launch{background:linear-gradient(135deg,var(--purple),var(--purple-deep))}
+  .card.b .launch{background:linear-gradient(135deg,#5b46c9,#1f8a7c)}
+  .card.c .launch{background:linear-gradient(135deg,var(--teal),#0e6a5f)}
+  .launch:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  .launch svg{width:17px;height:17px}
+  .bestfor{font-size:12px;color:var(--gray-text);text-align:center}
+  .bestfor b{color:var(--navy);font-weight:600}
+
+  /* comparison table */
+  .cmp{margin-top:34px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 30px 60px -45px rgba(16,25,40,.3)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  thead th{background:var(--navy);color:#fff;font-family:'Outfit';font-weight:500;text-align:left;padding:16px 20px;font-size:13.5px}
+  thead th:first-child{font-weight:600}
+  tbody td{padding:15px 20px;border-top:1px solid var(--line);color:var(--gray-text);vertical-align:top}
+  tbody td:first-child{font-weight:600;color:var(--navy);font-family:'Outfit';width:22%}
+  tbody tr:nth-child(even){background:#FBFBFE}
+  .tag{display:inline-block;font-size:11px;font-weight:600;font-family:'Outfit';padding:3px 9px;border-radius:6px}
+  .tag.p{color:var(--purple-deep);background:var(--purple-mute)}
+  .tag.t{color:var(--teal);background:#dcf4ef}
+
+  /* footer */
+  footer{background:var(--navy);color:#9aa4b6;padding:40px 0;font-size:13px}
+  footer .wrap{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px}
+  footer b{color:#fff;font-weight:600;font-family:'Outfit'}
+
+  @media(max-width:980px){
+    .approaches{grid-template-columns:1fr}
+    .steps{grid-template-columns:repeat(3,1fr);gap:26px 10px}
+    .spine .track{display:none}
+    tbody td:first-child{width:auto}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brandmark"><span class="seal"><i data-lucide="compass"></i></span> IMMI-PULSE</div>
+      <span class="pill">Pilot preview · for Meridian Migration Co.</span>
+    </div>
+    <span class="eyebrow">An operating system for Australian immigration agents</span>
+    <h1>One journey, <em>three ways</em> to run it.</h1>
+    <p class="lede">From a messy WhatsApp inquiry to a complete, verified bundle lodged in ImmiAccount — without your clients ever typing the same answer twice, and without you ever filling Form 80 by hand again. Below is the same end-to-end case, built three different ways. Walk each one, then tell us which fits how you actually work.</p>
+    <div class="herodemo"><span class="dot"></span> Fully clickable · mock data · the same Priya Sharma 482 → 186 PR case in all three</div>
+
+    <div class="story">
+      <div class="row">
+        <span class="ic"><i data-lucide="message-square-warning"></i></span>
+        <div>
+          <div class="label">The problem we keep hearing</div>
+          <div class="txt">A 482 visa holder messages you on WhatsApp from a <b>+91</b> number. You're busy, the timing never lines up, and it sits for <b>a week</b>. Turns out he's an electrical engineer in Brisbane whose employer is ready to sponsor him for PR — and his wife. <b>A great case, nearly lost to an inbox.</b></div>
+        </div>
+      </div>
+      <div class="row" style="border-top:1px solid rgba(189,180,254,.14)">
+        <span class="ic" style="background:rgba(45,212,191,.14);color:var(--teal-lite)"><i data-lucide="sparkles"></i></span>
+        <div>
+          <div class="label">The promise IMMI-PULSE makes</div>
+          <div class="txt">Never lose a good lead, and <b>never type the same answer twice.</b> Collect each client's information and documents once — then the long Department of Home Affairs forms (956, 80, 1221, nomination) <b>fill themselves</b>, and you verify instead of type.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- THE JOURNEY -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">The end-to-end journey</span>
+      <h2>Nine stages, one continuous thread</h2>
+      <p>Every prototype walks this exact path with the same case. The approaches differ in <em>who drives</em> and <em>how it feels</em> — not in what gets done.</p>
+    </div>
+    <div class="spine">
+      <div class="track"></div>
+      <div class="steps">
+        <div class="step"><div class="node">1</div><div class="nm">Inbox</div><div class="sub">Every channel, one place</div></div>
+        <div class="step"><div class="node">2</div><div class="nm">Qualify &amp; consult</div><div class="sub">Visa pathway + portal access</div></div>
+        <div class="step"><div class="node">3</div><div class="nm">Engagement</div><div class="sub">Costs agreement · e-sign · deposit</div></div>
+        <div class="step"><div class="node">4</div><div class="nm">Open case</div><div class="sub">The file is live</div></div>
+        <div class="step"><div class="node">5</div><div class="nm">Checklist</div><div class="sub">Auto-built per visa</div></div>
+        <div class="step"><div class="node">6</div><div class="nm">Documents</div><div class="sub">Client uploads once</div></div>
+        <div class="step"><div class="node">7</div><div class="nm">Verify</div><div class="sub">AI checks every doc</div></div>
+        <div class="step"><div class="node">8</div><div class="nm">Forms fill themselves</div><div class="sub">956 · 80 · 1221 · nomination<div class="heroflag"><i data-lucide="zap" style="width:11px;height:11px"></i> the time-saver</div></div></div>
+        <div class="step"><div class="node">9</div><div class="nm">Lodge</div><div class="sub">ImmiAccount-ready bundle</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THE THREE APPROACHES -->
+<section style="background:linear-gradient(180deg,#fff,#F6F6FC);padding-top:50px">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Pick a direction</span>
+      <h2>Three philosophies for the same work</h2>
+      <p>The real question for this meeting: how much do you want to <em>drive</em>, how much do you want <em>handed to you to approve</em>, and how much should your <em>client</em> do alongside you?</p>
+    </div>
+
+    <div class="approaches">
+      <!-- A -->
+      <div class="card a">
+        <div class="topglow"></div>
+        <span class="badge"><i data-lucide="layout-panel-left" style="width:13px;height:13px"></i> Control</span>
+        <div class="num">Approach A</div>
+        <h3>Atelier Pipeline</h3>
+        <div class="who">You're the pilot · structured &amp; auditable</div>
+        <p class="desc">A calm, editorial command center. An explicit, gated pipeline you move each case through by hand. The AI helps quietly from the margins — it never takes the wheel. Everything deterministic, everything on the record.</p>
+        <ul class="feat">
+          <li><i data-lucide="check"></i> Left-rail pipeline; a guided vertical timeline per case</li>
+          <li><i data-lucide="check"></i> AI is a quiet assistant: summaries, suggested checklist, flags</li>
+          <li><i data-lucide="check"></i> You open each form, see it pre-filled, edit, mark verified</li>
+          <li><i data-lucide="check"></i> Closest to how the current product already works</li>
+        </ul>
+        <div class="foot">
+          <a class="launch" href="approach-1-atelier-pipeline.html"><i data-lucide="play"></i> Launch Approach A</a>
+          <div class="bestfor">Best for agents who want <b>full control &amp; an audit trail</b></div>
+        </div>
+      </div>
+
+      <!-- B -->
+      <div class="card b">
+        <div class="topglow"></div>
+        <span class="badge"><i data-lucide="bot" style="width:13px;height:13px"></i> Automation</span>
+        <div class="num">Approach B</div>
+        <h3>Pulse Copilot</h3>
+        <div class="who">It drafts · you approve</div>
+        <p class="desc">An AI clerk that never sleeps. It triages, summarises, recommends the visa, drafts the letter, builds the checklist, reads the documents and fills the forms — then hands each finished piece to you to <b>Approve, Edit or Decline.</b> It drafts everything; it sends and lodges nothing without you.</p>
+        <ul class="feat">
+          <li><i data-lucide="check"></i> An approval queue + a live copilot chat dock</li>
+          <li><i data-lucide="check"></i> Confidence scores and source tags on every draft</li>
+          <li><i data-lucide="check"></i> "I filled 47 of 52 fields — review?" → one click</li>
+          <li><i data-lucide="check"></i> Human-in-the-loop by design (drafts, never sends)</li>
+        </ul>
+        <div class="foot">
+          <a class="launch" href="approach-2-pulse-copilot.html"><i data-lucide="play"></i> Launch Approach B</a>
+          <div class="bestfor">Best for agents who want to <b>supervise, not type</b></div>
+        </div>
+      </div>
+
+      <!-- C -->
+      <div class="card c">
+        <div class="topglow"></div>
+        <span class="badge"><i data-lucide="users" style="width:13px;height:13px"></i> Collaboration</span>
+        <div class="num">Approach C</div>
+        <h3>Shared Case Room</h3>
+        <div class="who">You &amp; your client, same room</div>
+        <p class="desc">One shared workspace. Your client answers friendly, plain-language questions and uploads a passport <b>once</b> — and the government forms assemble themselves on your side. Flip between the <b>client's view</b> and <b>your view</b> of the very same case. They never see "Form 80"; you receive a finished, verifiable one.</p>
+        <ul class="feat">
+          <li><i data-lucide="check"></i> A live Client-view / Agent-view toggle of one case</li>
+          <li><i data-lucide="check"></i> "Collect once" — a shared information ledger</li>
+          <li><i data-lucide="check"></i> Client answers human questions; Form 80 fills live</li>
+          <li><i data-lucide="check"></i> Warm client portal + serious agent console, side by side</li>
+        </ul>
+        <div class="foot">
+          <a class="launch" href="approach-3-shared-case-room.html"><i data-lucide="play"></i> Launch Approach C</a>
+          <div class="bestfor">Best for agents who want a <b>premium client experience</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Side by side</span>
+      <h2>How they differ where it counts</h2>
+    </div>
+    <div class="cmp">
+      <table>
+        <thead>
+          <tr><th>&nbsp;</th><th>A · Atelier Pipeline</th><th>B · Pulse Copilot</th><th>C · Shared Case Room</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Who drives</td><td>You — step by step</td><td>The AI drafts; you approve</td><td>You and the client together</td></tr>
+          <tr><td>The AI's role</td><td><span class="tag p">Quiet assistant</span> in the margins</td><td><span class="tag p">Active clerk</span> doing the work</td><td><span class="tag p">Invisible engine</span> behind the forms</td></tr>
+          <tr><td>Main surface</td><td>Pipeline + guided timeline</td><td>Approval queue + chat dock</td><td>Dual client/agent views of one case</td></tr>
+          <tr><td>How forms get filled</td><td>You open &amp; verify each pre-filled form</td><td>AI presents "47/52 filled — approve?"</td><td>Client's answers build the form live; you verify</td></tr>
+          <tr><td>Client experience</td><td>Clean portal for uploads &amp; signing</td><td>Clean portal; AI nudges them</td><td><span class="tag t">The star</span> — guided, jargon-free, transparent</td></tr>
+          <tr><td>Feels like</td><td>A precise, auditable case file</td><td>Managing a tireless junior</td><td>Working in the same room as your client</td></tr>
+          <tr><td>Risk it manages</td><td>Losing control / accountability</td><td>Drudgery &amp; volume</td><td>Client friction &amp; trust</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:22px;color:var(--gray-text);font-size:14.5px;max-width:70ch">These aren't mutually exclusive forever — the shipped product can blend them. For now, each prototype commits fully to one philosophy so you can feel the difference and tell us which one matches your practice.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>IMMI-PULSE &nbsp;·&nbsp; <b>Meridian Migration Co.</b> pilot preview</div>
+    <div>Demo · mock data · Australian immigration (482 → 186 ENS pathway)</div>
+  </div>
+</footer>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>
