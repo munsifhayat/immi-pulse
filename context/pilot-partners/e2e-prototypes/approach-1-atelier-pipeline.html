@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IMMI-PULSE · Atelier Pipeline — Approach A</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root{
+    --navy:#101928; --navy-2:#1E293B; --purple:#7A5AF8; --purple-deep:#3E1C96;
+    --purple-lite:#BDB4FE; --purple-mute:#D9D6FE; --teal:#1B7B6F; --teal-lite:#2DD4BF;
+    --gray-text:#475367; --gray-lite:#F0F2F5; --bg:#FFFFFF; --amber:#D97706; --rose:#E11D48;
+    --line:#E7E9EE; --line-2:#EFF1F4; --ink-soft:#667085; --paper:#FBFBFC;
+    --shadow-sm:0 1px 2px rgba(16,25,40,.05),0 1px 3px rgba(16,25,40,.04);
+    --shadow-md:0 4px 16px rgba(16,25,40,.07),0 2px 6px rgba(16,25,40,.05);
+    --shadow-lg:0 18px 48px rgba(16,25,40,.12),0 6px 16px rgba(16,25,40,.07);
+    --r-lg:18px; --r-xl:22px; --r-2xl:26px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Inter',system-ui,sans-serif; color:var(--navy); background:var(--paper);
+    font-feature-settings:'tnum' 1,'ss01' 1; -webkit-font-smoothing:antialiased; line-height:1.5;
+    overflow:hidden;
+  }
+  .serif{font-family:'Fraunces',serif; font-optical-sizing:auto;}
+  h1,h2,h3,h4{font-family:'Outfit',sans-serif; font-weight:600; letter-spacing:-.01em; color:var(--navy)}
+  .tnum{font-feature-settings:'tnum' 1}
+  ::selection{background:var(--purple-mute);color:var(--navy-2)}
+  /* scrollbars */
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:#D7DAE1;border-radius:20px;border:3px solid var(--paper)}
+  ::-webkit-scrollbar-thumb:hover{background:#C2C6CF}
+
+  /* ---------- RIBBON ---------- */
+  .ribbon{
+    height:42px; background:linear-gradient(90deg,var(--navy) 0%,var(--navy-2) 60%,var(--purple-deep) 130%);
+    color:#fff; display:flex; align-items:center; gap:14px; padding:0 20px; font-size:12.5px; flex:0 0 auto;
+    position:relative; z-index:50;
+  }
+  .ribbon .rb-name{font-family:'Outfit';font-weight:600;letter-spacing:.02em;display:flex;align-items:center;gap:8px}
+  .ribbon .rb-name i{width:15px;height:15px}
+  .ribbon .rb-phil{color:#C7CCDA;font-weight:400;border-left:1px solid rgba(255,255,255,.18);padding-left:14px}
+  .ribbon .rb-phil b{color:#fff;font-weight:500}
+  .ribbon .rb-tag{margin-left:auto;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);
+    padding:4px 11px;border-radius:20px;font-size:11px;display:flex;align-items:center;gap:6px;color:#EDEFF5}
+  .ribbon .rb-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--teal-lite);box-shadow:0 0 0 3px rgba(45,212,191,.25)}
+
+  /* ---------- APP SHELL ---------- */
+  .app{display:flex;height:calc(100vh - 42px);background:var(--paper)}
+
+  /* ---------- SIDEBAR ---------- */
+  .side{
+    width:296px; flex:0 0 296px; background:var(--navy); color:#E8EAF0; display:flex; flex-direction:column;
+    border-right:1px solid #0a111e;
+  }
+  .brand{padding:22px 22px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.07)}
+  .brand .logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(140deg,var(--purple),var(--purple-deep));
+    display:grid;place-items:center;box-shadow:0 6px 18px rgba(122,90,248,.4)}
+  .brand .logo i{width:20px;height:20px;color:#fff}
+  .brand .bn{font-family:'Outfit';font-weight:700;font-size:16px;letter-spacing:.02em;color:#fff}
+  .brand .bs{font-size:11px;color:#8B93A7;margin-top:1px}
+  .firm{padding:14px 22px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:11px}
+  .firm .av{width:34px;height:34px;border-radius:10px;background:linear-gradient(140deg,#27324a,#1b2438);
+    border:1px solid rgba(255,255,255,.08);display:grid;place-items:center;font-family:'Outfit';font-weight:600;font-size:13px;color:var(--purple-lite)}
+  .firm .fn{font-size:13px;font-weight:600;color:#fff;font-family:'Outfit'}
+  .firm .fr{font-size:10.5px;color:#7E real;color:#828BA0;margin-top:1px;letter-spacing:.02em}
+
+  .pipe-label{padding:18px 22px 8px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#6C7588;font-weight:600;font-family:'Outfit'}
+  .pipe{flex:1;overflow-y:auto;padding:0 12px 18px;position:relative}
+  .pipe::-webkit-scrollbar-thumb{background:#2a3550;border-color:var(--navy)}
+  .stage{
+    display:flex;align-items:center;gap:13px;padding:9px 11px;border-radius:13px;cursor:pointer;position:relative;
+    margin:2px 0;transition:background .18s ease;
+  }
+  .stage:hover{background:rgba(255,255,255,.05)}
+  .stage.active{background:linear-gradient(90deg,rgba(122,90,248,.22),rgba(122,90,248,.05))}
+  .stage.active::before{content:"";position:absolute;left:-12px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--purple-lite)}
+  .stage .snum{
+    width:30px;height:30px;flex:0 0 30px;border-radius:9px;display:grid;place-items:center;font-family:'Outfit';
+    font-weight:600;font-size:12.5px;background:#1b2438;border:1px solid rgba(255,255,255,.08);color:#9AA3B7;transition:.18s;
+  }
+  .stage.active .snum{background:linear-gradient(140deg,var(--purple),var(--purple-deep));color:#fff;border-color:transparent;box-shadow:0 4px 12px rgba(122,90,248,.45)}
+  .stage.done .snum{background:rgba(27,123,111,.18);border-color:rgba(45,212,191,.35);color:var(--teal-lite)}
+  .stage.done .snum i{width:14px;height:14px}
+  .stage .stx{flex:1;min-width:0}
+  .stage .st-t{font-size:13px;font-weight:500;color:#C7CCDA;font-family:'Outfit';letter-spacing:.01em}
+  .stage.active .st-t{color:#fff;font-weight:600}
+  .stage .st-s{font-size:10.5px;color:#727B90;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* connecting rail */
+  .pipe-rail{position:absolute;left:38px;top:6px;bottom:18px;width:2px;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));z-index:0;pointer-events:none}
+
+  .side-foot{padding:14px 18px;border-top:1px solid rgba(255,255,255,.07);font-size:11px;color:#6C7588;display:flex;align-items:center;gap:8px}
+  .side-foot i{width:13px;height:13px}
+
+  /* ---------- MAIN ---------- */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--paper);overflow:hidden}
+  .topbar{
+    height:62px;flex:0 0 62px;background:rgba(251,251,252,.85);backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:0 28px;z-index:20
+  }
+  .crumb{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-soft)}
+  .crumb .eyebrow{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--purple);font-weight:700;font-family:'Outfit'}
+  .crumb .ttl{font-family:'Outfit';font-weight:600;color:var(--navy);font-size:15px}
+  .crumb i{width:14px;height:14px;color:#C2C6CF}
+  .topbar .tb-r{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .tb-search{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:8px 13px;width:230px;color:#98A0AE;font-size:13px}
+  .tb-search i{width:15px;height:15px}
+  .tb-ico{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:#fff;display:grid;place-items:center;cursor:pointer;color:var(--gray-text);transition:.15s}
+  .tb-ico:hover{border-color:var(--purple-lite);color:var(--purple);box-shadow:var(--shadow-sm)}
+  .tb-ico i{width:17px;height:17px}
+  .tb-av{width:38px;height:38px;border-radius:50%;background:linear-gradient(140deg,#27324a,var(--navy-2));color:var(--purple-lite);display:grid;place-items:center;font-family:'Outfit';font-weight:600;font-size:13px;border:2px solid #fff;box-shadow:var(--shadow-sm)}
+
+  .canvas{flex:1;overflow-y:auto;position:relative}
+  .screen{display:none;animation:fade .42s cubic-bezier(.22,.61,.36,1)}
+  .screen.show{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  .wrap{max-width:1180px;margin:0 auto;padding:30px 36px 64px}
+  .wrap.narrow{max-width:880px}
+
+  /* ---------- ATELIER PRIMITIVES ---------- */
+  .folio-head{margin-bottom:24px}
+  .eyebrow{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--purple);font-weight:700;font-family:'Outfit';display:flex;align-items:center;gap:9px}
+  .eyebrow .rule{height:1px;width:34px;background:linear-gradient(90deg,var(--purple-lite),transparent)}
+  .folio-title{font-size:30px;line-height:1.12;margin-top:11px;letter-spacing:-.02em}
+  .folio-title .accent{font-family:'Fraunces',serif;font-weight:500;font-style:italic;color:var(--purple-deep)}
+  .folio-sub{color:var(--gray-text);font-size:14.5px;margin-top:9px;max-width:680px}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--r-xl);box-shadow:var(--shadow-sm)}
+  .card-pad{padding:22px}
+  .hr{height:1px;background:var(--line-2);border:0;margin:0}
+  .thin-rule{height:1px;background:linear-gradient(90deg,var(--line),transparent);margin:18px 0}
+
+  .btn{display:inline-flex;align-items:center;gap:8px;font-family:'Outfit';font-weight:600;font-size:13.5px;
+    padding:11px 18px;border-radius:12px;border:1px solid transparent;cursor:pointer;transition:.16s ease;white-space:nowrap;background:none}
+  .btn i{width:16px;height:16px}
+  .btn-primary{background:linear-gradient(135deg,var(--purple),var(--purple-deep));color:#fff;box-shadow:0 6px 18px rgba(122,90,248,.32)}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(122,90,248,.42)}
+  .btn-primary:active{transform:translateY(0)}
+  .btn-ghost{background:#fff;border-color:var(--line);color:var(--navy)}
+  .btn-ghost:hover{border-color:var(--purple-lite);color:var(--purple-deep);background:#FCFBFF}
+  .btn-dark{background:var(--navy);color:#fff}
+  .btn-dark:hover{background:var(--navy-2)}
+  .btn-teal{background:linear-gradient(135deg,var(--teal-lite),var(--teal));color:#fff;box-shadow:0 6px 18px rgba(27,123,111,.3)}
+  .btn-teal:hover{transform:translateY(-1px)}
+  .btn-sm{padding:8px 13px;font-size:12.5px;border-radius:10px}
+  .btn-link{color:var(--purple-deep);padding:6px 0;font-weight:600;font-family:'Outfit';font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .btn-link:hover{color:var(--purple)}
+
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;font-family:'Outfit';
+    padding:4px 10px;border-radius:20px;border:1px solid transparent;letter-spacing:.01em}
+  .chip i{width:12px;height:12px}
+  .chip-purple{background:#F4F1FF;color:var(--purple-deep);border-color:#E6E0FF}
+  .chip-teal{background:#E7F6F3;color:#16645a;border-color:#CDEEE8}
+  .chip-amber{background:#FEF3E2;color:#9a5808;border-color:#FAE2C0}
+  .chip-rose{background:#FEECEF;color:#b01239;border-color:#FAD2DB}
+  .chip-navy{background:#EEF1F6;color:var(--navy-2);border-color:#E1E6EE}
+  .chip-gray{background:var(--gray-lite);color:var(--gray-text);border-color:#E4E7EC}
+
+  .meta{font-size:12px;color:var(--ink-soft)}
+  .label-sm{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;font-family:'Outfit'}
+  .kvs{display:grid;grid-template-columns:repeat(2,1fr);gap:0}
+  .kv{padding:13px 0;border-bottom:1px solid var(--line-2)}
+  .kv .k{font-size:11px;color:var(--ink-soft);font-weight:500;margin-bottom:3px}
+  .kv .v{font-size:14px;font-weight:600;color:var(--navy);font-family:'Outfit'}
+
+  /* channel badges */
+  .ch{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:0 0 30px}
+  .ch i{width:15px;height:15px;color:#fff}
+  .ch-wa{background:linear-gradient(140deg,#25D366,#128C7E)}
+  .ch-em{background:linear-gradient(140deg,#5B6BFF,#3E1C96)}
+  .ch-ig{background:linear-gradient(140deg,#F58529,#DD2A7B,#8134AF)}
+  .ch-web{background:linear-gradient(140deg,#475367,#1E293B)}
+
+  /* ============ STAGE 1 INBOX ============ */
+  .inbox-grid{display:grid;grid-template-columns:1fr 380px;gap:22px;align-items:start}
+  .inbox-list{display:flex;flex-direction:column;gap:11px}
+  .mail{display:flex;gap:14px;padding:16px 17px;background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);
+    cursor:pointer;transition:.16s ease;box-shadow:var(--shadow-sm);position:relative}
+  .mail:hover{border-color:var(--purple-lite);box-shadow:var(--shadow-md);transform:translateY(-1px)}
+  .mail.hero{border-color:#D9D6FE;background:linear-gradient(180deg,#FCFBFF,#fff);box-shadow:0 8px 26px rgba(122,90,248,.12)}
+  .mail.hero::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,var(--purple),var(--purple-deep))}
+  .mail .m-body{flex:1;min-width:0}
+  .mail .m-top{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+  .mail .m-name{font-family:'Outfit';font-weight:600;font-size:14.5px;color:var(--navy)}
+  .mail .m-time{margin-left:auto;font-size:11px;color:#98A0AE;white-space:nowrap}
+  .mail .m-snip{font-size:13px;color:var(--gray-text);line-height:1.45;margin-bottom:8px}
+  .mail .m-ai{display:flex;align-items:flex-start;gap:8px;background:#F7F5FF;border:1px solid #ECE8FF;border-radius:11px;padding:9px 11px;margin-top:9px}
+  .mail .m-ai i{width:14px;height:14px;color:var(--purple);flex:0 0 14px;margin-top:1px}
+  .mail .m-ai .t{font-size:12px;color:#4a3f7a;line-height:1.45}
+  .mail .m-ai .t b{color:var(--purple-deep);font-weight:600}
+  .mail .m-foot{display:flex;align-items:center;gap:7px;margin-top:10px;flex-wrap:wrap}
+  .score{display:inline-flex;align-items:center;gap:7px;font-family:'Outfit';font-weight:700;font-size:11.5px;padding:4px 11px;border-radius:20px}
+  .score-strong{background:linear-gradient(135deg,#E7F6F3,#D6F0EA);color:#0f5950;border:1px solid #Bfe7df}
+  .score-mid{background:#FEF3E2;color:#9a5808;border:1px solid #FAE2C0}
+  .score-low{background:var(--gray-lite);color:var(--ink-soft);border:1px solid #E4E7EC}
+  .score .bars{display:flex;gap:2px;align-items:flex-end;height:13px}
+  .score .bars span{width:3px;border-radius:2px;background:currentColor;opacity:.35}
+  .score .bars span.on{opacity:1}
+
+  .inbox-aside .card-pad{padding:20px}
+  .stat-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line-2)}
+  .stat-row:last-child{border-bottom:0}
+  .stat-row .sl{font-size:13px;color:var(--gray-text)}
+  .stat-row .sv{font-family:'Outfit';font-weight:700;font-size:15px;color:var(--navy)}
+  .founding{background:linear-gradient(155deg,var(--navy),var(--navy-2));border-radius:var(--r-xl);padding:20px;color:#D7DCE8;position:relative;overflow:hidden;margin-top:18px}
+  .founding::after{content:"";position:absolute;right:-30px;top:-30px;width:140px;height:140px;background:radial-gradient(circle,rgba(122,90,248,.4),transparent 70%);}
+  .founding .fe{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--purple-lite);font-weight:700;font-family:'Outfit'}
+  .founding .ft{font-size:13.5px;line-height:1.55;margin-top:9px;color:#EDEFF5;position:relative}
+  .founding .ft b{color:#fff}
+
+  /* ============ STAGE 2 QUALIFY ============ */
+  .two-col{display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start}
+  .mode-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:11px}
+  .mode{border:1.5px solid var(--line);border-radius:14px;padding:15px;cursor:pointer;transition:.16s ease;background:#fff;position:relative}
+  .mode:hover{border-color:var(--purple-lite);background:#FCFBFF}
+  .mode.sel{border-color:var(--purple);background:linear-gradient(160deg,#F7F5FF,#fff);box-shadow:0 4px 14px rgba(122,90,248,.16)}
+  .mode .mi{width:34px;height:34px;border-radius:10px;background:var(--gray-lite);display:grid;place-items:center;margin-bottom:10px;color:var(--gray-text);transition:.16s}
+  .mode.sel .mi{background:linear-gradient(140deg,var(--purple),var(--purple-deep));color:#fff}
+  .mode .mi i{width:17px;height:17px}
+  .mode .mt{font-family:'Outfit';font-weight:600;font-size:13.5px}
+  .mode .ms{font-size:11.5px;color:var(--ink-soft);margin-top:2px}
+  .mode .check{position:absolute;top:13px;right:13px;width:18px;height:18px;border-radius:50%;background:var(--purple);display:none;place-items:center}
+  .mode.sel .check{display:grid}
+  .mode .check i{width:11px;height:11px;color:#fff}
+
+  textarea,input.fld,select.fld{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-family:'Inter';font-size:13.5px;color:var(--navy);background:#fff;resize:vertical;transition:.15s}
+  textarea:focus,input.fld:focus,select.fld:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(122,90,248,.13)}
+
+  .pathway{border:1px solid #E6E0FF;background:linear-gradient(160deg,#FAF9FF,#fff);border-radius:var(--r-xl);padding:20px}
+  .path-flow{display:flex;align-items:center;gap:0;margin:14px 0 4px}
+  .path-node{flex:1;text-align:center;position:relative}
+  .path-node .pn-box{background:#fff;border:1.5px solid var(--purple-lite);border-radius:13px;padding:11px 8px;box-shadow:var(--shadow-sm)}
+  .path-node.cur .pn-box{background:linear-gradient(140deg,var(--purple),var(--purple-deep));border-color:transparent}
+  .path-node.cur .pn-box .pn-c,.path-node.cur .pn-box .pn-l{color:#fff}
+  .path-node .pn-c{font-family:'Outfit';font-weight:700;font-size:15px;color:var(--purple-deep)}
+  .path-node .pn-l{font-size:10.5px;color:var(--ink-soft);margin-top:2px}
+  .path-arrow{flex:0 0 30px;display:grid;place-items:center;color:var(--purple-lite)}
+  .path-arrow i{width:18px;height:18px}
+
+  /* credential card */
+  .cred{background:linear-gradient(150deg,var(--navy),var(--navy-2) 70%,var(--purple-deep));border-radius:var(--r-2xl);padding:24px;color:#fff;position:relative;overflow:hidden}
+  .cred::after{content:"";position:absolute;right:-40px;bottom:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(122,90,248,.45),transparent 70%)}
+  .cred .ce{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--purple-lite);font-weight:700;font-family:'Outfit';display:flex;align-items:center;gap:8px;position:relative}
+  .cred .ct{font-family:'Outfit';font-weight:600;font-size:18px;margin-top:7px;position:relative}
+  .cred-field{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:11px 14px;margin-top:11px;display:flex;align-items:center;gap:10px;position:relative}
+  .cred-field .cf-k{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#9AA3B7;font-weight:600}
+  .cred-field .cf-v{font-family:'Outfit';font-weight:600;font-size:14px;color:#fff;margin-top:2px}
+  .cred-field .cf-copy{margin-left:auto;width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.1);display:grid;place-items:center;cursor:pointer;transition:.15s;color:#C7CCDA;flex:0 0 30px}
+  .cred-field .cf-copy:hover{background:rgba(122,90,248,.4);color:#fff}
+  .cred-field .cf-copy i{width:14px;height:14px}
+  .share{background:rgba(255,255,255,.05);border:1px dashed rgba(255,255,255,.2);border-radius:12px;padding:13px;margin-top:13px;position:relative}
+  .share .sh-h{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9AA3B7;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:7px}
+  .share .sh-t{font-size:12.5px;line-height:1.55;color:#E2E6F0}
+
+  /* ============ TIMELINE (case workspace spine) ============ */
+  .case-hd{background:#fff;border:1px solid var(--line);border-radius:var(--r-2xl);padding:22px 24px;box-shadow:var(--shadow-sm);margin-bottom:26px;position:relative;overflow:hidden}
+  .case-hd::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,var(--purple),var(--teal))}
+  .case-hd .ch-top{display:flex;align-items:flex-start;gap:18px}
+  .case-hd .ch-av{width:54px;height:54px;border-radius:15px;background:linear-gradient(145deg,var(--purple),var(--purple-deep));color:#fff;display:grid;place-items:center;font-family:'Outfit';font-weight:700;font-size:20px;box-shadow:0 8px 20px rgba(122,90,248,.35)}
+  .case-hd .ch-name{font-family:'Outfit';font-weight:700;font-size:21px}
+  .case-hd .ch-meta{display:flex;gap:18px;margin-top:5px;flex-wrap:wrap}
+  .case-hd .ch-meta .m{font-size:12.5px;color:var(--gray-text);display:flex;align-items:center;gap:6px}
+  .case-hd .ch-meta .m i{width:14px;height:14px;color:var(--ink-soft)}
+  .case-hd .ch-ref{margin-left:auto;text-align:right}
+  .case-hd .ch-ref .r{font-family:'Outfit';font-weight:700;font-size:16px;color:var(--purple-deep);letter-spacing:.02em}
+  .case-hd .ch-ref .rl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+  .case-hd .ch-bar{display:flex;gap:0;margin-top:18px;border-top:1px solid var(--line-2);padding-top:16px}
+  .case-hd .ch-stat{flex:1;border-right:1px solid var(--line-2);padding:0 16px}
+  .case-hd .ch-stat:first-child{padding-left:0}
+  .case-hd .ch-stat:last-child{border-right:0}
+  .case-hd .ch-stat .sl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+  .case-hd .ch-stat .sv{font-family:'Outfit';font-weight:600;font-size:14px;margin-top:3px;display:flex;align-items:center;gap:6px}
+
+  .timeline{position:relative;padding-left:38px}
+  .timeline::before{content:"";position:absolute;left:13px;top:8px;bottom:20px;width:2px;background:var(--line)}
+  .tl-item{position:relative;padding-bottom:26px}
+  .tl-item:last-child{padding-bottom:0}
+  .tl-dot{position:absolute;left:-38px;top:0;width:28px;height:28px;border-radius:50%;background:#fff;border:2px solid var(--line);display:grid;place-items:center;z-index:2}
+  .tl-dot i{width:13px;height:13px;color:var(--ink-soft)}
+  .tl-item.done .tl-dot{background:linear-gradient(140deg,var(--teal-lite),var(--teal));border-color:transparent}
+  .tl-item.done .tl-dot i{color:#fff}
+  .tl-item.active .tl-dot{background:linear-gradient(140deg,var(--purple),var(--purple-deep));border-color:transparent;box-shadow:0 0 0 5px rgba(122,90,248,.15)}
+  .tl-item.active .tl-dot i{color:#fff}
+  .tl-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:16px 18px;box-shadow:var(--shadow-sm);transition:.18s}
+  .tl-item.active .tl-card{border-color:#D9D6FE;box-shadow:0 8px 24px rgba(122,90,248,.12)}
+  .tl-card .tc-h{display:flex;align-items:center;gap:10px}
+  .tl-card .tc-t{font-family:'Outfit';font-weight:600;font-size:15px}
+  .tl-card .tc-time{margin-left:auto;font-size:11px;color:#98A0AE}
+  .tl-card .tc-d{font-size:13px;color:var(--gray-text);margin-top:6px;line-height:1.5}
+
+  /* ============ ENGAGEMENT LETTER ============ */
+  .letter{background:#fff;border:1px solid var(--line);border-radius:var(--r-xl);box-shadow:var(--shadow-md);overflow:hidden}
+  .letter .lt-paper{padding:34px 40px;font-size:13.5px;color:var(--navy-2);line-height:1.7;background:linear-gradient(180deg,#fff,#FDFDFE)}
+  .letter h3{font-size:18px;margin-bottom:3px}
+  .fee-table{width:100%;border-collapse:collapse;margin:14px 0}
+  .fee-table td{padding:11px 0;border-bottom:1px solid var(--line-2);font-size:13.5px}
+  .fee-table td:last-child{text-align:right;font-family:'Outfit';font-weight:600;font-feature-settings:'tnum'}
+  .fee-table tr.total td{border-bottom:0;border-top:2px solid var(--navy);padding-top:13px;font-family:'Outfit';font-weight:700;font-size:15px;color:var(--navy)}
+  .compliance{background:#F4F1FF;border:1px solid #E6E0FF;border-radius:13px;padding:14px 16px;display:flex;gap:11px;margin:16px 0}
+  .compliance i{width:18px;height:18px;color:var(--purple-deep);flex:0 0 18px;margin-top:1px}
+  .compliance .ct{font-size:12.5px;color:#4a3f7a;line-height:1.55}
+  .sign-pad{border:1.5px dashed var(--purple-lite);border-radius:14px;height:96px;background:#FCFBFF;display:grid;place-items:center;cursor:pointer;transition:.16s;position:relative;overflow:hidden}
+  .sign-pad:hover{border-color:var(--purple);background:#F7F5FF}
+  .sign-pad.signed{border-style:solid;border-color:var(--teal);background:#F2FBF9}
+  .sign-pad .sp-hint{font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:8px}
+  .sign-pad .sp-name{font-family:'Fraunces',serif;font-style:italic;font-size:30px;color:var(--navy);font-weight:500}
+  .seg{display:inline-flex;background:var(--gray-lite);border-radius:11px;padding:3px;gap:2px}
+  .seg button{border:0;background:none;padding:7px 14px;border-radius:9px;font-family:'Outfit';font-weight:600;font-size:12.5px;color:var(--ink-soft);cursor:pointer;transition:.15s}
+  .seg button.on{background:#fff;color:var(--purple-deep);box-shadow:var(--shadow-sm)}
+
+  /* ============ CHECKLIST ============ */
+  .ck-group{margin-bottom:20px}
+  .ck-group-h{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+  .ck-group-h .ci{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;color:#fff}
+  .ck-group-h .ci i{width:16px;height:16px}
+  .ck-group-h .ct{font-family:'Outfit';font-weight:600;font-size:15px}
+  .ck-group-h .cc{font-size:11.5px;color:var(--ink-soft);margin-left:auto}
+  .ck-item{display:flex;align-items:center;gap:13px;padding:12px 15px;background:#fff;border:1px solid var(--line);border-radius:13px;margin-bottom:8px;transition:.15s}
+  .ck-item:hover{border-color:#D9D6FE}
+  .ck-item .ck-ic{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;flex:0 0 24px}
+  .ck-item .ck-ic i{width:14px;height:14px}
+  .ck-item .ck-n{font-size:13.5px;font-weight:500;font-family:'Outfit';color:var(--navy);flex:1}
+  .ck-item .ck-n .sub{font-size:11.5px;color:var(--ink-soft);font-weight:400;font-family:'Inter';margin-top:1px}
+  .st-required .ck-ic{background:var(--gray-lite);color:var(--ink-soft)}
+  .st-requested .ck-ic{background:#EEF1FF;color:#4250c8}
+  .st-uploaded .ck-ic{background:#F4F1FF;color:var(--purple-deep)}
+  .st-verified .ck-ic{background:#E7F6F3;color:var(--teal)}
+
+  /* ============ PORTAL (client view) ============ */
+  .portal-frame{max-width:540px;margin:0 auto;background:linear-gradient(180deg,#F4FBFA,#fff);border:1px solid #D7EDEA;border-radius:var(--r-2xl);box-shadow:0 20px 50px rgba(27,123,111,.14);overflow:hidden}
+  .portal-top{background:linear-gradient(145deg,var(--teal),#14635a);padding:22px 24px;color:#fff;position:relative;overflow:hidden}
+  .portal-top::after{content:"";position:absolute;right:-30px;top:-30px;width:130px;height:130px;background:radial-gradient(circle,rgba(45,212,191,.5),transparent 70%)}
+  .portal-top .pe{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#A7E8DE;font-weight:700;font-family:'Outfit';position:relative}
+  .portal-top .ph{font-family:'Outfit';font-weight:600;font-size:19px;margin-top:6px;position:relative}
+  .portal-top .pq{font-style:italic;font-family:'Fraunces',serif;font-size:13px;color:#C9F2EB;margin-top:6px;position:relative}
+  .portal-body{padding:22px 24px}
+  .prog-ring{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid #D7EDEA;border-radius:16px;padding:16px;margin-bottom:18px}
+  .prog-ring .ring{width:58px;height:58px;flex:0 0 58px;border-radius:50%;background:conic-gradient(var(--teal) 0% 69%,#E4EFED 69% 100%);display:grid;place-items:center}
+  .prog-ring .ring .inner{width:42px;height:42px;border-radius:50%;background:#fff;display:grid;place-items:center;font-family:'Outfit';font-weight:700;font-size:14px;color:var(--teal)}
+  .prog-ring .pr-t{font-family:'Outfit';font-weight:600;font-size:14px}
+  .prog-ring .pr-s{font-size:12px;color:var(--gray-text);margin-top:2px}
+  .pfile{display:flex;align-items:center;gap:12px;padding:12px;background:#fff;border:1px solid #E4EFED;border-radius:13px;margin-bottom:9px}
+  .pfile .pf-ic{width:36px;height:36px;border-radius:9px;background:#FEECEF;display:grid;place-items:center;color:var(--rose);flex:0 0 36px}
+  .pfile .pf-ic.ok{background:#E7F6F3;color:var(--teal)}
+  .pfile .pf-ic i{width:18px;height:18px}
+  .pfile .pf-n{font-size:13px;font-weight:600;font-family:'Outfit';color:var(--navy)}
+  .pfile .pf-s{font-size:11px;color:var(--ink-soft);margin-top:1px}
+  .pfile .pf-st{margin-left:auto}
+  .pupload{border:1.5px dashed var(--teal-lite);border-radius:14px;padding:18px;text-align:center;background:#F4FBFA;cursor:pointer;transition:.15s}
+  .pupload:hover{background:#EAF7F5;border-color:var(--teal)}
+  .pupload i{width:24px;height:24px;color:var(--teal);margin-bottom:6px}
+  .pupload .pu-t{font-family:'Outfit';font-weight:600;font-size:13.5px;color:var(--teal)}
+  .pupload .pu-s{font-size:11.5px;color:var(--gray-text);margin-top:2px}
+  /* plain-language question (the 5 gaps) */
+  .pquestion{background:#FFF;border:1px solid #FAE2C0;border-left:3px solid var(--amber);border-radius:13px;padding:14px 16px;margin-bottom:10px}
+  .pquestion .pq-h{font-family:'Outfit';font-weight:600;font-size:13.5px;color:#9a5808;display:flex;align-items:center;gap:8px}
+  .pquestion .pq-d{font-size:12.5px;color:var(--gray-text);margin-top:5px;line-height:1.5}
+
+  /* ============ VERIFICATION ============ */
+  .vflag{display:flex;gap:14px;padding:15px 17px;background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:10px;align-items:flex-start}
+  .vflag .vf-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:0 0 34px}
+  .vflag .vf-ic i{width:17px;height:17px}
+  .vflag.ok{border-color:#CDEEE8}
+  .vflag.ok .vf-ic{background:#E7F6F3;color:var(--teal)}
+  .vflag.warn{border-color:#FAE2C0;background:linear-gradient(180deg,#FFFCF6,#fff)}
+  .vflag.warn .vf-ic{background:#FEF3E2;color:var(--amber)}
+  .vflag.info{border-color:#E1E6EE}
+  .vflag.info .vf-ic{background:#EEF1F6;color:var(--navy-2)}
+  .vflag .vf-t{font-family:'Outfit';font-weight:600;font-size:13.5px}
+  .vflag .vf-d{font-size:12.5px;color:var(--gray-text);margin-top:3px;line-height:1.5}
+  .vflag .vf-act{margin-left:auto;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+
+  .sot{background:linear-gradient(160deg,#FAFAFD,#fff);border:1px solid var(--line);border-radius:var(--r-xl);padding:20px}
+  .sot-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line-2)}
+  .sot-row:last-child{border-bottom:0}
+  .sot-row .sr-k{font-size:11px;color:var(--ink-soft);width:130px;flex:0 0 130px}
+  .sot-row .sr-v{font-size:13.5px;font-weight:600;font-family:'Outfit';color:var(--navy);flex:1}
+  .src-tag{font-size:10px;font-weight:600;font-family:'Outfit';padding:3px 8px;border-radius:6px;background:#F4F1FF;color:var(--purple-deep);border:1px solid #E6E0FF;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+  .src-tag i{width:10px;height:10px}
+
+  /* ============ HERO — FORM AUTO-FILL ============ */
+  .form-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+  .form-tab{display:flex;align-items:center;gap:10px;padding:11px 15px;border:1px solid var(--line);border-radius:13px;background:#fff;cursor:pointer;transition:.16s;min-width:170px}
+  .form-tab:hover{border-color:var(--purple-lite)}
+  .form-tab.on{border-color:var(--purple);background:linear-gradient(160deg,#F7F5FF,#fff);box-shadow:0 4px 14px rgba(122,90,248,.16)}
+  .form-tab .ft-ic{width:30px;height:30px;border-radius:8px;background:var(--gray-lite);display:grid;place-items:center;color:var(--gray-text);flex:0 0 30px}
+  .form-tab.on .ft-ic{background:linear-gradient(140deg,var(--purple),var(--purple-deep));color:#fff}
+  .form-tab .ft-ic i{width:15px;height:15px}
+  .form-tab .ft-t{font-family:'Outfit';font-weight:600;font-size:13px}
+  .form-tab .ft-s{font-size:10.5px;color:var(--ink-soft);margin-top:1px}
+
+  .hero-banner{background:linear-gradient(135deg,var(--navy) 0%,var(--purple-deep) 130%);border-radius:var(--r-2xl);padding:24px 26px;color:#fff;position:relative;overflow:hidden;margin-bottom:22px}
+  .hero-banner::after{content:"";position:absolute;right:-50px;top:-50px;width:260px;height:260px;background:radial-gradient(circle,rgba(122,90,248,.5),transparent 65%)}
+  .hero-banner .hb-e{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--purple-lite);font-weight:700;font-family:'Outfit';position:relative}
+  .hero-banner .hb-t{font-family:'Outfit';font-weight:700;font-size:22px;margin-top:8px;position:relative;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .hero-banner .hb-big{font-family:'Fraunces',serif;font-weight:500;font-style:italic;font-size:30px}
+  .hero-banner .hb-stats{display:flex;gap:24px;margin-top:16px;position:relative;flex-wrap:wrap}
+  .hero-banner .hb-stat .n{font-family:'Outfit';font-weight:700;font-size:26px;line-height:1}
+  .hero-banner .hb-stat .l{font-size:11px;color:#C7CCDA;margin-top:4px}
+  .hero-banner .hb-stat.teal .n{color:var(--teal-lite)}
+  .hero-banner .hb-stat.amber .n{color:#FBBF77}
+  .fillbar{height:8px;border-radius:8px;background:rgba(255,255,255,.14);margin-top:16px;overflow:hidden;position:relative}
+  .fillbar .fb-in{height:100%;width:90.4%;background:linear-gradient(90deg,var(--teal-lite),var(--purple-lite));border-radius:8px}
+
+  .formdoc{background:#fff;border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--shadow-md)}
+  .formdoc .fd-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:13px;background:linear-gradient(180deg,#FCFCFD,#fff)}
+  .formdoc .fd-head .fd-badge{width:42px;height:42px;border-radius:11px;background:linear-gradient(140deg,var(--navy),var(--navy-2));color:#fff;display:grid;place-items:center;font-family:'Outfit';font-weight:700;font-size:13px;flex:0 0 42px}
+  .formdoc .fd-head .fd-t{font-family:'Outfit';font-weight:600;font-size:16px}
+  .formdoc .fd-head .fd-s{font-size:12px;color:var(--ink-soft);margin-top:2px}
+  .fd-section{padding:6px 22px}
+  .fd-section-h{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--purple);font-weight:700;font-family:'Outfit';padding:16px 0 8px;display:flex;align-items:center;gap:9px}
+  .fd-section-h .rule{flex:1;height:1px;background:var(--line-2)}
+  .ffield{display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid var(--line-2)}
+  .ffield:last-child{border-bottom:0}
+  .ffield .ff-l{font-size:12px;color:var(--gray-text);width:170px;flex:0 0 170px}
+  .ffield .ff-vwrap{flex:1;display:flex;align-items:center;gap:10px;min-width:0}
+  .ffield .ff-v{font-size:13.5px;font-weight:600;font-family:'Outfit';color:var(--navy);background:#F8F7FC;border:1px solid #ECEAF5;border-radius:9px;padding:8px 12px;flex:1;min-width:0}
+  .ffield.gap .ff-v{background:#FFFCF6;border:1px dashed var(--amber);color:#9a5808;font-style:italic;font-weight:500}
+  .ffield .ff-src{flex:0 0 auto}
+  .ffield .ff-verify{width:26px;height:26px;border-radius:7px;background:#E7F6F3;color:var(--teal);display:grid;place-items:center;flex:0 0 26px}
+  .ffield .ff-verify i{width:14px;height:14px}
+  .ffield.gap .ff-verify{background:#FEF3E2;color:var(--amber)}
+
+  .gap-card{background:linear-gradient(160deg,#FFFCF6,#fff);border:1px solid #FAE2C0;border-radius:14px;padding:15px 17px;margin-bottom:10px;display:flex;gap:13px;align-items:flex-start}
+  .gap-card .gc-num{width:26px;height:26px;border-radius:50%;background:var(--amber);color:#fff;display:grid;place-items:center;font-family:'Outfit';font-weight:700;font-size:12px;flex:0 0 26px}
+  .gap-card .gc-q{font-family:'Outfit';font-weight:600;font-size:13.5px;color:var(--navy)}
+  .gap-card .gc-plain{font-size:12.5px;color:var(--gray-text);margin-top:4px;line-height:1.5;font-style:italic}
+  .gap-card .gc-plain b{color:var(--teal);font-style:normal;font-weight:600}
+
+  /* ============ LODGEMENT ============ */
+  .bundle{background:#fff;border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--shadow-sm)}
+  .bundle-h{padding:16px 20px;background:linear-gradient(180deg,#FAFAFC,#fff);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .bundle-h .bt{font-family:'Outfit';font-weight:600;font-size:14px}
+  .bundle-h .bc{font-size:11px;color:var(--ink-soft);margin-left:auto}
+  .blitem{display:flex;align-items:center;gap:13px;padding:12px 20px;border-bottom:1px solid var(--line-2)}
+  .blitem:last-child{border-bottom:0}
+  .blitem .bl-ic{width:30px;height:30px;border-radius:8px;background:#E7F6F3;color:var(--teal);display:grid;place-items:center;flex:0 0 30px}
+  .blitem .bl-ic i{width:15px;height:15px}
+  .blitem .bl-n{font-size:13.5px;font-weight:500;font-family:'Outfit';flex:1}
+  .blitem .bl-meta{font-size:11.5px;color:var(--ink-soft)}
+
+  .lodge-success{background:linear-gradient(155deg,var(--teal),#14635a);border-radius:var(--r-2xl);padding:36px;color:#fff;text-align:center;position:relative;overflow:hidden}
+  .lodge-success::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(45,212,191,.4),transparent 60%)}
+  .lodge-success .ls-ic{width:74px;height:74px;border-radius:50%;background:rgba(255,255,255,.14);display:grid;place-items:center;margin:0 auto 18px;position:relative;border:2px solid rgba(255,255,255,.25)}
+  .lodge-success .ls-ic i{width:38px;height:38px;color:#fff}
+  .lodge-success h3{color:#fff;font-size:24px;position:relative}
+  .lodge-success .ls-sub{color:#C9F2EB;font-size:14px;margin-top:8px;position:relative}
+  .lodge-success .ls-id{display:inline-flex;align-items:center;gap:9px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:11px 18px;margin-top:18px;font-family:'Outfit';font-weight:600;position:relative}
+
+  .track{display:flex;gap:0;margin-top:22px}
+  .track-step{flex:1;text-align:center;position:relative}
+  .track-step::after{content:"";position:absolute;top:13px;left:50%;width:100%;height:2px;background:var(--line);z-index:0}
+  .track-step:last-child::after{display:none}
+  .track-step.done::after{background:var(--teal)}
+  .track-step .ts-dot{width:28px;height:28px;border-radius:50%;background:#fff;border:2px solid var(--line);margin:0 auto 8px;display:grid;place-items:center;position:relative;z-index:1}
+  .track-step.done .ts-dot{background:linear-gradient(140deg,var(--teal-lite),var(--teal));border-color:transparent}
+  .track-step.done .ts-dot i{width:13px;height:13px;color:#fff}
+  .track-step.cur .ts-dot{background:linear-gradient(140deg,var(--purple),var(--purple-deep));border-color:transparent;box-shadow:0 0 0 4px rgba(122,90,248,.15)}
+  .track-step.cur .ts-dot i{width:13px;height:13px;color:#fff}
+  .track-step .ts-t{font-size:11.5px;font-weight:600;font-family:'Outfit';color:var(--navy)}
+  .track-step .ts-s{font-size:10.5px;color:var(--ink-soft);margin-top:2px}
+
+  /* footer nav */
+  .stage-foot{display:flex;align-items:center;gap:14px;margin-top:32px;padding-top:22px;border-top:1px solid var(--line)}
+  .stage-foot .sf-prev{margin-right:auto}
+  .stage-foot .sf-where{font-size:12px;color:var(--ink-soft);font-family:'Outfit'}
+  .stage-foot .sf-where b{color:var(--purple-deep);font-weight:600}
+
+  /* toast */
+  #toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;
+    padding:13px 20px;border-radius:13px;font-size:13px;font-family:'Outfit';font-weight:500;box-shadow:var(--shadow-lg);
+    display:flex;align-items:center;gap:10px;opacity:0;pointer-events:none;transition:.3s cubic-bezier(.22,.61,.36,1);z-index:200}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast i{width:16px;height:16px;color:var(--teal-lite)}
+
+  .two-up{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+  .three-up{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .ai-margin{background:#F7F5FF;border:1px solid #ECE8FF;border-radius:14px;padding:14px 15px}
+  .ai-margin .am-h{display:flex;align-items:center;gap:8px;font-family:'Outfit';font-weight:600;font-size:12px;color:var(--purple-deep);margin-bottom:7px}
+  .ai-margin .am-h i{width:14px;height:14px}
+  .ai-margin .am-h .q{margin-left:auto;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--purple);background:#fff;border:1px solid #E6E0FF;padding:2px 7px;border-radius:6px}
+  .ai-margin .am-t{font-size:12.5px;color:#4a3f7a;line-height:1.55}
+
+  @media(max-width:1180px){
+    .inbox-grid,.two-col{grid-template-columns:1fr}
+    .two-up{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- RIBBON -->
+<div class="ribbon">
+  <span class="rb-name"><i data-lucide="layers"></i> Approach A — Atelier Pipeline</span>
+  <span class="rb-phil"><b>Agent-driven command center.</b> The consultant pilots an explicit, gate-based pipeline — AI stays in the margins.</span>
+  <span class="rb-tag"><span class="dot"></span> Demo · mock data</span>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="brand">
+      <div class="logo"><i data-lucide="compass"></i></div>
+      <div>
+        <div class="bn">IMMI-PULSE</div>
+        <div class="bs">Atelier Console</div>
+      </div>
+    </div>
+    <div class="firm">
+      <div class="av">GM</div>
+      <div>
+        <div class="fn">Gideon Maris</div>
+        <div class="fr" style="font-size:10.5px;color:#828BA0;margin-top:1px;letter-spacing:.02em">Meridian Migration · MARN 1789456</div>
+      </div>
+    </div>
+
+    <div class="pipe-label">The Pipeline · 9 stages</div>
+    <nav class="pipe" id="pipe">
+      <div class="pipe-rail"></div>
+      <!-- stages injected by JS -->
+    </nav>
+
+    <div class="side-foot">
+      <i data-lucide="shield-check"></i> OMARA-compliant · audit trail on
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="crumb">
+        <span class="eyebrow" id="cb-folio">Folio Nº 001</span>
+        <i data-lucide="chevron-right"></i>
+        <span class="ttl" id="cb-title">Inbox</span>
+      </div>
+      <div class="tb-r">
+        <div class="tb-search"><i data-lucide="search"></i> Search cases, clients…</div>
+        <div class="tb-ico" onclick="toast('Nothing urgent — you\'re clear')"><i data-lucide="bell"></i></div>
+        <div class="tb-ico" onclick="toast('Settings')"><i data-lucide="settings"></i></div>
+        <div class="tb-av">GM</div>
+      </div>
+    </div>
+
+    <div class="canvas" id="canvas">
+
+      <!-- ===================== STAGE 1 — INBOX ===================== -->
+      <section class="screen" data-screen="0">
+        <div class="wrap">
+          <div class="folio-head">
+            <div class="eyebrow"><span class="rule"></span> Folio Nº 001 · Intake</div>
+            <h1 class="folio-title">One inbox for every <span class="accent">first hello.</span></h1>
+            <p class="folio-sub">WhatsApp, email, Instagram and web forms, unified. Each inquiry arrives with a quiet AI read — a one-line summary and a fit score — so nothing high-value is mistaken for noise and left to go cold.</p>
+          </div>
+
+          <div class="inbox-grid">
+            <div class="inbox-list">
+
+              <!-- HERO: Priya -->
+              <div class="mail hero" onclick="go(1)">
+                <div class="ch ch-wa"><i data-lucide="message-circle"></i></div>
+                <div class="m-body">
+                  <div class="m-top">
+                    <span class="m-name">Priya Sharma</span>
+                    <span class="chip chip-purple"><i data-lucide="phone"></i> +91 98xxx</span>
+                    <span class="chip chip-rose"><i data-lucide="flame"></i> Urgent</span>
+                    <span class="m-time">7 min ago · WhatsApp</span>
+                  </div>
+                  <div class="m-snip">"Hi, I'm on a 482 visa in Brisbane, electrical engineer with BrightGrid. My company wants to sponsor me for PR. Can you help? My husband is in India 🙏"</div>
+                  <div class="m-ai">
+                    <i data-lucide="sparkles"></i>
+                    <div class="t"><b>AI read:</b> 482 (Skills in Demand) holder · Brisbane · electrical engineer · employer-backed → <b>186 ENS (TRT)</b> PR pathway, + spouse subsequent entrant. Strong fit, time-sensitive.</div>
+                  </div>
+                  <div class="m-foot">
+                    <span class="score score-strong">
+                      <span class="bars"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></span>
+                      94 · Strong fit
+                    </span>
+                    <span class="chip chip-navy"><i data-lucide="map-pin"></i> Onshore · QLD</span>
+                    <span class="chip chip-gray"><i data-lucide="briefcase"></i> Employer-sponsored</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Marco -->
+              <div class="mail" onclick="toast('Demo focuses on Priya — but Marco is a live lead too')">
+                <div class="ch ch-web"><i data-lucide="globe"></i></div>
+                <div class="m-body">
+                  <div class="m-top">
+                    <span class="m-name">Marco Rossi</span>
+                    <span class="m-time">2 h ago · Web form</span>
+                  </div>
+                  <div class="m-snip">Partner visa enquiry — onshore, partner is Australian citizen (Emma Clarke). Looking at Subclass 820/801.</div>
+                  <div class="m-foot">
+                    <span class="score score-mid"><span class="bars"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></span>71 · Good fit</span>
+                    <span class="chip chip-navy"><i data-lucide="heart"></i> Partner 820/801</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- BrightGrid employer -->
+              <div class="mail" onclick="toast('Employer lead — phone-first, no client forms')">
+                <div class="ch ch-em"><i data-lucide="mail"></i></div>
+                <div class="m-body">
+                  <div class="m-top">
+                    <span class="m-name">BrightGrid Energy — Tom Whitlam (HR)</span>
+                    <span class="m-time">Yesterday · Email</span>
+                  </div>
+                  <div class="m-snip">"We'd like to sponsor 2 more engineers under our standard business sponsorship. Can we set up a call?"</div>
+                  <div class="m-foot">
+                    <span class="score score-mid"><span class="bars"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></span>78 · Sponsor</span>
+                    <span class="chip chip-gray"><i data-lucide="building-2"></i> Employer · phone-first</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Lena -->
+              <div class="mail" onclick="toast('Lower-priority student enquiry')">
+                <div class="ch ch-ig"><i data-lucide="instagram"></i></div>
+                <div class="m-body">
+                  <div class="m-top">
+                    <span class="m-name">Lena Müller</span>
+                    <span class="m-time">Yesterday · Instagram DM</span>
+                  </div>
+                  <div class="m-snip">Student visa (Subclass 500) extension enquiry — wants to study a second qualification.</div>
+                  <div class="m-foot">
+                    <span class="score score-low"><span class="bars"><span class="on"></span><span class="on"></span><span></span><span></span><span></span></span>46 · Low priority</span>
+                    <span class="chip chip-gray"><i data-lucide="graduation-cap"></i> Student 500</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- spam -->
+              <div class="mail" style="opacity:.72" onclick="toast('Flagged low-fit — no country/visa status given')">
+                <div class="ch ch-wa"><i data-lucide="message-circle"></i></div>
+                <div class="m-body">
+                  <div class="m-top">
+                    <span class="m-name">+1 415 ••• ••••</span>
+                    <span class="m-time">2 days ago · WhatsApp</span>
+                  </div>
+                  <div class="m-snip">"how much for PR?"</div>
+                  <div class="m-foot">
+                    <span class="score score-low"><span class="bars"><span class="on"></span><span></span><span></span><span></span><span></span></span>12 · Likely spam</span>
+                    <span class="chip chip-gray"><i data-lucide="help-circle"></i> No status given</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- aside -->
+            <div class="inbox-aside">
+              <div class="card card-pad">
+                <div class="label-sm" style="margin-bottom:6px">Today at Meridian</div>
+                <div class="stat-row"><span class="sl">New inquiries</span><span class="sv tnum">5</span></div>
+                <div class="stat-row"><span class="sl">Strong-fit leads</span><span class="sv tnum" style="color:var(--teal)">1</span></div>
+                <div class="stat-row"><span class="sl">Awaiting first reply</span><span class="sv tnum">3</span></div>
+                <div class="stat-row"><span class="sl">Avg. AI triage time</span><span class="sv tnum">8s</span></div>
+              </div>
+
+              <div class="founding">
+                <div class="fe">Why this matters</div>
+                <div class="ft">A 482 holder once messaged on WhatsApp from a <b>+91 number</b> and sat untouched for a <b>week</b> — it was a high-value employer-backed PR case. IMMI-PULSE reads every channel so the next Priya is never mistaken for noise.</div>
+              </div>
+
+              <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:18px" onclick="go(1)">
+                <i data-lucide="arrow-right"></i> Open Priya's inquiry
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== STAGE 2 — QUALIFY ===================== -->
+      <section class="screen" data-screen="1">
+        <div class="wrap">
+          <div class="folio-head">
+            <div class="eyebrow"><span class="rule"></span> Folio Nº 002 · Qualify &amp; Consult</div>
+            <h1 class="folio-title">Meet Priya, then <span class="accent">confirm the path.</span></h1>
+            <p class="folio-sub">Choose how you'll consult, capture your notes, and lock in the visa pathway. Qualifying opens her client portal automatically — one login, no per-action PINs.</p>
+          </div>
+
+          <div class="two-col">
+            <div>
+              <!-- consult mode -->
+              <div class="card card-pad" style="margin-bottom:22px">
+                <div class="label-sm" style="margin-bottom:13px">Consultation mode</div>
+                <div class="mode-grid">
+                  <div class="mode sel" onclick="pickMode(this)">
+                    <div class="check"><i data-lucide="check"></i></div>
+                    <div class="mi"><i data-lucide="video"></i></div>
+                    <div class="mt">Virtual meeting</div>
+                    <div class="ms">Zoom · 30 min booked</div>
+                  </div>
+                  <div class="mode" onclick="pickMode(this)">
+                    <div class="check"><i data-lucide="check"></i></div>
+                    <div class="mi"><i data-lucide="phone"></i></div>
+                    <div class="mt">Phone call</div>
+                    <div class="ms">Quick triage</div>
+                  </div>
+                  <div class="mode" onclick="pickMode(this)">
+                    <div class="check"><i data-lucide="check"></i></div>
+                    <div class="mi"><i data-lucide="users"></i></div>
+                    <div class="mt">In-person</div>
+                    <div class="ms">Brisbane office</div>
+                  </div>
+                  <div class="mode" onclick="pickMode(this)">
+                    <div class="check"><i data-lucide="check"></i></div>
+                    <div class="mi"><i data-lucide="file-text"></i></div>
+                    <div class="mt">Async · no consult</div>
+                    <div class="ms">Qualify on the form</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- consult notes -->
+              <div class="card card-pad" style="margin-bottom:22px">
+                <div class="label-sm" style="margin-bottom:10px">Consultation notes</div>
+                <textarea rows="4">Priya, 34, electrical engineer (ANZSCO 233311). On Subclass 482 Core Skills with BrightGrid Energy since 18 Jul 2022 — 2 yrs full-time in nominated occupation → eligible for 186 ENS (TRT). Salary above Core Skills threshold. Wants spouse Arjun (in Pune) as subsequent entrant. Engineers Australia assessment already positive. PTE Overall 79. Keen to move quickly.</textarea>
+              </div>
+
+              <!-- pathway -->
+              <div class="pathway">
+                <div class="eyebrow"><span class="rule"></span> Confirmed pathway</div>
+                <div class="path-flow">
+                  <div class="path-node">
+                    <div class="pn-box"><div class="pn-c tnum">482</div><div class="pn-l">Skills in Demand<br>Core Skills</div></div>
+                  </div>
+                  <div class="path-arrow"><i data-lucide="arrow-right"></i></div>
+                  <div class="path-node cur">
+                    <div class="pn-box"><div class="pn-c tnum">186</div><div class="pn-l">ENS · TRT stream<br>Permanent Residency</div></div>
+                  </div>
+                  <div class="path-arrow"><i data-lucide="plus"></i></div>
+                  <div class="path-node">
+                    <div class="pn-box"><div class="pn-c" style="font-size:13px">Arjun</div><div class="pn-l">Spouse<br>subsequent entrant</div></div>
+                  </div>
+                </div>
+                <p class="meta" style="margin-top:12px"><i data-lucide="info" style="width:12px;height:12px;vertical-align:-1px"></i> 186 ENS Temporary Residence Transition: PR after 2 years' full-time sponsored work in the same occupation on the 482. Priya qualifies.</p>
+              </div>
+            </div>
+
+            <!-- aside: qualify + credential -->
+            <div>
+              <div class="ai-margin" style="margin-bottom:18px">
+                <div class="am-h"><i data-lucide="sparkles"></i> AI margin note <span class="q">suggestion</span></div>
+                <div class="am-t">Eligibility signals all positive: occupation on the list, 2-yr employment continuity, English met, positive skills assessment. No flags. You drive the decision — I just surfaced it.</div>
+              </div>
+
+              <div class="card card-pad" style="margin-bottom:18px">
+                <div class="label-sm" style="margin-bottom:6px">Qualify this inquiry</div>
+                <p class="meta" style="margin-bottom:14px">Qualifying creates Priya's portal account and moves her into the case pipeline.</p>
+                <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="qualify()">
+                  <i data-lucide="badge-check"></i> Qualify &amp; create portal account
+                </button>
+              </div>
+
+              <!-- credential card (revealed after qualify) -->
+              <div class="cred" id="credCard" style="display:none">
+                <div class="ce"><i data-lucide="key-round" style="width:13px;height:13px"></i> Client access created</div>
+                <div class="ct">Priya's portal is live</div>
+                <div class="cred-field">
+                  <div><div class="cf-k">Login email</div><div class="cf-v">priya.sharma@email.com</div></div>
+                  <div class="cf-copy" onclick="toast('Email copied')"><i data-lucide="copy"></i></div>
+                </div>
+                <div class="cred-field">
+                  <div><div class="cf-k">Temporary password</div><div class="cf-v tnum">Meridian-7K42</div></div>
+                  <div class="cf-copy" onclick="toast('Password copied')"><i data-lucide="copy"></i></div>
+                </div>
+                <div class="share">
+                  <div class="sh-h"><i data-lucide="message-circle" style="width:12px;height:12px"></i> Ready-to-paste WhatsApp message</div>
+                  <div class="sh-t">"Hi Priya — great to connect! Your secure Meridian portal is ready. Log in with priya.sharma@email.com and the password Meridian-7K42 to upload your documents. One login, no codes. — Gideon"</div>
+                  <button class="btn btn-ghost btn-sm" style="margin-top:11px;width:100%;justify-content:center;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#fff" onclick="toast('Share message copied — paste into WhatsApp')"><i data-lucide="copy"></i> Copy share message</button>
+                </div>
+                <button class="btn btn-teal" style="width:100%;justify-content:center;margin-top:14px" onclick="go(2)"><i data-lucide="arrow-right"></i> Continue to engagement letter</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="stage-foot">
+            <button class="btn btn-ghost sf-prev" onclick="go(0)"><i data-lucide="arrow-left"></i> Inbox</button>
+            <span class="sf-where">Stage <b>2 of 9</b> · Qualify &amp; Consultation</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== STAGE 3 — ENGAGEMENT LETTER ===================== -->
+      <section class="screen" data-screen="2">
+        <div class="wrap narrow">
+          <div class="folio-head">
+            <div class="eyebrow"><span class="rule"></span> Folio Nº 003 · Engagement</div>
+            <h1 class="folio-title">A costs agreement, <span class="accent">signed before any paid work.</span></h1>
+            <p class="folio-sub">OMARA requires a written costs agreement and the Consumer Guide before billable work begins. Native e-sign, then record the deposit. The signed letter + deposit is the gate that opens the case.</p>
+          </div>
+
+          <div class="letter">
+            <div class="lt-paper">
+              <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:6px">
+                <div>
+                  <div class="eyebrow" style="font-size:9px">Meridian Migration Co.</div>
+                  <h3 class="serif" style="font-family:'Fraunces';font-weight:500;font-size:22px">Costs Agreement &amp; Engagement</h3>
+                </div>
+                <span class="chip chip-purple" style="margin-left:auto"><i data-lucide="file-signature"></i> Form 956 included</span>
+              </div>
+              <p style="color:var(--ink-soft);font-size:12.5px">Between <b>Meridian Migration Co.</b> (Gideon Maris, MARN 1789456) and <b>Priya Sharma</b>. Re: Subclass 186 ENS (Temporary Residence Transition) permanent residency application + spouse subsequent entrant.</p>
+
+              <div class="thin-rule"></div>
+              <div class="label-sm" style="margin-bottom:6px">Scope of work</div>
+              <p style="font-size:13px;color:var(--gray-text)">Preparation and lodgement of the 186 nomination &amp; visa application, Forms 80, 1221 and 956, document collection and verification, liaison with the Department of Home Affairs through ImmiAccount, and subsequent-entrant application for Mr Arjun Sharma.</p>
+
+              <div class="thin-rule"></div>
+              <div class="label-sm" style="margin-bottom:4px">Fees &amp; charges</div>
+              <table class="fee-table">
+                <tr><td>Professional fee</td><td class="tnum">$3,500.00</td></tr>
+                <tr><td>Disbursements (govt charges, skills assessment, etc.)</td><td class="tnum">$540.00</td></tr>
+                <tr><td style="color:var(--purple-deep)">Retainer payable now</td><td class="tnum" style="color:var(--purple-deep)">$1,500.00</td></tr>
+                <tr class="total"><td>Total cost agreement (GST incl.)</td><td class="tnum">$4,040.00 AUD</td></tr>
+              </table>
+
+              <div class="compliance">
+                <i data-lucide="shield-check"></i>
+                <div class="ct"><b>OMARA Code of Conduct.</b> This written costs agreement and the Consumer Guide are provided before any paid work. No checklist or work product is released until this letter is signed and the deposit recorded.</div>
+              </div>
+
+              <div class="thin-rule"></div>
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+                <div class="label-sm">Client signature</div>
+                <div class="seg" style="margin-left:auto">
+                  <button class="on" onclick="signMode(this,'type')">Type</button>
+                  <button onclick="signMode(this,'draw')">Draw</button>
+                </div>
+              </div>
+              <div class="sign-pad" id="signPad" onclick="doSign()">
+                <span class="sp-hint" id="signHint"><i data-lucide="pen-line"></i> Click to sign as Priya Sharma</span>
+                <span class="sp-name" id="signName" style="display:none">Priya Sharma</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- deposit -->
+          <div class="card card-pad" style="margin-top:22px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+              <div class="label-sm">Record deposit</div>
+              <span class="chip chip-gray" style="margin-left:auto"><i data-lucide="info"></i> Manual payment · no card processing</span>
+            </div>
+            <div class="three-up" style="margin-bottom:14px">
+              <div>
+                <div class="cf-k label-sm" style="margin-bottom:5px">Method</div>
+                <select class="fld"><option>Bank transfer / PayID</option><option>Cash</option><option>Cheque</option></select>
+              </div>
+              <div>
+                <div class="cf-k label-sm" style="margin-bottom:5px">Amount (AUD)</div>
+                <input class="fld tnum" value="$1,500.00" />
+              </div>
+              <div>
+                <div class="cf-k label-sm" style="margin-bottom:5px">Reference</div>
+                <input class="fld" value="PS-RET-0142" />
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap">
+              <button class="btn btn-dark" onclick="recordDeposit()"><i data-lucide="receipt"></i> Record deposit &amp; issue receipt</button>
+              <button class="btn btn-link" onclick="toast('Manual override: deposit waived for this engagement')"><i data-lucide="settings-2"></i> Waive deposit</button>
+              <button class="btn btn-link" onclick="toast('Manual override: marked signed outside the system')"><i data-lucide="settings-2"></i> Mark signed manually</button>
+              <button class="btn btn-link" onclick="toast('Manual override: using your own letter template')"><i data-lucide="settings-2"></i> Use my own letter</button>
+              <span class="chip chip-teal" id="depChip" style="display:none;margin-left:auto"><i data-lucide="check"></i> Deposit recorded</span>
+            </div>
+          </div>
+
+          <div class="stage-foot">
+            <button class="btn btn-ghost sf-prev" onclick="go(1)"><i data-lucide="arrow-left"></i> Qualify</button>
+            <span class="sf-where">Stage <b>3 of 9</b> · Engagement letter &amp; deposit</span>
+            <button class="btn btn-primary" id="openCaseBtn" onclick="go(3)"><i data-lucide="folder-open"></i> Open the case</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== STAGE 4 — OPEN CASE ===================== -->
+      <section class="screen" data-screen="3">
+        <div class="wrap">
+          <div class="folio-head">
+            <div class="eyebrow"><span class="rule"></span> Folio Nº 004 · The Case File</div>
+            <h1 class="folio-title">Case <span class="accent">MM-2026-0142</span> is open.</h1>
+            <p class="folio-sub">A calm, editorial vertical timeline that will carry Priya all the way through checklist, collection, verification, forms and lodgement. Everything is logged and auditable.</p>
+          </div>
+
+          <!-- case header -->
+          <div class="case-hd">
+            <div class="ch-top">
+              <div class="ch-av">PS</div>
+              <div style="flex:1">
+                <div class="ch-name">Priya Sharma</div>
+                <div class="ch-meta">
+                  <span class="m"><i data-lucide="route"></i> 482 → 186 ENS (TRT) · PR</span>
+                  <span class="m"><i data-lucide="map-pin"></i> West End, Brisbane QLD</span>
+                  <span class="m"><i data-lucide="building-2"></i> BrightGrid Energy Pty Ltd</span>
+                  <span class="m"><i data-lucide="users"></i> + spouse Arjun (subsequent entrant)</span>
+                </div>
+              </div>
+              <div class="ch-ref">
+                <div class="rl">Case ref</div>
+                <div class="r tnum">MM-2026-0142</div>
+              </div>
+            </div>
+            <div class="ch-bar">
+              <div class="ch-stat"><div class="sl">Stage</div><div class="sv"><span class="chip chip-purple" style="padding:3px 9px"><i data-lucide="folder-open"></i> Case opened</span></div></div>
+              <div class="ch-stat"><div class="sl">Priority</div><div class="sv"><i data-lucide="flame" style="width:14px;height:14px;color:var(--rose)"></i> High</div></div>
+              <div class="ch-stat"><div class="sl">Portal</div><div class="sv" style="color:var(--teal)"><i data-lucide="check-circle-2" style="width:14px;height:14px"></i> Active</div></div>
+              <div class="ch-stat"><div class="sl">Opened</div><div class="sv tnum">20 Jun 2026</div></div>
+            </div>
+          </div>
+
+          <div class="two-up">
+            <div>
+              <div class="label-sm" style="margin-bottom:14px">Case timeline</div>
+              <div class="timeline">
+                <div class="tl-item done"><div class="tl-dot"><i data-lucide="check"></i></div>
+                  <div class="tl-card"><div class="tc-h"><span class="tc-t">Inquiry qualified</span><span class="tc-time">20 Jun · 09:12</span></div>
+                  <div class="tc-d">WhatsApp inquiry triaged, 94 fit score. Pathway confirmed: 186 ENS (TRT) + spouse.</div></div>
+                </div>
+                <div class="tl-item done"><div class="tl-dot"><i data-lucide="check"></i></div>
+                  <div class="tl-card"><div class="tc-h"><span class="tc-t">Portal account created</span><span class="tc-time">20 Jun · 09:14</span></div>
+                  <div class="tc-d">One login issued to priya.sharma@email.com. No per-action PINs.</div></div>
+                </div>
+                <div class="tl-item done"><div class="tl-dot"><i data-lucide="check"></i></div>
+                  <div class="tl-card"><div class="tc-h"><span class="tc-t">Engagement letter signed</span><span class="tc-time">20 Jun · 09:31</span></div>
+                  <div class="tc-d">Costs agreement $4,040 AUD e-signed by Priya. Consumer Guide provided.</div></div>
+                </div>
+                <div class="tl-item done"><div class="tl-dot"><i data-lucide="check"></i></div>
+                  <div class="tl-card"><div class="tc-h"><span class="tc-t">Deposit recorded</span><span class="tc-time">20 Jun · 09:33</span></div>
+                  <div class="tc-d">$1,500 retainer via PayID, ref PS-RET-0142. Receipt issued.</div></div>
+                </div>
+                <div class="tl-item active"><div class="tl-dot"><i data-lucide="folder-open"></i></div>
+                  <div class="tl-card"><div class="tc-h"><span class="tc-t">Case opened</span><span class="tc-time">just now</span></div>
+                  <div class="tc-d">MM-2026-0142 created. Next: generate the document checklist.</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="ai-margin" style="margin-bottom:18px">
+                <div class="am-h"><i data-lucide="sparkles"></i> AI margin note <span class="q">heads-up</span></div>
+                <div class="am-t">I'll suggest a checklist tailored to 186 ENS (TRT) + subsequent entrant when you're ready. One thing to plan: AFP &amp; Indian police checks must be under 12 months at lodgement — request them with the right timing.</div>
+              </div>
+              <div class="card card-pad">
+                <div class="label-sm" style="margin-bottom:6px">Next gate</div>
+                <h4 style="font-size:16px;margin-bottom:5px">Build the document checklist</h4>
+                <p class="meta" style="margin-bottom:14px">Auto-generated for the 186 ENS pathway, fully editable by you, then sent to Priya's portal in one click.</p>
+                <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="go(4)"><i data-lucide="list-checks"></i> Generate checklist</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="stage-foot">
+            <button class="btn btn-ghost sf-prev" onclick="go(2)"><i data-lucide="arrow-left"></i> Engagement</button>
+            <span class="sf-where">Stage <b>4 of 9</b> · Open case</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== STAGE 5 — CHECKLIST ===================== -->
+      <section class="screen" data-screen="4">
+        <div class="wrap">
+          <div class="folio-head">
+            <div class="eyebrow"><span class="rule"></span> Folio Nº 005 · Checklist</div>
+            <h1 class="folio-title">The 186 ENS checklist, <span class="accent">tailored &amp; yours to edit.</span></h1>
+            <p class="folio-sub">Auto-generated for Priya's pathway and grouped the way the Department expects. AI suggests — you add, remove, reorder. Then one click sends it to her portal.</p>
+          </div>
+
+          <div class="two-up" style="grid-template-columns:1fr 320px">
+            <div>
+              <!-- Identity -->
+              <div class="ck-group">
+                <div class="ck-group-h"><div class="ci" style="background:linear-gradient(140deg,#7A5AF8,#3E1C96)"><i data-lucide="user-round"></i></div><div class="ct">Identity</div><div class="cc">5 items</div></div>
+                <div class="ck-item st-verified"><div class="ck-ic"><i data-lucide="check"></i></div><div class="ck-n">Passport — Priya<div class="sub">passport.pdf · verified</div></div><span class="chip chip-teal">Verified</span></div>
+                <div class="ck-item st-requested"><div class="ck-ic"><i data-lucide="clock"></i></div><div class="ck-n">Passport — Arjun (spouse)</div><span class="chip chip-navy">Requested</span></div>
+                <div class="ck-item st-required"><div class="ck-ic"><i data-lucide="circle"></i></div><div class="ck-n">Birth certificate</div><span class="chip chip-gray">Required</span></div>
+                <div class="ck-item st-required"><div class="ck-ic"><i data-lucide="circle"></i></div><div class="ck-n">National ID</div><span class="chip chip-gray">Required</span></div>
+                <div class="ck-item st-requested"><div class="ck-ic"><i data-lucide="clock"></i></div><div class="ck-n">Marriage certificate<div class="sub">non-English → translation needed</div></div><span class="chip chip-amber">Requested</span></div>
+              </div>
+              <!-- Skills -->
+              <div class="ck-group">
+                <div class="ck-group-h"><div class="ci" style="background:linear-gradient(140deg,#1B7B6F,#2DD4BF)"><i data-lucide="award"></i></div><div class="ct">Skills &amp; qualifications</div><div class="cc">3 items</div></div>
+                <div class="ck-item st-verified"><div class="ck-ic"><i data-lucide="check"></i></div><div class="ck-n">Skills assessment — Engineers Australia<div class="sub">EngineersAustralia_SkillsAssessment.pdf</div></div><span class="chip chip-teal">Verified</span></div>
+                <div class="ck-item st-uploaded"><div class="ck-ic"><i data-lucide="file-up"></i></div><div class="ck-n">Degree + transcripts</div><span class="chip chip-purple">Uploaded</span></div>
+                <div class="ck-item st-requested"><div class="ck-ic"><i data-lucide="clock"></i></div><div class="ck-n">CV / résumé</div><span class="chip chip-navy">Requested</span></div>
+              </div>
+              <!-- Employment -->
+              <div class="ck-group">
+                <div class="ck-group-h"><div class="ci" style="background:linear-gradient(140deg,#475367,#1E293B)"><i data-lucide="briefcase"></i></div><div class="ct">Employment</div><div class="cc">4 items</div></div>
+                <div class="ck-item st-uploaded"><div class="ck-ic"><i data-lucide="file-up"></i></div><div class="ck-n">Employment contract — BrightGrid</div><span class="chip chip-purple">Uploaded</span></div>
+                <div class="ck-item st-requested"><div class="ck-ic"><i data-lucide="clock"></i></div><div class="ck-n">Payslips (last 12 months)</div><span class="chip chip-navy">Requested</span></div>
+                <div class="ck-item st-uploaded"><div class="ck-ic"><i data-lucide="file-up"></i></div><div class="ck-n">Employment reference letter<div class="sub">employment_reference_BrightGrid.pdf</div></div><span class="chip chip-purple">Uploaded</span></div>
+                <div class="ck-item st-required"><div class="ck-ic"><i data-lucide="circle"></i></div><div class="ck-n">Position description</div><span class="chip chip-gray">Required</span></div>
+              </div>
+              <!-- English / Character / Health / Sponsor -->
+              <div class="ck-group">
+                <div class="ck-group-h"><div class="ci" style="background:linear-gradient(140deg,#7A5AF8,#475367)"><i data-lucide="languages"></i></div><div class="ct">English · Character · Health · Sponsor</div><div class="cc">7 items</div></div>
+                <div class="ck-item st-verified"><div class="ck-ic"><i data-lucide="check"></i></div><div class="ck-n">PTE Academic result<div class="sub">PTE_result.pdf · Overall 79</div></div><span class="chip chip-teal">Verified</span></div>
+                <div class="ck-item st-uploaded"><div class="ck-ic"><i data-lucide="file-up"></i></div><div class="ck-n">AFP police check<div class="sub">issued 14 mo ago → re-request</div></div><span class="chip chip-amber">Re-request</span></div>
+                <div class="ck-item st-required"><div class="ck-ic"><i data-lucide="circle"></i></div><div class="ck-n">Indian PCC (police clearance)</div><span class="chip chip-gray">Required</span></div>
+                <div class="ck-item st-required"><div class="ck-ic"><i data-lucide="circle"></i></div><div class="ck-n">HAP ID — Bupa medicals</div><span class="chip chip-gray">Required</span></div>
+                <div class="ck-item st-required"><div class="ck-ic"><i data-lucide="circle"></i></div><div class="ck-n">BrightGrid nomination + org financials</div><span class="chip chip-gray">Required</span></div>
+              </div>
+
+              <button class="btn btn-ghost btn-sm" onclick="toast('Add a custom checklist item')"><i data-lucide="plus"></i> Add checklist item</button>
+            </div>
+
+            <!-- aside -->
+            <div>
+              <div class="card card-pad" style="margin-bottom:18px">
+                <div class="label-sm" style="margin-bottom:12px">Checklist progress</div>
+                <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px"><span class="serif" style="font-size:34px;color:var(--purple-deep)">19</span><span class="meta">items total</span></div>
+                <div class="stat-row"><span class="sl"><span class="chip chip-teal" style="padding:2px 8px">Verified</span></span><span class="sv tnum">3</span></div>
+                <div class="stat-row"><span class="sl"><span class="chip chip-purple" style="padding:2px 8px">Uploaded</span></span><span class="sv tnum">4</span></div>
+                <div class="stat-row"><span class="sl"><span class="chip chip-navy" style="padding:2px 8px">Requested</span></span><span class="sv tnum">4</span></div>
+                <div class="stat-row"><span class="sl"><span class="chip chip-gray" style="padding:2px 8px">Required</span></span><span class="sv tnum">8</span></div>
+              </div>
+              <div class="ai-margin" style="margin-bottom:18px">
+                <div class="am-h"><i data-lucide="sparkles"></i> AI margin note <span class="q">suggested</span></div>
+                <div class="am-t">For subsequent entrant Arjun I've pre-added passport + marriage evidence. The marriage certificate is non-English — flagging a certified translation now.</div>
+              </div>
+              <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="sendChecklist()"><i data-lucide="send"></i> Send checklist to Priya's portal</button>
+              <span class="chip chip-teal" id="ckSent" style="display:none;margin-top:12px"><i data-lucide="check"></i> Sent to portal · 20 Jun 09:40</span>
+            </div>
+          </div>
+
+          <div class="stage-foot">
+            <button class="btn btn-ghost sf-prev" onclick="go(3)"><i data-lucide="arrow-left"></i> Case file</button>
+            <span class="sf-where">Stage <b>5 of 9</b> · Document checklist</span>
+            <button class="btn btn-primary" onclick="go(5)"><i data-lucide="arrow-right"></i> See Priya's portal</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== STAGE 6 — CLIENT PORTAL ===================== -->
+      <section class="screen" data-screen="5">
+        <div class="wrap">
+          <div class="folio-head" style="text-align:center">
+            <div class="eyebrow" style="justify-content:center"><span class="rule"></span> Folio Nº 006 · Collect Once <span class="rule" style="background:linear-gradient(270deg,var(--purple-lite),transparent)"></span></div>
+            <h1 class="folio-title">This is what <span class="accent">Priya sees.</span></h1>
+            <p class="folio-sub" style="margin:9px auto 0">A warm, jargon-free portal. She uploads against the checklist — no "Form 80", no codes. Every document collected here flows into the forms later, automatically.</p>
+          </div>
+
+          <div class="portal-frame">
+            <div class="portal-top">
+              <div class="pe">Meridian Migration · Client Portal</div>
+              <div class="ph">Welcome back, Priya 👋</div>
+              <div class="pq">"Tell us your story. We'll tell you what's possible."</div>
+            </div>
+            <div class="portal-body">
+              <div class="prog-ring">
+                <div class="ring"><div class="inner tnum">11/16</div></div>
+                <div>
+                  <div class="pr-t">You're nearly there</div>
+                  <div class="pr-s">11 of 16 documents uploaded · 5 to go. We'll guide you through each one.</div>
+                </div>
+              </div>
+
+              <div class="label-sm" style="margin-bottom:9px">Uploaded</div>
+              <div class="pfile"><div class="pf-ic ok"><i data-lucide="file-check"></i></div><div><div class="pf-n">passport.pdf</div><div class="pf-s">Identity · 2.1 MB</div></div><span class="chip chip-teal pf-st">Received</span></div>
+              <div class="pfile"><div class="pf-ic ok"><i data-lucide="file-check"></i></div><div><div class="pf-n">EngineersAustralia_SkillsAssessment.pdf</div><div class="pf-s">Skills · 1.4 MB</div></div><span class="chip chip-teal pf-st">Received</span></div>
+              <div class="pfile"><div class="pf-ic ok"><i data-lucide="file-check"></i></div><div><div class="pf-n">PTE_result.pdf</div><div class="pf-s">English · 680 KB</div></div><span class="chip chip-teal pf-st">Received</span></div>
+              <div class="pfile"><div class="pf-ic ok"><i data-lucide="file-check"></i></div><div><div class="pf-n">employment_reference_BrightGrid.pdf</div><div class="pf-s">Employment · 1.1 MB</div></div><span class="chip chip-teal pf-st">Received</span></div>
+
+              <div class="label-sm" style="margin:18px 0 9px">Still needed</div>
+              <div class="pfile"><div class="pf-ic"><i data-lucide="file-x"></i></div><div><div class="pf-n">Indian police clearance (PCC)</div><div class="pf-s">Character · not yet uploaded</div></div></div>
+              <div class="pupload" onclick="toast('Priya opens her camera / file picker')">
+                <i data-lucide="upload-cloud"></i>
+                <div class="pu-t">Tap to upload a document</div>
+                <div class="pu-s">Clear colour photo or PDF · we'll check it for you</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stage-foot">
+            <button class="btn btn-ghost sf-prev" onclick="go(4)"><i data-lucide="arrow-left"></i> Checklist</button>
+            <span class="sf-where">Stage <b>6 of 9</b> · Document collection (client portal)</span>
+            <button class="btn btn-primary" onclick="go(6)"><i data-lucide="scan-eye"></i> Verify what arrived</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== STAGE 7 — VERIFICATION ===================== -->
+      <section class="screen" data-screen="6">
+        <div class="wrap">
+          <div class="folio-head">
+            <div class="eyebrow"><span class="rule"></span> Folio Nº 007 · Verification</div>
+            <h1 class="folio-title">AI reads each document. <span class="accent">You decide.</span></h1>
+            <p class="folio-sub">Extraction and validation run as documents land. AI raises flags — green, amber, info — and the verified facts populate one single source of truth that feeds every form. You approve or request a fix.</p>
+          </div>
+
+          <div class="two-up" style="grid-template-columns:1fr 380px">
+            <div>
+              <div class="label-sm" style="margin-bottom:12px">Document checks</div>
+
+              <div class="vflag ok"><div class="vf-ic"><i data-lucide="check-circle-2"></i></div>
+                <div style="flex:1"><div class="vf-t">Passport valid</div><div class="vf-d">Expires 01 Jun 2031 — well over 6 months remaining. OK.</div></div></div>
+
+              <div class="vflag ok"><div class="vf-ic"><i data-lucide="check-circle-2"></i></div>
+                <div style="flex:1"><div class="vf-t">Name matches across documents</div><div class="vf-d">SHARMA, PRIYA consistent on passport, skills assessment and PTE result.</div></div></div>
+
+              <div class="vflag warn"><div class="vf-ic"><i data-lucide="alert-triangle"></i></div>
+                <div style="flex:1"><div class="vf-t">AFP police check — too old</div><div class="vf-d">Issued 14 months ago. Must be under 12 months at lodgement → request a fresh one.</div></div>
+                <div class="vf-act"><button class="btn btn-ghost btn-sm" onclick="toast('Plain-language request sent to Priya: please get a new AFP check')"><i data-lucide="refresh-cw"></i> Request fresh check</button></div></div>
+
+              <div class="vflag warn"><div class="vf-ic"><i data-lucide="alert-triangle"></i></div>
+                <div style="flex:1"><div class="vf-t">Indian PCC — not uploaded</div><div class="vf-d">Required for character assessment. Not yet provided by Priya.</div></div>
+                <div class="vf-act"><button class="btn btn-ghost btn-sm" onclick="toast('Reminder sent to portal')"><i data-lucide="bell"></i> Nudge in portal</button></div></div>
+
+              <div class="vflag ok"><div class="vf-ic"><i data-lucide="check-circle-2"></i></div>
+                <div style="flex:1"><div class="vf-t">PTE Overall 79 — meets English</div><div class="vf-d">Above Competent — comfortably meets the requirement.</div></div></div>
+
+              <div class="vflag ok"><div class="vf-ic"><i data-lucide="check-circle-2"></i></div>
+                <div style="flex:1"><div class="vf-t">Skills assessment valid</div><div class="vf-d">Engineers Australia — Positive, 09 May 2022. Valid 3 years.</div></div></div>
+
+              <div class="vflag info"><div class="vf-ic"><i data-lucide="info"></i></div>
+                <div style="flex:1"><div class="vf-t">Marriage certificate — non-English</div><div class="vf-d">Certified translation required before lodgement.</div></div>
+                <div class="vf-act"><button class="btn btn-ghost btn-sm" onclick="toast('Translation request sent to Priya')"><i data-lucide="languages"></i> Request translation</button></div></div>
+
+              <button class="btn btn-teal" style="margin-top:8px" onclick="approveVerify()"><i data-lucide="check-check"></i> Approve verified documents</button>
+            </div>
+
+            <!-- single source of truth -->
+            <div>
+              <div class="sot">
+                <div class="eyebrow" style="margin-bottom:4px"><span class="rule"></span> Single source of truth</div>
+                <p class="meta" style="margin-bottom:14px">Extracted &amp; verified once. Each fact carries its source — and flows into every form.</p>
+                <div class="sot-row"><div class="sr-k">Family name</div><div class="sr-v">SHARMA</div><span class="src-tag"><i data-lucide="scan-line"></i> passport</span></div>
+                <div class="sot-row"><div class="sr-k">Given names</div><div class="sr-v">PRIYA</div><span class="src-tag"><i data-lucide="scan-line"></i> passport</span></div>
+                <div class="sot-row"><div class="sr-k">Date of birth</div><div class="sr-v tnum">14 Mar 1991</div><span class="src-tag"><i data-lucide="scan-line"></i> passport</span></div>
+                <div class="sot-row"><div class="sr-k">Passport no.</div><div class="sr-v tnum">Z4123877</div><span class="src-tag"><i data-lucide="scan-line"></i> passport</span></div>
+                <div class="sot-row"><div class="sr-k">Occupation</div><div class="sr-v">Electrical Engineer · 233311</div><span class="src-tag"><i data-lucide="award"></i> skills assess.</span></div>
+                <div class="sot-row"><div class="sr-k">Employer</div><div class="sr-v">BrightGrid Energy</div><span class="src-tag"><i data-lucide="briefcase"></i> employment ref</span></div>
+                <div class="sot-row"><div class="sr-k">English</div><div class="sr-v">PTE Overall 79</div><span class="src-tag"><i data-lucide="file-text"></i> PTE result</span></div>
+                <div class="sot-row"><div class="sr-k">Current address</div><div class="sr-v" style="font-size:12px">14/88 Boundary St, West End</div><span class="src-tag"><i data-lucide="clipboard-pen"></i> intake form</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stage-foot">
+            <button class="btn btn-ghost sf-prev" onclick="go(5)"><i data-lucide="arrow-left"></i> Portal</button>
+            <span class="sf-where">Stage <b>7 of 9</b> · Verification</span>
+            <button class="btn btn-primary" onclick="go(7)"><i data-lucide="wand-2"></i> Auto-fill the forms</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== STAGE 8 — HERO: FORM AUTO-FILL ===================== -->
+      <section class="screen" data-screen="7">
+        <div class="wrap">
+          <div class="folio-head">
+            <div class="eyebrow"><span class="rule"></span> Folio Nº 008 · The Hero</div>
+            <h1 class="folio-title">You collected once. <span class="accent">Now the forms fill themselves.</span></h1>
+            <p class="folio-sub">The Department's long forms — 956, 80, 1221, the nomination — pre-fill from the verified record. Every field tagged with its source. You verify instead of type. Priya never sees "Form 80": the few gaps reach her as plain-language questions.</p>
+          </div>
+
+          <!-- hero banner -->
+          <div class="hero-banner">
+            <div class="hb-e">Form 80 · Personal particulars for character assessment</div>
+            <div class="hb-t">52 fields · <span class="hb-big">47 auto-filled</span> from her documents</div>
+            <div class="hb-stats">
+              <div class="hb-stat teal"><div class="n tnum">47</div><div class="l">auto-filled &amp; source-tagged</div></div>
+              <div class="hb-stat amber"><div class="n tnum">5</div><div class="l">need Priya to confirm</div></div>
+              <div class="hb-stat"><div class="n tnum">~3h</div><div class="l">typing avoided on this form</div></div>
+            </div>
+            <div class="fillbar"><div class="fb-in"></div></div>
+          </div>
+
+          <!-- form tabs -->
+          <div class="form-tabs">
+            <div class="form-tab on" onclick="pickForm(this)"><div class="ft-ic"><i data-lucide="file-text"></i></div><div><div class="ft-t">Form 80</div><div class="ft-s">47/52 filled</div></div></div>
+            <div class="form-tab" onclick="pickForm(this)"><div class="ft-ic"><i data-lucide="file-text"></i></div><div><div class="ft-t">Form 1221</div><div class="ft-s">34/38 filled</div></div></div>
+            <div class="form-tab" onclick="pickForm(this)"><div class="ft-ic"><i data-lucide="file-signature"></i></div><div><div class="ft-t">Form 956</div><div class="ft-s">Agent appointment</div></div></div>
+            <div class="form-tab" onclick="pickForm(this)"><div class="ft-ic"><i data-lucide="building-2"></i></div><div><div class="ft-t">186 Nomination</div><div class="ft-s">Position &amp; salary</div></div></div>
+          </div>
+
+          <div class="two-up" style="grid-template-columns:1.45fr 1fr;align-items:start">
+            <!-- the form document -->
+            <div class="formdoc">
+              <div class="fd-head">
+                <div class="fd-badge">80</div>
+                <div style="flex:1"><div class="fd-t">Form 80 — Personal particulars</div><div class="fd-s">Character assessment · ~18 pages · auto-filled from verified record</div></div>
+                <span class="chip chip-teal"><i data-lucide="check"></i> 47 verified-source</span>
+              </div>
+
+              <div class="fd-section">
+                <div class="fd-section-h">Part A · Personal details <span class="rule"></span></div>
+                <div class="ffield"><div class="ff-l">Family name</div><div class="ff-vwrap"><div class="ff-v">SHARMA</div><span class="src-tag ff-src"><i data-lucide="scan-line"></i> passport scan</span><div class="ff-verify"><i data-lucide="check"></i></div></div></div>
+                <div class="ffield"><div class="ff-l">Given names</div><div class="ff-vwrap"><div class="ff-v">PRIYA</div><span class="src-tag ff-src"><i data-lucide="scan-line"></i> passport scan</span><div class="ff-verify"><i data-lucide="check"></i></div></div></div>
+                <div class="ffield"><div class="ff-l">Sex</div><div class="ff-vwrap"><div class="ff-v">Female</div><span class="src-tag ff-src"><i data-lucide="scan-line"></i> passport scan</span><div class="ff-verify"><i data-lucide="check"></i></div></div></div>
+                <div class="ffield"><div class="ff-l">Date of birth</div><div class="ff-vwrap"><div class="ff-v tnum">14 March 1991</div><span class="src-tag ff-src"><i data-lucide="scan-line"></i> passport scan</span><div class="ff-verify"><i data-lucide="check"></i></div></div></div>
+                <div class="ffield"><div class="ff-l">Place of birth</div><div class="ff-vwrap"><div class="ff-v">Pune, Maharashtra, India</div><span class="src-tag ff-src"><i data-lucide="scan-line"></i> passport scan</span><div class="ff-verify"><i data-lucide="check"></i></div></div></div>
+                <div class="ffield"><div class="ff-l">Passport number</div><div class="ff-vwrap"><div class="ff-v tnum">Z4123877</div><span class="src-tag ff-src"><i data-lucide="scan-line"></i> passport scan</span><div class="ff-verify"><i data-lucide="check"></i></div></div></div>
+                <div class="ffield"><div class="ff-l">Passport expiry</div><div class="ff-vwrap"><div class="ff-v tnum">01 Jun 2031</div><span class="src-tag ff-src"><i data-lucide="scan-line"></i> passport scan</span><div class="ff-verify"><i data-lucide="check"></i></div></div></div>
+                <div class="ffield"><div class="ff-l">Nationality</div><div class="ff-vwrap"><div class="ff-v">Indian</div><span class="src-tag ff-src"><i data-lucide="scan-line"></i> passport scan</span><div class="ff-verify"><i data-lucide="check"></i></div></div></div>
+              </div>
+
+              <div class="fd-section">
+                <div class="fd-section-h">Part B · Contact &amp; occupation <span class="rule"></span></div>
+                <div class="ffield"><div class="ff-l">Current address</div><div class="ff-vwrap"><div class="ff-v" style="font-size:12.5px">14/88 Boundary St, West End QLD 4101</div><span class="src-tag ff-src"><i data-lucide="clipboard-pen"></i> intake form</span><div class="ff-verify"><i data-lucide="check"></i></div></div></div>
+                <div class="ffield"><div class="ff-l">Phone (AU)</div><div class="ff-vwrap"><div class="ff-v tnum">+61 4xx xxx 111</div><span class="src-tag ff-src"><i data-lucide="clipboard-pen"></i> intake form</span><div class="ff-verify"><i data-lucide="check"></i></div></div></div>
+                <div class="ffield"><div class="ff-l">Email</div><div class="ff-vwrap"><div class="ff-v" style="font-size:12.5px">priya.sharma@email.com</div><span class="src-tag ff-src"><i data-lucide="clipboard-pen"></i> intake form</span><div class="ff-verify"><i data-lucide="check"></i></div></div></div>
+                <div class="ffield"><div class="ff-l">Occupation</div><div class="ff-vwrap"><div class="ff-v">Electrical Engineer (ANZSCO 233311)</div><span class="src-tag ff-src"><i data-lucide="award"></i> skills assessment</span><div class="ff-verify"><i data-lucide="check"></i></div></div></div>
+                <div class="ffield"><div class="ff-l">Current employer</div><div class="ff-vwrap"><div class="ff-v">BrightGrid Energy Pty Ltd</div><span class="src-tag ff-src"><i data-lucide="briefcase"></i> employment ref</span><div class="ff-verify"><i data-lucide="check"></i></div></div></div>
+                <div class="ffield"><div class="ff-l">Employment start</div><div class="ff-vwrap"><div class="ff-v tnum">18 July 2022</div><span class="src-tag ff-src"><i data-lucide="file-text"></i> employment contract</span><div class="ff-verify"><i data-lucide="check"></i></div></div></div>
+              </div>
+
+              <div class="fd-section">
+                <div class="fd-section-h">Part C · Needs Priya to confirm <span class="rule"></span></div>
+                <div class="ffield gap"><div class="ff-l">Address 2016–2019</div><div class="ff-vwrap"><div class="ff-v">Gap in 10-year history — asked Priya</div><span class="src-tag ff-src" style="background:#FEF3E2;color:#9a5808;border-color:#FAE2C0"><i data-lucide="message-circle"></i> portal Q</span><div class="ff-verify"><i data-lucide="clock"></i></div></div></div>
+                <div class="ffield gap"><div class="ff-l">Military service</div><div class="ff-vwrap"><div class="ff-v">Awaiting confirmation (expected: No)</div><span class="src-tag ff-src" style="background:#FEF3E2;color:#9a5808;border-color:#FAE2C0"><i data-lucide="message-circle"></i> portal Q</span><div class="ff-verify"><i data-lucide="clock"></i></div></div></div>
+              </div>
+              <div style="padding:8px 22px 18px"><span class="meta"><i data-lucide="more-horizontal" style="width:14px;height:14px;vertical-align:-2px"></i> Showing 16 of 52 fields. All 47 auto-filled fields carry a source tag.</span></div>
+            </div>
+
+            <!-- the 5 gaps as plain-language portal questions -->
+            <div>
+              <div class="ai-margin" style="margin-bottom:16px">
+                <div class="am-h"><i data-lucide="sparkles"></i> AI margin note <span class="q">in margin</span></div>
+                <div class="am-t">5 fields couldn't be filled from documents. I've turned each into a plain-language question for Priya — she answers in her portal, never sees "Form 80 Part C Q22".</div>
+              </div>
+
+              <div class="label-sm" style="margin-bottom:11px">The 5 gaps — asked in plain language</div>
+
+              <div class="gap-card"><div class="gc-num tnum">1</div><div><div class="gc-q">"Where did you live between 2016 and 2019?"</div><div class="gc-plain">Maps to <b>10-year address history gap</b> in Form 80 Part C.</div></div></div>
+              <div class="gap-card"><div class="gc-num tnum">2</div><div><div class="gc-q">"Have you ever served in any country's military?"</div><div class="gc-plain">Maps to <b>military service</b> declaration (expected: No).</div></div></div>
+              <div class="gap-card"><div class="gc-num tnum">3</div><div><div class="gc-q">"Have you used any other spelling of your name?"</div><div class="gc-plain">Maps to <b>name spelling variations</b> on documents.</div></div></div>
+              <div class="gap-card"><div class="gc-num tnum">4</div><div><div class="gc-q">"Has any visa application of yours ever been refused?"</div><div class="gc-plain">Maps to <b>previous visa refusals</b> (expected: None).</div></div></div>
+              <div class="gap-card"><div class="gc-num tnum">5</div><div><div class="gc-q">"What's the reference number on your overseas police check?"</div><div class="gc-plain">Maps to <b>overseas police check reference</b>.</div></div></div>
+
+              <div class="card card-pad" style="margin-top:16px;background:linear-gradient(160deg,#F2FBF9,#fff);border-color:#CDEEE8">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><i data-lucide="shield-check" style="width:18px;height:18px;color:var(--teal)"></i><div style="font-family:'Outfit';font-weight:600;font-size:14px">You verify a finished form</div></div>
+                <p class="meta">The client answers human questions. You receive a complete, source-tagged form to check field-by-field and approve. That's the time-saver.</p>
+                <button class="btn btn-teal" style="width:100%;justify-content:center;margin-top:13px" onclick="approveForm()"><i data-lucide="check-check"></i> Verify &amp; approve Form 80</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="stage-foot">
+            <button class="btn btn-ghost sf-prev" onclick="go(6)"><i data-lucide="arrow-left"></i> Verification</button>
+            <span class="sf-where">Stage <b>8 of 9</b> · Government-form auto-fill <b style="color:var(--purple-deep)">· THE HERO</b></span>
+            <button class="btn btn-primary" onclick="go(8)"><i data-lucide="package"></i> Assemble lodgement bundle</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== STAGE 9 — LODGEMENT BUNDLE ===================== -->
+      <section class="screen" data-screen="8">
+        <div class="wrap">
+          <div class="folio-head">
+            <div class="eyebrow"><span class="rule"></span> Folio Nº 009 · Lodgement</div>
+            <h1 class="folio-title">A complete bundle, <span class="accent">ready for the Department.</span></h1>
+            <p class="folio-sub">Every form and document, organised exactly the way ImmiAccount expects, each item green-checked. One last review — then lodge. Or export the bundle and lodge manually; your call.</p>
+          </div>
+
+          <div id="bundleView">
+            <div class="two-up" style="grid-template-columns:1fr 320px;align-items:start">
+              <div>
+                <!-- forms bundle -->
+                <div class="bundle" style="margin-bottom:18px">
+                  <div class="bundle-h"><i data-lucide="files" style="width:17px;height:17px;color:var(--purple-deep)"></i><span class="bt">Government forms</span><span class="bc">6 forms · all verified</span></div>
+                  <div class="blitem"><div class="bl-ic"><i data-lucide="check"></i></div><span class="bl-n">Form 956 — Appointment of registered migration agent</span><span class="bl-meta">MARN 1789456</span></div>
+                  <div class="blitem"><div class="bl-ic"><i data-lucide="check"></i></div><span class="bl-n">Form 80 — Priya Sharma</span><span class="bl-meta tnum">52/52 confirmed</span></div>
+                  <div class="blitem"><div class="bl-ic"><i data-lucide="check"></i></div><span class="bl-n">Form 80 — Arjun Sharma (subsequent entrant)</span><span class="bl-meta tnum">52/52 confirmed</span></div>
+                  <div class="blitem"><div class="bl-ic"><i data-lucide="check"></i></div><span class="bl-n">Form 1221 — Priya Sharma</span><span class="bl-meta tnum">38/38 confirmed</span></div>
+                  <div class="blitem"><div class="bl-ic"><i data-lucide="check"></i></div><span class="bl-n">Form 1221 — Arjun Sharma</span><span class="bl-meta tnum">38/38 confirmed</span></div>
+                  <div class="blitem"><div class="bl-ic"><i data-lucide="check"></i></div><span class="bl-n">186 ENS Nomination — BrightGrid Energy</span><span class="bl-meta">position &amp; salary</span></div>
+                </div>
+
+                <!-- documents bundle -->
+                <div class="bundle">
+                  <div class="bundle-h"><i data-lucide="folder-check" style="width:17px;height:17px;color:var(--teal)"></i><span class="bt">Supporting documents</span><span class="bc">organised for ImmiAccount</span></div>
+                  <div class="blitem"><div class="bl-ic"><i data-lucide="check"></i></div><span class="bl-n">Identity — passports, birth &amp; marriage certificates (+ translation)</span><span class="bl-meta">5 files</span></div>
+                  <div class="blitem"><div class="bl-ic"><i data-lucide="check"></i></div><span class="bl-n">Skills — Engineers Australia assessment, degree, transcripts, CV</span><span class="bl-meta">4 files</span></div>
+                  <div class="blitem"><div class="bl-ic"><i data-lucide="check"></i></div><span class="bl-n">Employment — contract, payslips, reference, position description</span><span class="bl-meta">4 files</span></div>
+                  <div class="blitem"><div class="bl-ic"><i data-lucide="check"></i></div><span class="bl-n">English — PTE Academic result (Overall 79)</span><span class="bl-meta">1 file</span></div>
+                  <div class="blitem"><div class="bl-ic"><i data-lucide="check"></i></div><span class="bl-n">Character — AFP check (renewed), Indian PCC</span><span class="bl-meta">2 files</span></div>
+                  <div class="blitem"><div class="bl-ic"><i data-lucide="check"></i></div><span class="bl-n">Health — HAP ID (Bupa medicals)</span><span class="bl-meta">1 ref</span></div>
+                  <div class="blitem"><div class="bl-ic"><i data-lucide="check"></i></div><span class="bl-n">Sponsor — BrightGrid nomination &amp; organisation financials</span><span class="bl-meta">3 files</span></div>
+                </div>
+              </div>
+
+              <!-- pre-lodge review -->
+              <div>
+                <div class="card card-pad" style="margin-bottom:18px">
+                  <div class="label-sm" style="margin-bottom:12px">Pre-lodgement review</div>
+                  <div class="stat-row"><span class="sl"><i data-lucide="check-circle-2" style="width:14px;height:14px;color:var(--teal);vertical-align:-2px"></i> Forms verified</span><span class="sv tnum" style="color:var(--teal)">6/6</span></div>
+                  <div class="stat-row"><span class="sl"><i data-lucide="check-circle-2" style="width:14px;height:14px;color:var(--teal);vertical-align:-2px"></i> Documents verified</span><span class="sv tnum" style="color:var(--teal)">20/20</span></div>
+                  <div class="stat-row"><span class="sl"><i data-lucide="check-circle-2" style="width:14px;height:14px;color:var(--teal);vertical-align:-2px"></i> Translations attached</span><span class="sv tnum" style="color:var(--teal)">1/1</span></div>
+                  <div class="stat-row"><span class="sl"><i data-lucide="check-circle-2" style="width:14px;height:14px;color:var(--teal);vertical-align:-2px"></i> Police checks current</span><span class="sv tnum" style="color:var(--teal)">2/2</span></div>
+                </div>
+                <div class="ai-margin" style="margin-bottom:18px">
+                  <div class="am-h"><i data-lucide="sparkles"></i> AI margin note <span class="q">final check</span></div>
+                  <div class="am-t">All gates clear: deposit recorded, costs agreement signed, every document under 12 months, translation attached. No blockers found. Ready when you are.</div>
+                </div>
+                <button class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:10px" onclick="lodge()"><i data-lucide="send"></i> Lodge with Home Affairs (ImmiAccount)</button>
+                <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="toast('Bundle exported as ZIP — you can lodge manually in ImmiAccount')"><i data-lucide="download"></i> Export bundle &amp; lodge manually</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- success state -->
+          <div id="lodgeSuccess" style="display:none">
+            <div class="lodge-success">
+              <div class="ls-ic"><i data-lucide="check"></i></div>
+              <h3 class="serif" style="font-family:'Fraunces';font-weight:500">Lodged with the Department of Home Affairs</h3>
+              <div class="ls-sub">Priya's 186 ENS application is in. The bundle was complete on first submission.</div>
+              <div class="ls-id"><i data-lucide="hash"></i> Application ID · EGOC-2026-884217</div>
+            </div>
+
+            <div class="card card-pad" style="margin-top:22px">
+              <div class="label-sm" style="margin-bottom:6px">Post-lodgement tracking</div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+                <span class="chip chip-teal"><i data-lucide="circle-dot"></i> Received — assessment in progress</span>
+                <span class="meta" style="margin-left:auto">Updated just now via ImmiAccount</span>
+              </div>
+              <div class="track">
+                <div class="track-step done"><div class="ts-dot"><i data-lucide="check"></i></div><div class="ts-t">Lodged</div><div class="ts-s">20 Jun 2026</div></div>
+                <div class="track-step cur"><div class="ts-dot"><i data-lucide="loader"></i></div><div class="ts-t">Received</div><div class="ts-s">Assessment in progress</div></div>
+                <div class="track-step"><div class="ts-dot"></div><div class="ts-t">Further info</div><div class="ts-s">if requested</div></div>
+                <div class="track-step"><div class="ts-dot"></div><div class="ts-t">Decision</div><div class="ts-s">PR grant</div></div>
+              </div>
+              <div class="thin-rule"></div>
+              <div class="label-sm" style="margin-bottom:8px">Next steps</div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <span class="chip chip-navy"><i data-lucide="stethoscope"></i> Health exam booked (HAP ID)</span>
+                <span class="chip chip-navy"><i data-lucide="bell"></i> Auto-track status from ImmiAccount</span>
+                <span class="chip chip-navy"><i data-lucide="users"></i> Arjun subsequent-entrant ready to follow</span>
+              </div>
+            </div>
+
+            <div style="text-align:center;margin-top:26px">
+              <button class="btn btn-ghost" onclick="go(0)"><i data-lucide="rotate-ccw"></i> Replay the journey from the inbox</button>
+            </div>
+          </div>
+
+          <div class="stage-foot">
+            <button class="btn btn-ghost sf-prev" onclick="go(7)"><i data-lucide="arrow-left"></i> Forms</button>
+            <span class="sf-where">Stage <b>9 of 9</b> · Lodgement bundle</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div id="toast"><i data-lucide="check-circle-2"></i> <span id="toastMsg">Done</span></div>
+
+<script>
+  // ---------- pipeline stage data ----------
+  const STAGES = [
+    {t:'Inbox / Intake',        s:'5 inquiries · 1 strong fit',  icon:'inbox'},
+    {t:'Qualify + Consult',     s:'Priya Sharma',                icon:'badge-check'},
+    {t:'Engagement letter',     s:'Costs agreement · e-sign',    icon:'file-signature'},
+    {t:'Open case',             s:'MM-2026-0142',                icon:'folder-open'},
+    {t:'Checklist',             s:'186 ENS · 19 items',          icon:'list-checks'},
+    {t:'Document collection',   s:'Client portal · 11/16',       icon:'upload-cloud'},
+    {t:'Verification',          s:'AI checks · 2 flags',         icon:'scan-eye'},
+    {t:'Form auto-fill',        s:'HERO · 47/52 Form 80',        icon:'wand-2'},
+    {t:'Lodgement bundle',      s:'Ready for ImmiAccount',       icon:'package'},
+  ];
+  const FOLIO = ['001','002','003','004','005','006','007','008','009'];
+  let current = 0;
+  let maxReached = 0;
+
+  // build sidebar
+  const pipe = document.getElementById('pipe');
+  STAGES.forEach((st,i)=>{
+    const el = document.createElement('div');
+    el.className='stage'; el.dataset.i=i;
+    el.innerHTML = `<div class="snum"><span class="num">${i+1}</span></div>
+      <div class="stx"><div class="st-t">${st.t}</div><div class="st-s">${st.s}</div></div>`;
+    el.addEventListener('click',()=>go(i));
+    pipe.appendChild(el);
+  });
+
+  function go(i){
+    current = i;
+    if(i>maxReached) maxReached = i;
+    // screens
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show'));
+    const target = document.querySelector(`.screen[data-screen="${i}"]`);
+    target.classList.add('show');
+    // sidebar state
+    document.querySelectorAll('.stage').forEach((el,idx)=>{
+      el.classList.remove('active','done');
+      const snum = el.querySelector('.snum');
+      if(idx===i){ el.classList.add('active'); snum.innerHTML=`<span class="num">${idx+1}</span>`; }
+      else if(idx<maxReached || idx<i){ el.classList.add('done'); snum.innerHTML='<i data-lucide="check"></i>'; }
+      else { snum.innerHTML=`<span class="num">${idx+1}</span>`; }
+    });
+    // crumb
+    document.getElementById('cb-folio').textContent = 'Folio Nº '+FOLIO[i];
+    document.getElementById('cb-title').textContent = STAGES[i].t;
+    // scroll top
+    document.getElementById('canvas').scrollTop = 0;
+    if(window.lucide) lucide.createIcons();
+  }
+
+  // ---------- interactions ----------
+  function toast(msg){
+    const t=document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    t.classList.add('show');
+    clearTimeout(window._tt);
+    window._tt = setTimeout(()=>t.classList.remove('show'),2600);
+  }
+
+  function pickMode(el){
+    document.querySelectorAll('.mode').forEach(m=>m.classList.remove('sel'));
+    el.classList.add('sel');
+    if(window.lucide) lucide.createIcons();
+  }
+
+  function qualify(){
+    document.getElementById('credCard').style.display='block';
+    toast('Qualified — Priya\'s portal account created');
+    if(window.lucide) lucide.createIcons();
+    setTimeout(()=>document.getElementById('credCard').scrollIntoView({behavior:'smooth',block:'nearest'}),120);
+  }
+
+  function signMode(btn,m){
+    btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+    toast(m==='draw'?'Draw mode — sign with mouse/finger':'Type mode');
+  }
+  function doSign(){
+    const pad=document.getElementById('signPad');
+    pad.classList.add('signed');
+    document.getElementById('signHint').style.display='none';
+    document.getElementById('signName').style.display='block';
+    toast('Costs agreement e-signed by Priya');
+  }
+  function recordDeposit(){
+    document.getElementById('depChip').style.display='inline-flex';
+    toast('$1,500 deposit recorded · receipt issued');
+    if(window.lucide) lucide.createIcons();
+  }
+  function sendChecklist(){
+    document.getElementById('ckSent').style.display='inline-flex';
+    toast('Checklist sent to Priya\'s portal');
+    if(window.lucide) lucide.createIcons();
+  }
+  function approveVerify(){
+    toast('Verified documents approved · facts locked to source of truth');
+  }
+  function pickForm(el){
+    document.querySelectorAll('.form-tab').forEach(t=>t.classList.remove('on'));
+    el.classList.add('on');
+    const name = el.querySelector('.ft-t').textContent;
+    if(name!=='Form 80') toast(name+' — auto-filled from the same single source of truth');
+    if(window.lucide) lucide.createIcons();
+  }
+  function approveForm(){
+    toast('Form 80 verified field-by-field & approved');
+  }
+  function lodge(){
+    document.getElementById('bundleView').style.display='none';
+    document.getElementById('lodgeSuccess').style.display='block';
+    toast('Lodged with Home Affairs · ID EGOC-2026-884217');
+    if(window.lucide) lucide.createIcons();
+    document.getElementById('canvas').scrollTop = 0;
+  }
+
+  // init
+  go(0);
+  if(window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>

@@ -1,9 +1,9 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { PreCaseDetail } from "@/components/precase-detail";
+import { PreCaseWorkspace } from "@/components/precase/PreCaseWorkspace";
 
 export default function InboxItemPage() {
   const params = useParams<{ id: string }>();
-  return <PreCaseDetail precaseId={params.id} />;
+  return <PreCaseWorkspace precaseId={params.id} />;
 }

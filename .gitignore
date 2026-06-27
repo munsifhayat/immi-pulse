@@ -42,3 +42,10 @@ htmlcov/
 
 # Heroku
 *.log
+
+# Uploaded case documents (user content / PII — never commit)
+immi-pulse-be/uploads/
+
+# Local demo runbooks & readiness reports (contain live secrets — keep out of git)
+context/demo/fix-demo-blocker.sh
+context/demo/DEMO_READINESS_REPORT.md

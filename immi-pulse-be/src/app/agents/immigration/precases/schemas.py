@@ -68,6 +68,9 @@ class PreCaseDetail(BaseModel):
 
     created_at: datetime
 
+    # Client portal access card — present once the account exists (post-qualify).
+    client_access: Optional[dict[str, Any]] = None
+
 
 class PromoteResponse(BaseModel):
     case_id: UUID

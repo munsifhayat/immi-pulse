@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IMMI-PULSE · Approach B — Pulse Copilot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    /* brand */
+    --navy:#101928; --navy-2:#1E293B;
+    --purple:#7A5AF8; --purple-deep:#3E1C96; --purple-lite:#BDB4FE; --purple-mute:#D9D6FE;
+    --teal:#1B7B6F; --teal-lite:#2DD4BF;
+    --gray-text:#475367; --gray-lite:#F0F2F5; --amber:#D97706; --rose:#E11D48;
+
+    /* AI ink skin (darker/inkier family) */
+    --ink-900:#0A0E1A;        /* page base */
+    --ink-850:#0D1322;
+    --ink-800:#111829;        /* panel */
+    --ink-750:#151D31;
+    --ink-700:#1A2238;        /* card */
+    --ink-650:#212B45;
+    --ink-600:#2A3656;        /* border-strong */
+    --line:rgba(148,163,210,.14);
+    --line-2:rgba(148,163,210,.09);
+
+    --txt:#EEF1FB;            /* primary text on ink */
+    --txt-2:#AEB6D4;          /* secondary */
+    --txt-3:#7B85AB;          /* muted */
+
+    --violet:#8B6CFF;
+    --violet-2:#A88BFF;
+    --glow:rgba(122,90,248,.55);
+    --ok:#34D399; --ok-deep:#10B981;
+    --warn:#FBBF24; --warn-deep:#D97706;
+    --bad:#FB7185;
+
+    --radius:18px;
+    --shadow:0 18px 50px -18px rgba(0,0,0,.7);
+    --shadow-soft:0 10px 30px -14px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    background:
+      radial-gradient(1200px 700px at 78% -8%, rgba(122,90,248,.18), transparent 60%),
+      radial-gradient(900px 600px at -5% 100%, rgba(43,214,179,.07), transparent 55%),
+      var(--ink-900);
+    color:var(--txt);
+    font-size:14px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    font-feature-settings:'cv11','ss01';
+    overflow:hidden;
+  }
+  h1,h2,h3,h4,.font-head{font-family:'Outfit',sans-serif; letter-spacing:-.01em}
+  .tnum{font-feature-settings:'tnum'; font-variant-numeric:tabular-nums}
+  button{font-family:inherit; cursor:pointer; border:none; background:none; color:inherit}
+  ::-webkit-scrollbar{width:10px; height:10px}
+  ::-webkit-scrollbar-thumb{background:rgba(122,90,248,.25); border-radius:20px; border:2px solid transparent; background-clip:padding-box}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(122,90,248,.4); background-clip:padding-box}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  /* ============ TOP RIBBON ============ */
+  .ribbon{
+    height:46px; display:flex; align-items:center; gap:14px;
+    padding:0 20px;
+    background:linear-gradient(90deg, rgba(62,28,150,.55), rgba(122,90,248,.18) 60%, transparent);
+    border-bottom:1px solid var(--line);
+    position:relative; z-index:40;
+  }
+  .ribbon .pip{width:9px;height:9px;border-radius:50%;background:var(--violet);box-shadow:0 0 0 0 var(--glow);animation:pulse 2.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 var(--glow)}70%{box-shadow:0 0 0 9px rgba(122,90,248,0)}100%{box-shadow:0 0 0 0 rgba(122,90,248,0)}}
+  .ribbon b{font-family:'Outfit';font-weight:700;font-size:13.5px;letter-spacing:.01em}
+  .ribbon .phil{color:var(--txt-2);font-size:12.5px}
+  .ribbon .phil em{color:var(--violet-2);font-style:normal;font-weight:600}
+  .ribbon .spacer{flex:1}
+  .demotag{
+    font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--warn);padding:4px 10px;border:1px solid rgba(251,191,36,.32);
+    border-radius:999px;background:rgba(251,191,36,.08);display:flex;align-items:center;gap:6px;
+  }
+  .brandmark{display:flex;align-items:center;gap:9px}
+  .brandmark .logo{
+    width:26px;height:26px;border-radius:8px;
+    background:linear-gradient(135deg,var(--purple),var(--purple-deep));
+    display:grid;place-items:center;box-shadow:0 0 18px -2px var(--glow);
+  }
+  .brandmark .logo svg{width:15px;height:15px;color:#fff}
+
+  /* ============ APP SHELL ============ */
+  .app{display:flex;height:calc(100vh - 46px)}
+
+  /* ---- left rail: 9-stage journey ---- */
+  .rail{
+    width:262px;flex-shrink:0;background:linear-gradient(180deg,var(--ink-850),var(--ink-900));
+    border-right:1px solid var(--line);padding:18px 14px;display:flex;flex-direction:column;gap:3px;
+    overflow-y:auto;
+  }
+  .rail .railhead{padding:4px 8px 12px;display:flex;align-items:center;justify-content:space-between}
+  .rail .railhead .lbl{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--txt-3)}
+  .agentchip{
+    display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:12px;
+    background:var(--ink-750);border:1px solid var(--line);margin-bottom:14px;
+  }
+  .agentchip .av{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#3b2a73,#7A5AF8);display:grid;place-items:center;font-weight:700;font-family:'Outfit';color:#fff;font-size:13px}
+  .agentchip .nm{font-weight:600;font-size:12.5px;line-height:1.2}
+  .agentchip .sub{font-size:10.5px;color:var(--txt-3)}
+
+  .stage{
+    display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:12px;
+    color:var(--txt-2);position:relative;transition:.18s;text-align:left;width:100%;
+  }
+  .stage:hover{background:var(--ink-750);color:var(--txt)}
+  .stage .num{
+    width:24px;height:24px;border-radius:7px;flex-shrink:0;display:grid;place-items:center;
+    font-size:11.5px;font-weight:700;font-family:'Outfit';
+    background:var(--ink-700);border:1px solid var(--line);color:var(--txt-2);transition:.18s;
+  }
+  .stage .tx{flex:1;min-width:0}
+  .stage .tx .t{font-size:12.8px;font-weight:550;line-height:1.25}
+  .stage .tx .d{font-size:10.5px;color:var(--txt-3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stage .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:transparent}
+  .stage.done .num{background:rgba(52,211,153,.13);border-color:rgba(52,211,153,.3);color:var(--ok)}
+  .stage.done .dot{background:var(--ok)}
+  .stage.active{background:linear-gradient(90deg,rgba(122,90,248,.22),rgba(122,90,248,.05));color:var(--txt)}
+  .stage.active .num{background:linear-gradient(135deg,var(--purple),var(--purple-deep));border-color:transparent;color:#fff;box-shadow:0 0 16px -2px var(--glow)}
+  .stage.active .tx .t{font-weight:650}
+  .stage.active::before{content:"";position:absolute;left:-14px;top:8px;bottom:8px;width:3px;border-radius:3px;background:linear-gradient(var(--violet),var(--purple-deep));box-shadow:0 0 10px var(--glow)}
+  .rail .progresswrap{margin-top:auto;padding:12px 8px 2px}
+  .rail .progresswrap .row{display:flex;justify-content:space-between;font-size:11px;color:var(--txt-3);margin-bottom:7px}
+  .rail .progresswrap .bar{height:6px;border-radius:6px;background:var(--ink-700);overflow:hidden}
+  .rail .progresswrap .fill{height:100%;background:linear-gradient(90deg,var(--violet),var(--teal-lite));border-radius:6px;transition:width .5s cubic-bezier(.3,.9,.3,1)}
+
+  /* ---- main stage area ---- */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;position:relative}
+  .topbar{
+    height:58px;flex-shrink:0;display:flex;align-items:center;gap:14px;padding:0 26px;
+    border-bottom:1px solid var(--line);background:rgba(13,19,34,.6);backdrop-filter:blur(8px);
+  }
+  .topbar .crumb{font-size:12px;color:var(--txt-3)}
+  .topbar .crumb b{color:var(--txt);font-weight:600}
+  .topbar .stageName{font-family:'Outfit';font-weight:700;font-size:16px}
+  .topbar .spacer{flex:1}
+  .casepill{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--ink-700);border:1px solid var(--line);font-size:12px}
+  .casepill .cdot{width:7px;height:7px;border-radius:50%;background:var(--violet);box-shadow:0 0 8px var(--glow)}
+  .iconbtn{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--ink-700);border:1px solid var(--line);color:var(--txt-2);transition:.16s}
+  .iconbtn:hover{background:var(--ink-650);color:var(--txt)}
+  .iconbtn svg{width:17px;height:17px}
+
+  .stagebody{flex:1;overflow-y:auto;padding:26px 30px 40px;position:relative}
+  .screen{display:none;animation:fade .42s cubic-bezier(.2,.8,.2,1)}
+  .screen.show{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  .stagehead{display:flex;align-items:flex-start;gap:16px;margin-bottom:22px}
+  .stagehead .ico{width:46px;height:46px;border-radius:14px;flex-shrink:0;display:grid;place-items:center;background:linear-gradient(135deg,rgba(122,90,248,.25),rgba(62,28,150,.35));border:1px solid rgba(122,90,248,.3);box-shadow:0 0 24px -6px var(--glow)}
+  .stagehead .ico svg{width:22px;height:22px;color:var(--violet-2)}
+  .stagehead .eyebrow{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--violet-2);margin-bottom:4px}
+  .stagehead h2{font-size:24px;font-weight:700;line-height:1.1}
+  .stagehead p{color:var(--txt-2);font-size:13.5px;margin-top:6px;max-width:680px}
+
+  /* ---- review/approval cards ---- */
+  .card{background:linear-gradient(180deg,var(--ink-700),var(--ink-750));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-soft)}
+  .card.glow{border-color:rgba(122,90,248,.34);box-shadow:0 0 0 1px rgba(122,90,248,.14),0 18px 50px -22px rgba(122,90,248,.5)}
+  .reviewcard{position:relative;overflow:hidden;margin-bottom:18px}
+  .reviewcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(var(--violet),var(--purple-deep))}
+  .rc-head{display:flex;align-items:center;gap:12px;padding:16px 20px 14px}
+  .rc-head .badge-ai{display:flex;align-items:center;gap:7px;padding:5px 10px;border-radius:999px;background:linear-gradient(90deg,rgba(122,90,248,.22),rgba(122,90,248,.06));border:1px solid rgba(122,90,248,.3);font-size:11px;font-weight:600;color:var(--violet-2)}
+  .rc-head .badge-ai svg{width:13px;height:13px}
+  .rc-head .ttl{font-family:'Outfit';font-weight:650;font-size:15px}
+  .rc-head .spacer{flex:1}
+  .conf{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--txt-2)}
+  .conf .meter{width:74px;height:6px;border-radius:6px;background:var(--ink-600);overflow:hidden}
+  .conf .meter i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--ok),var(--teal-lite))}
+  .conf .pct{font-weight:700;color:var(--ok);font-variant-numeric:tabular-nums}
+  .conf.mid .pct{color:var(--warn)} .conf.mid .meter i{background:linear-gradient(90deg,var(--warn-deep),var(--warn))}
+  .rc-body{padding:4px 20px 18px}
+  .rc-foot{display:flex;align-items:center;gap:10px;padding:14px 20px;border-top:1px solid var(--line-2);background:rgba(10,14,26,.4)}
+  .rc-foot .hint{font-size:11.5px;color:var(--txt-3);display:flex;align-items:center;gap:6px}
+  .rc-foot .hint svg{width:13px;height:13px;color:var(--violet-2)}
+  .rc-foot .spacer{flex:1}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:11px;font-size:13px;font-weight:600;transition:.16s;border:1px solid transparent;white-space:nowrap}
+  .btn svg{width:15px;height:15px}
+  .btn-approve{background:linear-gradient(135deg,var(--purple),var(--purple-deep));color:#fff;box-shadow:0 8px 22px -8px var(--glow)}
+  .btn-approve:hover{transform:translateY(-1px);box-shadow:0 12px 28px -8px var(--glow)}
+  .btn-ghost{background:var(--ink-700);border-color:var(--line);color:var(--txt-2)}
+  .btn-ghost:hover{background:var(--ink-650);color:var(--txt)}
+  .btn-ok{background:linear-gradient(135deg,var(--ok-deep),var(--teal));color:#fff;box-shadow:0 8px 22px -10px rgba(16,185,129,.6)}
+  .btn-ok:hover{transform:translateY(-1px)}
+  .btn-sm{padding:7px 12px;font-size:12px;border-radius:9px}
+  .btn-link{color:var(--violet-2);font-weight:600;padding:6px 4px}
+  .btn-link:hover{color:var(--violet)}
+  .btn[disabled]{opacity:.45;pointer-events:none}
+
+  /* chips & flags */
+  .src{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(122,90,248,.12);border:1px solid rgba(122,90,248,.24);color:var(--violet-2);white-space:nowrap}
+  .src svg{width:11px;height:11px}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--txt-2);background:var(--ink-700)}
+  .pill.ok{color:var(--ok);border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.08)}
+  .pill.warn{color:var(--warn);border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.08)}
+  .pill.info{color:var(--violet-2);border-color:rgba(122,90,248,.3);background:rgba(122,90,248,.08)}
+  .pill.bad{color:var(--bad);border-color:rgba(251,113,133,.3);background:rgba(251,113,133,.08)}
+  .pill svg{width:12px;height:12px}
+
+  .stat{font-variant-numeric:tabular-nums}
+
+  /* inbox list */
+  .inboxgrid{display:grid;grid-template-columns:1fr;gap:11px}
+  .inq{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;background:var(--ink-700);border:1px solid var(--line);transition:.16s;cursor:pointer;position:relative}
+  .inq:hover{border-color:rgba(122,90,248,.3);background:var(--ink-650);transform:translateX(2px)}
+  .inq .ch{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex-shrink:0;font-weight:700;font-family:'Outfit';color:#fff}
+  .inq .ch.wa{background:linear-gradient(135deg,#25D366,#128C7E)}
+  .inq .ch.web{background:linear-gradient(135deg,#60A5FA,#3E1C96)}
+  .inq .ch.ig{background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF)}
+  .inq .ch.em{background:linear-gradient(135deg,#A88BFF,#3E1C96)}
+  .inq .ch.unk{background:linear-gradient(135deg,#475367,#1E293B)}
+  .inq .meta{flex:1;min-width:0}
+  .inq .meta .l1{display:flex;align-items:center;gap:8px}
+  .inq .meta .nm{font-weight:650;font-size:14px}
+  .inq .meta .chan{font-size:10.5px;color:var(--txt-3)}
+  .inq .meta .sum{font-size:12px;color:var(--txt-2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:520px}
+  .inq .meta .ai-tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--violet-2);font-weight:600;margin-right:6px}
+  .inq .score{text-align:right;flex-shrink:0}
+  .inq .score .ring{font-family:'Outfit';font-weight:800;font-size:18px}
+  .inq .score .lbl{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--txt-3)}
+  .score-strong .ring{color:var(--ok)} .score-mid .ring{color:var(--warn)} .score-low .ring{color:var(--txt-3)}
+  .inq.priority{border-color:rgba(122,90,248,.4);background:linear-gradient(90deg,rgba(122,90,248,.12),var(--ink-700));box-shadow:0 0 0 1px rgba(122,90,248,.12)}
+  .inq.priority::after{content:"";position:absolute;right:0;top:0;bottom:0;width:3px;border-radius:0 14px 14px 0;background:linear-gradient(var(--violet),var(--teal-lite))}
+
+  /* generic grids */
+  .grid2{display:grid;grid-template-columns:1.4fr .9fr;gap:18px}
+  .grid-fields{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line-2);border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+  .fld{background:var(--ink-700);padding:11px 14px}
+  .fld .k{font-size:10.5px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:6px;margin-bottom:4px}
+  .fld .v{font-size:13.5px;font-weight:550}
+  .fld.confirm{background:rgba(251,191,36,.07)}
+  .fld.confirm .k{color:var(--warn)}
+
+  /* options / radio cards */
+  .optrow{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-top:6px}
+  .opt{padding:14px;border-radius:13px;background:var(--ink-700);border:1.5px solid var(--line);transition:.16s;text-align:left;position:relative}
+  .opt:hover{border-color:rgba(122,90,248,.4)}
+  .opt.sel{border-color:var(--violet);background:linear-gradient(180deg,rgba(122,90,248,.16),var(--ink-700));box-shadow:0 0 18px -6px var(--glow)}
+  .opt .oi{width:30px;height:30px;border-radius:9px;background:var(--ink-650);display:grid;place-items:center;margin-bottom:9px}
+  .opt .oi svg{width:16px;height:16px;color:var(--violet-2)}
+  .opt .ot{font-weight:600;font-size:13px}
+  .opt .od{font-size:11px;color:var(--txt-3);margin-top:2px}
+  .opt .reco{position:absolute;top:9px;right:9px;font-size:9px;font-weight:700;letter-spacing:.04em;color:var(--violet-2);background:rgba(122,90,248,.16);border:1px solid rgba(122,90,248,.3);padding:2px 6px;border-radius:6px}
+  .opt.sel .oi{background:linear-gradient(135deg,var(--purple),var(--purple-deep))}
+  .opt.sel .oi svg{color:#fff}
+
+  /* credential card */
+  .cred{background:linear-gradient(135deg,var(--ink-700),var(--ink-650));border:1px solid rgba(122,90,248,.3);border-radius:16px;padding:18px;position:relative;overflow:hidden}
+  .cred::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(122,90,248,.25),transparent 70%)}
+  .credrow{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:10px;background:rgba(10,14,26,.5);margin-top:8px;font-size:13px}
+  .credrow .k{color:var(--txt-3);font-size:11px}
+  .credrow .v{font-weight:600;font-family:'Outfit'}
+  .copybtn{font-size:10.5px;color:var(--violet-2);display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:7px;background:rgba(122,90,248,.1)}
+  .copybtn svg{width:12px;height:12px}
+
+  /* timeline */
+  .tl{position:relative;padding-left:24px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(var(--violet),var(--line))}
+  .tlitem{position:relative;padding:0 0 16px}
+  .tlitem .pt{position:absolute;left:-21px;top:2px;width:14px;height:14px;border-radius:50%;background:var(--ink-700);border:2px solid var(--violet);box-shadow:0 0 8px var(--glow)}
+  .tlitem.done .pt{background:var(--ok);border-color:var(--ok)}
+  .tlitem .tt{font-weight:600;font-size:13px}
+  .tlitem .td{font-size:11px;color:var(--txt-3);margin-top:1px}
+
+  /* checklist */
+  .clgroup{margin-bottom:14px}
+  .clgroup .ghead{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--txt-3);margin:0 0 8px 2px}
+  .clgroup .ghead svg{width:14px;height:14px;color:var(--violet-2)}
+  .clitem{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:11px;background:var(--ink-700);border:1px solid var(--line);margin-bottom:6px;transition:.15s}
+  .clitem:hover{border-color:rgba(122,90,248,.25)}
+  .clitem .chk{width:18px;height:18px;border-radius:6px;border:1.5px solid var(--line);flex-shrink:0;display:grid;place-items:center}
+  .clitem .chk svg{width:12px;height:12px}
+  .clitem.uploaded .chk{background:rgba(52,211,153,.15);border-color:var(--ok);color:var(--ok)}
+  .clitem.verified .chk{background:var(--ok);border-color:var(--ok);color:#06281c}
+  .clitem .nm{flex:1;font-size:13px}
+  .clitem .nm .sub{font-size:10.5px;color:var(--txt-3)}
+
+  /* portal (client view) */
+  .portal{background:linear-gradient(180deg,#fbfaff,#f3f1fb);border-radius:18px;border:1px solid rgba(122,90,248,.2);overflow:hidden;color:var(--navy);box-shadow:var(--shadow)}
+  .portal .phead{padding:18px 22px;background:linear-gradient(120deg,#fff,#f4f1ff);border-bottom:1px solid rgba(122,90,248,.14);display:flex;align-items:center;gap:12px}
+  .portal .phead .av{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));display:grid;place-items:center;color:#fff;font-weight:700;font-family:'Outfit'}
+  .portal .phead .ht{font-family:'Outfit';font-weight:700;font-size:15px;color:var(--navy)}
+  .portal .phead .hs{font-size:11.5px;color:var(--gray-text)}
+  .portal .pbody{padding:20px 22px}
+  .portal .prog{height:9px;border-radius:9px;background:#e6e2f7;overflow:hidden;margin:8px 0 4px}
+  .portal .prog i{display:block;height:100%;background:linear-gradient(90deg,var(--purple),var(--teal));border-radius:9px}
+  .portal .upgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
+  .portal .upfile{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:11px;background:#fff;border:1px solid rgba(122,90,248,.16)}
+  .portal .upfile .ic{width:32px;height:32px;border-radius:8px;background:rgba(122,90,248,.1);display:grid;place-items:center;color:var(--purple-deep)}
+  .portal .upfile .ic svg{width:16px;height:16px}
+  .portal .upfile .fn{font-size:12px;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .portal .upfile .fs{font-size:10px;color:var(--gray-text)}
+  .portal .qbubble{padding:13px 15px;border-radius:13px;background:#fff;border:1px solid rgba(122,90,248,.18);margin-top:10px}
+  .portal .qbubble .qt{font-size:13px;font-weight:600;color:var(--navy)}
+  .portal .qbubble .qh{font-size:11.5px;color:var(--gray-text);margin-top:3px}
+  .clientmark{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--teal);display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(27,123,111,.1);border:1px solid rgba(27,123,111,.25)}
+
+  /* verification flags */
+  .flag{display:flex;align-items:flex-start;gap:12px;padding:13px 15px;border-radius:12px;background:var(--ink-700);border:1px solid var(--line);margin-bottom:8px}
+  .flag .fi{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:grid;place-items:center}
+  .flag .fi svg{width:15px;height:15px}
+  .flag.ok .fi{background:rgba(52,211,153,.14);color:var(--ok)} .flag.ok{border-color:rgba(52,211,153,.18)}
+  .flag.warn .fi{background:rgba(251,191,36,.14);color:var(--warn)} .flag.warn{border-color:rgba(251,191,36,.22);background:rgba(251,191,36,.04)}
+  .flag.info .fi{background:rgba(122,90,248,.16);color:var(--violet-2)} .flag.info{border-color:rgba(122,90,248,.2)}
+  .flag .ft{font-size:13px;font-weight:600}
+  .flag .fd{font-size:11.5px;color:var(--txt-2);margin-top:2px}
+  .flag .fa{margin-left:auto;align-self:center}
+
+  /* HERO — form auto-fill */
+  .hero-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:18px;align-items:start}
+  .formdoc{background:#fbfafe;border-radius:16px;border:1px solid rgba(122,90,248,.22);overflow:hidden;color:#1a1633;box-shadow:var(--shadow)}
+  .formdoc .fhead{padding:16px 20px;background:linear-gradient(120deg,#fff,#f3effd);border-bottom:1px solid rgba(122,90,248,.16);display:flex;align-items:center;gap:12px}
+  .formdoc .fhead .seal{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--purple-deep),var(--purple));display:grid;place-items:center;color:#fff}
+  .formdoc .fhead .seal svg{width:20px;height:20px}
+  .formdoc .fhead .ft{font-family:'Outfit';font-weight:700;font-size:15px;color:#1a1633}
+  .formdoc .fhead .fsub{font-size:11px;color:#5b5575}
+  .formdoc .fhead .gov{margin-left:auto;font-size:10px;color:#857ea3;text-align:right;line-height:1.3}
+  .formdoc .fbody{padding:6px 0}
+  .frow{display:flex;align-items:center;gap:12px;padding:9px 20px;border-bottom:1px solid rgba(122,90,248,.07);transition:.14s}
+  .frow:hover{background:rgba(122,90,248,.04)}
+  .frow .fk{width:172px;flex-shrink:0;font-size:11px;color:#5b5575;font-weight:500}
+  .frow .fv{flex:1;font-size:13px;font-weight:600;color:#1a1633;display:flex;align-items:center;gap:8px}
+  .frow.filled .fv::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok);flex-shrink:0;box-shadow:0 0 0 3px rgba(52,211,153,.18)}
+  .frow.gap{background:rgba(251,191,36,.08)}
+  .frow.gap .fv{color:#9a6a00}
+  .frow.gap .fv::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--warn-deep);flex-shrink:0;box-shadow:0 0 0 3px rgba(251,191,36,.22)}
+  .srcdoc{font-size:9.5px;font-weight:600;padding:2px 7px;border-radius:6px;background:rgba(122,90,248,.1);color:var(--purple-deep);white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+  .srcdoc svg{width:10px;height:10px}
+  .srcgap{font-size:9.5px;font-weight:700;color:#9a6a00;background:rgba(251,191,36,.16);padding:2px 7px;border-radius:6px}
+
+  .hero-side .donutwrap{display:flex;flex-direction:column;align-items:center;padding:20px 16px 16px}
+  .donut{width:128px;height:128px;position:relative}
+  .donut svg{transform:rotate(-90deg)}
+  .donut .ctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .donut .big{font-family:'Outfit';font-weight:800;font-size:30px;line-height:1}
+  .donut .small{font-size:10px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+  .legrow{display:flex;align-items:center;gap:9px;padding:7px 12px;font-size:12px}
+  .legrow .ld{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+  .legrow .lv{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}
+
+  .formtabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .ftab{padding:8px 14px;border-radius:10px;font-size:12px;font-weight:600;background:var(--ink-700);border:1px solid var(--line);color:var(--txt-2);display:flex;align-items:center;gap:7px;transition:.15s}
+  .ftab:hover{border-color:rgba(122,90,248,.3);color:var(--txt)}
+  .ftab.active{background:linear-gradient(135deg,rgba(122,90,248,.25),rgba(62,28,150,.3));border-color:var(--violet);color:#fff;box-shadow:0 0 16px -6px var(--glow)}
+  .ftab .mini{font-size:10px;color:var(--txt-3);font-weight:600}
+  .ftab.active .mini{color:var(--violet-2)}
+  .ftab .rdy{width:6px;height:6px;border-radius:50%;background:var(--ok)}
+
+  /* lodgement bundle */
+  .bundle{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .bitem{display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:12px;background:var(--ink-700);border:1px solid var(--line)}
+  .bitem .bi{width:34px;height:34px;border-radius:9px;background:rgba(122,90,248,.12);display:grid;place-items:center;color:var(--violet-2);flex-shrink:0}
+  .bitem .bi svg{width:17px;height:17px}
+  .bitem .bn{font-size:12.5px;font-weight:600}
+  .bitem .bs{font-size:10.5px;color:var(--txt-3)}
+  .bitem .bcheck{margin-left:auto;color:var(--ok)}
+  .bitem .bcheck svg{width:18px;height:18px}
+
+  /* success state */
+  .success{text-align:center;padding:30px 20px}
+  .success .ring{width:96px;height:96px;border-radius:50%;margin:0 auto 18px;display:grid;place-items:center;background:radial-gradient(circle,rgba(52,211,153,.25),rgba(52,211,153,.05));border:2px solid var(--ok);box-shadow:0 0 40px -8px rgba(52,211,153,.5);animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+  .success .ring svg{width:46px;height:46px;color:var(--ok)}
+
+  /* ============ CHAT DOCK ============ */
+  .dock{
+    width:360px;flex-shrink:0;background:linear-gradient(180deg,var(--ink-850),var(--ink-900));
+    border-left:1px solid var(--line);display:flex;flex-direction:column;position:relative;
+  }
+  .dock::before{content:"";position:absolute;top:0;left:0;right:0;height:120px;background:radial-gradient(400px 120px at 50% 0,rgba(122,90,248,.16),transparent 70%);pointer-events:none}
+  .dockhead{padding:15px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:11px;position:relative}
+  .dockhead .orb{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));display:grid;place-items:center;position:relative;box-shadow:0 0 22px -3px var(--glow)}
+  .dockhead .orb svg{width:18px;height:18px;color:#fff}
+  .dockhead .orb::after{content:"";position:absolute;inset:-4px;border-radius:14px;border:1.5px solid rgba(122,90,248,.4);animation:ringpulse 2.6s infinite}
+  @keyframes ringpulse{0%{transform:scale(.9);opacity:.8}100%{transform:scale(1.25);opacity:0}}
+  .dockhead .dn{font-family:'Outfit';font-weight:700;font-size:14px}
+  .dockhead .ds{font-size:10.5px;color:var(--ok);display:flex;align-items:center;gap:5px}
+  .dockhead .ds .ld{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 6px var(--ok)}
+
+  .chatscroll{flex:1;overflow-y:auto;padding:18px 16px;display:flex;flex-direction:column;gap:14px}
+  .msg{max-width:90%;animation:fade .35s ease}
+  .msg.ai{align-self:flex-start}
+  .msg.user{align-self:flex-end}
+  .msg .bub{padding:11px 14px;border-radius:15px;font-size:12.8px;line-height:1.5}
+  .msg.ai .bub{background:var(--ink-700);border:1px solid var(--line);border-bottom-left-radius:5px}
+  .msg.user .bub{background:linear-gradient(135deg,var(--purple),var(--purple-deep));color:#fff;border-bottom-right-radius:5px}
+  .msg .bub b{color:var(--violet-2);font-weight:650}
+  .msg.user .bub b{color:#fff}
+  .msg .who{font-size:9.5px;color:var(--txt-3);margin:0 0 4px 4px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+  .msg .mini-card{margin-top:9px;padding:10px 12px;border-radius:11px;background:rgba(122,90,248,.09);border:1px solid rgba(122,90,248,.22)}
+  .msg .mini-card .mt{font-size:11px;font-weight:700;color:var(--violet-2);display:flex;align-items:center;gap:6px}
+  .msg .mini-card .mt svg{width:13px;height:13px}
+  .msg .mini-card .mr{font-size:11px;color:var(--txt-2);margin-top:5px;display:flex;justify-content:space-between}
+  .msg .qa{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  .qa-btn{font-size:11px;font-weight:600;padding:6px 11px;border-radius:9px;background:rgba(122,90,248,.13);border:1px solid rgba(122,90,248,.3);color:var(--violet-2);transition:.14s}
+  .qa-btn:hover{background:rgba(122,90,248,.24);color:#fff}
+
+  .typing{align-self:flex-start;display:none;align-items:center;gap:8px;padding:11px 14px;border-radius:15px;border-bottom-left-radius:5px;background:var(--ink-700);border:1px solid var(--line)}
+  .typing.show{display:flex}
+  .typing .d{width:6px;height:6px;border-radius:50%;background:var(--violet-2);animation:bounce 1.3s infinite}
+  .typing .d:nth-child(2){animation-delay:.18s} .typing .d:nth-child(3){animation-delay:.36s}
+  @keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-5px);opacity:1}}
+
+  .dockinput{padding:13px 14px;border-top:1px solid var(--line);background:rgba(10,14,26,.5)}
+  .dockinput .box{display:flex;align-items:center;gap:9px;padding:8px 8px 8px 14px;border-radius:13px;background:var(--ink-700);border:1px solid var(--line)}
+  .dockinput input{flex:1;background:none;border:none;color:var(--txt);font-size:12.5px;outline:none}
+  .dockinput input::placeholder{color:var(--txt-3)}
+  .dockinput .send{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));display:grid;place-items:center;color:#fff;flex-shrink:0;transition:.15s}
+  .dockinput .send:hover{transform:scale(1.06)}
+  .dockinput .send svg{width:15px;height:15px}
+  .dockinput .sugg{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+  .dockinput .sugg button{font-size:10.5px;color:var(--txt-3);padding:4px 9px;border-radius:8px;border:1px solid var(--line);transition:.14s}
+  .dockinput .sugg button:hover{color:var(--violet-2);border-color:rgba(122,90,248,.3)}
+
+  /* toast */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink-700);border:1px solid rgba(122,90,248,.4);border-radius:13px;padding:12px 18px;display:flex;align-items:center;gap:11px;box-shadow:var(--shadow);z-index:90;opacity:0;transition:.4s cubic-bezier(.2,1.3,.4,1);pointer-events:none}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .toast .ti{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:rgba(52,211,153,.15);color:var(--ok)}
+  .toast .ti svg{width:16px;height:16px}
+  .toast .tt{font-size:12.5px;font-weight:600}
+  .toast .ts{font-size:10.5px;color:var(--txt-3)}
+
+  .muted{color:var(--txt-3)} .v2{color:var(--txt-2)}
+  .row{display:flex;align-items:center;gap:10px} .wrap{flex-wrap:wrap}
+  .mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mt20{margin-top:20px}.mb12{margin-bottom:12px}
+  .divider{height:1px;background:var(--line);margin:16px 0}
+  .sectiontitle{font-family:'Outfit';font-weight:650;font-size:14px;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .sectiontitle svg{width:16px;height:16px;color:var(--violet-2)}
+  .approved-banner{display:none;align-items:center;gap:10px;padding:11px 16px;border-radius:12px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:var(--ok);font-size:12.5px;font-weight:600;margin-bottom:16px}
+  .approved-banner.show{display:flex}
+  .approved-banner svg{width:16px;height:16px}
+</style>
+</head>
+<body>
+
+<!-- ============ TOP RIBBON ============ -->
+<div class="ribbon">
+  <div class="brandmark">
+    <div class="logo"><svg data-l="activity"></svg></div>
+    <span style="font-family:'Outfit';font-weight:700;font-size:14px">IMMI-PULSE</span>
+  </div>
+  <span style="width:1px;height:18px;background:var(--line)"></span>
+  <span class="pip"></span>
+  <b>Approach B — Pulse Copilot</b>
+  <span class="phil">AI autopilot + human approval — <em>a tireless clerk drafts; you approve. It never sends or lodges without you.</em></span>
+  <span class="spacer"></span>
+  <span class="demotag"><svg data-l="flask-conical" style="width:12px;height:12px"></svg> Demo · mock data</span>
+</div>
+
+<div class="app">
+
+  <!-- ============ LEFT RAIL — 9 STAGES ============ -->
+  <aside class="rail">
+    <div class="agentchip">
+      <div class="av">GM</div>
+      <div>
+        <div class="nm">Gideon Maris</div>
+        <div class="sub">Meridian Migration · MARN 1789456</div>
+      </div>
+    </div>
+    <div class="railhead"><span class="lbl">Case Journey</span><span class="lbl tnum" id="stageCount">1 / 9</span></div>
+
+    <button class="stage" data-go="0">
+      <span class="num">1</span><span class="tx"><span class="t">Inbox / Intake</span><span class="d">AI triaged 5 inquiries</span></span><span class="dot"></span>
+    </button>
+    <button class="stage" data-go="1">
+      <span class="num">2</span><span class="tx"><span class="t">Qualify + Consult</span><span class="d">Pathway recommended</span></span><span class="dot"></span>
+    </button>
+    <button class="stage" data-go="2">
+      <span class="num">3</span><span class="tx"><span class="t">Engagement Letter</span><span class="d">Draft ready · e-sign</span></span><span class="dot"></span>
+    </button>
+    <button class="stage" data-go="3">
+      <span class="num">4</span><span class="tx"><span class="t">Open Case</span><span class="d">MM-2026-0142</span></span><span class="dot"></span>
+    </button>
+    <button class="stage" data-go="4">
+      <span class="num">5</span><span class="tx"><span class="t">Checklist</span><span class="d">186 ENS · auto-built</span></span><span class="dot"></span>
+    </button>
+    <button class="stage" data-go="5">
+      <span class="num">6</span><span class="tx"><span class="t">Document Collection</span><span class="d">Client portal · 11/16</span></span><span class="dot"></span>
+    </button>
+    <button class="stage" data-go="6">
+      <span class="num">7</span><span class="tx"><span class="t">AI Verification</span><span class="d">2 flags need you</span></span><span class="dot"></span>
+    </button>
+    <button class="stage" data-go="7">
+      <span class="num">8</span><span class="tx"><span class="t">Form Auto-fill</span><span class="d">Form 80 · 47/52 filled</span></span><span class="dot"></span>
+    </button>
+    <button class="stage" data-go="8">
+      <span class="num">9</span><span class="tx"><span class="t">Lodgement Bundle</span><span class="d">Ready for ImmiAccount</span></span><span class="dot"></span>
+    </button>
+
+    <div class="progresswrap">
+      <div class="row"><span>Journey progress</span><span class="tnum" id="progPct">11%</span></div>
+      <div class="bar"><div class="fill" id="progFill" style="width:11%"></div></div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN STAGE AREA ============ -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="crumb">Priya Sharma · 482 → 186 ENS (TRT) · <b>Subsequent entrant:</b> Arjun Sharma</div>
+        <div class="stageName" id="topStage">Inbox / Intake</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="casepill"><span class="cdot"></span><span class="tnum">MM-2026-0142</span></div>
+      <button class="iconbtn" title="Notifications"><svg data-l="bell"></svg></button>
+      <button class="iconbtn" title="Settings"><svg data-l="settings-2"></svg></button>
+    </div>
+
+    <div class="stagebody" id="stageBody">
+
+      <!-- ===== STAGE 1 — INBOX ===== -->
+      <section class="screen" data-screen="0">
+        <div class="stagehead">
+          <div class="ico"><svg data-l="inbox"></svg></div>
+          <div>
+            <div class="eyebrow">Stage 1 · Unified Intake</div>
+            <h2>Pulse already triaged your inbox</h2>
+            <p>Five fragmented inquiries — WhatsApp, web form, Instagram, email — unified into one stream. The copilot read each one, captured visa status up front, and scored fit. <b style="color:var(--violet-2)">Priya Sharma</b> rose to the top.</p>
+          </div>
+        </div>
+
+        <div class="card reviewcard glow">
+          <div class="rc-head">
+            <span class="badge-ai"><svg data-l="sparkles"></svg>Pulse flagged this</span>
+            <span class="ttl">High-fit lead · don't let it sit</span>
+            <span class="spacer"></span>
+            <div class="conf"><span>Match confidence</span><div class="meter"><i style="width:92%"></i></div><span class="pct">92%</span></div>
+          </div>
+          <div class="rc-body">
+            <div class="inq priority" onclick="goStage(1)">
+              <div class="ch wa">WA</div>
+              <div class="meta">
+                <div class="l1"><span class="nm">Priya Sharma</span><span class="chan">WhatsApp · +91 98xxx · 4 min ago</span></div>
+                <div class="sum"><span class="ai-tag"><svg data-l="sparkles" style="width:11px;height:11px"></svg>AI summary</span>482 (Skills in Demand) holder in Brisbane · Electrical Engineer · employer-backed PR · wants 186 ENS + spouse. Strong, urgent.</div>
+              </div>
+              <div class="score score-strong">
+                <div class="ring tnum">92</div><div class="lbl">Fit</div>
+              </div>
+            </div>
+            <div class="row wrap mt12" style="gap:8px">
+              <span class="pill info"><svg data-l="badge-check"></svg>Visa: Subclass 482 Core Skills</span>
+              <span class="pill info"><svg data-l="map-pin"></svg>Onshore · Brisbane</span>
+              <span class="pill info"><svg data-l="briefcase"></svg>BrightGrid Energy (sponsor)</span>
+              <span class="pill ok"><svg data-l="trending-up"></svg>Likely PR pathway</span>
+            </div>
+          </div>
+          <div class="rc-foot">
+            <span class="hint"><svg data-l="zap"></svg>Suggested next action: open the inquiry and qualify</span>
+            <span class="spacer"></span>
+            <button class="btn btn-ghost btn-sm" onclick="say('Decline Priya?',true)"><svg data-l="x"></svg>Dismiss</button>
+            <button class="btn btn-approve" onclick="goStage(1)">Open & Qualify <svg data-l="arrow-right"></svg></button>
+          </div>
+        </div>
+
+        <div class="sectiontitle mt20"><svg data-l="list"></svg>Rest of the inbox <span class="muted" style="font-weight:400;font-size:11px">— triaged & scored, lower priority</span></div>
+        <div class="inboxgrid">
+          <div class="inq" onclick="say('Marco Rossi — Partner 820/801 — opening a new inquiry is mocked in this demo.')">
+            <div class="ch web">WF</div>
+            <div class="meta"><div class="l1"><span class="nm">Marco Rossi</span><span class="chan">Web form · 2 h ago</span></div>
+              <div class="sum"><span class="ai-tag"><svg data-l="sparkles" style="width:11px;height:11px"></svg>AI</span>Partner visa (820/801) onshore · partner Emma Clarke is an Australian citizen. Genuine relationship to evidence.</div></div>
+            <div class="score score-mid"><div class="ring tnum">74</div><div class="lbl">Fit</div></div>
+          </div>
+          <div class="inq" onclick="say('BrightGrid Energy — employer sponsorship — phone-first, no forms for employers.')">
+            <div class="ch em">BG</div>
+            <div class="meta"><div class="l1"><span class="nm">BrightGrid Energy — Tom Whitlam (HR)</span><span class="chan">Email · yesterday</span></div>
+              <div class="sum"><span class="ai-tag"><svg data-l="sparkles" style="width:11px;height:11px"></svg>AI</span>Standard Business Sponsor wants to nominate 2 more engineers. Employer — phone-first, no client forms.</div></div>
+            <div class="score score-mid"><div class="ring tnum">81</div><div class="lbl">Fit</div></div>
+          </div>
+          <div class="inq" onclick="say('Lena Müller — Student 500 extension — lower priority, parked.')">
+            <div class="ch ig">IG</div>
+            <div class="meta"><div class="l1"><span class="nm">Lena Müller</span><span class="chan">Instagram DM · 3 d ago</span></div>
+              <div class="sum"><span class="ai-tag"><svg data-l="sparkles" style="width:11px;height:11px"></svg>AI</span>Student visa (500) extension inquiry. Onshore. Lower urgency — parked.</div></div>
+            <div class="score score-low"><div class="ring tnum">52</div><div class="lbl">Fit</div></div>
+          </div>
+          <div class="inq" onclick="say('Unknown +1 415 — vague price-only WhatsApp. Pulse flagged low-fit / spam-ish.')">
+            <div class="ch unk">?</div>
+            <div class="meta"><div class="l1"><span class="nm">Unknown · +1 415…</span><span class="chan">WhatsApp · 5 d ago</span></div>
+              <div class="sum"><span class="ai-tag"><svg data-l="sparkles" style="width:11px;height:11px"></svg>AI</span>"how much for PR?" — no country, no visa status. Low-fit / likely spam. Suggest a templated reply.</div></div>
+            <div class="score score-low"><div class="ring tnum">18</div><div class="lbl">Fit</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== STAGE 2 — QUALIFY + CONSULT ===== -->
+      <section class="screen" data-screen="1">
+        <div class="stagehead">
+          <div class="ico"><svg data-l="user-check"></svg></div>
+          <div>
+            <div class="eyebrow">Stage 2 · Qualify + Consultation</div>
+            <h2>Pulse recommends qualifying Priya</h2>
+            <p>The copilot drafted the consult summary, matched the visa pathway, and even drafted a Letter of Engagement scope. Pick a consultation mode, then approve to qualify — this auto-creates her portal account.</p>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div>
+            <div class="card reviewcard">
+              <div class="rc-head">
+                <span class="badge-ai"><svg data-l="sparkles"></svg>AI recommendation</span>
+                <span class="ttl">Visa pathway: 186 ENS — TRT stream</span>
+                <span class="spacer"></span>
+                <div class="conf"><div class="meter"><i style="width:89%"></i></div><span class="pct">89%</span></div>
+              </div>
+              <div class="rc-body">
+                <p class="v2" style="font-size:12.5px">Priya holds a <b style="color:var(--violet-2)">Subclass 482 Core Skills</b> visa, sponsored by BrightGrid (a Standard Business Sponsor), working as an Electrical Engineer (ANZSCO 233311). After 2 years full-time in the same occupation she's eligible for <b style="color:var(--violet-2)">Subclass 186 ENS, Temporary Residence Transition stream</b> — PR. Spouse <b>Arjun Sharma</b> can be added as a subsequent entrant.</p>
+                <div class="row wrap mt12" style="gap:7px">
+                  <span class="pill"><svg data-l="route"></svg>482 → 186 ENS (TRT)</span>
+                  <span class="pill ok"><svg data-l="check"></svg>2-yr same-occupation rule met</span>
+                  <span class="pill info"><svg data-l="users"></svg>+ Arjun (subsequent entrant)</span>
+                </div>
+                <div class="divider"></div>
+                <div class="muted" style="font-size:11.5px;margin-bottom:6px">Pulse considered & ruled out:</div>
+                <div class="row wrap" style="gap:6px">
+                  <span class="pill" style="opacity:.6"><svg data-l="x"></svg>189 Skilled Independent (no nomination)</span>
+                  <span class="pill" style="opacity:.6"><svg data-l="x"></svg>190 State Nominated (slower, points-tested)</span>
+                </div>
+              </div>
+              <div class="rc-foot">
+                <span class="hint"><svg data-l="info"></svg>You can override the recommended pathway any time</span>
+                <span class="spacer"></span>
+                <button class="btn btn-ghost btn-sm" onclick="say('Override pathway — a visa picker (189/190/186/494…) would open here.')"><svg data-l="git-branch"></svg>Change pathway</button>
+                <button class="btn btn-approve btn-sm" onclick="approveCard(this,'Pathway approved · 186 ENS (TRT) confirmed')"><svg data-l="check"></svg>Approve pathway</button>
+              </div>
+            </div>
+
+            <div class="card" style="padding:18px">
+              <div class="sectiontitle"><svg data-l="video"></svg>Consultation mode</div>
+              <div class="optrow">
+                <button class="opt sel" onclick="pickOpt(this)"><div class="oi"><svg data-l="video"></svg></div><div class="ot">Virtual meeting</div><div class="od">Zoom / Meet</div><span class="reco">RECO</span></button>
+                <button class="opt" onclick="pickOpt(this)"><div class="oi"><svg data-l="phone"></svg></div><div class="ot">Phone call</div><div class="od">Quick triage</div></button>
+                <button class="opt" onclick="pickOpt(this)"><div class="oi"><svg data-l="map-pin"></svg></div><div class="ot">In-person</div><div class="od">Brisbane office</div></button>
+                <button class="opt" onclick="pickOpt(this)"><div class="oi"><svg data-l="file-text"></svg></div><div class="ot">Async</div><div class="od">Qualify on form</div></button>
+              </div>
+              <div class="mt16">
+                <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Consult notes <span style="color:var(--violet-2)">· AI-drafted, editable</span></div>
+                <div class="card" style="padding:13px;background:var(--ink-750);font-size:12.5px;line-height:1.6;color:var(--txt-2)">
+                  Priya confirmed 22 months on 482 with BrightGrid; reaches 2-year TRT eligibility next month. Salary above Core Skills threshold. Marriage to Arjun (Nov 2018) — wants him onshore ASAP. PTE 79 done. Skills assessment (Engineers Australia) positive & current. <span style="color:var(--ok)">Genuine, well-documented, employer fully on board.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="cred mb12">
+              <div class="row" style="justify-content:space-between">
+                <div class="row"><svg data-l="key-round" style="width:18px;height:18px;color:var(--violet-2)"></svg><b style="font-family:'Outfit';font-size:14px">Client portal access</b></div>
+                <span class="pill info" style="font-size:10px"><svg data-l="lock"></svg>One login · no PINs</span>
+              </div>
+              <p class="muted" style="font-size:11px;margin-top:8px;position:relative;z-index:1">Created automatically the moment you qualify. Priya gets one login for all her applications.</p>
+              <div class="credrow"><div><div class="k">Email / username</div><div class="v">priya.sharma@email.com</div></div><button class="copybtn" onclick="copy(this)"><svg data-l="copy"></svg>Copy</button></div>
+              <div class="credrow"><div><div class="k">Temp password</div><div class="v tnum">Pulse-7K4m·2026</div></div><button class="copybtn" onclick="copy(this)"><svg data-l="copy"></svg>Copy</button></div>
+              <div class="credrow" style="align-items:flex-start"><div style="flex:1"><div class="k">Ready-to-send WhatsApp</div><div class="v" style="font-weight:400;font-size:11.5px;font-family:'Inter';color:var(--txt-2);margin-top:3px">"Hi Priya — your Meridian Migration portal is ready. Log in here to upload your documents securely 💜"</div></div><button class="copybtn" onclick="copy(this)"><svg data-l="copy"></svg>Copy</button></div>
+            </div>
+
+            <div class="card" style="padding:18px;text-align:center">
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt-3);margin-bottom:8px">When you're ready</div>
+              <p class="v2" style="font-size:12.5px;margin-bottom:14px">Approving qualifies Priya, creates her portal account, and moves the case to engagement.</p>
+              <button class="btn btn-approve" style="width:100%;justify-content:center" onclick="qualifyAction()"><svg data-l="user-check"></svg>Approve & Qualify Priya</button>
+              <button class="btn btn-link" style="width:100%;justify-content:center;margin-top:8px" onclick="say('Disqualify — would archive with a reason note.')">Not a fit — disqualify</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== STAGE 3 — ENGAGEMENT LETTER ===== -->
+      <section class="screen" data-screen="2">
+        <div class="stagehead">
+          <div class="ico"><svg data-l="file-signature"></svg></div>
+          <div>
+            <div class="eyebrow">Stage 3 · Engagement Letter</div>
+            <h2>Pulse drafted the costs agreement</h2>
+            <p>OMARA-compliant scope, fee lines, and Consumer Guide reference — drafted and ready. Review it, capture Priya's e-signature, and record the deposit. This is the compliance gate before any paid work begins.</p>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="card reviewcard">
+            <div class="rc-head">
+              <span class="badge-ai"><svg data-l="sparkles"></svg>AI-drafted letter</span>
+              <span class="ttl">Letter of Engagement & Costs Agreement</span>
+              <span class="spacer"></span>
+              <div class="conf"><div class="meter"><i style="width:96%"></i></div><span class="pct">96%</span></div>
+            </div>
+            <div class="rc-body">
+              <div class="card" style="background:#fbfafe;color:#1a1633;padding:18px;border-radius:12px;font-size:12.5px;line-height:1.6">
+                <div style="font-family:'Outfit';font-weight:700;font-size:14px">Meridian Migration Co.</div>
+                <div style="color:#5b5575;font-size:11px;margin-bottom:10px">Gideon Maris · MARN 1789456 · Brisbane QLD</div>
+                <p><b>Re:</b> Subclass 186 ENS (TRT) PR application for Priya Sharma, incl. subsequent entrant Arjun Sharma.</p>
+                <p style="margin-top:8px"><b>Scope of work:</b> Nomination & visa preparation, document review, Form 956 / 80 / 1221 / nomination preparation, and lodgement via ImmiAccount.</p>
+                <div style="margin-top:12px;border-top:1px solid rgba(122,90,248,.16);padding-top:10px">
+                  <div style="display:flex;justify-content:space-between;padding:3px 0"><span>Professional fee</span><b class="tnum">$3,500.00</b></div>
+                  <div style="display:flex;justify-content:space-between;padding:3px 0"><span>Disbursements (govt charges, skills assessment)</span><b class="tnum">$540.00</b></div>
+                  <div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid rgba(122,90,248,.12);margin-top:4px"><b>Total (GST incl.)</b><b class="tnum" style="color:var(--purple-deep)">$4,040.00</b></div>
+                  <div style="display:flex;justify-content:space-between;padding:3px 0;color:#9a6a00"><span>Retainer payable now</span><b class="tnum">$1,500.00</b></div>
+                </div>
+                <p style="margin-top:10px;font-size:11px;color:#5b5575"><svg data-l="shield-check" style="width:12px;height:12px;vertical-align:-2px"></svg> Provided with the OMARA Consumer Guide. No paid work or client work-product is released before this agreement is signed and the deposit recorded.</p>
+              </div>
+            </div>
+            <div class="rc-foot">
+              <span class="hint"><svg data-l="pencil"></svg>Override: use my own letter · waive deposit</span>
+              <span class="spacer"></span>
+              <button class="btn btn-ghost btn-sm" onclick="say('Edit letter — opens the draft for inline editing.')"><svg data-l="pencil"></svg>Edit draft</button>
+              <button class="btn btn-approve btn-sm" onclick="approveCard(this,'Letter approved · sent to Priya for e-signature')"><svg data-l="send"></svg>Approve & send</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="card" style="padding:18px" id="signCard">
+              <div class="sectiontitle"><svg data-l="pen-tool"></svg>Native e-signature</div>
+              <p class="muted" style="font-size:11.5px;margin-bottom:10px">Priya signs in her portal — type or draw. No printing, no scanning.</p>
+              <div id="sigPad" style="height:84px;border-radius:11px;border:1.5px dashed rgba(122,90,248,.4);display:grid;place-items:center;background:var(--ink-750);cursor:pointer" onclick="signNow()">
+                <span class="muted" style="font-size:12px" id="sigText"><svg data-l="pen-tool" style="width:14px;height:14px;vertical-align:-2px"></svg> Click to capture Priya's signature</span>
+              </div>
+              <div class="row mt12" style="gap:8px">
+                <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" onclick="say('Mark signed manually — manual override recorded.')"><svg data-l="check-check"></svg>Mark signed manually</button>
+              </div>
+            </div>
+
+            <div class="card mt16" style="padding:18px" id="depositCard">
+              <div class="sectiontitle"><svg data-l="banknote"></svg>Record deposit</div>
+              <p class="muted" style="font-size:11.5px;margin-bottom:10px">Manual payment — bank transfer / PayID. No card processing yet.</p>
+              <div class="grid-fields" style="grid-template-columns:1fr 1fr">
+                <div class="fld"><div class="k">Amount</div><div class="v tnum">$1,500.00 AUD</div></div>
+                <div class="fld"><div class="k">Method</div><div class="v">PayID transfer</div></div>
+                <div class="fld"><div class="k">Reference</div><div class="v tnum">PS-RET-0142</div></div>
+                <div class="fld"><div class="k">Received</div><div class="v">20 Jun 2026</div></div>
+              </div>
+              <button class="btn btn-ok btn-sm mt12" style="width:100%;justify-content:center" id="depBtn" onclick="recordDeposit()"><svg data-l="check"></svg>Confirm deposit received</button>
+            </div>
+
+            <div class="approved-banner mt16" id="gateBanner"><svg data-l="shield-check"></svg>Compliance gate cleared — letter signed, deposit recorded. Case can open.</div>
+            <button class="btn btn-approve mt12" id="openCaseBtn" style="width:100%;justify-content:center;display:none" onclick="goStage(3)"><svg data-l="folder-open"></svg>Open the case file <svg data-l="arrow-right"></svg></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== STAGE 4 — OPEN CASE ===== -->
+      <section class="screen" data-screen="3">
+        <div class="stagehead">
+          <div class="ico"><svg data-l="folder-open"></svg></div>
+          <div>
+            <div class="eyebrow">Stage 4 · Case Opened</div>
+            <h2>Case MM-2026-0142 is live</h2>
+            <p>Compliance gate cleared. Pulse opened the case file and seeded it with everything captured so far. The portal account already exists from qualify — no second login for Priya.</p>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="card" style="padding:20px">
+            <div class="row" style="justify-content:space-between;margin-bottom:14px">
+              <div class="row"><div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));display:grid;place-items:center;color:#fff;font-family:'Outfit';font-weight:700;font-size:16px">PS</div>
+                <div><div style="font-family:'Outfit';font-weight:700;font-size:17px">Priya Sharma</div><div class="muted" style="font-size:12px">Electrical Engineer · ANZSCO 233311</div></div></div>
+              <span class="pill info"><svg data-l="zap"></svg>Priority</span>
+            </div>
+            <div class="grid-fields">
+              <div class="fld"><div class="k">Case ref</div><div class="v tnum">MM-2026-0142</div></div>
+              <div class="fld"><div class="k">Stage</div><div class="v">Case opened</div></div>
+              <div class="fld"><div class="k">Pathway</div><div class="v">186 ENS · TRT</div></div>
+              <div class="fld"><div class="k">Sponsor</div><div class="v">BrightGrid Energy</div></div>
+              <div class="fld"><div class="k">Current visa</div><div class="v">Subclass 482 Core Skills</div></div>
+              <div class="fld"><div class="k">Subsequent entrant</div><div class="v">Arjun Sharma</div></div>
+            </div>
+            <button class="btn btn-approve mt16" style="width:100%;justify-content:center" onclick="goStage(4)"><svg data-l="list-checks"></svg>Continue to checklist <svg data-l="arrow-right"></svg></button>
+          </div>
+
+          <div class="card" style="padding:20px">
+            <div class="sectiontitle"><svg data-l="git-commit-vertical"></svg>Case timeline</div>
+            <div class="tl">
+              <div class="tlitem done"><div class="pt"></div><div class="tt">Qualified</div><div class="td">Pathway 186 ENS (TRT) confirmed · 20 Jun 2026</div></div>
+              <div class="tlitem done"><div class="pt"></div><div class="tt">Portal account created</div><div class="td">priya.sharma@email.com · one login</div></div>
+              <div class="tlitem done"><div class="pt"></div><div class="tt">Engagement letter signed</div><div class="td">Native e-sign · $4,040 costs agreement</div></div>
+              <div class="tlitem done"><div class="pt"></div><div class="tt">Deposit recorded</div><div class="td">$1,500 PayID · ref PS-RET-0142</div></div>
+              <div class="tlitem"><div class="pt"></div><div class="tt">Case opened</div><div class="td">MM-2026-0142 · you're here</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== STAGE 5 — CHECKLIST ===== -->
+      <section class="screen" data-screen="4">
+        <div class="stagehead">
+          <div class="ico"><svg data-l="list-checks"></svg></div>
+          <div>
+            <div class="eyebrow">Stage 5 · Document Checklist</div>
+            <h2>Pulse built the 186 ENS checklist</h2>
+            <p>Auto-generated for the TRT pathway plus subsequent entrant, grouped the way the Department expects. Confirm it (it's fully editable), then send it straight to Priya's portal.</p>
+          </div>
+        </div>
+
+        <div class="card reviewcard mb12">
+          <div class="rc-head">
+            <span class="badge-ai"><svg data-l="sparkles"></svg>AI-generated · 16 items</span>
+            <span class="ttl">Checklist ready for your confirmation</span>
+            <span class="spacer"></span>
+            <button class="btn btn-ghost btn-sm" onclick="say('Add item — would insert a custom checklist row.')"><svg data-l="plus"></svg>Add item</button>
+            <button class="btn btn-approve btn-sm" onclick="sendChecklist(this)"><svg data-l="send"></svg>Confirm & send to portal</button>
+          </div>
+        </div>
+
+        <div class="grid2" style="grid-template-columns:1fr 1fr">
+          <div>
+            <div class="clgroup">
+              <div class="ghead"><svg data-l="fingerprint"></svg>Identity</div>
+              <div class="clitem"><span class="chk"></span><div class="nm">Passport — Priya<span class="sub"> & Arjun</span></div><span class="pill" style="font-size:10px">Required</span></div>
+              <div class="clitem"><span class="chk"></span><div class="nm">Birth certificate<div class="sub">Priya</div></div><span class="pill" style="font-size:10px">Required</span></div>
+              <div class="clitem"><span class="chk"></span><div class="nm">Marriage certificate<div class="sub">non-English → translation</div></div><span class="pill warn" style="font-size:10px">Required</span></div>
+            </div>
+            <div class="clgroup">
+              <div class="ghead"><svg data-l="graduation-cap"></svg>Skills & qualifications</div>
+              <div class="clitem"><span class="chk"></span><div class="nm">Skills assessment<div class="sub">Engineers Australia</div></div><span class="pill" style="font-size:10px">Required</span></div>
+              <div class="clitem"><span class="chk"></span><div class="nm">Degree + transcripts</div><span class="pill" style="font-size:10px">Required</span></div>
+              <div class="clitem"><span class="chk"></span><div class="nm">CV / résumé</div><span class="pill" style="font-size:10px">Required</span></div>
+            </div>
+            <div class="clgroup">
+              <div class="ghead"><svg data-l="languages"></svg>English</div>
+              <div class="clitem"><span class="chk"></span><div class="nm">PTE Academic / IELTS<div class="sub">Competent+</div></div><span class="pill" style="font-size:10px">Required</span></div>
+            </div>
+          </div>
+          <div>
+            <div class="clgroup">
+              <div class="ghead"><svg data-l="briefcase"></svg>Employment</div>
+              <div class="clitem"><span class="chk"></span><div class="nm">Employment contract<div class="sub">BrightGrid</div></div><span class="pill" style="font-size:10px">Required</span></div>
+              <div class="clitem"><span class="chk"></span><div class="nm">Payslips</div><span class="pill" style="font-size:10px">Required</span></div>
+              <div class="clitem"><span class="chk"></span><div class="nm">Employment reference letters</div><span class="pill" style="font-size:10px">Required</span></div>
+              <div class="clitem"><span class="chk"></span><div class="nm">Position description</div><span class="pill" style="font-size:10px">Required</span></div>
+            </div>
+            <div class="clgroup">
+              <div class="ghead"><svg data-l="shield"></svg>Character</div>
+              <div class="clitem"><span class="chk"></span><div class="nm">AFP police check</div><span class="pill" style="font-size:10px">Required</span></div>
+              <div class="clitem"><span class="chk"></span><div class="nm">Indian PCC<div class="sub">police clearance</div></div><span class="pill" style="font-size:10px">Required</span></div>
+            </div>
+            <div class="clgroup">
+              <div class="ghead"><svg data-l="heart-pulse"></svg>Health</div>
+              <div class="clitem"><span class="chk"></span><div class="nm">HAP ID — Bupa medicals</div><span class="pill" style="font-size:10px">Required</span></div>
+            </div>
+            <div class="clgroup">
+              <div class="ghead"><svg data-l="building-2"></svg>Sponsor / Nomination</div>
+              <div class="clitem"><span class="chk"></span><div class="nm">BrightGrid nomination + financials</div><span class="pill" style="font-size:10px">Required</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== STAGE 6 — DOCUMENT COLLECTION (CLIENT PORTAL) ===== -->
+      <section class="screen" data-screen="5">
+        <div class="stagehead">
+          <div class="ico"><svg data-l="cloud-upload"></svg></div>
+          <div>
+            <div class="eyebrow">Stage 6 · Document Collection</div>
+            <h2>Pulse is watching the uploads</h2>
+            <p>This is what Priya sees in her portal — warm, no jargon, never "Form 80". As documents arrive, the copilot logs each one and starts extracting. <b style="color:var(--violet-2)">11 of 16 collected.</b></p>
+          </div>
+        </div>
+
+        <div class="grid2" style="grid-template-columns:1.15fr .85fr">
+          <div class="portal">
+            <div class="phead">
+              <div class="av">PS</div>
+              <div style="flex:1"><div class="ht">Hi Priya 👋</div><div class="hs">Meridian Migration · "Tell us your story. We'll tell you what's possible."</div></div>
+              <span class="clientmark"><svg data-l="user" style="width:11px;height:11px"></svg>Client view</span>
+            </div>
+            <div class="pbody">
+              <div class="row" style="justify-content:space-between;font-size:12px;color:var(--gray-text)"><span style="font-weight:600;color:var(--navy)">Your documents</span><span class="tnum">11 of 16 uploaded</span></div>
+              <div class="prog"><i style="width:69%"></i></div>
+              <div class="muted" style="font-size:11px;color:var(--gray-text)">Almost there — 5 to go. We'll take it from here.</div>
+
+              <div class="upgrid">
+                <div class="upfile"><div class="ic"><svg data-l="file-check-2"></svg></div><div style="min-width:0"><div class="fn">passport_priya.pdf</div><div class="fs">1.2 MB · uploaded</div></div></div>
+                <div class="upfile"><div class="ic"><svg data-l="file-check-2"></svg></div><div style="min-width:0"><div class="fn">EngineersAustralia_SkillsAssessment.pdf</div><div class="fs">880 KB · uploaded</div></div></div>
+                <div class="upfile"><div class="ic"><svg data-l="file-check-2"></svg></div><div style="min-width:0"><div class="fn">PTE_result.pdf</div><div class="fs">420 KB · uploaded</div></div></div>
+                <div class="upfile"><div class="ic"><svg data-l="file-check-2"></svg></div><div style="min-width:0"><div class="fn">employment_reference_BrightGrid.pdf</div><div class="fs">640 KB · uploaded</div></div></div>
+                <div class="upfile"><div class="ic"><svg data-l="file-check-2"></svg></div><div style="min-width:0"><div class="fn">marriage_certificate.pdf</div><div class="fs">510 KB · uploaded</div></div></div>
+                <div class="upfile" style="border-style:dashed;opacity:.7;cursor:pointer" onclick="say('Upload — in the real portal Priya would attach a file here.')"><div class="ic" style="background:rgba(217,119,6,.12);color:var(--amber)"><svg data-l="upload"></svg></div><div style="min-width:0"><div class="fn" style="color:var(--amber)">Indian PCC</div><div class="fs">Tap to upload</div></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="padding:18px">
+            <div class="sectiontitle"><svg data-l="radar"></svg>Pulse · live collection feed</div>
+            <div class="tl">
+              <div class="tlitem done"><div class="pt"></div><div class="tt">passport_priya.pdf received</div><div class="td">Extracting identity fields… <span style="color:var(--ok)">9 fields read</span></div></div>
+              <div class="tlitem done"><div class="pt"></div><div class="tt">Skills assessment received</div><div class="td">ANZSCO 233311 · positive · valid</div></div>
+              <div class="tlitem done"><div class="pt"></div><div class="tt">PTE result received</div><div class="td">Overall 79 · Competent+ confirmed</div></div>
+              <div class="tlitem done"><div class="pt"></div><div class="tt">Employment reference received</div><div class="td">BrightGrid · start 18 Jul 2022</div></div>
+              <div class="tlitem"><div class="pt"></div><div class="tt">Awaiting: Indian PCC, AFP refresh</div><div class="td">Nudge sent to Priya's portal</div></div>
+            </div>
+            <button class="btn btn-approve mt16" style="width:100%;justify-content:center" onclick="goStage(6)"><svg data-l="scan-search"></svg>Review what Pulse verified <svg data-l="arrow-right"></svg></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== STAGE 7 — VERIFICATION ===== -->
+      <section class="screen" data-screen="6">
+        <div class="stagehead">
+          <div class="ico"><svg data-l="scan-search"></svg></div>
+          <div>
+            <div class="eyebrow">Stage 7 · AI Verification</div>
+            <h2>Pulse checked every document — 2 need you</h2>
+            <p>The copilot extracted fields and cross-validated them. Five checks are green and self-explanatory. Two flags need your call, and one's an FYI. Approve a fix and Pulse asks Priya — in plain language.</p>
+          </div>
+        </div>
+
+        <div class="grid2" style="grid-template-columns:1.3fr .7fr">
+          <div>
+            <div class="flag ok"><div class="fi"><svg data-l="check"></svg></div><div><div class="ft">Passport valid</div><div class="fd">Expires 01 Jun 2031 (&gt;6 months) — OK for lodgement.</div></div></div>
+            <div class="flag ok"><div class="fi"><svg data-l="check"></svg></div><div><div class="ft">Name matches across documents</div><div class="fd">PRIYA SHARMA consistent on passport, skills assessment & PTE result.</div></div></div>
+            <div class="flag ok"><div class="fi"><svg data-l="check"></svg></div><div><div class="ft">PTE Overall 79 — Competent+ English met</div><div class="fd">PTE Academic, 12 Feb 2025. Satisfies the English requirement.</div></div></div>
+            <div class="flag ok"><div class="fi"><svg data-l="check"></svg></div><div><div class="ft">Skills assessment valid</div><div class="fd">Engineers Australia — Positive, 09 May 2022. Within 3-year validity.</div></div></div>
+
+            <div class="flag warn"><div class="fi"><svg data-l="alert-triangle"></svg></div><div style="flex:1"><div class="ft">AFP police check is 14 months old</div><div class="fd">Must be &lt; 12 months at lodgement. Pulse recommends requesting a fresh AFP check now.</div></div><div class="fa"><button class="btn btn-approve btn-sm" onclick="resolveFlag(this,'Fresh AFP check requested in Priya\'s portal')"><svg data-l="check"></svg>Approve request</button></div></div>
+            <div class="flag warn"><div class="fi"><svg data-l="alert-triangle"></svg></div><div style="flex:1"><div class="ft">Indian PCC not yet uploaded</div><div class="fd">Required for character. Pulse drafted a friendly portal request explaining how to obtain it.</div></div><div class="fa"><button class="btn btn-approve btn-sm" onclick="resolveFlag(this,'Indian PCC request sent to Priya')"><svg data-l="check"></svg>Approve request</button></div></div>
+            <div class="flag info"><div class="fi"><svg data-l="info"></svg></div><div style="flex:1"><div class="ft">Marriage certificate is non-English</div><div class="fd">Certified translation required for lodgement. Pulse can list NAATI translators for Priya.</div></div><div class="fa"><button class="btn btn-ghost btn-sm" onclick="resolveFlag(this,'Certified translation requested')"><svg data-l="languages"></svg>Request translation</button></div></div>
+          </div>
+
+          <div class="card" style="padding:18px">
+            <div class="sectiontitle"><svg data-l="database"></svg>Single source of truth</div>
+            <p class="muted" style="font-size:11.5px;margin-bottom:12px">Extracted fields flow into one record — collected once, reused on every form.</p>
+            <div class="grid-fields" style="grid-template-columns:1fr">
+              <div class="fld"><div class="k"><svg data-l="scan-line" style="width:11px;height:11px"></svg>Family name <span class="src">passport</span></div><div class="v">SHARMA</div></div>
+              <div class="fld"><div class="k"><svg data-l="scan-line" style="width:11px;height:11px"></svg>DOB <span class="src">passport</span></div><div class="v">14 Mar 1991</div></div>
+              <div class="fld"><div class="k"><svg data-l="scan-line" style="width:11px;height:11px"></svg>Passport no. <span class="src">passport</span></div><div class="v tnum">Z4123877</div></div>
+              <div class="fld"><div class="k"><svg data-l="graduation-cap" style="width:11px;height:11px"></svg>Occupation <span class="src">skills assess.</span></div><div class="v">Elec. Engineer · 233311</div></div>
+              <div class="fld"><div class="k"><svg data-l="briefcase" style="width:11px;height:11px"></svg>Employer <span class="src">employment ref</span></div><div class="v">BrightGrid Energy</div></div>
+              <div class="fld"><div class="k"><svg data-l="languages" style="width:11px;height:11px"></svg>English <span class="src">PTE result</span></div><div class="v">PTE 79</div></div>
+            </div>
+            <button class="btn btn-approve mt16" style="width:100%;justify-content:center" onclick="goStage(7)"><svg data-l="wand-sparkles"></svg>Auto-fill the forms <svg data-l="arrow-right"></svg></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== STAGE 8 — FORM AUTO-FILL HERO ===== -->
+      <section class="screen" data-screen="7">
+        <div class="stagehead">
+          <div class="ico" style="background:linear-gradient(135deg,rgba(122,90,248,.4),rgba(62,28,150,.5));box-shadow:0 0 34px -4px var(--glow)"><svg data-l="wand-sparkles"></svg></div>
+          <div>
+            <div class="eyebrow" style="color:var(--violet-2)">Stage 8 · The Hero — Government Form Auto-fill</div>
+            <h2>"I drafted Form 80 from Priya's documents."</h2>
+            <p style="color:var(--txt-2)"><b style="color:var(--violet-2)">47 of 52 fields auto-filled · 5 need Priya to confirm.</b> Every filled field is tagged with where it came from. The 5 gaps are phrased as plain questions for her portal — she never sees "Form 80". You verify a finished form and approve.</p>
+          </div>
+        </div>
+
+        <div class="formtabs">
+          <button class="ftab active" onclick="switchForm(this,'f80')"><span class="rdy"></span>Form 80 <span class="mini">47/52</span></button>
+          <button class="ftab" onclick="switchForm(this,'f1221')"><span class="rdy"></span>Form 1221 <span class="mini">34/38</span></button>
+          <button class="ftab" onclick="switchForm(this,'f956')"><span class="rdy"></span>Form 956 <span class="mini">complete</span></button>
+          <button class="ftab" onclick="switchForm(this,'nom')"><span class="rdy"></span>186 Nomination <span class="mini">draft</span></button>
+        </div>
+
+        <div class="hero-grid">
+          <!-- FORM 80 -->
+          <div class="formdoc" id="form-f80">
+            <div class="fhead">
+              <div class="seal"><svg data-l="landmark"></svg></div>
+              <div><div class="ft">Form 80 — Personal particulars for character assessment</div><div class="fsub">Priya Sharma · ~18 pages · auto-drafted by Pulse</div></div>
+              <div class="gov">Department of<br>Home Affairs</div>
+            </div>
+            <div class="fbody">
+              <div class="frow filled"><div class="fk">Family name</div><div class="fv">SHARMA <span class="srcdoc"><svg data-l="scan-line"></svg>passport scan</span></div></div>
+              <div class="frow filled"><div class="fk">Given names</div><div class="fv">PRIYA <span class="srcdoc"><svg data-l="scan-line"></svg>passport scan</span></div></div>
+              <div class="frow filled"><div class="fk">Sex</div><div class="fv">Female <span class="srcdoc"><svg data-l="scan-line"></svg>passport scan</span></div></div>
+              <div class="frow filled"><div class="fk">Date of birth</div><div class="fv">14 March 1991 <span class="srcdoc"><svg data-l="scan-line"></svg>passport scan</span></div></div>
+              <div class="frow filled"><div class="fk">Place of birth</div><div class="fv">Pune, Maharashtra, India <span class="srcdoc"><svg data-l="scan-line"></svg>passport scan</span></div></div>
+              <div class="frow filled"><div class="fk">Country of birth</div><div class="fv">India <span class="srcdoc"><svg data-l="scan-line"></svg>passport scan</span></div></div>
+              <div class="frow filled"><div class="fk">Passport number</div><div class="fv">Z4123877 <span class="srcdoc"><svg data-l="scan-line"></svg>passport scan</span></div></div>
+              <div class="frow filled"><div class="fk">Passport issue</div><div class="fv">02 Jun 2021, New Delhi <span class="srcdoc"><svg data-l="scan-line"></svg>passport scan</span></div></div>
+              <div class="frow filled"><div class="fk">Passport expiry</div><div class="fv">01 Jun 2031 <span class="srcdoc"><svg data-l="scan-line"></svg>passport scan</span></div></div>
+              <div class="frow filled"><div class="fk">Nationality</div><div class="fv">Indian <span class="srcdoc"><svg data-l="scan-line"></svg>passport scan</span></div></div>
+              <div class="frow filled"><div class="fk">Current address</div><div class="fv">14/88 Boundary St, West End, QLD 4101 <span class="srcdoc"><svg data-l="file-text"></svg>intake form</span></div></div>
+              <div class="frow filled"><div class="fk">Phone (AU)</div><div class="fv">+61 4xx xxx 111 <span class="srcdoc"><svg data-l="file-text"></svg>intake form</span></div></div>
+              <div class="frow filled"><div class="fk">Email</div><div class="fv">priya.sharma@email.com <span class="srcdoc"><svg data-l="file-text"></svg>intake form</span></div></div>
+              <div class="frow filled"><div class="fk">Occupation</div><div class="fv">Electrical Engineer (ANZSCO 233311) <span class="srcdoc"><svg data-l="graduation-cap"></svg>skills assessment</span></div></div>
+              <div class="frow filled"><div class="fk">Current employer</div><div class="fv">BrightGrid Energy Pty Ltd <span class="srcdoc"><svg data-l="briefcase"></svg>employment ref</span></div></div>
+              <div class="frow filled"><div class="fk">Employment start</div><div class="fv">18 July 2022 <span class="srcdoc"><svg data-l="briefcase"></svg>employment contract</span></div></div>
+              <div class="frow filled"><div class="fk">Current visa</div><div class="fv">Subclass 482 (Skills in Demand) <span class="srcdoc"><svg data-l="badge-check"></svg>VEVO / intake</span></div></div>
+
+              <div style="padding:9px 20px;background:rgba(251,191,36,.1);font-size:10.5px;font-weight:700;color:#9a6a00;letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;gap:7px"><svg data-l="help-circle" style="width:13px;height:13px"></svg>5 gaps — Pulse will ask Priya in plain language</div>
+              <div class="frow gap"><div class="fk">10-yr address history</div><div class="fv">Gap: 2016–2019 missing <span class="srcgap">ASK PRIYA</span></div></div>
+              <div class="frow gap"><div class="fk">Military service</div><div class="fv">Confirm: None? <span class="srcgap">ASK PRIYA</span></div></div>
+              <div class="frow gap"><div class="fk">Name spelling variations</div><div class="fv">Any variants on documents? <span class="srcgap">ASK PRIYA</span></div></div>
+              <div class="frow gap"><div class="fk">Previous visa refusals</div><div class="fv">Confirm: None? <span class="srcgap">ASK PRIYA</span></div></div>
+              <div class="frow gap"><div class="fk">Overseas police check ref</div><div class="fv">Indian PCC reference no. <span class="srcgap">ASK PRIYA</span></div></div>
+            </div>
+          </div>
+
+          <!-- FORM 1221 -->
+          <div class="formdoc" id="form-f1221" style="display:none">
+            <div class="fhead">
+              <div class="seal"><svg data-l="landmark"></svg></div>
+              <div><div class="ft">Form 1221 — Additional personal particulars</div><div class="fsub">Supplements Form 80 · 34/38 auto-filled</div></div>
+              <div class="gov">Department of<br>Home Affairs</div>
+            </div>
+            <div class="fbody">
+              <div class="frow filled"><div class="fk">Address (2019–2022)</div><div class="fv">23 MG Road, Pune, India <span class="srcdoc"><svg data-l="file-text"></svg>Form 1221 Q&amp;A</span></div></div>
+              <div class="frow filled"><div class="fk">Marriage date</div><div class="fv">22 November 2018, Pune <span class="srcdoc"><svg data-l="scan-line"></svg>marriage cert</span></div></div>
+              <div class="frow filled"><div class="fk">Spouse</div><div class="fv">Arjun Sharma (subsequent entrant) <span class="srcdoc"><svg data-l="file-text"></svg>intake form</span></div></div>
+              <div class="frow filled"><div class="fk">Skills assessment</div><div class="fv">Engineers Australia — Positive, 09 May 2022 <span class="srcdoc"><svg data-l="graduation-cap"></svg>skills assess.</span></div></div>
+              <div class="frow filled"><div class="fk">English test</div><div class="fv">PTE Academic — Overall 79, 12 Feb 2025 <span class="srcdoc"><svg data-l="languages"></svg>PTE result</span></div></div>
+              <div class="frow filled"><div class="fk">Country of birth</div><div class="fv">India <span class="srcdoc"><svg data-l="scan-line"></svg>passport scan</span></div></div>
+              <div style="padding:9px 20px;background:rgba(251,191,36,.1);font-size:10.5px;font-weight:700;color:#9a6a00;letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;gap:7px"><svg data-l="help-circle" style="width:13px;height:13px"></svg>4 gaps for Priya</div>
+              <div class="frow gap"><div class="fk">Full travel history (10 yr)</div><div class="fv">Confirm trips outside India/AU <span class="srcgap">ASK PRIYA</span></div></div>
+              <div class="frow gap"><div class="fk">Education dates</div><div class="fv">Degree start/end years <span class="srcgap">ASK PRIYA</span></div></div>
+              <div class="frow gap"><div class="fk">Other family members</div><div class="fv">Parents / siblings details <span class="srcgap">ASK PRIYA</span></div></div>
+              <div class="frow gap"><div class="fk">Previous addresses overseas</div><div class="fv">Pre-2019 confirmation <span class="srcgap">ASK PRIYA</span></div></div>
+            </div>
+          </div>
+
+          <!-- FORM 956 -->
+          <div class="formdoc" id="form-f956" style="display:none">
+            <div class="fhead">
+              <div class="seal" style="background:linear-gradient(135deg,var(--teal),var(--teal-lite))"><svg data-l="user-cog"></svg></div>
+              <div><div class="ft">Form 956 — Appointment of registered migration agent</div><div class="fsub">Complete · ready to sign</div></div>
+              <div class="gov">Department of<br>Home Affairs</div>
+            </div>
+            <div class="fbody">
+              <div class="frow filled"><div class="fk">Agent name</div><div class="fv">Gideon Maris <span class="srcdoc"><svg data-l="user"></svg>firm profile</span></div></div>
+              <div class="frow filled"><div class="fk">MARN</div><div class="fv">1789456 <span class="srcdoc"><svg data-l="user"></svg>firm profile</span></div></div>
+              <div class="frow filled"><div class="fk">Firm</div><div class="fv">Meridian Migration Co. <span class="srcdoc"><svg data-l="building-2"></svg>firm profile</span></div></div>
+              <div class="frow filled"><div class="fk">Applicant</div><div class="fv">Priya Sharma <span class="srcdoc"><svg data-l="scan-line"></svg>passport scan</span></div></div>
+              <div class="frow filled"><div class="fk">Applicant DOB</div><div class="fv">14 March 1991 <span class="srcdoc"><svg data-l="scan-line"></svg>passport scan</span></div></div>
+              <div class="frow filled"><div class="fk">Declaration</div><div class="fv">Agent consents to act <span class="srcdoc"><svg data-l="check"></svg>auto</span></div></div>
+              <div style="padding:11px 20px;font-size:11.5px;color:#1B7B6F;background:rgba(45,212,191,.08);display:flex;align-items:center;gap:7px"><svg data-l="check-check" style="width:14px;height:14px"></svg>All fields complete — no gaps. Awaiting e-signature.</div>
+            </div>
+          </div>
+
+          <!-- NOMINATION -->
+          <div class="formdoc" id="form-nom" style="display:none">
+            <div class="fhead">
+              <div class="seal"><svg data-l="building-2"></svg></div>
+              <div><div class="ft">Subclass 186 Nomination — BrightGrid Energy</div><div class="fsub">Employer Nomination Scheme · TRT stream</div></div>
+              <div class="gov">Department of<br>Home Affairs</div>
+            </div>
+            <div class="fbody">
+              <div class="frow filled"><div class="fk">Nominating employer</div><div class="fv">BrightGrid Energy Pty Ltd <span class="srcdoc"><svg data-l="building-2"></svg>sponsor record</span></div></div>
+              <div class="frow filled"><div class="fk">Position</div><div class="fv">Electrical Engineer (ANZSCO 233311) <span class="srcdoc"><svg data-l="graduation-cap"></svg>skills assess.</span></div></div>
+              <div class="frow filled"><div class="fk">Nominee</div><div class="fv">Priya Sharma <span class="srcdoc"><svg data-l="scan-line"></svg>passport scan</span></div></div>
+              <div class="frow filled"><div class="fk">Current visa held</div><div class="fv">Subclass 482 · same occupation <span class="srcdoc"><svg data-l="badge-check"></svg>VEVO</span></div></div>
+              <div class="frow filled"><div class="fk">Employment start</div><div class="fv">18 July 2022 <span class="srcdoc"><svg data-l="briefcase"></svg>contract</span></div></div>
+              <div style="padding:9px 20px;background:rgba(251,191,36,.1);font-size:10.5px;font-weight:700;color:#9a6a00;letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;gap:7px"><svg data-l="help-circle" style="width:13px;height:13px"></svg>1 gap</div>
+              <div class="frow gap"><div class="fk">Annual earnings (AGAT)</div><div class="fv">Confirm salary figure with HR <span class="srcgap">ASK BRIGHTGRID</span></div></div>
+            </div>
+          </div>
+
+          <!-- SIDE PANEL -->
+          <div class="hero-side">
+            <div class="card glow" style="overflow:hidden">
+              <div class="donutwrap">
+                <div class="donut">
+                  <svg width="128" height="128" viewBox="0 0 128 128">
+                    <circle cx="64" cy="64" r="54" fill="none" stroke="rgba(122,90,248,.12)" stroke-width="14"/>
+                    <circle cx="64" cy="64" r="54" fill="none" stroke="url(#g)" stroke-width="14" stroke-linecap="round" stroke-dasharray="339.3" stroke-dashoffset="32.6"/>
+                    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34D399"/><stop offset="1" stop-color="#2DD4BF"/></linearGradient></defs>
+                  </svg>
+                  <div class="ctr"><div class="big tnum" id="donutBig">47<span style="font-size:15px;color:var(--txt-3)">/52</span></div><div class="small">fields filled</div></div>
+                </div>
+                <div style="width:100%;margin-top:14px">
+                  <div class="legrow"><span class="ld" style="background:var(--ok)"></span>Auto-filled from documents<span class="lv tnum" id="legFilled">47</span></div>
+                  <div class="legrow"><span class="ld" style="background:var(--warn)"></span>Need Priya to confirm<span class="lv tnum" id="legGap">5</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card reviewcard mt16">
+              <div class="rc-head" style="padding-bottom:10px"><span class="badge-ai"><svg data-l="message-circle"></svg>Drafted for Priya</span></div>
+              <div class="rc-body" style="padding-top:0">
+                <p class="muted" style="font-size:11.5px;margin-bottom:10px">Pulse turned the 5 gaps into plain-language questions for her portal — no form numbers:</p>
+                <div style="font-size:12px;color:var(--txt-2);line-height:1.65">
+                  <div class="row" style="align-items:flex-start;gap:8px;margin-bottom:7px"><svg data-l="message-square" style="width:13px;height:13px;color:var(--violet-2);margin-top:3px"></svg>"Where did you live between 2016 and 2019?"</div>
+                  <div class="row" style="align-items:flex-start;gap:8px;margin-bottom:7px"><svg data-l="message-square" style="width:13px;height:13px;color:var(--violet-2);margin-top:3px"></svg>"Have you ever served in any military? (Most people: no)"</div>
+                  <div class="row" style="align-items:flex-start;gap:8px;margin-bottom:7px"><svg data-l="message-square" style="width:13px;height:13px;color:var(--violet-2);margin-top:3px"></svg>"Is your name spelled the same on every document?"</div>
+                  <div class="row" style="align-items:flex-start;gap:8px;margin-bottom:7px"><svg data-l="message-square" style="width:13px;height:13px;color:var(--violet-2);margin-top:3px"></svg>"Have you ever been refused an Australian visa?"</div>
+                  <div class="row" style="align-items:flex-start;gap:8px"><svg data-l="message-square" style="width:13px;height:13px;color:var(--violet-2);margin-top:3px"></svg>"What's the reference number on your Indian police check?"</div>
+                </div>
+              </div>
+              <div class="rc-foot" style="flex-direction:column;align-items:stretch;gap:8px">
+                <div class="row" style="gap:8px"><svg data-l="eye-off" style="width:13px;height:13px;color:var(--violet-2)"></svg><span class="hint" style="margin:0">Priya never sees "Form 80" — only human questions.</span></div>
+                <button class="btn btn-ghost btn-sm" style="justify-content:center" onclick="say('Sent — the 5 questions are now in Priya\'s portal.')"><svg data-l="send"></svg>Send 5 questions to Priya</button>
+                <button class="btn btn-approve" style="justify-content:center" onclick="approveForm(this)"><svg data-l="check-check"></svg>Verify & approve Form 80</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="approved-banner mt20" id="formBanner"><svg data-l="shield-check"></svg>Form 80 verified field-by-field and approved. Pulse drafted it — you signed off. Ready to bundle.</div>
+        <button class="btn btn-approve mt12" id="toBundleBtn" style="display:none" onclick="goStage(8)"><svg data-l="package"></svg>Assemble lodgement bundle <svg data-l="arrow-right"></svg></button>
+      </section>
+
+      <!-- ===== STAGE 9 — LODGEMENT BUNDLE ===== -->
+      <section class="screen" data-screen="8">
+        <div class="stagehead">
+          <div class="ico"><svg data-l="package-check"></svg></div>
+          <div>
+            <div class="eyebrow">Stage 9 · Lodgement Bundle</div>
+            <h2 id="lodgeTitle">"Bundle ready — all checks green. Shall I prep ImmiAccount?"</h2>
+            <p id="lodgeSub">4 forms, 16 documents, every item green-checked and ordered exactly the way ImmiAccount expects. Pulse never lodges alone — give the final word and it preps the lodgement for you.</p>
+          </div>
+        </div>
+
+        <div id="lodgePre">
+          <div class="card reviewcard mb12">
+            <div class="rc-head">
+              <span class="badge-ai"><svg data-l="sparkles"></svg>Bundle assembled by Pulse</span>
+              <span class="ttl">Pre-lodgement review — all green</span>
+              <span class="spacer"></span>
+              <div class="conf"><span>Completeness</span><div class="meter"><i style="width:100%"></i></div><span class="pct">100%</span></div>
+            </div>
+          </div>
+
+          <div class="grid2" style="grid-template-columns:1.1fr .9fr">
+            <div>
+              <div class="sectiontitle"><svg data-l="files"></svg>Forms <span class="muted" style="font-weight:400;font-size:11px">— auto-filled & verified</span></div>
+              <div class="bundle">
+                <div class="bitem"><div class="bi"><svg data-l="user-cog"></svg></div><div><div class="bn">Form 956</div><div class="bs">Agent appointment</div></div><span class="bcheck"><svg data-l="check-circle-2"></svg></span></div>
+                <div class="bitem"><div class="bi"><svg data-l="file-text"></svg></div><div><div class="bn">Form 80 — Priya</div><div class="bs">52/52 confirmed</div></div><span class="bcheck"><svg data-l="check-circle-2"></svg></span></div>
+                <div class="bitem"><div class="bi"><svg data-l="file-text"></svg></div><div><div class="bn">Form 80 — Arjun</div><div class="bs">Subsequent entrant</div></div><span class="bcheck"><svg data-l="check-circle-2"></svg></span></div>
+                <div class="bitem"><div class="bi"><svg data-l="file-plus"></svg></div><div><div class="bn">Form 1221 ×2</div><div class="bs">Priya + Arjun</div></div><span class="bcheck"><svg data-l="check-circle-2"></svg></span></div>
+                <div class="bitem"><div class="bi"><svg data-l="building-2"></svg></div><div><div class="bn">186 Nomination</div><div class="bs">BrightGrid · TRT</div></div><span class="bcheck"><svg data-l="check-circle-2"></svg></span></div>
+                <div class="bitem"><div class="bi"><svg data-l="shield-check"></svg></div><div><div class="bn">Visa application</div><div class="bs">186 ENS · TRT</div></div><span class="bcheck"><svg data-l="check-circle-2"></svg></span></div>
+              </div>
+            </div>
+            <div>
+              <div class="sectiontitle"><svg data-l="folder-check"></svg>Documents <span class="muted" style="font-weight:400;font-size:11px">— 16, ImmiAccount order</span></div>
+              <div class="card" style="padding:14px">
+                <div class="row" style="justify-content:space-between;padding:5px 0;font-size:12.5px"><span class="row" style="gap:8px"><svg data-l="check" style="width:14px;height:14px;color:var(--ok)"></svg>Identity (passport ×2, birth, marriage)</span><span class="pill ok" style="font-size:10px">4</span></div>
+                <div class="row" style="justify-content:space-between;padding:5px 0;font-size:12.5px"><span class="row" style="gap:8px"><svg data-l="check" style="width:14px;height:14px;color:var(--ok)"></svg>Skills & qualifications</span><span class="pill ok" style="font-size:10px">3</span></div>
+                <div class="row" style="justify-content:space-between;padding:5px 0;font-size:12.5px"><span class="row" style="gap:8px"><svg data-l="check" style="width:14px;height:14px;color:var(--ok)"></svg>Employment evidence</span><span class="pill ok" style="font-size:10px">4</span></div>
+                <div class="row" style="justify-content:space-between;padding:5px 0;font-size:12.5px"><span class="row" style="gap:8px"><svg data-l="check" style="width:14px;height:14px;color:var(--ok)"></svg>English · PTE 79</span><span class="pill ok" style="font-size:10px">1</span></div>
+                <div class="row" style="justify-content:space-between;padding:5px 0;font-size:12.5px"><span class="row" style="gap:8px"><svg data-l="check" style="width:14px;height:14px;color:var(--ok)"></svg>Character (AFP fresh, Indian PCC)</span><span class="pill ok" style="font-size:10px">2</span></div>
+                <div class="row" style="justify-content:space-between;padding:5px 0;font-size:12.5px"><span class="row" style="gap:8px"><svg data-l="check" style="width:14px;height:14px;color:var(--ok)"></svg>Health · HAP ID</span><span class="pill ok" style="font-size:10px">1</span></div>
+                <div class="row" style="justify-content:space-between;padding:5px 0;font-size:12.5px"><span class="row" style="gap:8px"><svg data-l="check" style="width:14px;height:14px;color:var(--ok)"></svg>Sponsor / nomination</span><span class="pill ok" style="font-size:10px">1</span></div>
+                <div class="divider" style="margin:10px 0"></div>
+                <div class="row" style="justify-content:space-between"><span class="muted" style="font-size:11px">Certified translation (marriage cert)</span><span class="pill ok" style="font-size:10px"><svg data-l="check"></svg>attached</span></div>
+              </div>
+
+              <div class="card reviewcard mt16">
+                <div class="rc-foot" style="border-top:none;flex-direction:column;align-items:stretch;gap:9px;background:transparent">
+                  <div class="row" style="gap:8px"><svg data-l="lock" style="width:14px;height:14px;color:var(--violet-2)"></svg><span class="hint" style="margin:0">Pulse drafts but <b style="color:var(--violet-2)">never lodges alone</b>. Your approval lodges it.</span></div>
+                  <button class="btn btn-approve" style="justify-content:center" onclick="lodge()"><svg data-l="rocket"></svg>Approve & lodge with Home Affairs (ImmiAccount)</button>
+                  <button class="btn btn-ghost btn-sm" style="justify-content:center" onclick="say('Bundle exported as PDF — you can lodge manually in ImmiAccount.')"><svg data-l="download"></svg>Export bundle & lodge manually</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="lodgePost" style="display:none">
+          <div class="card glow" style="padding:6px">
+            <div class="success">
+              <div class="ring"><svg data-l="check"></svg></div>
+              <h2 style="font-size:22px">Lodged with the Department of Home Affairs</h2>
+              <p class="v2" style="max-width:480px;margin:8px auto 0">Submitted via ImmiAccount on your approval. Pulse will watch the application and ping you on any status change.</p>
+              <div class="grid-fields mt20" style="grid-template-columns:1fr 1fr 1fr;max-width:620px;margin-left:auto;margin-right:auto">
+                <div class="fld"><div class="k">Application ID</div><div class="v tnum">EGOZ-9R4221</div></div>
+                <div class="fld"><div class="k">Status</div><div class="v" style="color:var(--ok)">Received — in progress</div></div>
+                <div class="fld"><div class="k">Lodged</div><div class="v">20 Jun 2026</div></div>
+              </div>
+              <div class="row mt20" style="justify-content:center;gap:10px">
+                <button class="btn btn-ghost" onclick="say('Bridging visa: Priya is on a BVA from lodgement — work rights continue.')"><svg data-l="info"></svg>Next steps</button>
+                <button class="btn btn-approve" onclick="goStage(0)"><svg data-l="rotate-ccw"></svg>Restart demo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ============ CHAT DOCK ============ -->
+  <aside class="dock">
+    <div class="dockhead">
+      <div class="orb"><svg data-l="sparkles"></svg></div>
+      <div style="flex:1">
+        <div class="dn">Pulse Copilot</div>
+        <div class="ds"><span class="ld"></span>Working · drafts but never lodges</div>
+      </div>
+      <button class="iconbtn" title="Copilot activity"><svg data-l="history"></svg></button>
+    </div>
+
+    <div class="chatscroll" id="chat">
+      <div class="msg ai">
+        <div class="who">Pulse</div>
+        <div class="bub">Morning Gideon. I triaged your inbox overnight. One stands out: a <b>WhatsApp from a +91 number</b> — a 482 holder in Brisbane chasing employer-backed PR.
+          <div class="mini-card">
+            <div class="mt"><svg data-l="sparkles"></svg>Priya Sharma · match 92%</div>
+            <div class="mr"><span>482 → 186 ENS</span><span style="color:var(--ok)">Strong · urgent</span></div>
+          </div>
+          <div class="qa"><button class="qa-btn" onclick="goStage(1)">Open & qualify</button><button class="qa-btn" onclick="say('All 5 inquiries scored — see the inbox list.')">Why 92%?</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="typing" id="typing"><span class="d"></span><span class="d"></span><span class="d"></span></div>
+
+    <div class="dockinput">
+      <div class="box">
+        <svg data-l="message-circle" style="width:16px;height:16px;color:var(--txt-3)"></svg>
+        <input id="chatInput" placeholder="Ask Pulse to draft, check, or summarise…" onkeydown="if(event.key==='Enter')sendChat()" />
+        <button class="send" onclick="sendChat()"><svg data-l="arrow-up"></svg></button>
+      </div>
+      <div class="sugg">
+        <button onclick="sendChat('Summarise Priya\'s case')">Summarise case</button>
+        <button onclick="sendChat('What\'s left to lodge?')">What's left?</button>
+        <button onclick="sendChat('Draft the next portal nudge')">Draft a nudge</button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- toast -->
+<div class="toast" id="toast"><div class="ti"><svg data-l="check"></svg></div><div><div class="tt" id="toastT">Approved</div><div class="ts" id="toastS"></div></div></div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+/* ---------- icon hydrate ---------- */
+function hydrate(){
+  document.querySelectorAll('svg[data-l]').forEach(function(s){
+    if(s.dataset.done) return;
+    var name=s.getAttribute('data-l');
+    var node=lucide.createElement(lucide.icons[toPascal(name)]||lucide.icons.Circle);
+    for(var i=0;i<s.attributes.length;i++){var a=s.attributes[i]; if(a.name!=='data-l') node.setAttribute(a.name,a.value);}
+    node.dataset.done='1';
+    s.replaceWith(node);
+  });
+}
+function toPascal(k){return k.split('-').map(function(w){return w.charAt(0).toUpperCase()+w.slice(1)}).join('')}
+
+/* ---------- stage nav ---------- */
+var STAGES=['Inbox / Intake','Qualify + Consultation','Engagement Letter','Open Case','Checklist','Document Collection','AI Verification','Form Auto-fill','Lodgement Bundle'];
+var maxReached=0;
+function goStage(i){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('show')});
+  document.querySelector('.screen[data-screen="'+i+'"]').classList.add('show');
+  document.getElementById('topStage').textContent=STAGES[i];
+  document.getElementById('stageCount').textContent=(i+1)+' / 9';
+  if(i>maxReached) maxReached=i;
+  document.querySelectorAll('.rail .stage').forEach(function(s,idx){
+    s.classList.remove('active','done');
+    if(idx<i) s.classList.add('done');
+    if(idx===i) s.classList.add('active');
+  });
+  var pct=Math.round(((i)/8)*100); if(i===0)pct=11;
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('progPct').textContent=pct+'%';
+  document.getElementById('stageBody').scrollTop=0;
+  contextChat(i);
+}
+document.querySelectorAll('.rail .stage').forEach(function(s){s.addEventListener('click',function(){goStage(parseInt(s.dataset.go))})});
+
+/* ---------- chat dock ---------- */
+function pushMsg(html,who){
+  var c=document.getElementById('chat');
+  var d=document.createElement('div');
+  d.className='msg '+(who==='user'?'user':'ai');
+  d.innerHTML=(who==='user'?'':'<div class="who">Pulse</div>')+'<div class="bub">'+html+'</div>';
+  c.appendChild(d); hydrate(); c.scrollTop=c.scrollHeight;
+}
+function aiTyping(html,delay){
+  var t=document.getElementById('typing'); t.classList.add('show');
+  document.getElementById('chat').scrollTop=999999;
+  setTimeout(function(){t.classList.remove('show'); pushMsg(html,'ai')}, delay||1100);
+}
+function sendChat(preset){
+  var inp=document.getElementById('chatInput');
+  var txt=preset||inp.value.trim();
+  if(!txt) return;
+  pushMsg(escapeHtml(txt),'user'); inp.value='';
+  var r=replyFor(txt);
+  aiTyping(r,1000);
+}
+function escapeHtml(s){return s.replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+function replyFor(t){
+  t=t.toLowerCase();
+  if(t.indexOf('summar')>-1) return 'Priya Sharma, 34 · Electrical Engineer (ANZSCO 233311) · on a <b>482 Core Skills</b> with BrightGrid. Pathway: <b>186 ENS (TRT)</b> PR + spouse Arjun as subsequent entrant. Case <b>MM-2026-0142</b>. Letter signed, $1,500 deposit recorded, checklist sent, 11/16 docs in, forms auto-drafted.';
+  if(t.indexOf('left')>-1||t.indexOf('lodge')>-1) return 'Before lodgement I still need: <b>Indian PCC</b>, a <b>fresh AFP check</b> (current one is 14 months old), and the <b>certified translation</b> of the marriage certificate. Form 80 has 5 gaps I\'ve queued as plain questions for Priya.';
+  if(t.indexOf('nudge')>-1) return 'Drafted for Priya\'s portal: <i>"Hi Priya — you\'re almost done! We just need your Indian police certificate and a quick refresh of your AFP check. Tap here to upload 💜"</i> — want me to send it?';
+  if(t.indexOf('92')>-1||t.indexOf('why')>-1) return 'High score because: onshore 482 holder, employer already a sponsor, occupation on the skilled list, English & skills assessment done, and a clear 186 TRT pathway. The only risk is timing — flagged urgent.';
+  if(t.indexOf('form 80')>-1||t.indexOf('hero')>-1) return 'Form 80 is drafted: <b>47 of 52 fields auto-filled</b> from her documents, each tagged by source. 5 gaps need Priya to confirm. Head to stage 8 to verify and approve it.';
+  return 'On it. I can draft summaries, check documents, build checklists, auto-fill the DHA forms, or assemble the lodgement bundle — but I\'ll always hand it to you to approve before anything is sent or lodged.';
+}
+function contextChat(i){
+  var lines={
+    1:'Opened Priya\'s inquiry. I recommend <b>qualifying</b> her on the <b>186 ENS (TRT)</b> pathway — confidence 89%. Pick a consult mode and approve when ready.',
+    2:'Letter of Engagement drafted — OMARA-compliant, $4,040 total, $1,500 retainer. Approve & send for e-signature, then record the deposit to clear the compliance gate.',
+    3:'Case <b>MM-2026-0142</b> is open. Portal account already exists from qualify — no second login for Priya.',
+    4:'Built the <b>186 ENS checklist</b> — 16 items, grouped Identity → Sponsor. Confirm it and I\'ll push it to Priya\'s portal.',
+    5:'Watching uploads. <b>11 of 16</b> in. I\'m extracting fields as they land — skills assessment, PTE and employment ref already parsed.',
+    6:'Ran my checks. <b>2 flags need you</b>: the AFP check is 14 months old, and the Indian PCC isn\'t in yet. Approve a fix and I\'ll ask Priya.',
+    7:'<b>Form 80 drafted — 47/52 filled.</b> Each field is source-tagged; the 5 gaps are plain-language questions for Priya. Verify and approve when you\'re happy.',
+    8:'Bundle assembled: 4 forms, 16 docs, all green. I\'ve ordered it for ImmiAccount — give the word and I\'ll prep the lodgement. I won\'t lodge without you.'
+  };
+  if(lines[i]) aiTyping(lines[i],850);
+}
+function say(t,confirm){ aiTyping(escapeHtml(t),700); }
+
+/* ---------- interactions ---------- */
+function toast(t,s){
+  var el=document.getElementById('toast');
+  document.getElementById('toastT').textContent=t;
+  document.getElementById('toastS').textContent=s||'';
+  el.classList.add('show'); hydrate();
+  clearTimeout(window._tt); window._tt=setTimeout(function(){el.classList.remove('show')},2600);
+}
+function approveCard(btn,msg){
+  var foot=btn.closest('.rc-foot');
+  foot.innerHTML='<span class="hint" style="color:var(--ok)"><svg data-l="check-circle-2"></svg>'+msg+'</span>';
+  hydrate(); toast('Approved',msg);
+  aiTyping('Done — '+escapeHtml(msg.toLowerCase())+'.',700);
+}
+function pickOpt(el){
+  el.parentElement.querySelectorAll('.opt').forEach(function(o){o.classList.remove('sel')});
+  el.classList.add('sel');
+}
+function qualifyAction(){
+  toast('Priya qualified','Portal account created · case moving to engagement');
+  aiTyping('Qualified. I\'ve <b>created her portal account</b> (one login, no PINs) and moved the case to <b>engagement</b>. The letter draft is ready for you.',1000);
+  setTimeout(function(){goStage(2)},1300);
+}
+/* engagement gate */
+var signed=false, deposited=false;
+function signNow(){
+  document.getElementById('sigText').innerHTML='<span style="font-family:\'Outfit\';font-style:italic;font-size:22px;color:var(--violet-2)">Priya Sharma</span>';
+  document.getElementById('sigPad').style.borderColor='var(--ok)';
+  signed=true; toast('Signature captured','Native e-sign recorded'); checkGate();
+}
+function recordDeposit(){
+  var b=document.getElementById('depBtn');
+  b.innerHTML='<svg data-l="check-circle-2"></svg>Deposit received · $1,500'; b.classList.remove('btn-ok'); b.style.background='rgba(52,211,153,.16)'; b.style.color='var(--ok)'; hydrate();
+  deposited=true; toast('Deposit recorded','$1,500 PayID · ref PS-RET-0142'); checkGate();
+}
+function checkGate(){
+  if(signed&&deposited){
+    document.getElementById('gateBanner').classList.add('show');
+    document.getElementById('openCaseBtn').style.display='inline-flex';
+    aiTyping('Compliance gate cleared — letter signed and deposit recorded. I can <b>open the case</b> now.',900);
+    hydrate();
+  }
+}
+function sendChecklist(btn){
+  btn.innerHTML='<svg data-l="check"></svg>Sent to Priya\'s portal'; btn.classList.remove('btn-approve'); btn.style.background='rgba(52,211,153,.16)'; btn.style.color='var(--ok)'; hydrate();
+  toast('Checklist sent','16 items now in Priya\'s portal');
+  aiTyping('Checklist is in Priya\'s portal. I\'ll watch for uploads and start extracting the moment files land.',900);
+  setTimeout(function(){goStage(5)},1200);
+}
+function resolveFlag(btn,msg){
+  var flag=btn.closest('.flag');
+  flag.classList.remove('warn','info'); flag.classList.add('ok');
+  flag.querySelector('.fi').innerHTML='<svg data-l="check"></svg>';
+  btn.outerHTML='<span class="pill ok" style="font-size:10px"><svg data-l="check"></svg>Requested</span>';
+  hydrate(); toast('Request sent',msg);
+}
+/* hero form switching */
+function switchForm(tab,id){
+  document.querySelectorAll('.ftab').forEach(function(t){t.classList.remove('active')});
+  tab.classList.add('active');
+  ['f80','f1221','f956','nom'].forEach(function(f){document.getElementById('form-'+f).style.display=(f===id?'block':'none')});
+  var d={f80:['47','/52','47','5'],f1221:['34','/38','34','4'],f956:['6','/6','6','0'],nom:['5','/6','5','1']}[id];
+  document.getElementById('donutBig').innerHTML=d[0]+'<span style="font-size:15px;color:var(--txt-3)">'+d[1]+'</span>';
+  document.getElementById('legFilled').textContent=d[2];
+  document.getElementById('legGap').textContent=d[3];
+}
+function approveForm(btn){
+  document.getElementById('formBanner').classList.add('show');
+  document.getElementById('toBundleBtn').style.display='inline-flex';
+  btn.innerHTML='<svg data-l="check-circle-2"></svg>Form 80 approved'; btn.style.background='rgba(52,211,153,.16)'; btn.style.color='var(--ok)'; hydrate();
+  toast('Form 80 approved','Verified field-by-field · ready to bundle');
+  aiTyping('Form 80 approved. I\'ve folded it into the bundle alongside 956, 1221 and the nomination. When you\'re ready I\'ll assemble the full lodgement package.',1100);
+}
+function lodge(){
+  document.getElementById('lodgePre').style.display='none';
+  document.getElementById('lodgePost').style.display='block';
+  document.getElementById('lodgeTitle').textContent='Lodged — Pulse submitted it on your approval';
+  document.getElementById('lodgeSub').textContent='You gave the word; I lodged it in ImmiAccount. Application is received and in the assessment queue.';
+  hydrate(); toast('Lodged with Home Affairs','App ID EGOZ-9R4221 · Received');
+  aiTyping('Lodged via ImmiAccount — application <b>EGOZ-9R4221</b>, status <b style="color:var(--ok)">Received</b>. I\'ll watch it and alert you on any change. Congrats, Gideon. 💜',1100);
+}
+function copy(b){ var o=b.innerHTML; b.innerHTML='<svg data-l="check"></svg>Copied'; hydrate(); setTimeout(function(){b.innerHTML=o; hydrate()},1300); }
+
+/* ---------- init ---------- */
+hydrate();
+goStage(0);
+maxReached=0;
+</script>
+</body>
+</html>

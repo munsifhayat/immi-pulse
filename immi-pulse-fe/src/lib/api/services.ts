@@ -20,6 +20,35 @@ export type FieldType =
   | "email"
   | "phone";
 
+export type RuleOperator =
+  | "equals"
+  | "not_equals"
+  | "is_one_of"
+  | "is_not_one_of"
+  | "is_empty"
+  | "is_not_empty"
+  | "contains";
+
+export type VisibilityMode = "always" | "show_if" | "hide_if";
+
+export type OutcomeFlag = "urgent" | "disqualified" | "qualified" | "more_info";
+
+export interface Rule {
+  field_key: string;
+  operator: RuleOperator;
+  value?: unknown;
+}
+
+export interface VisibilityConfig {
+  mode: VisibilityMode;
+  rules: Rule[];
+}
+
+export interface FieldLogic {
+  visibility?: VisibilityConfig;
+  required_if?: Rule[];
+}
+
 export interface QuestionField {
   key: string;
   label: string;
@@ -28,6 +57,8 @@ export interface QuestionField {
   options?: string[] | null;
   placeholder?: string | null;
   helper_text?: string | null;
+  logic?: FieldLogic | null;
+  flags?: OutcomeFlag[] | null;
 }
 
 export interface QuestionnaireListItem {
@@ -100,11 +131,25 @@ export interface PreCaseListItem {
   created_at: string;
 }
 
+export interface ClientAccess {
+  account_id: string;
+  client_id: string;
+  email: string;
+  temp_password?: string | null;
+  status: string;
+  must_reset: boolean;
+  last_login_at?: string | null;
+  portal_path: string;
+  portal_url: string;
+  share_message: string;
+}
+
 export interface PreCaseDetail extends PreCaseListItem {
   ai_extracted?: Record<string, unknown> | null;
   questionnaire_id?: string | null;
   questionnaire_fields: QuestionField[];
   answers: Record<string, unknown>;
+  client_access?: ClientAccess | null;
 }
 
 export interface Checkpoint {
@@ -309,6 +354,17 @@ export const preCasesApi = {
     (await apiClient.post(`/precases/${id}/force-convert`, payload)).data,
   retriggerAi: async (id: string) =>
     (await apiClient.post(`/precases/${id}/retrigger-ai`)).data,
+};
+
+// ---- Client portal accounts (consultant credential actions) ----
+
+export const portalAccountsApi = {
+  getByPreCase: async (preCaseId: string): Promise<ClientAccess | null> =>
+    (await apiClient.get(`/clients/portal-accounts/by-precase/${preCaseId}`)).data,
+  resend: async (accountId: string): Promise<ClientAccess> =>
+    (await apiClient.post(`/clients/portal-accounts/${accountId}/resend`)).data,
+  regeneratePassword: async (accountId: string): Promise<ClientAccess> =>
+    (await apiClient.post(`/clients/portal-accounts/${accountId}/regenerate-password`)).data,
 };
 
 // ---- Clients ----

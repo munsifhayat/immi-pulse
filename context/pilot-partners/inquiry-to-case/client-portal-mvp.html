@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Client Portal — Your Applications</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --navy:#101928; --purple:#7A5AF8; --purple-deep:#3E1C96;
+    --purple-light:#BDB4FE; --purple-muted:#EBE9FE; --purple-tint:#F4F3FF;
+    --teal:#1B7B6F; --teal-light:#2DD4BF; --teal-tint:#F0FBF8;
+    --amber:#B54708; --amber-bg:#FEF6EE; --rose:#B42318; --rose-bg:#FEF3F2;
+    --ink:#101928; --body:#475367; --muted:#667085; --faint:#5B6573;
+    --bg:#ffffff; --soft:#F7F8FB; --soft2:#F0F2F5; --line:#E4E7EC; --line2:#EEF0F3;
+    --r:16px;
+    --shadow:0 1px 2px rgba(16,25,40,.04),0 10px 28px -12px rgba(16,25,40,.14);
+    --shadow-lg:0 24px 60px -22px rgba(62,28,150,.32);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--body);background:var(--soft);-webkit-font-smoothing:antialiased;min-height:100vh}
+  h1,h2,h3,h4{font-family:'Outfit',sans-serif;color:var(--ink);line-height:1.15;letter-spacing:-.01em}
+  button{font-family:'Inter';cursor:pointer;border:none;background:none}
+  ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#D7DCE3;border-radius:8px;border:3px solid var(--soft)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:13.5px;font-weight:600;border-radius:10px;padding:10px 16px;transition:.15s;border:1px solid transparent}
+  .btn svg{width:16px;height:16px}
+  .btn.primary{background:var(--purple);color:#fff;box-shadow:0 8px 18px -8px rgba(122,90,248,.8)}
+  .btn.primary:hover{background:#6a48f0}
+  .btn.ghost{background:#fff;border-color:var(--line);color:var(--ink)}
+  .btn.ghost:hover{background:var(--soft);border-color:var(--purple-light)}
+  .btn.teal{background:var(--teal);color:#fff}
+  .btn.teal:hover{background:#16685e}
+  .btn.sm{padding:8px 13px;font-size:12.5px;border-radius:9px}
+
+  /* LOGIN */
+  .login{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:24px;
+    background:radial-gradient(70% 80% at 80% 0%,rgba(122,90,248,.14),transparent 55%),radial-gradient(60% 70% at 0% 100%,rgba(45,212,191,.12),transparent 55%),var(--navy)}
+  .login.hide{display:none}
+  .lcard{background:#fff;border-radius:22px;box-shadow:var(--shadow-lg);width:min(420px,100%);padding:36px 34px}
+  .lbrand{display:flex;align-items:center;gap:11px;font-family:'Outfit';font-weight:800;font-size:17px;color:var(--ink)}
+  .lbrand .lg{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--teal),var(--teal-light));display:grid;place-items:center;color:#062c27;font-weight:800;font-size:14px;font-family:'Outfit'}
+  .login h1{font-size:23px;margin-top:26px}
+  .login .ls{font-size:14px;color:var(--muted);margin-top:8px}
+  .field{margin-top:16px}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:6px}
+  .field input{width:100%;border:1px solid var(--line);border-radius:11px;padding:12px 14px;font-family:'Inter';font-size:14px;color:var(--ink)}
+  .field input:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-muted)}
+  .login .btn{width:100%;margin-top:22px;padding:13px}
+  .welcomechip{margin-top:20px;background:var(--purple-tint);border-radius:11px;padding:12px 14px;font-size:12.5px;color:var(--purple-deep);display:flex;gap:9px}
+  .welcomechip svg{flex:none;margin-top:1px}
+
+  /* APP CHROME */
+  .top{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--line2)}
+  .topin{max-width:1080px;margin:0 auto;height:62px;display:flex;align-items:center;gap:12px;padding:0 24px}
+  .firm{display:flex;align-items:center;gap:10px;font-family:'Outfit';font-weight:700;font-size:15px;color:var(--ink)}
+  .firm .lg{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--teal),var(--teal-light));display:grid;place-items:center;color:#062c27;font-weight:800;font-size:13px}
+  .top .right{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .bell{width:38px;height:38px;border-radius:10px;background:var(--soft2);display:grid;place-items:center;color:var(--muted);position:relative}
+  .bell .dot{position:absolute;top:9px;right:10px;width:7px;height:7px;border-radius:50%;background:var(--rose);border:2px solid #fff}
+  .uav{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--purple-light),var(--purple));display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px}
+
+  .page{max-width:1080px;margin:0 auto;padding:26px 24px 70px}
+  .hello h1{font-size:25px}
+  .hello p{font-size:14.5px;color:var(--muted);margin-top:5px}
+
+  /* layout */
+  .grid{display:grid;grid-template-columns:300px 1fr;gap:22px;margin-top:24px;align-items:start}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+  /* applications list */
+  .applist{display:flex;flex-direction:column;gap:12px}
+  .seclabel{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);margin-bottom:2px}
+  .appcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:.18s;position:relative}
+  .appcard:hover{border-color:var(--purple-light);transform:translateY(-1px);box-shadow:var(--shadow)}
+  .appcard.on{border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-muted)}
+  .appcard:focus-visible,.upbox:focus-visible{outline:2px solid var(--purple);outline-offset:2px}
+  .appcard .ac-top{display:flex;align-items:center;gap:10px}
+  .appcard .sub{font-family:'Outfit';font-weight:700;font-size:11px;color:var(--purple-deep);background:var(--purple-tint);padding:4px 9px;border-radius:7px}
+  .appcard h4{font-size:14.5px;margin-top:11px}
+  .appcard .stg{font-size:12px;color:var(--muted);margin-top:3px}
+  .pbar{height:7px;border-radius:6px;background:var(--soft2);margin-top:12px;overflow:hidden}
+  .pbar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--purple),var(--teal-light))}
+  .appcard .pct{display:flex;justify-content:space-between;font-size:11.5px;margin-top:7px}
+  .appcard .pct .n{font-weight:700;color:var(--ink)}
+  .appcard .pct .s{color:var(--faint)}
+  .appcard.done .sub{background:var(--teal-tint);color:var(--teal)}
+  .appcard .badge-need{position:absolute;top:14px;right:14px;font-size:10.5px;font-weight:700;background:var(--amber-bg);color:var(--amber);padding:3px 8px;border-radius:999px}
+
+  /* detail */
+  .detail{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+  .dhead{padding:22px 24px;border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .ring{--p:60;width:74px;height:74px;border-radius:50%;flex:none;background:conic-gradient(var(--purple) calc(var(--p)*1%),var(--purple-muted) 0);display:grid;place-items:center}
+  .ring .in{width:56px;height:56px;border-radius:50%;background:#fff;display:grid;place-items:center;font-family:'Outfit';font-weight:800;font-size:17px;color:var(--purple-deep)}
+  .dhead .dt h2{font-size:19px}
+  .dhead .dt .ds{font-size:13px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:8px}
+  .stagepill{font-size:11.5px;font-weight:700;background:var(--purple-tint);color:var(--purple-deep);padding:4px 10px;border-radius:999px}
+
+  /* tabs */
+  .tabs{display:flex;gap:4px;padding:0 24px;border-bottom:1px solid var(--line2);background:#fff}
+  .tab{font-size:13.5px;font-weight:600;color:var(--muted);padding:14px 14px;border-bottom:2px solid transparent;margin-bottom:-1px;transition:.15s}
+  .tab:hover{color:var(--ink)}
+  .tab.on{color:var(--purple-deep);border-color:var(--purple)}
+  .tab .cnt{font-size:11px;font-weight:700;background:var(--amber-bg);color:var(--amber);padding:1px 7px;border-radius:999px;margin-left:6px}
+  .tabpane{display:none;padding:24px}
+  .tabpane.on{display:block}
+
+  /* overview */
+  .summary{background:var(--soft);border-radius:14px;padding:18px 20px;border-left:3px solid var(--purple-light)}
+  .summary h3{font-size:15px;display:flex;align-items:center;gap:9px}
+  .summary p{font-size:14px;margin-top:9px;line-height:1.6}
+  .factgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+  @media(max-width:620px){.factgrid{grid-template-columns:1fr 1fr}}
+  .fact{background:#fff;border:1px solid var(--line2);border-radius:12px;padding:13px 14px}
+  .fact .k{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--faint)}
+  .fact .v{font-size:14px;font-weight:600;color:var(--ink);margin-top:5px}
+
+  .blocktitle{font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);margin:24px 0 12px;display:flex;align-items:center;gap:9px}
+
+  /* action needed list */
+  .todo{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;transition:.2s}
+  .todo.amber{border-color:#FEDF89;background:linear-gradient(0deg,var(--amber-bg),#fff)}
+  .todo .tic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex:none}
+  .todo.amber .tic{background:var(--amber-bg);color:var(--amber)}
+  .todo .tmeta{flex:1;min-width:0}
+  .todo .tmeta .tt{font-size:14px;font-weight:600;color:var(--ink)}
+  .todo .tmeta .tsub{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .todo.done{opacity:.62}
+  .todo.done .tic{background:var(--teal-tint);color:var(--teal)}
+  .donetag{font-size:11.5px;font-weight:700;color:var(--teal);background:var(--teal-tint);padding:5px 11px;border-radius:999px;display:inline-flex;align-items:center;gap:6px}
+
+  /* documents checklist */
+  .doc{display:flex;align-items:center;gap:14px;padding:14px 4px;border-bottom:1px solid var(--line2)}
+  .doc:last-child{border-bottom:none}
+  .doc .dic{width:34px;height:34px;border-radius:9px;background:var(--soft2);display:grid;place-items:center;color:var(--muted);flex:none}
+  .doc.up .dic{background:var(--teal-tint);color:var(--teal)}
+  .doc .dmeta{flex:1;min-width:0}
+  .doc .dmeta .dn{font-size:14px;font-weight:600;color:var(--ink)}
+  .doc .dmeta .dd{font-size:12px;color:var(--muted);margin-top:2px}
+  .doc .dtype{font-size:11px;font-weight:600;color:var(--faint);background:var(--soft2);padding:3px 9px;border-radius:6px;margin-right:4px}
+
+  /* timeline */
+  .tl{position:relative;padding-left:6px}
+  .tlrow{display:grid;grid-template-columns:30px 1fr;gap:14px}
+  .tlrail{display:flex;flex-direction:column;align-items:center}
+  .tlnode{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:none;z-index:2}
+  .tlnode.done{background:var(--teal);color:#fff}
+  .tlnode.now{background:var(--purple);color:#fff;box-shadow:0 0 0 4px var(--purple-muted)}
+  .tlnode.now::after{content:"";width:9px;height:9px;border-radius:50%;background:#fff}
+  .tlnode.future{background:#fff;border:2px solid var(--line);color:var(--faint)}
+  .tlline{width:2px;flex:1;background:var(--line2);margin:3px 0}
+  .tlrow:last-child .tlline{display:none}
+  .tlbody{padding-bottom:20px}
+  .tlbody .tlt{font-size:14px;font-weight:600;color:var(--ink)}
+  .tlbody.fut .tlt{color:var(--faint)}
+  .tlbody .tldate{font-size:12px;color:var(--muted);margin-top:2px}
+
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(16,25,40,.5);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:50;padding:24px}
+  .modal.show{display:flex}
+  .sheet{background:#fff;border-radius:18px;width:min(540px,100%);max-height:88vh;overflow:auto;box-shadow:var(--shadow-lg);animation:pop .3s ease}
+  @keyframes pop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .shead2{display:flex;align-items:center;justify-content:space-between;padding:20px 22px;border-bottom:1px solid var(--line2)}
+  .shead2 h3{font-size:18px}
+  .x{width:32px;height:32px;border-radius:9px;background:var(--soft2);display:grid;place-items:center;color:var(--muted)}
+  .scont{padding:22px}
+  .letterbox{background:var(--soft);border:1px solid var(--line2);border-radius:12px;padding:18px;font-size:13.5px;line-height:1.6;max-height:230px;overflow:auto}
+  .letterbox h4{font-size:15px;margin-bottom:8px}
+  .letterbox .fee{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--line)}
+  .letterbox .fee.tot{font-weight:700;color:var(--ink);border-bottom:none;border-top:2px solid var(--line);margin-top:6px;padding-top:10px}
+  .signrow{display:flex;gap:10px;align-items:flex-end;margin-top:16px}
+  .signrow .field{flex:1;margin:0}
+  .consent{font-size:12px;color:var(--muted);margin-top:12px;display:flex;gap:9px}
+  .consent input{margin-top:3px}
+  .sfoot2{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--line2);background:var(--soft)}
+  .upbox{border:2px dashed var(--line);border-radius:13px;padding:28px;text-align:center;transition:.2s;cursor:pointer}
+  .upbox:hover{border-color:var(--purple);background:var(--purple-tint)}
+  .upbox svg{width:30px;height:30px;color:var(--purple);margin-bottom:8px}
+  .upbox .ut{font-size:14px;font-weight:600;color:var(--ink)}
+  .upbox .us{font-size:12.5px;color:var(--muted);margin-top:4px}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:13px 20px;border-radius:12px;font-size:13.5px;font-weight:600;box-shadow:var(--shadow-lg);z-index:60;transition:.35s;display:flex;align-items:center;gap:10px;opacity:0}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .toast .ck{width:20px;height:20px;border-radius:6px;background:var(--teal);display:grid;place-items:center;flex:none}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login" id="login">
+  <div class="lcard">
+    <div class="lbrand"><span class="lg">GJ</span> Gideon James Migration</div>
+    <h1>Welcome back, Priya</h1>
+    <p class="ls">Sign in to track your applications, sign documents and upload what your agent needs.</p>
+    <div class="field"><label>Email</label><input value="priya.sharma@email.com" /></div>
+    <div class="field"><label>Password</label><input type="password" value="••••••••••" /></div>
+    <button class="btn primary" id="signin">Sign in</button>
+    <div class="welcomechip">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-11"/></svg>
+      Your account was set up when Gideon qualified your enquiry — one login for everything, no PIN codes to chase.
+    </div>
+  </div>
+</div>
+
+<!-- TOP -->
+<header class="top">
+  <div class="topin">
+    <div class="firm"><span class="lg">GJ</span> Gideon James Migration</div>
+    <div class="right">
+      <div class="bell"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="dot"></span></div>
+      <div class="uav">PS</div>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="hello">
+    <h1>Your applications</h1>
+    <p>Pick an application to see where it&rsquo;s up to and what&rsquo;s needed from you.</p>
+  </div>
+
+  <div class="grid">
+    <!-- APPLICATIONS LIST -->
+    <div>
+      <div class="seclabel" style="margin-bottom:10px">1 active &middot; 2 complete</div>
+      <div class="applist" id="applist">
+        <!-- cards injected -->
+      </div>
+    </div>
+
+    <!-- DETAIL -->
+    <div class="detail">
+      <div class="dhead">
+        <div class="ring" id="ring"><div class="in" id="ringPct">50%</div></div>
+        <div class="dt">
+          <h2 id="dTitle">Subclass 186 — Employer Nomination (ENS)</h2>
+          <div class="ds"><span class="stagepill" id="dStage">Document collection</span> <span id="dStageNo">Stage 4 of 7</span></div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab on" data-tab="overview">Overview</button>
+        <button class="tab" data-tab="docs">Documents <span class="cnt" id="docCnt">2</span></button>
+        <button class="tab" data-tab="timeline">Timeline</button>
+      </div>
+
+      <!-- OVERVIEW -->
+      <div class="tabpane on" data-pane="overview">
+        <div class="summary">
+          <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg> What this application is about</h3>
+          <p id="summaryText">You&rsquo;re applying for permanent residence through the <strong>Employer Nomination Scheme (subclass 186)</strong>, moving on from your current 482. Your employer is sponsoring you. We&rsquo;re currently gathering your documents before lodging.</p>
+        </div>
+        <div class="factgrid">
+          <div class="fact"><div class="k">Pathway</div><div class="v">482 &rarr; 186 ENS</div></div>
+          <div class="fact"><div class="k">Your agent</div><div class="v">Gideon James</div></div>
+          <div class="fact"><div class="k">Opened</div><div class="v">19 Jun 2026</div></div>
+        </div>
+
+        <div class="blocktitle"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v5M12 16h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg> Needs your attention <span class="cnt" id="needCnt" style="background:var(--amber-bg);color:var(--amber);font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px">3</span></div>
+        <div id="todoList"></div>
+      </div>
+
+      <!-- DOCS -->
+      <div class="tabpane" data-pane="docs">
+        <p style="font-size:13.5px;color:var(--muted);margin-bottom:8px">Upload each document below. Clear photos or PDFs are fine — your agent reviews everything before anything is lodged.</p>
+        <div id="docList"></div>
+      </div>
+
+      <!-- TIMELINE -->
+      <div class="tabpane" data-pane="timeline">
+        <div class="tl" id="timeline"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- SIGN MODAL -->
+<div class="modal" id="signModal">
+  <div class="sheet">
+    <div class="shead2"><h3>Your engagement letter</h3><button class="x" data-close><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="scont">
+      <div class="letterbox">
+        <h4>Costs Agreement &mdash; Gideon James Migration</h4>
+        <p><strong>Scope:</strong> Advice and lodgement for subclass 186 (ENS) permanent residence, including nomination support.</p>
+        <p style="margin-top:10px"><strong>Fees</strong></p>
+        <div class="fee"><span>Professional fee</span><span>$3,500</span></div>
+        <div class="fee"><span>Disbursements</span><span>$540</span></div>
+        <div class="fee"><span>Retainer payable now</span><span>$1,500</span></div>
+        <div class="fee tot"><span>Total estimate</span><span>$4,040</span></div>
+        <p style="margin-top:10px;color:var(--muted);font-size:12.5px">Includes standard terms on scope, fees, payment, privacy and the agent code of conduct.</p>
+      </div>
+      <div class="signrow">
+        <div class="field"><label>Type your full legal name to sign</label><input id="signName" placeholder="Priya Sharma" /></div>
+      </div>
+      <label class="consent"><input type="checkbox" id="consent" /> <span>I have read and agree to the costs agreement, and I&rsquo;m signing it electronically.</span></label>
+    </div>
+    <div class="sfoot2"><button class="btn ghost" data-close>Close</button><button class="btn primary" id="doSign"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17c3-4 5 1 8-2s4-7 9-5"/></svg> Sign agreement</button></div>
+  </div>
+</div>
+
+<!-- UPLOAD MODAL -->
+<div class="modal" id="upModal">
+  <div class="sheet">
+    <div class="shead2"><h3 id="upTitle">Upload document</h3><button class="x" data-close><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="scont">
+      <div class="upbox" id="upDrop" tabindex="0" role="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        <div class="ut">Tap to choose a file</div>
+        <div class="us">PDF, JPG or PNG &middot; up to 10 MB</div>
+      </div>
+      <p style="font-size:12.5px;color:var(--muted);margin-top:12px;text-align:center">This is a preview — choosing a file marks it uploaded.</p>
+    </div>
+    <div class="sfoot2"><button class="btn ghost" data-close>Cancel</button><button class="btn primary" id="doUpload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-11"/></svg> Mark as uploaded</button></div>
+  </div>
+</div>
+
+<!-- RESPOND MODAL -->
+<div class="modal" id="respModal">
+  <div class="sheet">
+    <div class="shead2"><h3>Respond to your agent</h3><button class="x" data-close><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="scont">
+      <div class="summary" style="border-left-color:var(--amber)"><h3 style="font-size:14px" id="respQ">Can you confirm your employment dates?</h3><p style="font-size:13px" id="respCtx">Gideon asked: were you with your current employer continuously from 2019 to 2022, or were there any gaps?</p></div>
+      <div class="field" style="margin-top:16px"><label>Your reply</label><textarea id="respText" rows="4" style="width:100%;border:1px solid var(--line);border-radius:11px;padding:12px 14px;font-family:'Inter';font-size:14px;color:var(--ink)" placeholder="Type your answer…"></textarea></div>
+    </div>
+    <div class="sfoot2"><button class="btn ghost" data-close>Cancel</button><button class="btn primary" id="doResp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v14H7l-3 3z"/></svg> Send reply</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span><span id="toastText">Done</span></div>
+
+<script>
+(function(){
+  // ---- data ----
+  var APPS={
+    a186:{
+      title:'Subclass 186 — Employer Nomination (ENS)', sub:'186', stage:'Document collection', stageNo:'Stage 4 of 7',
+      baseDone:3, baseTotal:3,
+      summary:'You&rsquo;re applying for permanent residence through the <strong>Employer Nomination Scheme (subclass 186)</strong>, moving on from your current 482. Your employer is sponsoring you. We&rsquo;re currently gathering your documents before lodging.',
+      facts:[['Pathway','482 → 186 ENS'],['Your agent','Gideon James'],['Opened','19 Jun 2026']],
+      todos:[
+        {id:'sign',type:'sign',title:'Sign your engagement letter',sub:'Review the scope and fees, then sign — takes a minute',done:false},
+        {id:'refs',type:'upload',title:'Upload your employment references',sub:'2 reference letters from your employer',done:false},
+        {id:'dates',type:'respond',title:'Confirm your employment dates',sub:'Gideon has a quick question for you',done:false}
+      ],
+      docs:[
+        {id:'passport',name:'Passport',type:'Identity',up:true},
+        {id:'english',name:'English test (PTE)',type:'Test result',up:true},
+        {id:'refs',name:'Employment references',type:'Evidence',up:false},
+        {id:'police',name:'Police clearance',type:'Clearance',up:false},
+        {id:'cv',name:'CV / résumé',type:'Document',up:false}
+      ],
+      timeline:[
+        {t:'Enquiry received',d:'14 Jun 2026',s:'done'},
+        {t:'Qualified — portal account created',d:'19 Jun 2026',s:'done'},
+        {t:'Engagement letter sent to you',d:'19 Jun 2026',s:'done'},
+        {t:'You sign the agreement',d:'Waiting on you',s:'now'},
+        {t:'Deposit confirmed',d:'Upcoming',s:'future'},
+        {t:'Documents collected & reviewed',d:'Upcoming',s:'future'},
+        {t:'Application lodged',d:'Upcoming',s:'future'}
+      ]
+    },
+    a600:{
+      title:'Subclass 600 — Visitor (parents)', sub:'600', stage:'Lodged — awaiting decision', stageNo:'Stage 6 of 7', done:true, tag:'Lodged',
+      summary:'A visitor visa application for your parents to visit you in Australia. This one is <strong>lodged and with the Department</strong> — nothing more is needed from you right now.',
+      facts:[['Pathway','600 Visitor'],['Your agent','Gideon James'],['Lodged','2 Jun 2026']],
+      todos:[],
+      docs:[
+        {id:'p1',name:'Parents&rsquo; passports',type:'Identity',up:true},
+        {id:'funds',name:'Proof of funds',type:'Evidence',up:true},
+        {id:'invite',name:'Invitation letter',type:'Document',up:true}
+      ],
+      timeline:[
+        {t:'Enquiry received',d:'12 May 2026',s:'done'},
+        {t:'Qualified & engaged',d:'15 May 2026',s:'done'},
+        {t:'Documents collected',d:'28 May 2026',s:'done'},
+        {t:'Application lodged',d:'2 Jun 2026',s:'done'},
+        {t:'Decision',d:'Awaiting',s:'now'}
+      ]
+    },
+    a482:{
+      title:'Subclass 482 — Skills in Demand', sub:'482', stage:'Granted — active visa', stageNo:'Complete', done:true, tag:'Granted',
+      summary:'This is the temporary skilled visa we secured for you earlier &mdash; <strong>granted and active</strong>. It&rsquo;s here for your records; nothing is needed right now.',
+      facts:[['Pathway','482 Skills in Demand'],['Your agent','Gideon James'],['Granted','3 Feb 2025']],
+      todos:[],
+      docs:[
+        {id:'d1',name:'Passport',type:'Identity',up:true},
+        {id:'d2',name:'Nomination &amp; sponsorship',type:'Sponsor',up:true},
+        {id:'d3',name:'English test',type:'Test result',up:true}
+      ],
+      timeline:[
+        {t:'Application lodged',d:'10 Dec 2024',s:'done'},
+        {t:'Visa granted',d:'3 Feb 2025',s:'done'}
+      ]
+    }
+  };
+  var ORDER=['a186','a600','a482'];
+  var current='a186';
+
+  // ---- render application list ----
+  function pctOf(app){
+    if(app.done) return 100;
+    var realDocs=app.docs.filter(function(d){return d.id!=='tbd';});
+    // uploads are represented by their document; sign/respond are extra journey items
+    var actionTodos=app.todos.filter(function(t){return t.type!=='upload';});
+    var total=(app.baseTotal||0)+realDocs.length+actionTodos.length;
+    if(!total) return app.basePct||0;
+    var done=(app.baseDone||0)+realDocs.filter(function(d){return d.up;}).length+actionTodos.filter(function(t){return t.done;}).length;
+    return Math.round(done/total*100);
+  }
+  function renderList(){
+    var el=document.getElementById('applist');el.innerHTML='';
+    ORDER.forEach(function(key){
+      var a=APPS[key];var pct=pctOf(a);
+      var needs=a.todos.filter(function(t){return !t.done;}).length;
+      var card=document.createElement('div');
+      card.className='appcard'+(key===current?' on':'')+(a.done?' done':'');
+      card.tabIndex=0;card.setAttribute('role','button');card.setAttribute('aria-label',a.title);
+      card.innerHTML=
+        '<div class="ac-top"><span class="sub">'+a.sub+'</span>'+(a.done?'<span class="donetag" style="margin-left:auto">'+(a.tag||'Lodged')+'</span>':'')+'</div>'+
+        (needs?'<span class="badge-need">'+needs+' to do</span>':'')+
+        '<h4>'+a.title+'</h4>'+
+        '<div class="stg">'+a.stage+'</div>'+
+        '<div class="pbar"><i style="width:'+pct+'%"></i></div>'+
+        '<div class="pct"><span class="n">'+pct+'%</span><span class="s">'+a.stageNo+'</span></div>';
+      function sel(){current=key;renderAll();}
+      card.addEventListener('click',sel);
+      card.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();sel();}});
+      el.appendChild(card);
+    });
+  }
+
+  // ---- render detail ----
+  function renderDetail(){
+    var a=APPS[current];var pct=pctOf(a);
+    document.getElementById('dTitle').innerHTML=a.title;
+    document.getElementById('dStage').textContent=a.stage;
+    document.getElementById('dStageNo').textContent=a.stageNo;
+    document.getElementById('ring').style.setProperty('--p',pct);
+    document.getElementById('ringPct').textContent=pct+'%';
+    document.getElementById('summaryText').innerHTML=a.summary;
+    // facts
+    // todos
+    var needs=a.todos.filter(function(t){return !t.done;}).length;
+    document.getElementById('needCnt').textContent=needs;
+    document.getElementById('needCnt').style.display=needs?'':'none';
+    var tl=document.getElementById('todoList');tl.innerHTML='';
+    if(!a.todos.length){
+      tl.innerHTML='<div class="todo done"><div class="tic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-11"/></svg></div><div class="tmeta"><div class="tt">Nothing needed right now</div><div class="tsub">We&rsquo;ll let you know the moment something&rsquo;s required.</div></div></div>';
+    }
+    a.todos.forEach(function(t){
+      var icon = t.type==='sign'?'<path d="M3 17c3-4 5 1 8-2s4-7 9-5"/>': t.type==='upload'?'<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>':'<path d="M8 10h8M8 14h5"/><path d="M21 12a9 9 0 1 1-3.5-7.1L21 5"/>';
+      var actLabel = t.type==='sign'?'Review &amp; sign':t.type==='upload'?'Upload':'Respond';
+      var row=document.createElement('div');
+      row.className='todo'+(t.done?' done':' amber');
+      row.innerHTML='<div class="tic">'+(t.done?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-11"/></svg>':'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+icon+'</svg>')+'</div>'+
+        '<div class="tmeta"><div class="tt">'+t.title+'</div><div class="tsub">'+t.sub+'</div></div>'+
+        (t.done?'<span class="donetag"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg> Done</span>':'<button class="btn primary sm" data-do="'+t.type+'" data-id="'+t.id+'">'+actLabel+'</button>');
+      tl.appendChild(row);
+    });
+    // docs
+    var dl=document.getElementById('docList');dl.innerHTML='';
+    var realDocs=a.docs.filter(function(d){return d.id!=='tbd';});
+    document.getElementById('docCnt').textContent=realDocs.filter(function(d){return d.up;}).length+'/'+(realDocs.length||0);
+    a.docs.forEach(function(d){
+      var row=document.createElement('div');
+      row.className='doc'+(d.up?' up':'');
+      var right = d.id==='tbd' ? '' : (d.up
+        ? '<span class="donetag"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg> Uploaded</span>'
+        : '<button class="btn ghost sm" data-do="upload" data-id="'+d.id+'" data-doc="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg> Upload</button>');
+      row.innerHTML='<div class="dic">'+(d.up?'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-11"/></svg>':'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5"/><path d="M5 3h9l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg>')+'</div>'+
+        '<div class="dmeta"><div class="dn">'+d.name+'</div><div class="dd">'+(d.up?'Received — your agent will review it':(d.id==='tbd'?'No action needed yet':'Not uploaded yet'))+'</div></div>'+
+        (d.id==='tbd'?'':'<span class="dtype">'+d.type+'</span>')+right;
+      dl.appendChild(row);
+    });
+    // timeline
+    var tlm=document.getElementById('timeline');tlm.innerHTML='';
+    a.timeline.forEach(function(ev,i){
+      var node = ev.s==='done'?'<div class="tlnode done"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></div>'
+        : ev.s==='now'?'<div class="tlnode now"></div>'
+        : '<div class="tlnode future">'+(i+1)+'</div>';
+      var row=document.createElement('div');row.className='tlrow';
+      row.innerHTML='<div class="tlrail">'+node+'<div class="tlline"></div></div><div class="tlbody '+(ev.s==='future'?'fut':'')+'"><div class="tlt">'+ev.t+'</div><div class="tldate">'+ev.d+'</div></div>';
+      tlm.appendChild(row);
+    });
+  }
+
+  function renderAll(){renderList();renderDetail();}
+
+  // ---- actions ----
+  var pendingDoc=null;
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('[data-do]');
+    if(b){
+      var type=b.getAttribute('data-do');var id=b.getAttribute('data-id');
+      if(type==='sign'){openModal('signModal');}
+      else if(type==='upload'){pendingDoc={id:id,doc:b.hasAttribute('data-doc')};document.getElementById('upTitle').textContent='Upload '+docName(id);openModal('upModal');}
+      else if(type==='respond'){openModal('respModal');}
+      return;
+    }
+    var c=e.target.closest('[data-close]');if(c){closeModals();return;}
+    var tab=e.target.closest('.tab');if(tab){switchTab(tab.getAttribute('data-tab'));return;}
+  });
+
+  function docName(id){var a=APPS[current];var d=a.docs.filter(function(x){return x.id===id;})[0];return d?d.name:'document';}
+
+  function switchTab(name){
+    [].forEach.call(document.querySelectorAll('.tab'),function(t){t.classList.toggle('on',t.getAttribute('data-tab')===name);});
+    [].forEach.call(document.querySelectorAll('.tabpane'),function(p){p.classList.toggle('on',p.getAttribute('data-pane')===name);});
+  }
+
+  // sign
+  document.getElementById('doSign').addEventListener('click',function(){
+    var nm=document.getElementById('signName').value.trim();var ok=document.getElementById('consent').checked;
+    if(!nm){toast('Type your name to sign');return;}
+    if(!ok){toast('Please tick the consent box');return;}
+    var a=APPS[current];
+    markTodo('sign');
+    // timeline: flip "You sign" to done
+    a.timeline.forEach(function(ev){if(/sign the agreement/i.test(ev.t)){ev.t='Agreement signed';ev.d='Just now';ev.s='done';}});
+    var di=a.timeline.findIndex(function(ev){return ev.s==='now'||ev.s==='future';});
+    if(di>-1)a.timeline[di].s='now';
+    closeModals();renderAll();toast('Agreement signed — thank you, '+nm.split(' ')[0]+'!');
+    document.getElementById('signName').value='';document.getElementById('consent').checked=false;
+  });
+  // upload
+  document.getElementById('doUpload').addEventListener('click',function(){
+    if(pendingDoc){
+      var a=APPS[current];
+      a.docs.forEach(function(d){if(d.id===pendingDoc.id)d.up=true;});
+      if(pendingDoc.id==='refs')markTodo('refs'); // only the references upload clears that to-do
+      var realDocs=a.docs.filter(function(d){return d.id!=='tbd';});
+      if(realDocs.length && realDocs.every(function(d){return d.up;}))advanceTimeline(a,/documents collected/i);
+    }
+    closeModals();renderAll();toast('Uploaded — your agent has been notified.');
+  });
+  var upDropEl=document.getElementById('upDrop');
+  upDropEl.addEventListener('click',function(){toast('File chooser is disabled in this preview.');});
+  upDropEl.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();toast('File chooser is disabled in this preview.');}});
+  // respond
+  document.getElementById('doResp').addEventListener('click',function(){
+    var v=document.getElementById('respText').value.trim();
+    if(!v){toast('Type a reply first');return;}
+    markTodo('dates');closeModals();renderAll();toast('Reply sent to Gideon.');
+    document.getElementById('respText').value='';
+  });
+
+  function markTodo(id){var a=APPS[current];a.todos.forEach(function(t){if(t.id===id)t.done=true;});}
+  function advanceTimeline(a,re){
+    var idx=a.timeline.findIndex(function(ev){return re.test(ev.t);});
+    if(idx>-1 && a.timeline[idx].s!=='done'){
+      a.timeline[idx].s='done';a.timeline[idx].d='Just now';
+      var nxt=a.timeline.findIndex(function(ev){return ev.s==='future';});
+      if(nxt>-1)a.timeline[nxt].s='now';
+    }
+  }
+
+  function openModal(id){document.getElementById(id).classList.add('show');}
+  function closeModals(){[].forEach.call(document.querySelectorAll('.modal'),function(m){m.classList.remove('show');});}
+  [].forEach.call(document.querySelectorAll('.modal'),function(m){m.addEventListener('click',function(e){if(e.target===m)closeModals();});});
+
+  var toastTimer;function toast(msg){var el=document.getElementById('toast');document.getElementById('toastText').textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.classList.remove('show');},2600);}
+
+  // login
+  document.getElementById('signin').addEventListener('click',function(){document.getElementById('login').classList.add('hide');});
+
+  renderAll();
+})();
+</script>
+</body>
+</html>

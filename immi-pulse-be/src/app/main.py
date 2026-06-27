@@ -136,6 +136,8 @@ def create_app() -> FastAPI:
     from app.agents.immigration.orgs.router import public_router as orgs_public_router
     from app.agents.immigration.orgs.router import router as orgs_router
     from app.agents.immigration.payments.router import router as payments_router
+    from app.agents.immigration.portal.router import consultant_router as portal_consultant_router
+    from app.agents.immigration.portal.router import public_router as portal_public_router
     from app.agents.immigration.precases.router import router as precases_router
     from app.agents.immigration.questionnaires.router import (
         public_router as questionnaires_public_router,
@@ -155,6 +157,8 @@ def create_app() -> FastAPI:
     app.include_router(engagement_router, prefix=settings.api_v1_prefix)
     app.include_router(engagement_public_router, prefix=settings.api_v1_prefix)
     app.include_router(payments_router, prefix=settings.api_v1_prefix)
+    app.include_router(portal_public_router, prefix=settings.api_v1_prefix)
+    app.include_router(portal_consultant_router, prefix=settings.api_v1_prefix)
 
     # Activity log & metrics
     from app.agents.shared.activity_router import router as activity_router

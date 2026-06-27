@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Consultant — Enquiry to Open Case</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --navy:#101928; --purple:#7A5AF8; --purple-deep:#3E1C96;
+    --purple-light:#BDB4FE; --purple-muted:#EBE9FE; --purple-tint:#F4F3FF;
+    --teal:#1B7B6F; --teal-light:#2DD4BF; --teal-tint:#F0FBF8;
+    --amber:#B54708; --amber-bg:#FEF6EE; --rose:#B42318; --rose-bg:#FEF3F2;
+    --ink:#101928; --body:#475367; --muted:#667085; --faint:#5B6573;
+    --bg:#ffffff; --soft:#F7F8FB; --soft2:#F0F2F5; --line:#E4E7EC; --line2:#EEF0F3;
+    --r:16px; --rs:11px;
+    --shadow:0 1px 2px rgba(16,25,40,.04),0 10px 28px -12px rgba(16,25,40,.14);
+    --shadow-lg:0 24px 60px -22px rgba(62,28,150,.32);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--body);background:var(--soft);-webkit-font-smoothing:antialiased;height:100vh;overflow:hidden}
+  h1,h2,h3,h4{font-family:'Outfit',sans-serif;color:var(--ink);line-height:1.15;letter-spacing:-.01em}
+  button{font-family:'Inter',sans-serif;cursor:pointer;border:none;background:none}
+  ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#D7DCE3;border-radius:8px;border:3px solid var(--soft)}
+
+  .app{display:grid;grid-template-columns:236px 1fr;height:100vh}
+
+  /* SIDEBAR */
+  .side{background:var(--navy);color:#fff;display:flex;flex-direction:column;padding:18px 14px}
+  .side .brand{display:flex;align-items:center;gap:10px;font-family:'Outfit';font-weight:800;font-size:16px;color:#fff;padding:6px 8px 18px}
+  .side .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));display:grid;place-items:center}
+  .side .logo span{width:10px;height:10px;border-radius:50%;background:#fff}
+  .navg{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#64748b;padding:14px 10px 6px;font-weight:700}
+  .nav a{display:flex;align-items:center;gap:12px;padding:10px 11px;border-radius:10px;color:#AEB8C7;font-size:14px;font-weight:500;margin-bottom:2px;transition:.15s}
+  .nav a svg{width:18px;height:18px;flex:none;opacity:.85}
+  .nav a:hover{background:rgba(255,255,255,.06);color:#fff}
+  .nav a.on{background:linear-gradient(120deg,var(--purple),var(--purple-deep));color:#fff;box-shadow:0 8px 18px -8px rgba(122,90,248,.7)}
+  .nav a .ct{margin-left:auto;font-size:11px;font-weight:700;background:rgba(255,255,255,.16);padding:2px 8px;border-radius:999px}
+  .nav a.on .ct{background:rgba(255,255,255,.22)}
+  .side .me{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-top:1px solid rgba(255,255,255,.08)}
+  .side .me .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--teal-light),var(--teal));display:grid;place-items:center;font-weight:700;color:#062c27;font-size:13px}
+  .side .me .nm{font-size:13px;color:#fff;font-weight:600}
+  .side .me .rl{font-size:11px;color:#8b97a8}
+
+  /* MAIN */
+  .main{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+  .topbar{height:60px;background:#fff;border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:14px;padding:0 26px;flex:none}
+  .crumb{font-size:13.5px;color:var(--muted)}
+  .crumb b{color:var(--ink);font-weight:600}
+  .statuschip{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:999px;background:var(--purple-muted);color:var(--purple-deep);transition:.25s}
+  .statuschip .d{width:7px;height:7px;border-radius:50%;background:currentColor}
+  .topbar .right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;border-radius:10px;padding:9px 15px;transition:.15s;border:1px solid transparent}
+  .btn svg{width:16px;height:16px}
+  .btn.ghost{background:#fff;border-color:var(--line);color:var(--ink)}
+  .btn.ghost:hover{background:var(--soft);border-color:var(--purple-light)}
+  .btn.primary{background:var(--purple);color:#fff;box-shadow:0 8px 18px -8px rgba(122,90,248,.8)}
+  .btn.primary:hover{background:#6a48f0}
+  .btn.dark{background:var(--navy);color:#fff}
+  .btn.soft{background:var(--purple-tint);color:var(--purple-deep)}
+  .btn.soft:hover{background:var(--purple-muted)}
+  .btn.tealb{background:var(--teal);color:#fff}
+  .btn.tealb:hover{background:#16685e}
+
+  .scroll{overflow-y:auto;padding:26px 26px 80px;flex:1}
+  .stage{max-width:1180px;margin:0 auto}
+
+  /* RECORD HEADER */
+  .rhead{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:22px 24px;margin-bottom:20px}
+  .rtop{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .rav{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--purple-light),var(--purple));display:grid;place-items:center;color:#fff;font-family:'Outfit';font-weight:800;font-size:20px;flex:none}
+  .rname h1{font-size:21px}
+  .rname .sub{font-size:13.5px;color:var(--muted);margin-top:3px;display:flex;gap:14px;flex-wrap:wrap}
+  .rname .sub span{display:inline-flex;align-items:center;gap:6px}
+  .rtags{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .tagp{font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;background:var(--soft2);color:var(--body)}
+  .tagp.visa{background:var(--teal-tint);color:var(--teal)}
+  /* progress tracker */
+  .track{display:flex;align-items:center;margin-top:22px;padding-top:20px;border-top:1px solid var(--line2)}
+  .tk{display:flex;align-items:center;flex:1}
+  .tk:last-child{flex:none}
+  .tk .nd{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none;border:2px solid var(--line);background:#fff;color:var(--faint);transition:.3s}
+  .tk .tlab{font-size:12px;font-weight:600;color:var(--faint);margin-left:9px;white-space:nowrap;transition:.3s}
+  .tk .bar{height:2px;flex:1;background:var(--line);margin:0 12px;border-radius:2px;transition:.3s}
+  .tk.done .nd{background:var(--teal);border-color:var(--teal);color:#fff}
+  .tk.done .tlab{color:var(--teal)}
+  .tk.done .bar{background:var(--teal)}
+  .tk.active .nd{background:var(--purple);border-color:var(--purple);color:#fff;box-shadow:0 0 0 5px var(--purple-muted)}
+  .tk.active .tlab{color:var(--purple-deep);font-weight:700}
+  .tk.skip .nd{background:var(--soft2);border-color:var(--line);color:var(--muted)}
+  .tk.skip .tlab{color:var(--muted)}
+  @media(max-width:900px){.tk .tlab{display:none}}
+
+  /* WORKSPACE GRID */
+  .ws{display:grid;grid-template-columns:1fr 332px;gap:20px;align-items:start}
+  @media(max-width:980px){.ws{grid-template-columns:1fr}}
+
+  /* STEP LIST */
+  .steps{display:flex;flex-direction:column;gap:14px}
+  .step{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;transition:.2s}
+  .step.is-active{border-color:var(--purple-light);box-shadow:var(--shadow-lg)}
+  .shead{display:flex;align-items:center;gap:15px;padding:18px 22px;cursor:pointer}
+  .shead:focus-visible{outline:2px solid var(--purple);outline-offset:-2px;border-radius:12px}
+  .snode{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-family:'Outfit';font-weight:800;font-size:15px;flex:none;background:var(--soft2);color:var(--faint);transition:.25s}
+  .step.is-active .snode{background:linear-gradient(135deg,var(--purple),var(--purple-deep));color:#fff;box-shadow:0 8px 16px -7px rgba(62,28,150,.6)}
+  .step.is-done .snode{background:var(--teal);color:#fff}
+  .step.is-skip .snode{background:var(--soft2);color:var(--muted);border:1px dashed var(--line)}
+  .smeta{flex:1;min-width:0}
+  .smeta h3{font-size:16.5px}
+  .smeta .sl{font-size:13px;color:var(--muted);margin-top:2px}
+  .step.is-done .smeta .sl{color:var(--teal)}
+  .sstat{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:5px 11px;border-radius:7px;white-space:nowrap}
+  .st-active{background:var(--purple-muted);color:var(--purple-deep)}
+  .st-done{background:var(--teal-tint);color:var(--teal)}
+  .st-wait{background:var(--amber-bg);color:var(--amber)}
+  .st-todo{background:var(--soft2);color:var(--muted)}
+  .st-skip{background:var(--soft2);color:var(--muted)}
+  .sbody{display:none;padding:4px 28px 30px}
+  .step.is-active .sbody{display:block}
+  .sdesc{font-size:15px;line-height:1.65;color:var(--body);background:var(--soft);border-radius:14px;padding:20px 22px;border-left:3px solid var(--purple-light)}
+  .sdesc strong{color:var(--ink)}
+  .detail-points{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
+  @media(max-width:620px){.detail-points{grid-template-columns:1fr}}
+  .dp{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--line2);border-radius:12px;padding:14px 15px;font-size:13px;color:var(--body);line-height:1.45}
+  .dp svg{flex:none;color:var(--teal);margin-top:1px}
+  .actrow{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:28px}
+  .actrow .btn{padding:12px 20px}
+  .sfoot{display:flex;align-items:center;justify-content:center;gap:20px;margin-top:22px;padding-top:18px;border-top:1px dashed var(--line);flex-wrap:wrap;text-align:center}
+  .linklike{font-size:13px;font-weight:600;color:var(--muted);display:inline-flex;align-items:center;gap:7px;background:none;transition:.15s}
+  .linklike:hover{color:var(--purple-deep)}
+  .linklike svg{width:14px;height:14px}
+  .sfoot .hint{font-size:12px;color:var(--muted)}
+  /* collapsed done summary */
+  .donesum{display:none;font-size:13px;color:var(--teal);align-items:center;gap:7px}
+  .step.is-done .shead .sstat,.step.is-skip .shead .sstat{}
+  .undo{font-size:12px;color:var(--muted);background:none;font-weight:600;text-decoration:underline;text-underline-offset:2px}
+  .undo:hover{color:var(--purple-deep)}
+
+  /* RIGHT RAIL */
+  .rail{display:flex;flex-direction:column;gap:16px;position:sticky;top:0}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+  .ptitle{display:flex;align-items:center;gap:9px;padding:14px 16px;font-family:'Outfit';font-weight:700;font-size:13.5px;color:var(--ink);border-bottom:1px solid var(--line2)}
+  .ptitle .ic{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;flex:none}
+  .ai .ic{background:var(--purple-tint);color:var(--purple)}
+  .pbody{padding:16px}
+  .aisum{font-size:13.5px;color:var(--body);line-height:1.55}
+  .aifacts{display:flex;flex-direction:column;gap:0;margin-top:14px}
+  .aifacts .f{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line2);font-size:13px}
+  .aifacts .f:last-child{border-bottom:none}
+  .aifacts .f .k{color:var(--muted)}
+  .aifacts .f .v{color:var(--ink);font-weight:600;text-align:right}
+  .fit{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;padding:5px 11px;border-radius:999px;background:var(--teal-tint);color:var(--teal);margin-top:4px}
+  /* portal panel */
+  .portalcard .pbody{display:flex;flex-direction:column;gap:12px}
+  .portal-state{display:flex;align-items:center;gap:12px;padding:13px;border-radius:12px;background:var(--soft);transition:.3s}
+  .portal-state .pic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;flex:none;background:var(--soft2);color:var(--faint)}
+  .portal-state .pt{font-size:13.5px;font-weight:700;color:var(--ink);font-family:'Outfit'}
+  .portal-state .ps{font-size:12px;color:var(--muted);margin-top:1px}
+  .portalcard.live .portal-state{background:var(--teal-tint)}
+  .portalcard.live .pic{background:var(--teal);color:#fff}
+  .portalcard.live .pt{color:var(--teal)}
+  .portalmini{font-size:12px;color:var(--muted);background:var(--purple-tint);border-radius:10px;padding:11px 13px;display:none;gap:9px}
+  .portalcard.live .portalmini{display:flex;color:var(--purple-deep)}
+
+  /* SUCCESS BANNER */
+  .succ{display:none;background:linear-gradient(135deg,var(--navy),#13283f);color:#fff;border-radius:var(--r);padding:24px;margin-bottom:20px;position:relative;overflow:hidden;box-shadow:var(--shadow-lg)}
+  .succ.show{display:block;animation:pop .4s ease}
+  @keyframes pop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  .succ::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.4),transparent 65%)}
+  .succ h2{color:#fff;font-size:20px;display:flex;align-items:center;gap:11px}
+  .succ .ck{width:30px;height:30px;border-radius:9px;background:var(--teal);display:grid;place-items:center;flex:none}
+  .succ p{color:#CDD5E0;margin-top:8px;font-size:14px;max-width:62ch}
+
+  /* MODAL */
+  .modal{position:fixed;inset:0;background:rgba(16,25,40,.5);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:50;padding:24px}
+  .modal.show{display:flex}
+  .sheet{background:#fff;border-radius:18px;width:min(540px,100%);max-height:88vh;overflow:auto;box-shadow:var(--shadow-lg);animation:pop .3s ease}
+  .shead2{display:flex;align-items:center;justify-content:space-between;padding:20px 22px;border-bottom:1px solid var(--line2)}
+  .shead2 h3{font-size:18px}
+  .x{width:32px;height:32px;border-radius:9px;background:var(--soft2);display:grid;place-items:center;color:var(--muted)}
+  .x:hover{background:var(--line)}
+  .scont{padding:22px}
+  .field{margin-bottom:15px}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:6px}
+  .field input,.field textarea,.field select{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-family:'Inter';font-size:14px;color:var(--ink);background:#fff}
+  .field input:focus,.field textarea:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-muted)}
+  .frow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .fee{background:var(--soft);border-radius:12px;padding:14px;margin-top:6px}
+  .feetot{display:flex;justify-content:space-between;font-weight:700;color:var(--ink);font-family:'Outfit';font-size:15px;padding-top:11px;margin-top:5px;border-top:1px solid var(--line)}
+  .sfoot2{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--line2);background:var(--soft)}
+  .note{font-size:12.5px;color:var(--muted);background:var(--purple-tint);border-radius:10px;padding:11px 13px;display:flex;gap:9px;margin-top:4px}
+  .note svg{flex:none;color:var(--purple);margin-top:1px}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:13px 20px;border-radius:12px;font-size:13.5px;font-weight:600;box-shadow:var(--shadow-lg);z-index:60;transition:.35s;display:flex;align-items:center;gap:10px;opacity:0}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .toast .ck{width:20px;height:20px;border-radius:6px;background:var(--teal);display:grid;place-items:center;flex:none}
+  @media(max-width:760px){
+    body{overflow:auto;height:auto}
+    .app{grid-template-columns:1fr}
+    .side{display:none}
+    .main{height:auto}
+    .ws{grid-template-columns:1fr}
+    .scroll{padding:18px 16px 80px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="brand"><span class="logo"><span></span></span> IMMI&#8209;PULSE</div>
+    <div class="navg">Workspace</div>
+    <nav class="nav">
+      <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg> Inbox <span class="ct">12</span></a>
+      <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg> Pre-cases <span class="ct">8</span></a>
+      <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5"/><path d="M5 3h9l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg> Cases <span class="ct">5</span></a>
+      <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 8h5M16 12h5"/></svg> Clients</a>
+      <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/></svg> Forms</a>
+    </nav>
+    <div class="navg">Account</div>
+    <nav class="nav">
+      <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.3 1a7 7 0 0 0-1.7-1l-.4-2.5h-4l-.4 2.5a7 7 0 0 0-1.7 1l-2.3-1-2 3.5L5 11a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.3-1a7 7 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7 7 0 0 0 1.7-1l2.3 1 2-3.5-2-1.5a7 7 0 0 0 .1-1z"/></svg> Settings</a>
+    </nav>
+    <div class="me">
+      <div class="av">GJ</div>
+      <div><div class="nm">Gideon James</div><div class="rl">Registered agent</div></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="crumb">Pre-cases &nbsp;/&nbsp; <b>Priya Sharma</b></div>
+      <span class="statuschip" id="statusChip"><span class="d"></span> <span id="statusText">New query</span></span>
+      <div class="right">
+        <button class="btn ghost" onclick="window.open('client-portal-mvp.html','_blank')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg> View as client</button>
+        <button class="btn ghost" id="resetBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg> Reset demo</button>
+      </div>
+    </div>
+
+    <div class="scroll">
+      <div class="stage">
+
+        <!-- SUCCESS BANNER -->
+        <div class="succ" id="succ">
+          <h2><span class="ck"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span> Case opened for Priya Sharma</h2>
+          <p>Her file is live and the document checklist for subclass 186 (ENS) is generated. Priya&rsquo;s portal now shows her case timeline, what&rsquo;s pending, and an upload box for each document &mdash; all under the account she already signed into.</p>
+        </div>
+
+        <!-- RECORD HEADER -->
+        <div class="rhead">
+          <div class="rtop">
+            <div class="rav">PS</div>
+            <div class="rname">
+              <h1>Priya Sharma</h1>
+              <div class="sub">
+                <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6l8 6 8-6"/><rect x="4" y="5" width="16" height="14" rx="2"/></svg> priya.sharma@email.com</span>
+                <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg> +61 4xx xxx xxx</span>
+                <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg> Onshore &middot; Brisbane</span>
+              </div>
+            </div>
+            <div class="rtags">
+              <span class="tagp visa">Interest: 482 &rarr; 186</span>
+              <span class="tagp">Source: Website form</span>
+            </div>
+          </div>
+          <!-- progress tracker -->
+          <div class="track" id="track">
+            <div class="tk" data-tk="0"><div class="nd">1</div><div class="tlab">Qualify</div><div class="bar"></div></div>
+            <div class="tk" data-tk="1"><div class="nd">2</div><div class="tlab">Engagement letter</div><div class="bar"></div></div>
+            <div class="tk" data-tk="2"><div class="nd">3</div><div class="tlab">Signed</div><div class="bar"></div></div>
+            <div class="tk" data-tk="3"><div class="nd">4</div><div class="tlab">Deposit</div><div class="bar"></div></div>
+            <div class="tk" data-tk="4"><div class="nd">5</div><div class="tlab">Case open</div></div>
+          </div>
+        </div>
+
+        <!-- WORKSPACE -->
+        <div class="ws">
+          <!-- STEPS -->
+          <div class="steps" id="steps">
+
+            <!-- STEP 1 -->
+            <div class="step" data-step="0">
+              <div class="shead">
+                <div class="snode">1</div>
+                <div class="smeta"><h3>Review &amp; qualify</h3><div class="sl" data-sl>A new enquiry — decide if it&rsquo;s worth pursuing</div></div>
+                <span class="sstat st-active" data-stat>Needs you</span>
+              </div>
+              <div class="sbody">
+                <div class="sdesc">Priya&rsquo;s enquiry just landed and we&rsquo;ve read it for you — the full summary is on the right. <strong>Qualifying turns this Query into a Pre-case</strong> and creates Priya&rsquo;s portal account, so everything from here happens in one shared place. No PINs to pass around.</div>
+                <div class="detail-points">
+                  <div class="dp"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg> Creates Priya&rsquo;s secure portal account &amp; emails her access</div>
+                  <div class="dp"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg> She signs the agreement &amp; uploads documents in-portal</div>
+                  <div class="dp"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg> You keep a manual override on every step that follows</div>
+                </div>
+                <div class="actrow">
+                  <button class="btn primary" data-advance><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-11"/></svg> Qualify &amp; create portal account</button>
+                  <button class="btn ghost" data-toast="Request sent to Priya — we'll nudge her for the missing details."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 10h8M8 14h5"/><path d="M21 12a9 9 0 1 1-3.5-7.1L21 5"/></svg> Request more info</button>
+                  <button class="btn ghost" data-toast="Archived. You can restore it from the inbox anytime."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg> Not a fit — archive</button>
+                </div>
+                <div class="sfoot">
+                  <button class="linklike" data-advance data-toast="Marked as a pre-case — recorded as already engaged."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17c3-4 5 1 8-2s4-7 9-5"/></svg> Already engaged — mark as pre-case</button>
+                  <span class="hint">Account is created the moment you qualify.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 2 -->
+            <div class="step" data-step="1">
+              <div class="shead">
+                <div class="snode">2</div>
+                <div class="smeta"><h3>Send the engagement letter</h3><div class="sl" data-sl>Scope, fees &amp; disbursements — the compliance gate</div></div>
+                <span class="sstat st-todo" data-stat>Up next</span>
+              </div>
+              <div class="sbody">
+                <div class="sdesc">Compose Priya&rsquo;s costs agreement from your template — visa, scope, professional fee, disbursements, retainer. It appears <strong>in her portal to sign</strong>, with a copy emailed to her. You can&rsquo;t bill for work until this is in place, so this step protects you.</div>
+                <div class="actrow">
+                  <button class="btn primary" data-modal="letterModal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v14H7l-3 3z"/></svg> Compose &amp; send letter</button>
+                  <button class="btn ghost" data-advance data-toast="Marked sent — your own letter recorded on the file."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5"/><path d="M5 3h9l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg> I&rsquo;ll use my own letter</button>
+                </div>
+                <div class="sfoot">
+                  <button class="linklike" data-skip><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4l8 8-8 8M13 4l8 8-8 8"/></svg> Skip this step</button>
+                  <span class="hint">Use your own letterhead anytime — nothing is forced.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 3 -->
+            <div class="step" data-step="2">
+              <div class="shead">
+                <div class="snode">3</div>
+                <div class="smeta"><h3>Client signs the agreement</h3><div class="sl" data-sl>She signs inside her portal — no PIN to pass around</div></div>
+                <span class="sstat st-todo" data-stat>Up next</span>
+              </div>
+              <div class="sbody">
+                <div class="sdesc">The letter is waiting in Priya&rsquo;s portal. She reviews and signs there — by typing or drawing her name — and we keep a tamper-proof record of exactly what she agreed to and when. You&rsquo;ll see it flip to <strong>Signed</strong> here automatically.</div>
+                <div class="actrow">
+                  <button class="btn soft" data-toast="Reminder sent to Priya's portal &amp; email."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg> Send a reminder</button>
+                  <button class="btn primary" data-advance data-toast="Recorded as signed in person."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17c3-4 5 1 8-2s4-7 9-5"/></svg> Mark signed manually</button>
+                </div>
+                <div class="sfoot">
+                  <button class="linklike" data-skip><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4l8 8-8 8M13 4l8 8-8 8"/></svg> Skip this step</button>
+                  <span class="hint">Signed offline? Record it manually with a note.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 4 -->
+            <div class="step" data-step="3">
+              <div class="shead">
+                <div class="snode">4</div>
+                <div class="smeta"><h3>Record the deposit</h3><div class="sl" data-sl>Retainer received — or waive it</div></div>
+                <span class="sstat st-todo" data-stat>Up next</span>
+              </div>
+              <div class="sbody">
+                <div class="sdesc">Log the retainer you&rsquo;ve received — method, amount, reference, date — and we generate a receipt for the file. You stay in control of the money; no card processing needed. Priya sees the payment confirmed in her portal.</div>
+                <div class="actrow">
+                  <button class="btn primary" data-modal="payModal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/></svg> Record payment</button>
+                  <button class="btn ghost" data-toast="Payment request sent to Priya's portal."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Send payment request</button>
+                </div>
+                <div class="sfoot">
+                  <button class="linklike" data-skip data-toast="Payment waived — recorded for your audit trail."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4l8 8-8 8M13 4l8 8-8 8"/></svg> Waive / skip (family or pro-bono)</button>
+                  <span class="hint">A clean waiver is logged either way.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 5 -->
+            <div class="step" data-step="4">
+              <div class="shead">
+                <div class="snode">5</div>
+                <div class="smeta"><h3>Open the case</h3><div class="sl" data-sl>Generate the checklist and start the real work</div></div>
+                <span class="sstat st-todo" data-stat>Up next</span>
+              </div>
+              <div class="sbody">
+                <div class="sdesc">This turns the pre-case into a live case. We generate the document checklist for subclass 186 (ENS) and unlock Priya&rsquo;s full portal — timeline, pending documents and uploads. Everything you&rsquo;ve done so far carries over.</div>
+                <div class="actrow">
+                  <button class="btn tealb" data-advance data-toast="Case opened — checklist generated."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-11"/></svg> Open case &amp; generate checklist</button>
+                  <button class="btn ghost" data-advance data-toast="Case opened."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5"/><path d="M5 3h9l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg> Open case only</button>
+                </div>
+                <div class="sfoot">
+                  <span class="hint">Force-convert (skipping gates) stays available with a note.</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- RIGHT RAIL -->
+          <div class="rail">
+            <div class="panel ai">
+              <div class="ptitle"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5"/><path d="M7 3h7l5 5v11a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M9 13h6M9 16h4"/></svg></span> Enquiry summary</div>
+              <div class="pbody">
+                <div class="fit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg> Likely a strong fit</div>
+                <p class="aisum" style="margin-top:10px">Priya is on a <strong>subclass 482</strong> in Brisbane, working as an electrical engineer, and wants to move toward <strong>permanent residence via 186 (ENS)</strong>. Her employer is willing to sponsor. Onshore, no obvious blockers flagged.</p>
+                <div class="aifacts">
+                  <div class="f"><span class="k">Current visa</span><span class="v">Subclass 482</span></div>
+                  <div class="f"><span class="k">Goal</span><span class="v">186 ENS (PR)</span></div>
+                  <div class="f"><span class="k">Occupation</span><span class="v">Electrical engineer</span></div>
+                  <div class="f"><span class="k">Sponsor</span><span class="v">Employer willing</span></div>
+                  <div class="f"><span class="k">Location</span><span class="v">Brisbane (onshore)</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel portalcard" id="portalCard">
+              <div class="ptitle"><span class="ic" style="background:var(--soft2);color:var(--muted)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M16 11h6"/></svg></span> Client portal</div>
+              <div class="pbody">
+                <div class="portal-state">
+                  <div class="pic" id="portalIc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+                  <div><div class="pt" id="portalTitle">Not created yet</div><div class="ps" id="portalSub">Created automatically when you qualify</div></div>
+                </div>
+                <div class="portalmini"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg> Priya signs the letter, pays and uploads here — one login, no PINs.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LETTER MODAL -->
+<div class="modal" id="letterModal">
+  <div class="sheet">
+    <div class="shead2"><h3>Compose engagement letter</h3><button class="x" data-close><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="scont">
+      <div class="field"><label>Visa subclass</label><input value="482 → 186 (ENS pathway)" /></div>
+      <div class="field"><label>Scope of service</label><textarea rows="2">Advice and lodgement for subclass 186 (ENS) permanent residence, including nomination support.</textarea></div>
+      <label style="display:block;font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:6px">Fees</label>
+      <div class="fee">
+        <div class="frow">
+          <div class="field" style="margin:0"><label>Professional</label><input value="$3,500" /></div>
+          <div class="field" style="margin:0"><label>Disbursements</label><input value="$540" /></div>
+          <div class="field" style="margin:0"><label>Retainer now</label><input value="$1,500" /></div>
+        </div>
+        <div class="feetot"><span>Total estimate</span><span>$4,040</span></div>
+      </div>
+      <div class="note" style="margin-top:14px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg> This lands in Priya&rsquo;s portal to review and sign — she&rsquo;s already logged in.</div>
+    </div>
+    <div class="sfoot2"><button class="btn ghost" data-close>Cancel</button><button class="btn primary" data-modal-advance data-toast="Engagement letter sent to Priya's portal."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v14H7l-3 3z"/></svg> Send to portal</button></div>
+  </div>
+</div>
+
+<!-- PAY MODAL -->
+<div class="modal" id="payModal">
+  <div class="sheet">
+    <div class="shead2"><h3>Record payment</h3><button class="x" data-close><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="scont">
+      <div class="frow" style="grid-template-columns:1fr 1fr">
+        <div class="field"><label>Method</label><select><option>Bank transfer</option><option>PayID</option><option>BPAY</option><option>Cash</option><option>Cheque</option></select></div>
+        <div class="field"><label>Amount (A$)</label><input value="1,500" /></div>
+      </div>
+      <div class="frow" style="grid-template-columns:1fr 1fr">
+        <div class="field"><label>Reference</label><input value="RTN-4821" /></div>
+        <div class="field"><label>Received on</label><input value="19 Jun 2026" /></div>
+      </div>
+      <div class="field"><label>Note (optional)</label><textarea rows="2" placeholder="e.g. retainer for 186 application"></textarea></div>
+      <div class="note"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-11"/></svg> A receipt number is generated and shown in Priya&rsquo;s portal.</div>
+    </div>
+    <div class="sfoot2"><button class="btn ghost" data-close>Cancel</button><button class="btn primary" data-modal-advance data-toast="Payment of $1,500 recorded. Receipt generated."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-11"/></svg> Record payment</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span><span id="toastText">Done</span></div>
+
+<script>
+(function(){
+  // status labels per number of completed steps (0..5)
+  var STATUS=[
+    {t:'New query',bg:'var(--purple-muted)',c:'var(--purple-deep)'},
+    {t:'Pre-case · Qualified',bg:'var(--purple-muted)',c:'var(--purple-deep)'},
+    {t:'Pre-case · Letter sent',bg:'var(--purple-muted)',c:'var(--purple-deep)'},
+    {t:'Pre-case · Signed',bg:'var(--purple-muted)',c:'var(--purple-deep)'},
+    {t:'Pre-case · Paid',bg:'var(--teal-tint)',c:'var(--teal)'},
+    {t:'Case open',bg:'var(--teal-tint)',c:'var(--teal)'}
+  ];
+  var STEP_DONE_LABEL=['Qualified — Priya is now a pre-case','Engagement letter sent','Agreement signed','Deposit recorded','Case opened'];
+  var STAT_DONE=['Qualified','Sent','Signed','Paid','Done'];
+
+  var steps=[].slice.call(document.querySelectorAll('.step'));
+  var tks=[].slice.call(document.querySelectorAll('#track .tk'));
+  var state=steps.map(function(){return 'todo';}); // todo|active|done|skip
+  var active=0;
+
+  function completedCount(){return state.filter(function(s){return s==='done'||s==='skip';}).length;}
+
+  function setActive(i){
+    if(i>=steps.length){active=steps.length;render();return;}
+    // can't activate a done step as "active" unless reopened; allow re-selection of any not-done
+    active=i;
+    state[i]= (state[i]==='done'||state[i]==='skip')? state[i] : 'active';
+    render();
+  }
+
+  function render(){
+    steps.forEach(function(st,i){
+      st.classList.remove('is-active','is-done','is-skip');
+      var stat=st.querySelector('[data-stat]');
+      var sl=st.querySelector('[data-sl]');
+      if(state[i]==='done'){
+        st.classList.add('is-done');
+        stat.className='sstat st-done';stat.textContent=STAT_DONE[i];
+        sl.textContent=STEP_DONE_LABEL[i];
+      }else if(state[i]==='skip'){
+        st.classList.add('is-skip');
+        stat.className='sstat st-skip';stat.textContent='Skipped';
+        sl.textContent='Skipped — you can revisit anytime';
+      }else if(i===active){
+        st.classList.add('is-active');
+        stat.className='sstat st-active';stat.textContent= i===2?'Waiting on client':'Needs you';
+      }else{
+        stat.className='sstat st-todo';stat.textContent='Up next';
+      }
+    });
+    // tracker
+    tks.forEach(function(tk,i){
+      tk.classList.remove('done','active','skip');
+      if(state[i]==='done')tk.classList.add('done');
+      else if(state[i]==='skip')tk.classList.add('skip');
+      else if(i===active)tk.classList.add('active');
+      var nd=tk.querySelector('.nd');
+      nd.innerHTML = (state[i]==='done') ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg>' : (i+1);
+    });
+    // status chip — driven by the furthest COMPLETED (done) gate, so a skip never fakes progress
+    var doneIdx=-1;state.forEach(function(s2,i2){if(s2==='done')doneIdx=i2;});
+    var s=STATUS[Math.min(doneIdx+1,5)];
+    var chip=document.getElementById('statusChip');
+    document.getElementById('statusText').textContent=s.t;
+    chip.style.background=s.bg;chip.style.color=s.c;
+    // portal card: becomes live once step 1 (qualify) is done/skip
+    var pc=document.getElementById('portalCard');
+    if(state[0]==='done'){
+      pc.classList.add('live');
+      document.getElementById('portalTitle').textContent='Account active';
+      document.getElementById('portalSub').textContent='Priya signed in · invite emailed';
+      document.getElementById('portalIc').innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-11"/></svg>';
+    }else{
+      pc.classList.remove('live');
+      document.getElementById('portalTitle').textContent='Not created yet';
+      document.getElementById('portalSub').textContent='Created automatically when you qualify';
+      document.getElementById('portalIc').innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+    }
+    // success banner
+    document.getElementById('succ').classList.toggle('show', state[4]==='done');
+  }
+
+  function advance(i){
+    state[i]='done';
+    // open next not-done step
+    var n=i+1;
+    while(n<steps.length && (state[n]==='done'||state[n]==='skip'))n++;
+    active=n;
+    if(n<steps.length && state[n]==='todo')state[n]='active';
+    render();
+    if(state[4]==='done'){document.getElementById('succ').scrollIntoView({behavior:'smooth',block:'center'});}
+  }
+
+  function skip(i){
+    state[i]='skip';
+    var n=i+1;while(n<steps.length && (state[n]==='done'||state[n]==='skip'))n++;
+    active=n;if(n<steps.length && state[n]==='todo')state[n]='active';
+    render();
+  }
+
+  // header click to select a step
+  steps.forEach(function(st,i){
+    st.querySelector('.shead').addEventListener('click',function(){ setActive(i); });
+  });
+
+  // delegated buttons
+  document.addEventListener('click',function(e){
+    var t=e.target.closest('[data-advance],[data-skip],[data-modal],[data-modal-advance],[data-close],[data-toast]');
+    if(!t)return;
+    var stepEl=t.closest('.step');
+    var idx=stepEl?steps.indexOf(stepEl):active;
+
+    if(t.hasAttribute('data-toast') && !t.hasAttribute('data-advance') && !t.hasAttribute('data-modal-advance') && !t.hasAttribute('data-skip')){
+      toast(t.getAttribute('data-toast'));return;
+    }
+    if(t.hasAttribute('data-advance')){ if(t.getAttribute('data-toast'))toast(t.getAttribute('data-toast')); advance(idx); return; }
+    if(t.hasAttribute('data-skip')){ if(t.getAttribute('data-toast'))toast(t.getAttribute('data-toast')); skip(idx); return; }
+    if(t.hasAttribute('data-modal')){ openModal(t.getAttribute('data-modal')); return; }
+    if(t.hasAttribute('data-close')){ closeModals(); return; }
+    if(t.hasAttribute('data-modal-advance')){
+      if(t.getAttribute('data-toast'))toast(t.getAttribute('data-toast'));
+      closeModals();
+      advance(active); return;
+    }
+  });
+
+  function openModal(id){var m=document.getElementById(id);if(m)m.classList.add('show');}
+  function closeModals(){[].forEach.call(document.querySelectorAll('.modal'),function(m){m.classList.remove('show');});}
+  [].forEach.call(document.querySelectorAll('.modal'),function(m){m.addEventListener('click',function(e){if(e.target===m)closeModals();});});
+
+  var toastTimer;
+  function toast(msg){
+    var el=document.getElementById('toast');document.getElementById('toastText').textContent=msg;
+    el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.classList.remove('show');},2600);
+  }
+
+  document.getElementById('resetBtn').addEventListener('click',function(){
+    state=steps.map(function(){return 'todo';});active=0;state[0]='active';
+    document.getElementById('succ').classList.remove('show');render();
+    window.scrollTo({top:0});document.querySelector('.scroll').scrollTo({top:0,behavior:'smooth'});
+  });
+
+  // init
+  state[0]='active';render();
+})();
+</script>
+</body>
+</html>

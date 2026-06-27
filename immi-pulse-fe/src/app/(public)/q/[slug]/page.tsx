@@ -15,6 +15,11 @@ import {
   UserRound,
 } from "lucide-react";
 import { publicQuestionnairesApi, type QuestionField } from "@/lib/api/services";
+import { QuestionnaireRenderer } from "@/components/questionnaires/QuestionnaireRenderer";
+import {
+  cleanAnswers,
+  missingRequired,
+} from "@/lib/questionnaires/rulesEngine";
 
 type FormData = {
   id: string;
@@ -80,6 +85,7 @@ export default function PublicQuestionnairePage() {
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
 
   useEffect(() => {
     publicQuestionnairesApi
@@ -98,18 +104,11 @@ export default function PublicQuestionnairePage() {
     if (!submitterEmail.trim()) return "Please enter your email";
     if (!submitterPhone.trim()) return "Please enter your phone number";
     if (!data) return null;
-    for (const f of data.fields) {
-      if (f.required) {
-        const v = answers[f.key];
-        if (
-          v === undefined ||
-          v === null ||
-          v === "" ||
-          (Array.isArray(v) && v.length === 0)
-        ) {
-          return `Please answer: ${f.label}`;
-        }
-      }
+    // Use the shared rules engine — only validate fields that are
+    // currently visible given the answers. Required-if rules counted.
+    const missing = missingRequired(data.fields, answers);
+    if (missing.length > 0) {
+      return `Please answer: ${missing[0]}`;
     }
     return null;
   };
@@ -119,17 +118,20 @@ export default function PublicQuestionnairePage() {
     const err = validate();
     if (err) {
       setError(err);
+      setShowErrors(true);
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
+      // Strip answers for hidden fields (mirrors backend hardening)
+      const safeAnswers = data ? cleanAnswers(data.fields, answers) : answers;
       await publicQuestionnairesApi.submit(params.slug, {
         submitter_email: submitterEmail.trim(),
         submitter_first_name: submitterFirstName.trim(),
         submitter_last_name: submitterLastName.trim(),
         submitter_phone: submitterPhone.trim(),
-        answers,
+        answers: safeAnswers,
       });
       setSubmitted(true);
     } catch (err: unknown) {
@@ -184,6 +186,7 @@ export default function PublicQuestionnairePage() {
               setAnswer={setAnswer}
               error={error}
               submitting={submitting}
+              showErrors={showErrors}
               onSubmit={onSubmit}
             />
           </div>
@@ -298,7 +301,7 @@ function ConsultantPanel({ data }: { data: FormData }) {
         </div>
       )}
 
-      {/* Contact-person card — leads with the human */}
+      {/* Contact-person card */}
       {data.org_contact_person && (
         <div className="mt-7 rounded-2xl border border-[#EAE6FA] bg-white/80 p-5 shadow-[0_20px_50px_-30px_rgba(15,17,23,0.2)] backdrop-blur-sm">
           <div className="font-mono-d text-[10px] uppercase tracking-[0.28em] text-[#5B3ADB]">
@@ -334,7 +337,6 @@ function ConsultantPanel({ data }: { data: FormData }) {
         </div>
       )}
 
-      {/* No contact person but has phone — surface compactly */}
       {!data.org_contact_person && phoneHref && (
         <a
           href={phoneHref}
@@ -347,7 +349,6 @@ function ConsultantPanel({ data }: { data: FormData }) {
         </a>
       )}
 
-      {/* Editorial pull-quote */}
       <p className="mt-9 max-w-[28ch] font-serif-d text-[24px] italic leading-[1.25] text-[#0F1117]">
         “Tell us your story.{" "}
         <span className="text-[#5B3ADB]">We&apos;ll tell you what&apos;s possible.</span>”
@@ -357,7 +358,6 @@ function ConsultantPanel({ data }: { data: FormData }) {
         in touch — usually within one business day.
       </p>
 
-      {/* Practice details */}
       {(websiteHref || data.org_business_hours) && (
         <>
           <div className="editorial-rule mt-9" />
@@ -390,7 +390,6 @@ function ConsultantPanel({ data }: { data: FormData }) {
         </>
       )}
 
-      {/* Social row */}
       {socials.length > 0 && (
         <div className="mt-6 flex items-center gap-3">
           <span className="font-mono-d text-[9.5px] uppercase tracking-[0.28em] text-[#94A3B8]">
@@ -415,7 +414,6 @@ function ConsultantPanel({ data }: { data: FormData }) {
         </div>
       )}
 
-      {/* Trust strip */}
       <div className="editorial-rule mt-9" />
       <ul className="mt-6 grid gap-3 text-[13px] text-[#1E293B]">
         <TrustItem icon={<Phone className="h-3.5 w-3.5" />} label="Reply within 1 business day" />
@@ -453,6 +451,7 @@ function FormPanel({
   setAnswer,
   error,
   submitting,
+  showErrors,
   onSubmit,
 }: {
   data: FormData;
@@ -468,6 +467,7 @@ function FormPanel({
   setAnswer: (k: string, v: unknown) => void;
   error: string | null;
   submitting: boolean;
+  showErrors: boolean;
   onSubmit: (e: React.FormEvent) => void;
 }) {
   return (
@@ -542,16 +542,12 @@ function FormPanel({
 
             {data.fields.length > 0 && (
               <Section index="02" title="Your situation">
-                <div className="space-y-5">
-                  {data.fields.map((f) => (
-                    <FieldRenderer
-                      key={f.key}
-                      field={f}
-                      value={answers[f.key]}
-                      onChange={(v) => setAnswer(f.key, v)}
-                    />
-                  ))}
-                </div>
+                <QuestionnaireRenderer
+                  fields={data.fields}
+                  answers={answers}
+                  setAnswer={setAnswer}
+                  showErrors={showErrors}
+                />
               </Section>
             )}
 
@@ -685,190 +681,6 @@ function Field({
       )}
     </div>
   );
-}
-
-function FieldRenderer({
-  field,
-  value,
-  onChange,
-}: {
-  field: QuestionField;
-  value: unknown;
-  onChange: (v: unknown) => void;
-}) {
-  const labelHeader = (
-    <div className="mb-1.5 flex items-baseline justify-between gap-3">
-      <label className="text-[13px] font-medium text-[#0F1117]">
-        {field.label}
-        {field.required && <span className="ml-1 text-[#7C5CFC]">*</span>}
-      </label>
-      {!field.required && (
-        <span className="font-mono-d text-[9.5px] uppercase tracking-[0.22em] text-[#94A3B8]">
-          Optional
-        </span>
-      )}
-    </div>
-  );
-
-  switch (field.type) {
-    case "long_text":
-      return (
-        <div>
-          {labelHeader}
-          <textarea
-            rows={4}
-            value={(value as string) || ""}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={field.placeholder || ""}
-            className="block w-full resize-y rounded-lg border border-[#E4E2EE] bg-white px-3.5 py-3 text-[14.5px] leading-[1.55] text-[#0F1117] placeholder:text-[#A8A2BD] transition-all duration-200 hover:border-[#CDC4F8] focus:border-[#7C5CFC] focus:outline-none focus:ring-4 focus:ring-[#7C5CFC]/12"
-          />
-          {field.helper_text && (
-            <p className="mt-1.5 text-[12px] leading-[1.5] text-[#475367]">
-              {field.helper_text}
-            </p>
-          )}
-        </div>
-      );
-
-    case "yes_no": {
-      const v = (value as string) || "";
-      return (
-        <div>
-          {labelHeader}
-          <div className="flex gap-2.5 pt-1">
-            {[
-              { val: "yes", label: "Yes" },
-              { val: "no", label: "No" },
-            ].map((opt) => (
-              <button
-                key={opt.val}
-                type="button"
-                onClick={() => onChange(opt.val)}
-                className={`flex-1 rounded-lg border px-4 py-2.5 text-[13.5px] font-medium transition-all ${
-                  v === opt.val
-                    ? "border-[#7C5CFC] bg-[#F2EEFF] text-[#3E1C96] shadow-[0_0_0_3px_rgba(124,92,252,0.10)]"
-                    : "border-[#E4E2EE] bg-white text-[#1E293B] hover:border-[#CDC4F8]"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    case "single_select": {
-      const v = (value as string) || "";
-      return (
-        <div>
-          {labelHeader}
-          <div className="grid gap-2 pt-1">
-            {(field.options || []).map((opt) => {
-              const active = v === opt;
-              return (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => onChange(opt)}
-                  className={`flex items-center gap-3 rounded-lg border px-3.5 py-3 text-left text-[13.5px] transition-all ${
-                    active
-                      ? "border-[#7C5CFC] bg-[#F8F5FF] text-[#0F1117]"
-                      : "border-[#E4E2EE] bg-white text-[#1E293B] hover:border-[#CDC4F8] hover:bg-[#FBFAFF]"
-                  }`}
-                >
-                  <span
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
-                      active ? "border-[#7C5CFC] bg-[#7C5CFC]" : "border-[#CFC9E0]"
-                    }`}
-                  >
-                    {active && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
-                  </span>
-                  <span>{opt}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    case "multi_select": {
-      const arr = Array.isArray(value) ? (value as string[]) : [];
-      return (
-        <div>
-          {labelHeader}
-          <div className="grid gap-2 pt-1">
-            {(field.options || []).map((opt) => {
-              const checked = arr.includes(opt);
-              return (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => {
-                    const next = checked
-                      ? arr.filter((x) => x !== opt)
-                      : [...arr, opt];
-                    onChange(next);
-                  }}
-                  className={`flex items-center gap-3 rounded-lg border px-3.5 py-3 text-left text-[13.5px] transition-all ${
-                    checked
-                      ? "border-[#7C5CFC] bg-[#F8F5FF] text-[#0F1117]"
-                      : "border-[#E4E2EE] bg-white text-[#1E293B] hover:border-[#CDC4F8] hover:bg-[#FBFAFF]"
-                  }`}
-                >
-                  <span
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-                      checked
-                        ? "border-[#7C5CFC] bg-[#7C5CFC]"
-                        : "border-[#CFC9E0] bg-white"
-                    }`}
-                  >
-                    {checked && <Check className="h-3 w-3 text-white" />}
-                  </span>
-                  <span>{opt}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    case "number":
-    case "date":
-    case "email":
-    case "phone":
-    case "short_text":
-    default:
-      return (
-        <div>
-          {labelHeader}
-          <input
-            type={
-              field.type === "number"
-                ? "number"
-                : field.type === "date"
-                ? "date"
-                : field.type === "email"
-                ? "email"
-                : field.type === "phone"
-                ? "tel"
-                : "text"
-            }
-            value={(value as string) || ""}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={field.placeholder || ""}
-            className="block w-full rounded-lg border border-[#E4E2EE] bg-white px-3.5 py-3 text-[14.5px] text-[#0F1117] placeholder:text-[#A8A2BD] transition-all duration-200 hover:border-[#CDC4F8] focus:border-[#7C5CFC] focus:outline-none focus:ring-4 focus:ring-[#7C5CFC]/12"
-          />
-          {field.helper_text && (
-            <p className="mt-1.5 text-[12px] leading-[1.5] text-[#475367]">
-              {field.helper_text}
-            </p>
-          )}
-        </div>
-      );
-  }
 }
 
 /* ──────────────────  States: loading / 404 / success  ────────────────── */

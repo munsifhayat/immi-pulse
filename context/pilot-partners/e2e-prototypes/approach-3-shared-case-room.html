@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IMMI-PULSE · Approach C — Shared Case Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* ============ DESIGN TOKENS ============ */
+:root{
+  --navy:#101928; --navy-2:#1E293B; --navy-3:#26334a;
+  --purple:#7A5AF8; --purple-deep:#3E1C96; --purple-lite:#BDB4FE; --purple-mute:#D9D6FE;
+  --teal:#1B7B6F; --teal-lite:#2DD4BF; --teal-wash:#E6F7F4;
+  --gray-text:#475367; --gray-lite:#F0F2F5; --bg:#FFFFFF;
+  --amber:#D97706; --amber-wash:#FEF3E2; --rose:#E11D48; --rose-wash:#FFE9EE;
+  --green-wash:#E7F6EC; --green:#117a3d;
+  --ring:rgba(122,90,248,.35);
+  --shadow-sm:0 1px 2px rgba(16,25,40,.06), 0 1px 3px rgba(16,25,40,.05);
+  --shadow-md:0 6px 24px rgba(16,25,40,.08), 0 2px 6px rgba(16,25,40,.05);
+  --shadow-lg:0 18px 48px rgba(16,25,40,.14), 0 6px 16px rgba(16,25,40,.08);
+  --r-sm:10px; --r:14px; --r-lg:20px; --r-xl:26px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:#EEF0F4; color:var(--navy);
+  font-feature-settings:'tnum';
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+h1,h2,h3,h4,h5,.font-head{font-family:'Outfit',sans-serif;letter-spacing:-.01em}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+.tnum{font-feature-settings:'tnum'}
+
+/* ============ APP SHELL ============ */
+.app{height:100vh;display:flex;flex-direction:column}
+
+/* ---- TOP RIBBON ---- */
+.ribbon{
+  flex:0 0 auto;
+  background:linear-gradient(96deg,#0c1422 0%,#1a1140 60%,#241152 100%);
+  color:#fff; padding:9px 22px; display:flex;align-items:center;gap:18px;
+  box-shadow:0 2px 14px rgba(16,25,40,.25); z-index:60; position:relative;
+}
+.ribbon .brand{display:flex;align-items:center;gap:11px;flex:0 0 auto}
+.ribbon .logo{
+  width:30px;height:30px;border-radius:9px;
+  background:linear-gradient(135deg,var(--purple),var(--teal-lite));
+  display:grid;place-items:center;box-shadow:0 4px 14px rgba(122,90,248,.5);
+}
+.ribbon .logo svg{width:17px;height:17px;color:#fff}
+.ribbon .brandtxt b{font-family:'Outfit';font-weight:700;font-size:14px;letter-spacing:.2px}
+.ribbon .brandtxt span{display:block;font-size:10.5px;color:#b9b2e6;margin-top:1px}
+.ribbon .approach{
+  display:flex;flex-direction:column;line-height:1.25;padding-left:18px;border-left:1px solid rgba(255,255,255,.14)
+}
+.ribbon .approach b{font-family:'Outfit';font-size:13px;font-weight:600}
+.ribbon .approach span{font-size:11px;color:#c3bdec}
+.ribbon .spacer{flex:1}
+.demo-tag{
+  font-size:10.5px;font-weight:600;letter-spacing:.4px;color:#ffd9a8;
+  background:rgba(217,119,6,.18);border:1px solid rgba(217,119,6,.4);
+  padding:4px 10px;border-radius:999px;text-transform:uppercase;
+}
+/* view toggle */
+.viewtoggle{display:flex;align-items:center;gap:9px}
+.viewtoggle>.lbl{font-size:11px;color:#a9a2d6;font-weight:600}
+.seg{
+  display:flex;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
+  border-radius:999px;padding:3px;position:relative;
+}
+.seg button{
+  position:relative;z-index:2;display:flex;align-items:center;gap:7px;
+  padding:7px 15px;border-radius:999px;font-size:12.5px;font-weight:600;color:#cfc9ee;
+  transition:color .25s;
+}
+.seg button svg{width:14px;height:14px}
+.seg .pill{
+  position:absolute;top:3px;left:3px;height:calc(100% - 6px);border-radius:999px;z-index:1;
+  transition:transform .35s cubic-bezier(.4,0,.2,1),width .35s,background .35s;
+}
+body[data-view="client"] .seg button.client,
+body[data-view="agent"] .seg button.agent{color:#fff}
+body[data-view="agent"] .seg .pill{background:linear-gradient(135deg,#7A5AF8,#5b3fd4);box-shadow:0 3px 10px rgba(122,90,248,.5)}
+body[data-view="client"] .seg .pill{background:linear-gradient(135deg,#2DD4BF,#16a394);box-shadow:0 3px 10px rgba(45,212,191,.45)}
+
+/* ---- STAGE RAIL ---- */
+.rail{
+  flex:0 0 auto;background:#fff;border-bottom:1px solid #e4e7ee;
+  padding:0 18px;display:flex;align-items:stretch;gap:2px;z-index:40;
+  overflow-x:auto;box-shadow:var(--shadow-sm);
+}
+.rail::-webkit-scrollbar{height:0}
+.stage-btn{
+  display:flex;align-items:center;gap:10px;padding:11px 14px;position:relative;
+  color:#8a93a6;transition:color .2s;white-space:nowrap;border-bottom:2.5px solid transparent;
+}
+.stage-btn .num{
+  width:23px;height:23px;border-radius:7px;display:grid;place-items:center;
+  font-size:11.5px;font-weight:700;font-family:'Outfit';
+  background:#eef0f4;color:#9aa3b4;transition:all .25s;flex:0 0 auto;
+}
+.stage-btn .nm{font-size:12.5px;font-weight:600;font-family:'Outfit'}
+.stage-btn:hover{color:var(--navy)}
+.stage-btn.active{color:var(--navy);border-bottom-color:var(--purple)}
+.stage-btn.active .num{background:linear-gradient(135deg,var(--purple),var(--purple-deep));color:#fff;box-shadow:0 3px 9px var(--ring)}
+.stage-btn.done .num{background:var(--teal-wash);color:var(--teal)}
+.stage-btn.done .num svg{width:13px;height:13px}
+
+/* ---- STAGE BODY ---- */
+.stage-body{flex:1;overflow:hidden;position:relative}
+.screen{
+  position:absolute;inset:0;overflow-y:auto;padding:26px 30px 60px;
+  opacity:0;transform:translateY(10px);pointer-events:none;transition:opacity .4s,transform .4s;
+}
+.screen.show{opacity:1;transform:none;pointer-events:auto}
+.screen::-webkit-scrollbar{width:9px}
+.screen::-webkit-scrollbar-thumb{background:#cdd3df;border-radius:9px}
+
+/* dual-tone surfaces */
+body[data-view="agent"] .stage-body{background:radial-gradient(1200px 600px at 80% -10%,#1a2238 0%,#0d1421 60%,#0a0f1a 100%)}
+body[data-view="client"] .stage-body{background:linear-gradient(180deg,#f3fbf9 0%,#eef6f9 100%)}
+
+/* panel header */
+.viewbadge{
+  display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;padding:5px 12px;border-radius:999px;margin-bottom:14px;
+}
+.viewbadge svg{width:13px;height:13px}
+.vb-agent{background:rgba(122,90,248,.16);color:var(--purple-lite);border:1px solid rgba(122,90,248,.35)}
+.vb-client{background:#fff;color:var(--teal);border:1px solid #bfe9e2;box-shadow:var(--shadow-sm)}
+
+/* the two view containers per screen */
+.view{display:none;animation:fade .45s ease}
+body[data-view="agent"] .view.agent{display:block}
+body[data-view="client"] .view.client{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.maxw{max-width:1320px;margin:0 auto}
+
+/* ============ AGENT CONSOLE STYLE ============ */
+.a-h1{color:#fff;font-size:25px;font-weight:700;margin-bottom:4px}
+.a-sub{color:#9aa6bd;font-size:13.5px;margin-bottom:20px}
+.a-card{
+  background:linear-gradient(180deg,#161f33,#121a2b);border:1px solid #25304a;border-radius:var(--r-lg);
+  box-shadow:0 10px 34px rgba(0,0,0,.32);
+}
+.a-card.pad{padding:22px}
+.a-label{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#7e8aa6}
+.a-muted{color:#9aa6bd}
+.a-divider{height:1px;background:#25304a;margin:16px 0}
+
+/* ============ CLIENT PORTAL STYLE ============ */
+.c-h1{color:var(--navy);font-size:27px;font-weight:700;margin-bottom:6px}
+.c-sub{color:var(--gray-text);font-size:14.5px;margin-bottom:22px;max-width:640px;line-height:1.5}
+.c-card{
+  background:#fff;border:1px solid #e4eb ;border:1px solid #e6edec;border-radius:var(--r-xl);
+  box-shadow:0 12px 34px rgba(27,123,111,.07);
+}
+.c-card.pad{padding:26px}
+.c-greet{
+  background:linear-gradient(120deg,#1B7B6F 0%,#15695f 55%,#127f74 100%);color:#fff;
+  border-radius:var(--r-xl);padding:24px 28px;box-shadow:0 16px 40px rgba(27,123,111,.28);position:relative;overflow:hidden;
+}
+.c-greet:after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.5),transparent 70%)}
+
+/* ====== shared bits ====== */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:12px;font-weight:600;font-size:13.5px;
+  transition:transform .15s,box-shadow .2s,background .2s;
+}
+.btn:active{transform:translateY(1px) scale(.99)}
+.btn svg{width:16px;height:16px}
+.btn-primary{background:linear-gradient(135deg,var(--purple),#6244d8);color:#fff;box-shadow:0 8px 20px var(--ring)}
+.btn-primary:hover{box-shadow:0 12px 26px var(--ring)}
+.btn-teal{background:linear-gradient(135deg,var(--teal-lite),var(--teal));color:#fff;box-shadow:0 8px 20px rgba(27,123,111,.3)}
+.btn-teal:hover{box-shadow:0 12px 26px rgba(27,123,111,.36)}
+.btn-ghost-d{background:rgba(255,255,255,.06);color:#cfd6e6;border:1px solid #2b3650}
+.btn-ghost-d:hover{background:rgba(255,255,255,.11)}
+.btn-ghost-l{background:#fff;color:var(--gray-text);border:1px solid #d8dee9}
+.btn-ghost-l:hover{border-color:var(--purple-lite);color:var(--navy)}
+.btn-lg{padding:14px 24px;font-size:15px;border-radius:14px}
+
+.chan{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:7px}
+.chan svg{width:12px;height:12px}
+.ch-wa{background:#e3f7ec;color:#15803d}
+.ch-em{background:#e7eefe;color:#3651cf}
+.ch-ig{background:#fdeaf3;color:#c026a8}
+.ch-web{background:#eef0f4;color:#475367}
+
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px}
+.tag svg{width:12px;height:12px}
+.t-green{background:var(--green-wash);color:var(--green)}
+.t-amber{background:var(--amber-wash);color:var(--amber)}
+.t-rose{background:var(--rose-wash);color:var(--rose)}
+.t-purple{background:var(--purple-mute);color:var(--purple-deep)}
+.t-info{background:#e7eefe;color:#3651cf}
+.t-gray{background:#eef0f4;color:#64748b}
+
+.kvs{display:grid;grid-template-columns:auto 1fr;gap:7px 18px;font-size:13px}
+.kvs .k{color:#8a93a6;font-weight:500}
+
+/* match score ring */
+.score-ring{position:relative;width:74px;height:74px;flex:0 0 auto}
+.score-ring svg{transform:rotate(-90deg)}
+.score-ring .val{position:absolute;inset:0;display:grid;place-items:center;font-family:'Outfit';font-weight:800;font-size:19px;color:#fff}
+
+/* progress bar */
+.prog{height:9px;border-radius:999px;background:#e3ecea;overflow:hidden}
+.prog>span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--teal-lite),var(--teal));transition:width .8s cubic-bezier(.4,0,.2,1)}
+.prog.d{background:#26304a}
+.prog.d>span{background:linear-gradient(90deg,var(--purple),var(--purple-lite))}
+
+/* checklist rows */
+.cl-group{margin-bottom:14px}
+.cl-grp-h{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:8px}
+.cl-row{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:11px;font-size:13px;transition:background .2s}
+.cl-row .ico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto}
+.cl-row .ico svg{width:15px;height:15px}
+
+/* file chip */
+.filechip{display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:13px;border:1px solid #e6edec;background:#fff;transition:box-shadow .2s,transform .15s}
+.filechip:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.filechip .ft{width:38px;height:46px;border-radius:7px;background:linear-gradient(160deg,#fff,#f2f5f4);border:1px solid #e0e8e6;display:grid;place-items:center;position:relative;flex:0 0 auto}
+.filechip .ft svg{width:17px;height:17px;color:var(--rose)}
+.filechip .ft:before{content:"PDF";position:absolute;bottom:3px;font-size:6px;font-weight:800;color:var(--rose);letter-spacing:.5px}
+
+/* form field (agent) */
+.ff{padding:11px 13px;border-radius:11px;border:1px solid #26314c;background:#0f1726;position:relative;transition:border .25s,background .25s}
+.ff.filled{border-color:#2b6a5e;background:linear-gradient(180deg,rgba(45,212,191,.05),rgba(15,23,38,1))}
+.ff.pending{border-color:#7a5b1e;background:linear-gradient(180deg,rgba(217,119,6,.07),rgba(15,23,38,1))}
+.ff .fl{font-size:10.5px;color:#7e8aa6;font-weight:600;letter-spacing:.3px;margin-bottom:3px;text-transform:uppercase}
+.ff .fv{font-size:13.5px;color:#eef2f9;font-weight:600;font-family:'Outfit'}
+.ff .src{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#5fd4c2;margin-top:5px;font-weight:600}
+.ff .src svg{width:10px;height:10px}
+.ff.pending .src{color:#f0b35e}
+.ff .chk{position:absolute;top:10px;right:10px;width:16px;height:16px;border-radius:50%;background:var(--teal);display:grid;place-items:center}
+.ff .chk svg{width:10px;height:10px;color:#fff}
+
+/* ledger */
+.ledger-row{display:grid;grid-template-columns:1.1fr 1.4fr auto;gap:14px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--ledgerline);font-size:13px}
+.flows{display:flex;flex-wrap:wrap;gap:6px}
+.flowtag{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:6px;background:var(--purple-mute);color:var(--purple-deep)}
+
+/* timeline */
+.tl{position:relative;padding-left:28px}
+.tl:before{content:"";position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--teal-lite),var(--purple-lite))}
+.tl-item{position:relative;padding-bottom:16px}
+.tl-item:last-child{padding-bottom:0}
+.tl-dot{position:absolute;left:-24px;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--teal);display:grid;place-items:center}
+.tl-dot svg{width:9px;height:9px;color:var(--teal)}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(8,12,22,.55);backdrop-filter:blur(3px);z-index:90;display:none;place-items:center;padding:30px;animation:fade .25s}
+.modal-bg.show{display:grid}
+.modal{background:#fff;border-radius:var(--r-xl);max-width:520px;width:100%;box-shadow:var(--shadow-lg);overflow:hidden;animation:pop .35s cubic-bezier(.34,1.3,.5,1)}
+@keyframes pop{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
+
+/* toast */
+.toast{
+  position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--navy);color:#fff;padding:13px 20px;border-radius:13px;font-size:13.5px;font-weight:500;
+  box-shadow:var(--shadow-lg);z-index:95;opacity:0;pointer-events:none;transition:all .35s;display:flex;align-items:center;gap:10px;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast svg{width:17px;height:17px;color:var(--teal-lite)}
+
+/* footer nav */
+.stepnav{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:26px;padding-top:18px}
+body[data-view="agent"] .stepnav{border-top:1px solid #25304a}
+body[data-view="client"] .stepnav{border-top:1px solid #d8e6e3}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.mirror-note{
+  font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:10px;margin-bottom:16px;
+}
+.mirror-note svg{width:14px;height:14px}
+body[data-view="agent"] .mirror-note{background:rgba(122,90,248,.12);color:var(--purple-lite);border:1px solid rgba(122,90,248,.28)}
+body[data-view="client"] .mirror-note{background:#fff;color:var(--teal);border:1px solid #bfe9e2;box-shadow:var(--shadow-sm)}
+
+.copybox{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--gray-lite);border:1px dashed #c7cedb;border-radius:11px;padding:11px 14px;font-size:13px}
+.copybox.d{background:#0f1726;border-color:#2b3650;color:#cfd6e6}
+
+input.txt,textarea.txt{
+  width:100%;padding:11px 13px;border-radius:11px;border:1px solid #d8dee9;font-family:inherit;font-size:13.5px;background:#fff;color:var(--navy);transition:border .2s,box-shadow .2s;
+}
+input.txt:focus,textarea.txt:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px var(--ring)}
+
+.modechip{
+  display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding:15px;border-radius:14px;border:1.5px solid #e0e6f0;background:#fff;transition:all .2s;text-align:left;
+}
+.modechip svg{width:20px;height:20px;color:var(--purple)}
+.modechip b{font-size:13.5px;font-family:'Outfit'}
+.modechip span{font-size:11.5px;color:var(--gray-text)}
+.modechip.sel{border-color:var(--purple);background:linear-gradient(180deg,#f6f4ff,#fff);box-shadow:0 6px 18px var(--ring)}
+
+.qcard{background:#fff;border:1px solid #e6edec;border-radius:var(--r-lg);padding:22px;box-shadow:0 10px 28px rgba(27,123,111,.06)}
+.qcard .qn{font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--teal);text-transform:uppercase;margin-bottom:9px}
+.qcard .qq{font-size:18px;font-weight:600;font-family:'Outfit';color:var(--navy);margin-bottom:14px;line-height:1.35}
+
+@media (max-width:1080px){
+  .grid2,.grid3{grid-template-columns:1fr}
+  .ribbon .approach{display:none}
+}
+.hide{display:none!important}
+</style>
+</head>
+<body data-view="agent">
+<div class="app">
+
+  <!-- ============ TOP RIBBON ============ -->
+  <header class="ribbon">
+    <div class="brand">
+      <div class="logo"><svg data-l="activity"></svg></div>
+      <div class="brandtxt"><b>IMMI-PULSE</b><span>Meridian Migration Co.</span></div>
+    </div>
+    <div class="approach">
+      <b>Approach C — Shared Case Room</b>
+      <span>Agent + client co-produce one living case · collect once, forms assemble themselves</span>
+    </div>
+    <div class="spacer"></div>
+    <span class="demo-tag">Demo · mock data</span>
+    <div class="viewtoggle">
+      <span class="lbl">Same case, two views</span>
+      <div class="seg" id="seg">
+        <span class="pill"></span>
+        <button class="agent" data-view="agent"><svg data-l="shield-check"></svg>Agent view</button>
+        <button class="client" data-view="client"><svg data-l="heart-handshake"></svg>Client view</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ STAGE RAIL ============ -->
+  <nav class="rail" id="rail"></nav>
+
+  <!-- ============ STAGE BODY ============ -->
+  <main class="stage-body" id="body">
+
+  <!-- ========================================================= STAGE 1 — INBOX -->
+  <section class="screen" data-screen="1">
+    <!-- AGENT -->
+    <div class="view agent maxw">
+      <span class="viewbadge vb-agent"><svg data-l="shield-check"></svg>Agent console</span>
+      <h1 class="a-h1">Unified inbox</h1>
+      <p class="a-sub">Every channel in one queue — WhatsApp, email, Instagram, web form. AI scores fit so a good lead never sits for a week.</p>
+      <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:18px">
+        <div class="a-card pad">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <span class="a-label">Today · 5 new inquiries</span>
+            <span class="tag t-purple"><svg data-l="sparkles"></svg>AI triaged</span>
+          </div>
+          <!-- Priya highlight -->
+          <div id="priyaInq" style="border:1.5px solid var(--purple);border-radius:16px;padding:16px;background:linear-gradient(180deg,#19213a,#131b2c);box-shadow:0 8px 24px var(--ring);cursor:pointer;margin-bottom:12px">
+            <div style="display:flex;gap:14px;align-items:flex-start">
+              <div class="score-ring">
+                <svg width="74" height="74"><circle cx="37" cy="37" r="31" stroke="#26314c" stroke-width="7" fill="none"/><circle cx="37" cy="37" r="31" stroke="#2DD4BF" stroke-width="7" fill="none" stroke-linecap="round" stroke-dasharray="194.8" stroke-dashoffset="17.5"/></svg>
+                <span class="val">91</span>
+              </div>
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:5px">
+                  <b style="color:#fff;font-family:'Outfit';font-size:16px">Priya Sharma</b>
+                  <span class="chan ch-wa"><svg data-l="message-circle"></svg>WhatsApp · +91</span>
+                  <span class="tag t-amber"><svg data-l="flame"></svg>Urgent · strong fit</span>
+                </div>
+                <p style="color:#c3ccdc;font-size:13px;line-height:1.5;margin-bottom:9px">“Hi, I’m on a 482 visa in Brisbane, electrical engineer with BrightGrid. My employer wants to sponsor my PR — can you help? My husband would join too.”</p>
+                <div style="background:rgba(45,212,191,.08);border:1px solid rgba(45,212,191,.25);border-radius:10px;padding:9px 12px;font-size:12.5px;color:#a9e9df">
+                  <b style="color:#5fd4c2">AI summary · </b>482 (Skills in Demand) holder, Brisbane, electrical engineer, employer-backed PR via 186 ENS. Spouse subsequent entrant. <b style="color:#5fd4c2">Strong fit · high value · respond fast.</b>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- other inquiries -->
+          <div id="otherInq">
+            <div class="oi" data-n="Marco Rossi">
+              <div><b>Marco Rossi</b> <span class="chan ch-web"><svg data-l="globe"></svg>Web form</span></div>
+              <div class="d">Partner visa (820/801), onshore · partner Emma Clarke (AU citizen)</div>
+            </div>
+            <div class="oi" data-n="BrightGrid Energy">
+              <div><b>BrightGrid Energy — Tom Whitlam (HR)</b> <span class="chan ch-em"><svg data-l="mail"></svg>Email</span></div>
+              <div class="d">Wants to sponsor 2 more engineers · employer, phone-first</div>
+            </div>
+            <div class="oi" data-n="Lena Müller">
+              <div><b>Lena Müller</b> <span class="chan ch-ig"><svg data-l="instagram"></svg>Instagram</span> <span class="tag t-gray">low priority</span></div>
+              <div class="d">Student visa (500) extension inquiry</div>
+            </div>
+            <div class="oi" data-n="+1 415…">
+              <div><b>+1 415… unknown</b> <span class="chan ch-wa"><svg data-l="message-circle"></svg>WhatsApp</span> <span class="tag t-gray">low fit</span></div>
+              <div class="d">“how much for PR?” · vague, likely spam</div>
+            </div>
+          </div>
+        </div>
+        <div class="a-card pad" style="height:fit-content">
+          <span class="a-label">Why this is the founding pain</span>
+          <p style="color:#c3ccdc;font-size:13px;line-height:1.6;margin:12px 0 16px">A real +91 WhatsApp message once sat untouched for a week — assumed low-value. It was a high-value employer-sponsored PR case. IMMI-PULSE scores every lead on arrival so the good ones surface instantly.</p>
+          <div class="a-divider"></div>
+          <div class="kvs">
+            <span class="k">Channels unified</span><span style="color:#fff;font-weight:600">4 (WhatsApp · Email · IG · Web)</span>
+            <span class="k">First triage signal</span><span style="color:#fff;font-weight:600">Country + visa status</span>
+            <span class="k">Top match today</span><span style="color:#5fd4c2;font-weight:700">Priya Sharma · 91/100</span>
+          </div>
+          <button class="btn btn-primary" style="width:100%;margin-top:18px;justify-content:center" onclick="goto(2)"><svg data-l="arrow-right"></svg>Open Priya’s inquiry</button>
+        </div>
+      </div>
+    </div>
+    <!-- CLIENT -->
+    <div class="view client maxw">
+      <span class="viewbadge vb-client"><svg data-l="heart-handshake"></svg>Client side · Priya</span>
+      <div class="c-greet" style="max-width:720px">
+        <h1 style="font-family:'Outfit';font-size:24px;font-weight:700;margin-bottom:8px;position:relative">Tell us your story.<br>We’ll tell you what’s possible.</h1>
+        <p style="font-size:14.5px;opacity:.92;line-height:1.55;position:relative">You’ve just reached <b>Meridian Migration Co.</b> on WhatsApp. There’s nothing to fill in yet — a registered migration agent is reading your message now. You’ll hear back shortly with the next step.</p>
+      </div>
+      <div class="c-card pad" style="max-width:720px;margin-top:18px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+          <div style="width:42px;height:42px;border-radius:12px;background:var(--teal-wash);display:grid;place-items:center"><svg data-l="message-circle" style="width:20px;height:20px;color:var(--teal)"></svg></div>
+          <div><b style="font-family:'Outfit';font-size:15px">Your message was received</b><div style="font-size:12.5px;color:var(--gray-text)">via WhatsApp · just now</div></div>
+        </div>
+        <p style="font-size:13.5px;color:var(--gray-text);line-height:1.6;margin-top:10px;background:var(--teal-wash);padding:13px 15px;border-radius:12px">“Hi, I’m on a 482 visa in Brisbane, electrical engineer with BrightGrid. My employer wants to sponsor my PR — can you help? My husband would join too.”</p>
+      </div>
+      <div class="stepnav"><span></span><button class="btn btn-teal" onclick="goto(2)"><svg data-l="arrow-right"></svg>See what happens next</button></div>
+    </div>
+  </section>
+
+  <!-- ========================================================= STAGE 2 — QUALIFY -->
+  <section class="screen" data-screen="2">
+    <!-- AGENT -->
+    <div class="view agent maxw">
+      <span class="viewbadge vb-agent"><svg data-l="shield-check"></svg>Agent console</span>
+      <h1 class="a-h1">Qualify &amp; consultation</h1>
+      <p class="a-sub">Confirm the pathway, log the consult — then one click opens Priya’s portal account.</p>
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px">
+        <div>
+          <div class="a-card pad" style="margin-bottom:18px">
+            <span class="a-label">Consultation mode</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:12px" id="modeRow">
+              <button class="modechip sel" data-m><svg data-l="video"></svg><b>Virtual meeting</b><span>30-min Zoom · scheduled</span></button>
+              <button class="modechip" data-m><svg data-l="phone"></svg><b>Phone call</b><span>Quick triage</span></button>
+              <button class="modechip" data-m><svg data-l="users"></svg><b>In-person</b><span>Brisbane office</span></button>
+              <button class="modechip" data-m><svg data-l="file-text"></svg><b>Async</b><span>Qualify on the form</span></button>
+            </div>
+            <div style="margin-top:16px">
+              <span class="a-label">Consult notes</span>
+              <textarea class="txt" rows="2" style="margin-top:8px;background:#0f1726;border-color:#26314c;color:#eef2f9" >2 yrs full-time with BrightGrid on 482 — meets 186 TRT. Spouse Arjun to be added as subsequent entrant. No prior refusals. Employer is an approved Standard Business Sponsor.</textarea>
+            </div>
+          </div>
+          <div class="a-card pad">
+            <span class="a-label">Confirmed visa pathway</span>
+            <div style="display:flex;align-items:center;gap:11px;margin-top:13px;flex-wrap:wrap">
+              <span class="tag t-info" style="font-size:12.5px;padding:6px 12px"><svg data-l="badge-check"></svg>Subclass 482 · Core Skills</span>
+              <svg data-l="arrow-right" style="width:16px;color:#7e8aa6"></svg>
+              <span class="tag t-purple" style="font-size:12.5px;padding:6px 12px"><svg data-l="star"></svg>Subclass 186 ENS · TRT stream (PR)</span>
+              <span class="tag t-green" style="font-size:12.5px;padding:6px 12px"><svg data-l="plus"></svg>Spouse · subsequent entrant</span>
+            </div>
+            <p class="a-muted" style="font-size:12.5px;margin-top:12px;line-height:1.55">ANZSCO 233311 Electrical Engineer · 2 yrs in nominated occupation on 482 → eligible for 186 Temporary Residence Transition.</p>
+          </div>
+        </div>
+        <div class="a-card pad" style="height:fit-content">
+          <span class="a-label">Inquiry snapshot</span>
+          <div class="kvs" style="margin-top:13px">
+            <span class="k">Client</span><span style="color:#fff">Priya Sharma, 34</span>
+            <span class="k">Location</span><span style="color:#fff">West End, Brisbane QLD</span>
+            <span class="k">Current visa</span><span style="color:#fff">Subclass 482 (SID)</span>
+            <span class="k">Employer</span><span style="color:#fff">BrightGrid Energy Pty Ltd</span>
+            <span class="k">Match score</span><span style="color:#5fd4c2;font-weight:700">91 / 100</span>
+          </div>
+          <div class="a-divider"></div>
+          <p class="a-muted" style="font-size:12px;line-height:1.55;margin-bottom:14px">Qualifying creates Priya’s portal account automatically — one login, no per-action PINs.</p>
+          <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="openQualify()"><svg data-l="user-check"></svg>Qualify &amp; create portal access</button>
+        </div>
+      </div>
+    </div>
+    <!-- CLIENT -->
+    <div class="view client maxw">
+      <span class="viewbadge vb-client"><svg data-l="heart-handshake"></svg>Client side · Priya</span>
+      <div class="c-greet" style="max-width:680px">
+        <h1 style="font-family:'Outfit';font-size:23px;font-weight:700;margin-bottom:8px;position:relative">Good news, Priya — you have a clear path. ✦</h1>
+        <p style="font-size:14px;opacity:.93;line-height:1.55;position:relative">Gideon has reviewed your situation. There’s a strong route to permanent residency, and we can bring Arjun with you. We’ve set up your private portal so everything stays in one place.</p>
+      </div>
+      <div class="grid2" style="max-width:680px;margin-top:18px">
+        <div class="c-card pad">
+          <div style="width:42px;height:42px;border-radius:12px;background:var(--purple-mute);display:grid;place-items:center;margin-bottom:11px"><svg data-l="map" style="width:20px;height:20px;color:var(--purple-deep)"></svg></div>
+          <b style="font-family:'Outfit';font-size:15px">Your pathway</b>
+          <p style="font-size:13px;color:var(--gray-text);line-height:1.55;margin-top:7px">Permanent residency through your employer, BrightGrid — plus a spot for Arjun to join you.</p>
+        </div>
+        <div class="c-card pad">
+          <div style="width:42px;height:42px;border-radius:12px;background:var(--teal-wash);display:grid;place-items:center;margin-bottom:11px"><svg data-l="key-round" style="width:20px;height:20px;color:var(--teal)"></svg></div>
+          <b style="font-family:'Outfit';font-size:15px">One login, just for you</b>
+          <p style="font-size:13px;color:var(--gray-text);line-height:1.55;margin-top:7px">No codes to remember each time. Sign in once and pick up where you left off.</p>
+        </div>
+      </div>
+      <div class="stepnav"><button class="btn btn-ghost-l" onclick="goto(1)"><svg data-l="arrow-left"></svg>Back</button><button class="btn btn-teal" onclick="goto(3)"><svg data-l="arrow-right"></svg>Continue to your agreement</button></div>
+    </div>
+  </section>
+
+  <!-- ========================================================= STAGE 3 — ENGAGEMENT -->
+  <section class="screen" data-screen="3">
+    <!-- AGENT -->
+    <div class="view agent maxw">
+      <span class="viewbadge vb-agent"><svg data-l="shield-check"></svg>Agent console</span>
+      <h1 class="a-h1">Engagement letter &amp; deposit</h1>
+      <p class="a-sub">OMARA compliance gate: a written costs agreement + Consumer Guide before any paid work. Signature audited, deposit recorded.</p>
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px">
+        <div class="a-card pad">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <span class="a-label">Costs agreement · MM-2026-0142</span>
+            <span class="tag t-green"><svg data-l="check"></svg>e-signed 18 Jun 2026</span>
+          </div>
+          <div style="background:#0f1726;border:1px solid #26314c;border-radius:13px;padding:17px">
+            <div class="kvs" style="grid-template-columns:auto 1fr">
+              <span class="k">Scope</span><span style="color:#fff">186 ENS (TRT) nomination + visa · spouse subsequent entrant</span>
+              <span class="k">Agent</span><span style="color:#fff">Gideon Maris · MARN 1789456</span>
+            </div>
+            <div class="a-divider"></div>
+            <div class="kvs" style="grid-template-columns:1fr auto">
+              <span class="k">Professional fee</span><span style="color:#fff;text-align:right">$3,500.00</span>
+              <span class="k">Disbursements (govt, skills assessment)</span><span style="color:#fff;text-align:right">$540.00</span>
+              <span class="k" style="font-weight:700;color:#cfd6e6">Total cost agreement (GST incl.)</span><span style="color:#5fd4c2;text-align:right;font-weight:800;font-family:'Outfit';font-size:15px">$4,040.00</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap">
+            <span class="a-label">Signature</span>
+            <span style="font-family:'Outfit';font-size:22px;color:#fff;font-style:italic;border-bottom:2px solid var(--teal-lite);padding:0 14px 2px">Priya Sharma</span>
+            <span class="tag t-info"><svg data-l="fingerprint"></svg>typed · IP 49.x · 18 Jun 2026 14:22 AEST</span>
+          </div>
+          <div style="display:flex;gap:9px;margin-top:16px;flex-wrap:wrap">
+            <button class="btn btn-ghost-d" onclick="toast('Manual override: using firm’s own letter template')"><svg data-l="file-up"></svg>Use my own letter</button>
+            <button class="btn btn-ghost-d" onclick="toast('Marked signed manually — audit note added')"><svg data-l="pen-line"></svg>Mark signed manually</button>
+          </div>
+        </div>
+        <div class="a-card pad" style="height:fit-content">
+          <span class="a-label">Record deposit (manual)</span>
+          <div style="margin-top:13px;display:flex;flex-direction:column;gap:10px">
+            <div class="copybox d"><span>Method</span><b style="color:#fff">Bank transfer / PayID</b></div>
+            <div class="copybox d"><span>Retainer due now</span><b style="color:#5fd4c2">$1,500.00</b></div>
+            <div class="copybox d"><span>Reference</span><b style="color:#fff">MM-0142-PS</b></div>
+            <div class="copybox d"><span>Received</span><b style="color:#fff">18 Jun 2026</b></div>
+          </div>
+          <button class="btn btn-teal" style="width:100%;justify-content:center;margin-top:14px" onclick="recordDeposit()"><svg data-l="receipt"></svg>Record deposit &amp; issue receipt</button>
+          <button class="btn btn-ghost-d" style="width:100%;justify-content:center;margin-top:9px" onclick="toast('Deposit waived — override logged')"><svg data-l="ban"></svg>Waive deposit</button>
+          <p class="a-muted" style="font-size:11.5px;margin-top:13px;line-height:1.5;text-align:center">Signed letter + deposit = the compliance gate. Case can’t open until both are green.</p>
+        </div>
+      </div>
+    </div>
+    <!-- CLIENT -->
+    <div class="view client maxw">
+      <span class="viewbadge vb-client"><svg data-l="heart-handshake"></svg>Client side · Priya</span>
+      <h1 class="c-h1">Your agreement with Meridian</h1>
+      <p class="c-sub">Plain-language and upfront. This is what we’ll do, what it costs, and what to pay to get started. Take your time — sign when you’re ready.</p>
+      <div class="grid2" style="max-width:840px">
+        <div class="c-card pad">
+          <b style="font-family:'Outfit';font-size:15.5px">What we’ll do for you</b>
+          <ul style="list-style:none;margin-top:13px;display:flex;flex-direction:column;gap:11px">
+            <li style="display:flex;gap:10px;font-size:13.5px;color:var(--gray-text)"><svg data-l="check-circle-2" style="width:18px;height:18px;color:var(--teal);flex:0 0 auto"></svg>Apply for your permanent residency through BrightGrid</li>
+            <li style="display:flex;gap:10px;font-size:13.5px;color:var(--gray-text)"><svg data-l="check-circle-2" style="width:18px;height:18px;color:var(--teal);flex:0 0 auto"></svg>Include Arjun so he can join you</li>
+            <li style="display:flex;gap:10px;font-size:13.5px;color:var(--gray-text)"><svg data-l="check-circle-2" style="width:18px;height:18px;color:var(--teal);flex:0 0 auto"></svg>Prepare and lodge every government form for you</li>
+          </ul>
+          <div style="margin-top:16px;background:var(--teal-wash);border-radius:13px;padding:14px 16px">
+            <div style="display:flex;justify-content:space-between;font-size:13.5px;color:var(--navy);margin-bottom:6px"><span>Our fee</span><b>$3,500</b></div>
+            <div style="display:flex;justify-content:space-between;font-size:13.5px;color:var(--navy);margin-bottom:6px"><span>Government &amp; other costs</span><b>$540</b></div>
+            <div style="height:1px;background:#bfe3dd;margin:8px 0"></div>
+            <div style="display:flex;justify-content:space-between;font-size:15px;color:var(--teal);font-weight:800;font-family:'Outfit'"><span>Total</span><span>$4,040</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--gray-text);margin-top:8px"><span>To start, pay today</span><b style="color:var(--navy)">$1,500</b></div>
+          </div>
+        </div>
+        <div class="c-card pad">
+          <b style="font-family:'Outfit';font-size:15.5px">Sign here</b>
+          <p style="font-size:12.5px;color:var(--gray-text);margin-top:6px">Type or draw your name. That’s all.</p>
+          <div id="cSign" style="margin-top:14px;height:96px;border:2px dashed #bfe9e2;border-radius:14px;background:var(--teal-wash);display:grid;place-items:center;cursor:text">
+            <span id="cSignPh" style="color:#9bb8b2;font-size:13px">tap to sign…</span>
+            <span id="cSignVal" class="hide" style="font-family:'Outfit';font-size:30px;font-style:italic;color:var(--teal)">Priya Sharma</span>
+          </div>
+          <button id="cSignBtn" class="btn btn-teal" style="width:100%;justify-content:center;margin-top:14px" onclick="clientSign()"><svg data-l="pen-line"></svg>Sign agreement</button>
+          <p style="font-size:11.5px;color:var(--gray-text);margin-top:11px;text-align:center;line-height:1.5">By signing you agree to the costs above. You can pay the $1,500 by bank transfer next — we’ll show you how.</p>
+        </div>
+      </div>
+      <div class="stepnav"><button class="btn btn-ghost-l" onclick="goto(2)"><svg data-l="arrow-left"></svg>Back</button><button class="btn btn-teal" onclick="goto(4)"><svg data-l="arrow-right"></svg>I’ve signed — continue</button></div>
+    </div>
+  </section>
+
+  <!-- ========================================================= STAGE 4 — OPEN CASE -->
+  <section class="screen" data-screen="4">
+    <!-- AGENT -->
+    <div class="view agent maxw">
+      <span class="viewbadge vb-agent"><svg data-l="shield-check"></svg>Agent console</span>
+      <h1 class="a-h1">Case opened · MM-2026-0142</h1>
+      <p class="a-sub">The shared case room is live. Both of you now work the same file — Priya from her portal, you from here.</p>
+      <div class="a-card pad" style="margin-bottom:18px">
+        <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+          <div style="width:58px;height:58px;border-radius:16px;background:linear-gradient(135deg,var(--purple),var(--teal-lite));display:grid;place-items:center;font-family:'Outfit';font-weight:800;color:#fff;font-size:20px">PS</div>
+          <div style="flex:1;min-width:220px">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="color:#fff;font-family:'Outfit';font-size:18px">Priya Sharma</b><span class="tag t-purple">186 ENS · TRT</span><span class="tag t-amber"><svg data-l="flame"></svg>High priority</span></div>
+            <div class="a-muted" style="font-size:13px;margin-top:4px">Case MM-2026-0142 · opened 18 Jun 2026 · stage: Document collection</div>
+          </div>
+          <div style="text-align:right">
+            <div class="a-label">Compliance gate</div>
+            <div class="tag t-green" style="margin-top:6px"><svg data-l="lock-open"></svg>Cleared — letter + deposit</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:18px">
+        <div class="a-card pad">
+          <span class="a-label">Case timeline</span>
+          <div class="tl" style="margin-top:16px">
+            <div class="tl-item"><div class="tl-dot"><svg data-l="check"></svg></div><b style="color:#fff;font-size:13.5px">Qualified</b><div class="a-muted" style="font-size:12px">Pathway confirmed · 18 Jun 14:05</div></div>
+            <div class="tl-item"><div class="tl-dot"><svg data-l="check"></svg></div><b style="color:#fff;font-size:13.5px">Portal account created</b><div class="a-muted" style="font-size:12px">priya.sharma@email.com · 14:06</div></div>
+            <div class="tl-item"><div class="tl-dot"><svg data-l="check"></svg></div><b style="color:#fff;font-size:13.5px">Letter signed</b><div class="a-muted" style="font-size:12px">e-sign · 14:22</div></div>
+            <div class="tl-item"><div class="tl-dot"><svg data-l="check"></svg></div><b style="color:#fff;font-size:13.5px">Deposit recorded</b><div class="a-muted" style="font-size:12px">$1,500 · PayID · 15:01</div></div>
+            <div class="tl-item"><div class="tl-dot" style="border-color:var(--purple)"><svg data-l="folder-open" style="color:var(--purple)"></svg></div><b style="color:#fff;font-size:13.5px">Case opened</b><div class="a-muted" style="font-size:12px">MM-2026-0142 · now</div></div>
+          </div>
+        </div>
+        <div class="a-card pad">
+          <span class="a-label">Pathway plan</span>
+          <div class="grid2" style="margin-top:14px;gap:12px">
+            <div style="background:#0f1726;border:1px solid #26314c;border-radius:13px;padding:14px"><div class="a-label">Primary applicant</div><b style="color:#fff;display:block;margin-top:6px">Priya — 186 ENS visa</b><span class="a-muted" style="font-size:12px">+ nomination by BrightGrid</span></div>
+            <div style="background:#0f1726;border:1px solid #26314c;border-radius:13px;padding:14px"><div class="a-label">Secondary</div><b style="color:#fff;display:block;margin-top:6px">Arjun — subsequent entrant</b><span class="a-muted" style="font-size:12px">partner evidence + own Form 80/1221</span></div>
+            <div style="background:#0f1726;border:1px solid #26314c;border-radius:13px;padding:14px"><div class="a-label">Sponsor</div><b style="color:#fff;display:block;margin-top:6px">BrightGrid Energy</b><span class="a-muted" style="font-size:12px">Standard Business Sponsor</span></div>
+            <div style="background:#0f1726;border:1px solid #26314c;border-radius:13px;padding:14px"><div class="a-label">Lodge in</div><b style="color:#fff;display:block;margin-top:6px">ImmiAccount</b><span class="a-muted" style="font-size:12px">DHA online portal</span></div>
+          </div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:16px" onclick="goto(5)"><svg data-l="list-checks"></svg>Build the document checklist</button>
+        </div>
+      </div>
+    </div>
+    <!-- CLIENT -->
+    <div class="view client maxw">
+      <span class="viewbadge vb-client"><svg data-l="heart-handshake"></svg>Client side · Priya</span>
+      <div class="c-greet" style="max-width:700px">
+        <h1 style="font-family:'Outfit';font-size:23px;font-weight:700;margin-bottom:8px;position:relative">You’re officially underway. 🎉</h1>
+        <p style="font-size:14px;opacity:.93;line-height:1.55;position:relative">Your case is open and Gideon is working on it. From here, we’ll only ever ask you simple questions and for a few documents — we handle all the official paperwork behind the scenes.</p>
+      </div>
+      <div class="c-card pad" style="max-width:700px;margin-top:18px">
+        <b style="font-family:'Outfit';font-size:15.5px">Here’s your journey at a glance</b>
+        <div style="display:flex;flex-direction:column;gap:0;margin-top:16px" class="tl">
+          <div class="tl-item"><div class="tl-dot"><svg data-l="check"></svg></div><b style="font-size:13.5px">Welcome &amp; agreement signed</b><div style="font-size:12.5px;color:var(--gray-text)">Done — thank you!</div></div>
+          <div class="tl-item"><div class="tl-dot" style="border-color:var(--purple)"><svg data-l="upload" style="color:var(--purple)"></svg></div><b style="font-size:13.5px">Share a few documents</b><div style="font-size:12.5px;color:var(--gray-text)">Up next — we’ll guide you</div></div>
+          <div class="tl-item"><div class="tl-dot" style="border-color:#cbd5e1"><svg data-l="message-square" style="color:#94a3b8"></svg></div><b style="font-size:13.5px;color:#64748b">Answer a few quick questions</b></div>
+          <div class="tl-item"><div class="tl-dot" style="border-color:#cbd5e1"><svg data-l="send" style="color:#94a3b8"></svg></div><b style="font-size:13.5px;color:#64748b">We lodge for you</b></div>
+        </div>
+      </div>
+      <div class="stepnav"><button class="btn btn-ghost-l" onclick="goto(3)"><svg data-l="arrow-left"></svg>Back</button><button class="btn btn-teal" onclick="goto(6)"><svg data-l="arrow-right"></svg>Start sharing documents</button></div>
+    </div>
+  </section>
+
+  <!-- ========================================================= STAGE 5 — CHECKLIST -->
+  <section class="screen" data-screen="5">
+    <!-- AGENT -->
+    <div class="view agent maxw">
+      <span class="viewbadge vb-agent"><svg data-l="shield-check"></svg>Agent console</span>
+      <h1 class="a-h1">Document checklist · 186 ENS</h1>
+      <p class="a-sub">Auto-generated for this pathway, grouped and editable. Each item maps to a friendly to-do on Priya’s side.</p>
+      <div class="mirror-note"><svg data-l="git-compare"></svg>Same checklist — you see the structured version, Priya sees plain-language to-dos. Toggle to “Client view” to compare.</div>
+      <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:18px">
+        <div class="a-card pad" id="checklistAgent">
+          <!-- groups injected -->
+        </div>
+        <div class="a-card pad" style="height:fit-content">
+          <span class="a-label">Checklist controls</span>
+          <div style="margin-top:13px;display:flex;flex-direction:column;gap:9px">
+            <div class="copybox d"><span>Items</span><b style="color:#fff">16 across 7 groups</b></div>
+            <div class="copybox d"><span>Primary + secondary</span><b style="color:#fff">Priya + Arjun</b></div>
+          </div>
+          <button class="btn btn-ghost-d" style="width:100%;justify-content:center;margin-top:12px" onclick="toast('Add custom item — agent-editable checklist')"><svg data-l="plus"></svg>Add custom item</button>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:9px" onclick="sendChecklist()"><svg data-l="send"></svg>Send checklist to Priya’s portal</button>
+          <p class="a-muted" style="font-size:11.5px;margin-top:13px;line-height:1.5;text-align:center">Checklists are agent-editable. Nothing reaches Priya until you send.</p>
+        </div>
+      </div>
+    </div>
+    <!-- CLIENT -->
+    <div class="view client maxw">
+      <span class="viewbadge vb-client"><svg data-l="heart-handshake"></svg>Client side · Priya</span>
+      <h1 class="c-h1">A few things to share</h1>
+      <p class="c-sub">No forms, no jargon. Just gather these documents when you have a moment — most are things you already have. We’ll tell you exactly what each one is.</p>
+      <div class="c-card pad" style="max-width:760px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <b style="font-family:'Outfit';font-size:15.5px">Your simple to-do list</b>
+          <span class="tag t-gray">0 of 16 done</span>
+        </div>
+        <div id="checklistClient" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+      <div class="stepnav"><button class="btn btn-ghost-l" onclick="goto(4)"><svg data-l="arrow-left"></svg>Back</button><button class="btn btn-teal" onclick="goto(6)"><svg data-l="arrow-right"></svg>Start uploading</button></div>
+    </div>
+  </section>
+
+  <!-- ========================================================= STAGE 6 — DOC COLLECTION -->
+  <section class="screen" data-screen="6">
+    <!-- CLIENT (primary view for this stage) -->
+    <div class="view client maxw">
+      <span class="viewbadge vb-client"><svg data-l="heart-handshake"></svg>Client side · Priya</span>
+      <h1 class="c-h1">Upload once — we’ll use it everywhere</h1>
+      <p class="c-sub">Drop your documents here. You only ever share each one a single time; we reuse the details across every form so you’re never asked twice.</p>
+      <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:18px;max-width:980px">
+        <div class="c-card pad">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <b style="font-family:'Outfit';font-size:15px">Your documents</b>
+            <span id="dcCount" class="tag t-green"><svg data-l="check"></svg>11 of 16 shared</span>
+          </div>
+          <div class="prog" style="margin-bottom:18px"><span id="dcBar" style="width:69%"></span></div>
+          <div id="uploadZone" style="border:2px dashed #bfe9e2;border-radius:16px;background:var(--teal-wash);padding:22px;text-align:center;cursor:pointer;transition:all .2s" onclick="clientUpload()">
+            <svg data-l="upload-cloud" style="width:34px;height:34px;color:var(--teal);margin-bottom:8px"></svg>
+            <div style="font-size:14px;font-weight:600;color:var(--navy)">Drop files or tap to upload</div>
+            <div style="font-size:12px;color:var(--gray-text);margin-top:3px">PDF, JPG or photo from your phone</div>
+          </div>
+          <div id="dcFiles" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">
+            <div class="filechip"><div class="ft"><svg data-l="file"></svg></div><div><div style="font-size:12.5px;font-weight:600">passport.pdf</div><div style="font-size:11px;color:var(--teal)">✓ shared</div></div></div>
+            <div class="filechip"><div class="ft"><svg data-l="file"></svg></div><div><div style="font-size:12.5px;font-weight:600">EngineersAustralia_SkillsAssessment.pdf</div><div style="font-size:11px;color:var(--teal)">✓ shared</div></div></div>
+            <div class="filechip"><div class="ft"><svg data-l="file"></svg></div><div><div style="font-size:12.5px;font-weight:600">PTE_result.pdf</div><div style="font-size:11px;color:var(--teal)">✓ shared</div></div></div>
+            <div class="filechip"><div class="ft"><svg data-l="file"></svg></div><div><div style="font-size:12.5px;font-weight:600">employment_reference_BrightGrid.pdf</div><div style="font-size:11px;color:var(--teal)">✓ shared</div></div></div>
+          </div>
+        </div>
+        <div class="c-card pad" style="height:fit-content">
+          <div style="width:42px;height:42px;border-radius:12px;background:var(--purple-mute);display:grid;place-items:center;margin-bottom:11px"><svg data-l="recycle" style="width:20px;height:20px;color:var(--purple-deep)"></svg></div>
+          <b style="font-family:'Outfit';font-size:15px">Collect once, used everywhere</b>
+          <p style="font-size:13px;color:var(--gray-text);line-height:1.55;margin-top:8px">When you upload your passport, we read it once and fill your name, date of birth and passport number across every form for you. You’ll never retype it.</p>
+          <div style="margin-top:14px;background:var(--teal-wash);border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--navy)">
+            <b style="color:var(--teal)">Still to share (5):</b> birth certificate, marriage certificate, police checks, medical, payslips.
+          </div>
+        </div>
+      </div>
+      <div class="stepnav"><button class="btn btn-ghost-l" onclick="goto(5)"><svg data-l="arrow-left"></svg>Back</button><button class="btn btn-teal" onclick="goto(7)"><svg data-l="arrow-right"></svg>Done uploading</button></div>
+    </div>
+    <!-- AGENT -->
+    <div class="view agent maxw">
+      <span class="viewbadge vb-agent"><svg data-l="shield-check"></svg>Agent console</span>
+      <h1 class="a-h1">Documents arriving</h1>
+      <p class="a-sub">Watch uploads land against the checklist in real time. The same files Priya shares — here, ready to verify.</p>
+      <div class="mirror-note"><svg data-l="git-compare"></svg>Priya is uploading from her phone right now · 11 of 16 received.</div>
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px">
+        <div class="a-card pad">
+          <span class="a-label">Inbound documents</span>
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
+            <div class="filechip" style="background:#0f1726;border-color:#26314c"><div class="ft"><svg data-l="file"></svg></div><div style="flex:1"><div style="font-size:12.5px;font-weight:600;color:#fff">passport.pdf</div><div style="font-size:11px;color:#9aa6bd">Identity · received 16:04</div></div><span class="tag t-info"><svg data-l="scan-line"></svg>Reading</span></div>
+            <div class="filechip" style="background:#0f1726;border-color:#26314c"><div class="ft"><svg data-l="file"></svg></div><div style="flex:1"><div style="font-size:12.5px;font-weight:600;color:#fff">EngineersAustralia_SkillsAssessment.pdf</div><div style="font-size:11px;color:#9aa6bd">Skills · received 16:06</div></div><span class="tag t-green"><svg data-l="check"></svg>Extracted</span></div>
+            <div class="filechip" style="background:#0f1726;border-color:#26314c"><div class="ft"><svg data-l="file"></svg></div><div style="flex:1"><div style="font-size:12.5px;font-weight:600;color:#fff">PTE_result.pdf</div><div style="font-size:11px;color:#9aa6bd">English · received 16:07</div></div><span class="tag t-green"><svg data-l="check"></svg>Extracted</span></div>
+            <div class="filechip" style="background:#0f1726;border-color:#26314c"><div class="ft"><svg data-l="file"></svg></div><div style="flex:1"><div style="font-size:12.5px;font-weight:600;color:#fff">employment_reference_BrightGrid.pdf</div><div style="font-size:11px;color:#9aa6bd">Employment · received 16:09</div></div><span class="tag t-green"><svg data-l="check"></svg>Extracted</span></div>
+          </div>
+        </div>
+        <div class="a-card pad" style="height:fit-content">
+          <span class="a-label">Collection progress</span>
+          <div class="prog d" style="margin-top:14px"><span style="width:69%"></span></div>
+          <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12.5px"><span class="a-muted">11 received</span><b style="color:#5fd4c2">69%</b></div>
+          <div class="a-divider"></div>
+          <div class="kvs"><span class="k">Outstanding</span><span style="color:#fff">Birth cert, marriage cert, PCC, medical, payslips</span></div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:16px" onclick="goto(7)"><svg data-l="shield-check"></svg>Verify what’s in</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================= STAGE 7 — VERIFICATION -->
+  <section class="screen" data-screen="7">
+    <!-- AGENT -->
+    <div class="view agent maxw">
+      <span class="viewbadge vb-agent"><svg data-l="shield-check"></svg>Agent console</span>
+      <h1 class="a-h1">AI verification</h1>
+      <p class="a-sub">Extracted fields flow into one source-of-truth record. Flags surface what needs action before lodgement.</p>
+      <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:18px">
+        <div class="a-card pad">
+          <span class="a-label">Document checks</span>
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px" id="vChecks">
+            <div class="vrow ok"><svg data-l="check-circle-2"></svg><div><b>Passport valid</b><span>Expires 01 Jun 2031 (&gt;6 months) — OK</span></div></div>
+            <div class="vrow ok"><svg data-l="check-circle-2"></svg><div><b>Name matches across documents</b><span>Passport · skills assessment · PTE all read “PRIYA SHARMA”</span></div></div>
+            <div class="vrow ok"><svg data-l="check-circle-2"></svg><div><b>PTE Academic — Overall 79</b><span>Meets Competent+ English requirement</span></div></div>
+            <div class="vrow ok"><svg data-l="check-circle-2"></svg><div><b>Skills assessment positive</b><span>Engineers Australia · valid 3 years · 09 May 2022</span></div></div>
+            <div class="vrow warn"><svg data-l="alert-triangle"></svg><div><b>AFP police check — 14 months old</b><span>Must be &lt;12 months at lodgement → request a fresh one</span><button class="vbtn" onclick="toast('Requested fresh AFP check — added to Priya’s to-dos')">Request fresh AFP</button></div></div>
+            <div class="vrow warn"><svg data-l="alert-triangle"></svg><div><b>Indian PCC — not yet uploaded</b><span>Required for character assessment</span><button class="vbtn" onclick="toast('Requested Indian PCC from Priya’s portal')">Request PCC</button></div></div>
+            <div class="vrow info"><svg data-l="info"></svg><div><b>Marriage certificate — non-English</b><span>Certified translation required (NAATI)</span><button class="vbtn" onclick="toast('Requested certified translation of marriage certificate')">Request translation</button></div></div>
+          </div>
+        </div>
+        <div class="a-card pad" style="height:fit-content">
+          <span class="a-label">Single source of truth · extracted</span>
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:7px">
+            <div class="srcrow"><span>Family name</span><b>SHARMA</b><i>passport</i></div>
+            <div class="srcrow"><span>Date of birth</span><b>14 Mar 1991</b><i>passport</i></div>
+            <div class="srcrow"><span>Passport no.</span><b>Z4123877</b><i>passport</i></div>
+            <div class="srcrow"><span>Occupation</span><b>Electrical Eng. · 233311</b><i>skills</i></div>
+            <div class="srcrow"><span>English</span><b>PTE 79</b><i>PTE</i></div>
+            <div class="srcrow"><span>Employer</span><b>BrightGrid Energy</b><i>emp ref</i></div>
+          </div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:16px" onclick="approveVerify()"><svg data-l="check-check"></svg>Approve &amp; build forms</button>
+        </div>
+      </div>
+    </div>
+    <!-- CLIENT -->
+    <div class="view client maxw">
+      <span class="viewbadge vb-client"><svg data-l="heart-handshake"></svg>Client side · Priya</span>
+      <h1 class="c-h1">We checked everything — looking great</h1>
+      <p class="c-sub">Most of your documents are good to go. A couple need a small refresh — here’s exactly what and why, in plain words.</p>
+      <div class="grid2" style="max-width:840px">
+        <div class="c-card pad">
+          <span class="tag t-green" style="margin-bottom:12px"><svg data-l="check"></svg>All good</span>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:10px">
+            <li style="display:flex;gap:10px;font-size:13.5px;color:var(--gray-text)"><svg data-l="check-circle-2" style="width:18px;height:18px;color:var(--teal);flex:0 0 auto"></svg>Your passport is valid and clear</li>
+            <li style="display:flex;gap:10px;font-size:13.5px;color:var(--gray-text)"><svg data-l="check-circle-2" style="width:18px;height:18px;color:var(--teal);flex:0 0 auto"></svg>Your name matches on every document</li>
+            <li style="display:flex;gap:10px;font-size:13.5px;color:var(--gray-text)"><svg data-l="check-circle-2" style="width:18px;height:18px;color:var(--teal);flex:0 0 auto"></svg>Your English test result is accepted</li>
+            <li style="display:flex;gap:10px;font-size:13.5px;color:var(--gray-text)"><svg data-l="check-circle-2" style="width:18px;height:18px;color:var(--teal);flex:0 0 auto"></svg>Your engineering skills assessment is approved</li>
+          </ul>
+        </div>
+        <div class="c-card pad">
+          <span class="tag t-amber" style="margin-bottom:12px"><svg data-l="alert-triangle"></svg>Two quick things</span>
+          <div style="display:flex;flex-direction:column;gap:13px">
+            <div style="background:var(--amber-wash);border-radius:12px;padding:13px 15px"><b style="font-size:13.5px">A newer police check</b><p style="font-size:12.5px;color:var(--gray-text);margin-top:4px;line-height:1.5">Your Australian police check is just over a year old — the Department needs one under 12 months. We’ll send you the link to order a fresh one.</p></div>
+            <div style="background:var(--teal-wash);border-radius:12px;padding:13px 15px"><b style="font-size:13.5px">Translate your marriage certificate</b><p style="font-size:12.5px;color:var(--gray-text);margin-top:4px;line-height:1.5">Because it isn’t in English, an official translation is needed. We’ve arranged a certified translator — nothing for you to do.</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="stepnav"><button class="btn btn-ghost-l" onclick="goto(6)"><svg data-l="arrow-left"></svg>Back</button><button class="btn btn-teal" onclick="goto(8)"><svg data-l="arrow-right"></svg>Answer a few last questions</button></div>
+    </div>
+  </section>
+
+  <!-- ========================================================= STAGE 8 — FORM AUTO-FILL HERO -->
+  <section class="screen" data-screen="8">
+    <div class="maxw" style="max-width:1400px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:6px">
+        <div>
+          <span class="viewbadge" id="heroBadge"></span>
+          <h1 id="heroH1" style="font-size:26px;font-weight:700;font-family:'Outfit'">The forms fill themselves</h1>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px" id="heroSplitToggle">
+          <span style="font-size:12px;font-weight:600;color:var(--heroSubColor)">See both sides at once</span>
+          <button id="splitBtn" class="btn" onclick="toggleSplit()" style="background:linear-gradient(135deg,var(--purple),var(--teal));color:#fff;box-shadow:0 8px 20px rgba(122,90,248,.3)"><svg data-l="columns-2"></svg>Split screen</button>
+        </div>
+      </div>
+      <p id="heroSub" style="font-size:14px;margin-bottom:18px;max-width:760px;line-height:1.5"></p>
+
+      <!-- SPLIT CONTAINER -->
+      <div id="splitWrap" style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:22px;overflow:hidden;box-shadow:var(--shadow-lg);border:1px solid #d9dee8">
+        <!-- CLIENT SIDE -->
+        <div id="heroClient" style="background:linear-gradient(180deg,#f3fbf9,#eaf5f2);padding:24px;border-right:2px solid #fff">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:6px">
+            <span class="tag" style="background:var(--teal);color:#fff"><svg data-l="heart-handshake"></svg>What Priya sees</span>
+            <span style="font-size:11.5px;color:var(--gray-text)">Plain questions · never “Form 80”</span>
+          </div>
+          <div class="qcard" id="qCard">
+            <div class="qn">Question <span id="qNum">1</span> of 5 · almost there</div>
+            <div class="qq" id="qText">What was your home address from 2016 to 2019?</div>
+            <input class="txt" id="qInput" placeholder="Start typing your address…" />
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">
+              <span style="font-size:11.5px;color:var(--gray-text)" id="qHint">We need this to complete your character history.</span>
+              <button class="btn btn-teal" id="qNext" onclick="answerQ()"><svg data-l="arrow-right"></svg>Next</button>
+            </div>
+          </div>
+          <div id="qDone" class="hide" style="margin-top:14px;background:var(--teal-wash);border-radius:14px;padding:18px;text-align:center">
+            <svg data-l="party-popper" style="width:30px;height:30px;color:var(--teal);margin-bottom:6px"></svg>
+            <b style="font-family:'Outfit';font-size:15px;display:block">That’s everything from you, Priya!</b>
+            <p style="font-size:12.5px;color:var(--gray-text);margin-top:5px">5 quick answers — Gideon is finishing the official paperwork now.</p>
+          </div>
+          <div style="margin-top:14px;font-size:12px;color:var(--gray-text);display:flex;align-items:center;gap:7px;background:#fff;border:1px solid #e6edec;border-radius:11px;padding:11px 13px">
+            <svg data-l="eye-off" style="width:16px;height:16px;color:var(--teal);flex:0 0 auto"></svg>
+            Priya answers <b style="color:var(--navy)">5 friendly questions</b>. She never sees a government form.
+          </div>
+        </div>
+        <!-- AGENT SIDE -->
+        <div id="heroAgent" style="background:linear-gradient(180deg,#131b2c,#0d1421);padding:24px">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px;flex-wrap:wrap">
+            <span class="tag t-purple"><svg data-l="file-check-2"></svg>Form 80 — Personal particulars</span>
+            <span style="font-size:11.5px;color:#9aa6bd">~18 pages · character assessment</span>
+          </div>
+          <!-- counter -->
+          <div style="background:#0f1726;border:1px solid #26314c;border-radius:14px;padding:14px 16px;margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+              <span style="font-family:'Outfit';font-weight:700;color:#fff;font-size:14px"><span id="fillCount">47</span> of 52 fields auto-filled</span>
+              <span class="tag t-amber" id="needCount"><svg data-l="user"></svg>5 need Priya to confirm</span>
+            </div>
+            <div class="prog d"><span id="fillBar" style="width:90.4%"></span></div>
+            <div style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;font-size:11px;color:#9aa6bd">
+              <span style="display:flex;align-items:center;gap:5px"><i style="width:9px;height:9px;border-radius:3px;background:var(--teal-lite);display:inline-block"></i>passport scan</span>
+              <span style="display:flex;align-items:center;gap:5px"><i style="width:9px;height:9px;border-radius:3px;background:var(--purple-lite);display:inline-block"></i>intake</span>
+              <span style="display:flex;align-items:center;gap:5px"><i style="width:9px;height:9px;border-radius:3px;background:#f0b35e;display:inline-block"></i>employment ref</span>
+              <span style="display:flex;align-items:center;gap:5px"><i style="width:9px;height:9px;border-radius:3px;background:#7fb3ff;display:inline-block"></i>skills assessment</span>
+            </div>
+          </div>
+          <!-- fields grid -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px" id="formFields">
+            <div class="ff filled"><span class="chk"><svg data-l="check"></svg></span><div class="fl">Family name</div><div class="fv">SHARMA</div><span class="src"><svg data-l="scan-line"></svg>passport scan</span></div>
+            <div class="ff filled"><span class="chk"><svg data-l="check"></svg></span><div class="fl">Given names</div><div class="fv">PRIYA</div><span class="src"><svg data-l="scan-line"></svg>passport scan</span></div>
+            <div class="ff filled"><span class="chk"><svg data-l="check"></svg></span><div class="fl">Date of birth</div><div class="fv">14 March 1991</div><span class="src"><svg data-l="scan-line"></svg>passport scan</span></div>
+            <div class="ff filled"><span class="chk"><svg data-l="check"></svg></span><div class="fl">Place of birth</div><div class="fv">Pune, Maharashtra</div><span class="src"><svg data-l="scan-line"></svg>passport scan</span></div>
+            <div class="ff filled"><span class="chk"><svg data-l="check"></svg></span><div class="fl">Passport number</div><div class="fv">Z4123877</div><span class="src"><svg data-l="scan-line"></svg>passport scan</span></div>
+            <div class="ff filled"><span class="chk"><svg data-l="check"></svg></span><div class="fl">Nationality</div><div class="fv">Indian</div><span class="src"><svg data-l="scan-line"></svg>passport scan</span></div>
+            <div class="ff filled"><span class="chk"><svg data-l="check"></svg></span><div class="fl">Current address</div><div class="fv">14/88 Boundary St, West End</div><span class="src" style="color:#cfc4ff"><svg data-l="clipboard-list"></svg>intake form</span></div>
+            <div class="ff filled"><span class="chk"><svg data-l="check"></svg></span><div class="fl">Occupation</div><div class="fv">Electrical Eng · 233311</div><span class="src" style="color:#9cc4ff"><svg data-l="award"></svg>skills assessment</span></div>
+            <div class="ff filled"><span class="chk"><svg data-l="check"></svg></span><div class="fl">Current employer</div><div class="fv">BrightGrid Energy</div><span class="src" style="color:#f0b35e"><svg data-l="briefcase"></svg>employment ref</span></div>
+            <div class="ff pending" id="ffAddr"><div class="fl">Address 2016–2019</div><div class="fv" style="color:#f0b35e" id="ffAddrVal">Awaiting Priya…</div><span class="src"><svg data-l="clock"></svg>question 1</span></div>
+            <div class="ff pending" id="ffMil"><div class="fl">Military service</div><div class="fv" style="color:#f0b35e" id="ffMilVal">Awaiting…</div><span class="src"><svg data-l="clock"></svg>question 2</span></div>
+            <div class="ff pending" id="ffName"><div class="fl">Name spelling variations</div><div class="fv" style="color:#f0b35e" id="ffNameVal">Awaiting…</div><span class="src"><svg data-l="clock"></svg>question 3</span></div>
+          </div>
+          <div style="margin-top:14px;font-size:12px;color:#9aa6bd;display:flex;align-items:center;gap:7px;background:#0f1726;border:1px solid #26314c;border-radius:11px;padding:11px 13px">
+            <svg data-l="badge-check" style="width:16px;height:16px;color:#5fd4c2;flex:0 0 auto"></svg>
+            Gideon receives a <b style="color:#fff">finished, source-tagged form</b> to verify field-by-field.
+          </div>
+        </div>
+      </div>
+
+      <!-- related forms strip -->
+      <div style="margin-top:18px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="relForms">
+        <div class="relform"><b>Form 956</b><span>Appointment of agent — MARN 1789456</span><div class="rf-stat done"><svg data-l="check"></svg>Auto-filled</div></div>
+        <div class="relform"><b>Form 80</b><span>Personal particulars ×2 (Priya + Arjun)</span><div class="rf-stat prog"><svg data-l="loader"></svg>47/52</div></div>
+        <div class="relform"><b>Form 1221</b><span>Additional particulars ×2 — 34/38</span><div class="rf-stat prog"><svg data-l="loader"></svg>34/38</div></div>
+        <div class="relform"><b>186 Nomination</b><span>Position · salary · BrightGrid details</span><div class="rf-stat done"><svg data-l="check"></svg>Auto-filled</div></div>
+      </div>
+
+      <div class="stepnav" style="border-color:var(--heroLine)">
+        <button class="btn btn-ghost-l" onclick="goto(7)"><svg data-l="arrow-left"></svg>Back to verification</button>
+        <button class="btn btn-primary btn-lg" onclick="goto(9)"><svg data-l="package-check"></svg>Verify &amp; build lodgement bundle</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================= STAGE 9 — LODGEMENT -->
+  <section class="screen" data-screen="9">
+    <!-- AGENT -->
+    <div class="view agent maxw">
+      <span class="viewbadge vb-agent"><svg data-l="shield-check"></svg>Agent console</span>
+      <h1 class="a-h1">Lodgement bundle · MM-2026-0142</h1>
+      <p class="a-sub">Everything verified, organised the way ImmiAccount expects. One final review, then lodge.</p>
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px">
+        <div class="a-card pad">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><span class="a-label">Complete package — all green</span><span class="tag t-green"><svg data-l="check-check"></svg>Ready to lodge</span></div>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <div class="brow"><svg data-l="file-check-2"></svg><span>Form 956 — Appointment of agent</span><i class="ok"><svg data-l="check"></svg></i></div>
+            <div class="brow"><svg data-l="file-check-2"></svg><span>Form 80 ×2 — Priya + Arjun</span><i class="ok"><svg data-l="check"></svg></i></div>
+            <div class="brow"><svg data-l="file-check-2"></svg><span>Form 1221 ×2 — Priya + Arjun</span><i class="ok"><svg data-l="check"></svg></i></div>
+            <div class="brow"><svg data-l="file-check-2"></svg><span>186 Nomination — BrightGrid</span><i class="ok"><svg data-l="check"></svg></i></div>
+            <div class="brow"><svg data-l="folder"></svg><span>Identity — passports, birth &amp; marriage certs (+ translation)</span><i class="ok"><svg data-l="check"></svg></i></div>
+            <div class="brow"><svg data-l="folder"></svg><span>Skills &amp; English — Engineers Australia, PTE 79</span><i class="ok"><svg data-l="check"></svg></i></div>
+            <div class="brow"><svg data-l="folder"></svg><span>Employment — contract, payslips, reference, position description</span><i class="ok"><svg data-l="check"></svg></i></div>
+            <div class="brow"><svg data-l="folder"></svg><span>Character &amp; health — fresh AFP, Indian PCC, HAP ID (Bupa)</span><i class="ok"><svg data-l="check"></svg></i></div>
+          </div>
+        </div>
+        <div class="a-card pad" style="height:fit-content">
+          <span class="a-label">Pre-lodgement review</span>
+          <div class="kvs" style="margin-top:13px">
+            <span class="k">Forms</span><span style="color:#fff">5 complete · field-verified</span>
+            <span class="k">Documents</span><span style="color:#fff">16 of 16 · all verified</span>
+            <span class="k">Lodge via</span><span style="color:#fff">ImmiAccount (DHA)</span>
+          </div>
+          <button class="btn btn-primary btn-lg" style="width:100%;justify-content:center;margin-top:16px" onclick="lodge()"><svg data-l="send"></svg>Lodge with Dept. of Home Affairs</button>
+          <button class="btn btn-ghost-d" style="width:100%;justify-content:center;margin-top:9px" onclick="toast('Bundle exported as PDF — lodge manually in ImmiAccount')"><svg data-l="download"></svg>Export bundle &amp; lodge manually</button>
+        </div>
+      </div>
+      <!-- success (hidden until lodge) -->
+      <div id="lodgeSuccess" class="hide" style="margin-top:18px">
+        <div class="a-card pad" style="border-color:var(--teal);background:linear-gradient(180deg,rgba(45,212,191,.07),#121a2b)">
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <div style="width:50px;height:50px;border-radius:14px;background:var(--teal);display:grid;place-items:center"><svg data-l="check" style="width:26px;height:26px;color:#fff"></svg></div>
+            <div style="flex:1;min-width:200px"><b style="color:#fff;font-family:'Outfit';font-size:17px">Lodged with the Department of Home Affairs</b><div class="a-muted" style="font-size:13px">Application ID <b style="color:#5fd4c2">EGO-186-7741293</b> · 20 Jun 2026</div></div>
+            <span class="tag t-green" style="font-size:12.5px;padding:6px 12px"><svg data-l="radio"></svg>Received — assessment in progress</span>
+          </div>
+          <div class="a-divider"></div>
+          <span class="a-label">Next steps tracking</span>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-top:12px">
+            <div style="background:#0f1726;border:1px solid #26314c;border-radius:12px;padding:13px"><div class="a-label">Now</div><b style="color:#fff;display:block;margin-top:5px;font-size:13px">Acknowledgement</b><span class="a-muted" style="font-size:11.5px">Received · bridging visa active</span></div>
+            <div style="background:#0f1726;border:1px solid #26314c;border-radius:12px;padding:13px"><div class="a-label">Soon</div><b style="color:#fff;display:block;margin-top:5px;font-size:13px">Medicals &amp; checks</b><span class="a-muted" style="font-size:11.5px">HAP ID finalised at Bupa</span></div>
+            <div style="background:#0f1726;border:1px solid #26314c;border-radius:12px;padding:13px"><div class="a-label">Then</div><b style="color:#fff;display:block;margin-top:5px;font-size:13px">Decision</b><span class="a-muted" style="font-size:11.5px">Case officer assessment</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- CLIENT -->
+    <div class="view client maxw">
+      <span class="viewbadge vb-client"><svg data-l="heart-handshake"></svg>Client side · Priya</span>
+      <div class="c-greet" style="max-width:700px">
+        <h1 style="font-family:'Outfit';font-size:24px;font-weight:700;margin-bottom:8px;position:relative">It’s lodged, Priya. 🌿</h1>
+        <p style="font-size:14px;opacity:.93;line-height:1.55;position:relative">Your application for permanent residency — with Arjun included — is now officially with the Department of Home Affairs. You’re on a bridging visa, so you can keep living and working in Australia while it’s assessed.</p>
+      </div>
+      <div class="c-card pad" style="max-width:700px;margin-top:18px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+          <div style="width:44px;height:44px;border-radius:13px;background:var(--teal-wash);display:grid;place-items:center"><svg data-l="badge-check" style="width:22px;height:22px;color:var(--teal)"></svg></div>
+          <div><b style="font-family:'Outfit';font-size:15.5px">Application received</b><div style="font-size:12.5px;color:var(--gray-text)">Reference EGO-186-7741293 · 20 Jun 2026</div></div>
+        </div>
+        <div class="tl">
+          <div class="tl-item"><div class="tl-dot"><svg data-l="check"></svg></div><b style="font-size:13.5px">Lodged with the Department</b><div style="font-size:12.5px;color:var(--gray-text)">Today — nothing more needed right now</div></div>
+          <div class="tl-item"><div class="tl-dot" style="border-color:var(--purple)"><svg data-l="stethoscope" style="color:var(--purple)"></svg></div><b style="font-size:13.5px">Health check (Bupa)</b><div style="font-size:12.5px;color:var(--gray-text)">We’ll book this and tell you when</div></div>
+          <div class="tl-item"><div class="tl-dot" style="border-color:#cbd5e1"><svg data-l="mail-check" style="color:#94a3b8"></svg></div><b style="font-size:13.5px;color:#64748b">Decision from the Department</b></div>
+        </div>
+        <div style="margin-top:14px;background:var(--teal-wash);border-radius:12px;padding:13px 15px;font-size:13px;color:var(--navy);line-height:1.55">You answered just <b>5 questions</b> and shared each document <b>once</b>. We did the rest. We’ll message you the moment there’s news.</div>
+      </div>
+      <div class="stepnav"><button class="btn btn-ghost-l" onclick="goto(8)"><svg data-l="arrow-left"></svg>Back</button><button class="btn btn-teal" onclick="goto(1)"><svg data-l="rotate-ccw"></svg>Replay the journey</button></div>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<!-- ============ FLOATING INFORMATION LEDGER ============ -->
+<button id="ledgerFab" onclick="toggleLedger()" style="position:fixed;right:22px;bottom:22px;z-index:80;display:flex;align-items:center;gap:9px;padding:12px 18px;border-radius:999px;background:linear-gradient(135deg,var(--purple),var(--teal));color:#fff;font-weight:600;font-size:13.5px;box-shadow:var(--shadow-lg)">
+  <svg data-l="database" style="width:17px;height:17px"></svg>Information ledger
+</button>
+<div id="ledgerPanel" style="position:fixed;right:22px;bottom:78px;width:460px;max-width:calc(100vw - 44px);max-height:70vh;z-index:81;background:#fff;border-radius:var(--r-xl);box-shadow:var(--shadow-lg);overflow:hidden;display:none;flex-direction:column;animation:pop .3s">
+  <div style="padding:16px 20px;background:linear-gradient(120deg,var(--navy),#221a52);color:#fff">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><b style="font-family:'Outfit';font-size:15px">Information ledger</b><div style="font-size:11.5px;color:#b9b2e6;margin-top:2px">Every fact captured once — and everywhere it flows</div></div>
+      <button onclick="toggleLedger()" style="color:#fff;opacity:.7"><svg data-l="x" style="width:18px;height:18px"></svg></button>
+    </div>
+    <div style="display:flex;gap:7px;margin-top:11px;font-size:11px">
+      <span class="tag" style="background:rgba(45,212,191,.18);color:#7fe7d8"><svg data-l="user"></svg>Both sides see this</span>
+      <span class="tag" style="background:rgba(122,90,248,.2);color:var(--purple-lite)"><svg data-l="recycle"></svg>Collect once · reuse everywhere</span>
+    </div>
+  </div>
+  <div style="overflow-y:auto" id="ledgerBody"></div>
+</div>
+
+<!-- ============ MODALS ============ -->
+<div class="modal-bg" id="qualifyModal">
+  <div class="modal">
+    <div style="background:linear-gradient(120deg,var(--purple),var(--teal-lite));padding:22px 24px;color:#fff">
+      <div style="display:flex;align-items:center;gap:11px"><div style="width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.2);display:grid;place-items:center"><svg data-l="key-round" style="width:20px;height:20px"></svg></div><div><b style="font-family:'Outfit';font-size:16px">Portal account created</b><div style="font-size:12px;opacity:.9">One login for Priya — no per-action PINs</div></div></div>
+    </div>
+    <div style="padding:24px">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="copybox"><span style="color:var(--gray-text)">Email</span><b>priya.sharma@email.com</b></div>
+        <div class="copybox"><span style="color:var(--gray-text)">Temp password</span><b class="tnum">Brisb-4821-Pune</b></div>
+        <div class="copybox"><span style="color:var(--gray-text)">Portal link</span><b>meridian.immipulse.au/p</b></div>
+      </div>
+      <div style="margin-top:14px;background:var(--teal-wash);border-radius:12px;padding:13px 15px;font-size:12.5px;color:var(--navy);line-height:1.5">
+        <b style="color:var(--teal)">Ready-to-paste WhatsApp message ↓</b><br>
+        “Hi Priya, your private Meridian Migration portal is ready 🌿 Sign in at meridian.immipulse.au/p with priya.sharma@email.com — temp password Brisb-4821-Pune. See you inside!”
+      </div>
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <button class="btn btn-ghost-l" style="flex:1;justify-content:center" onclick="toast('Copied — credential card + WhatsApp message')"><svg data-l="copy"></svg>Copy all</button>
+        <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="closeModal();goto(3)"><svg data-l="arrow-right"></svg>Continue to engagement</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><svg data-l="check-circle-2"></svg><span id="toastMsg"></span></div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+/* ============ DATA ============ */
+const STAGES = [
+  {n:1,nm:'Inbox'},{n:2,nm:'Qualify'},{n:3,nm:'Engagement'},{n:4,nm:'Open case'},
+  {n:5,nm:'Checklist'},{n:6,nm:'Documents'},{n:7,nm:'Verify'},{n:8,nm:'Form auto-fill'},{n:9,nm:'Lodgement'}
+];
+
+const CHECKLIST = [
+  {g:'Identity', icon:'fingerprint', color:'#3651cf', items:[
+    {a:'Passport — Priya', c:'Your passport', s:'uploaded'},
+    {a:'Passport — Arjun', c:'Arjun’s passport', s:'requested'},
+    {a:'Birth certificate', c:'Your birth certificate', s:'required'},
+    {a:'Marriage certificate', c:'Your marriage certificate', s:'requested'},
+  ]},
+  {g:'Skills & qualifications', icon:'award', color:'#7A5AF8', items:[
+    {a:'Skills assessment (Engineers Australia)', c:'Your engineering assessment letter', s:'verified'},
+    {a:'Degree + transcripts', c:'Your university degree & marks', s:'requested'},
+  ]},
+  {g:'Employment', icon:'briefcase', color:'#D97706', items:[
+    {a:'Employment contract — BrightGrid', c:'Your BrightGrid job contract', s:'requested'},
+    {a:'Payslips (recent)', c:'A few recent payslips', s:'required'},
+    {a:'Employment reference letter', c:'A reference letter from work', s:'uploaded'},
+  ]},
+  {g:'English', icon:'languages', color:'#1B7B6F', items:[
+    {a:'PTE Academic / IELTS result', c:'Your English test result', s:'verified'},
+  ]},
+  {g:'Character', icon:'shield', color:'#E11D48', items:[
+    {a:'AFP police check', c:'Australian police check', s:'requested'},
+    {a:'Indian PCC', c:'Police clearance from India', s:'required'},
+  ]},
+  {g:'Health', icon:'stethoscope', color:'#2DD4BF', items:[
+    {a:'HAP ID (Bupa medicals)', c:'Health check (we’ll book it)', s:'required'},
+  ]},
+  {g:'Sponsor / Nomination', icon:'building-2', color:'#475367', items:[
+    {a:'BrightGrid nomination + financials', c:'Handled with your employer', s:'requested'},
+    {a:'Position description', c:'Your job description', s:'requested'},
+  ]},
+];
+
+const STATUS = {
+  required:{t:'t-gray', l:'To share', ico:'circle'},
+  requested:{t:'t-info', l:'Requested', ico:'send'},
+  uploaded:{t:'t-amber', l:'Uploaded', ico:'upload'},
+  verified:{t:'t-green', l:'Verified', ico:'check'},
+};
+
+const LEDGER = [
+  {fact:'Date of birth', val:'14 March 1991', src:'passport scan', flows:['Form 80','Form 1221','956','Nomination']},
+  {fact:'Family / given name', val:'SHARMA · PRIYA', src:'passport scan', flows:['Form 80','Form 1221','956','PTE match']},
+  {fact:'Passport number', val:'Z4123877', src:'passport scan', flows:['Form 80','Form 1221','956']},
+  {fact:'Place of birth', val:'Pune, Maharashtra, India', src:'passport scan', flows:['Form 80','Form 1221']},
+  {fact:'Current address', val:'14/88 Boundary St, West End', src:'intake form', flows:['Form 80','Nomination']},
+  {fact:'Address 2019–2022', val:'23 MG Road, Pune, India', src:'Form 1221 questions', flows:['Form 80','Form 1221']},
+  {fact:'Occupation', val:'Electrical Engineer · ANZSCO 233311', src:'skills assessment', flows:['Form 80','Nomination']},
+  {fact:'Employer', val:'BrightGrid Energy Pty Ltd', src:'employment reference', flows:['Form 80','Nomination']},
+  {fact:'Employment start', val:'18 July 2022', src:'employment contract', flows:['Form 80','Nomination']},
+  {fact:'English test', val:'PTE Academic — Overall 79', src:'PTE result', flows:['Visa app','Nomination']},
+  {fact:'Marriage date', val:'22 Nov 2018, Pune', src:'marriage certificate', flows:['Form 80','Arjun evidence']},
+  {fact:'Spouse', val:'Arjun Sharma (subsequent entrant)', src:'intake form', flows:['Form 80','Arjun Form 80']},
+];
+
+/* ============ STATE ============ */
+let cur = 1;
+const done = new Set();
+
+/* ============ RAIL ============ */
+function buildRail(){
+  const rail = document.getElementById('rail');
+  rail.innerHTML = STAGES.map(s=>`
+    <button class="stage-btn" data-stage="${s.n}" onclick="goto(${s.n})">
+      <span class="num" data-num="${s.n}">${s.n}</span>
+      <span class="nm">${s.nm}</span>
+    </button>`).join('');
+}
+function refreshRail(){
+  document.querySelectorAll('.stage-btn').forEach(b=>{
+    const n = +b.dataset.stage;
+    b.classList.toggle('active', n===cur);
+    b.classList.toggle('done', done.has(n) && n!==cur);
+    const num = b.querySelector('.num');
+    if(done.has(n) && n!==cur){ num.innerHTML = '<svg data-l="check"></svg>'; }
+    else { num.textContent = n; }
+  });
+  lucide.createIcons({attrs:{}});
+  renderIcons();
+}
+
+/* ============ NAV ============ */
+function goto(n){
+  if(n!==cur) done.add(cur);
+  cur = n;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('show', +s.dataset.screen===n));
+  refreshRail();
+  if(n===8) initHero();
+  // scroll the active screen to top
+  const active = document.querySelector('.screen.show'); if(active) active.scrollTop = 0;
+}
+
+/* ============ VIEW TOGGLE ============ */
+function setView(v){
+  document.body.setAttribute('data-view', v);
+  // move pill
+  const seg = document.getElementById('seg');
+  const btn = seg.querySelector(`button.${v}`);
+  const pill = seg.querySelector('.pill');
+  pill.style.width = btn.offsetWidth + 'px';
+  pill.style.transform = `translateX(${btn.offsetLeft - 3}px)`;
+  // hero theming vars (stage 8 single-tone wrapper)
+  applyHeroTheme(v);
+}
+function applyHeroTheme(v){
+  const r = document.documentElement.style;
+  if(v==='agent'){ r.setProperty('--heroSubColor','#9aa6bd'); r.setProperty('--heroLine','#25304a'); r.setProperty('--heroSubColorVar','#9aa6bd'); }
+  else { r.setProperty('--heroSubColor','#475367'); r.setProperty('--heroLine','#d8e6e3'); }
+  const badge = document.getElementById('heroBadge');
+  const h1 = document.getElementById('heroH1');
+  const sub = document.getElementById('heroSub');
+  if(!badge) return;
+  if(v==='agent'){
+    badge.className='viewbadge vb-agent'; badge.innerHTML='<svg data-l="shield-check"></svg>Agent console';
+    h1.style.color='#fff';
+    sub.style.color='#9aa6bd';
+    sub.textContent='You receive a finished, source-tagged Form 80 to verify — Priya only answered 5 plain-language questions.';
+  } else {
+    badge.className='viewbadge vb-client'; badge.innerHTML='<svg data-l="heart-handshake"></svg>Client side · Priya';
+    h1.style.color='var(--navy)';
+    sub.style.color='var(--gray-text)';
+    sub.textContent='Just a few friendly questions, Priya — and you’re done. Behind the scenes your answers complete the official forms.';
+  }
+  renderIcons();
+}
+
+/* ============ CHECKLIST RENDER ============ */
+function buildChecklists(){
+  // agent
+  const ag = document.getElementById('checklistAgent');
+  ag.innerHTML = CHECKLIST.map(grp=>`
+    <div class="cl-group">
+      <div class="cl-grp-h" style="color:${grp.color}"><svg data-l="${grp.icon}" style="width:14px;height:14px;color:${grp.color}"></svg>${grp.g}</div>
+      ${grp.items.map(it=>{
+        const st = STATUS[it.s];
+        return `<div class="cl-row" style="background:#0f1726">
+          <div class="ico" style="background:rgba(122,90,248,.12)"><svg data-l="file-text" style="color:var(--purple-lite)"></svg></div>
+          <div style="flex:1;color:#dfe5f0">${it.a}</div>
+          <span class="tag ${st.t}"><svg data-l="${st.ico}"></svg>${st.l}</span>
+        </div>`;
+      }).join('')}
+    </div>`).join('');
+  // client (friendly, ungrouped flat list with plain labels)
+  const cl = document.getElementById('checklistClient');
+  let flat=[];
+  CHECKLIST.forEach(g=>g.items.forEach(it=>flat.push(it)));
+  cl.innerHTML = flat.map(it=>`
+    <div class="cl-row" style="background:var(--gray-lite)">
+      <div class="ico" style="background:var(--teal-wash)"><svg data-l="circle" style="color:var(--teal)"></svg></div>
+      <div style="flex:1">${it.c}</div>
+      <svg data-l="chevron-right" style="width:16px;height:16px;color:#9aa6bd"></svg>
+    </div>`).join('');
+  renderIcons();
+}
+
+/* ============ LEDGER ============ */
+function buildLedger(){
+  const css = document.documentElement.style;
+  document.documentElement.style.setProperty('--ledgerline','#eef0f4');
+  const body = document.getElementById('ledgerBody');
+  body.innerHTML = LEDGER.map(r=>`
+    <div class="ledger-row">
+      <div><div style="font-weight:600;font-size:12.5px;color:var(--navy)">${r.fact}</div><div style="font-size:11px;color:#8a93a6">${r.val}</div></div>
+      <div class="flows">${r.flows.map(f=>`<span class="flowtag">${f}</span>`).join('')}</div>
+      <span class="tag t-gray" style="font-size:10px;white-space:nowrap"><svg data-l="scan-line" style="width:11px;height:11px"></svg>${r.src}</span>
+    </div>`).join('');
+  renderIcons();
+}
+let ledgerOpen=false;
+function toggleLedger(){
+  ledgerOpen=!ledgerOpen;
+  document.getElementById('ledgerPanel').style.display = ledgerOpen?'flex':'none';
+  if(ledgerOpen) renderIcons();
+}
+
+/* ============ HERO (stage 8) ============ */
+const QUESTIONS = [
+  {q:'What was your home address from 2016 to 2019?', hint:'We need this to complete your character history.', ph:'Start typing your address…', target:'ffAddr', val:'23 MG Road, Pune, India'},
+  {q:'Have you ever served in any country’s military?', hint:'A simple yes or no is fine.', ph:'No', target:'ffMil', val:'No'},
+  {q:'Is your name spelled the same way on every document?', hint:'Some documents show names differently.', ph:'Yes — Priya Sharma everywhere', target:'ffName', val:'No variations'},
+  {q:'Have you ever had a visa refused, anywhere?', hint:'This is routine — most people answer no.', ph:'No', target:null, val:'None'},
+  {q:'Do you have a reference number for your overseas police check?', hint:'It’s on your Indian PCC, if you have it handy.', ph:'PCC-IND-2026-…', target:null, val:'Pending upload'},
+];
+let qIdx=0, heroInit=false, splitMode=false;
+function initHero(){
+  if(heroInit) return; heroInit=true;
+  applyHeroTheme(document.body.getAttribute('data-view'));
+  updateSplit();
+}
+function answerQ(){
+  // fill the matching agent field
+  const Q = QUESTIONS[qIdx];
+  if(Q.target){
+    const ff = document.getElementById(Q.target);
+    if(ff){
+      ff.classList.remove('pending'); ff.classList.add('filled');
+      ff.querySelector('.fv').style.color='#eef2f9';
+      ff.querySelector('.fv').textContent = Q.val;
+      ff.querySelector('.src').innerHTML = '<svg data-l="message-square"></svg>Priya’s answer';
+      ff.querySelector('.src').style.color='#cfc4ff';
+      if(!ff.querySelector('.chk')){
+        const chk=document.createElement('span'); chk.className='chk'; chk.innerHTML='<svg data-l="check"></svg>'; ff.appendChild(chk);
+      }
+    }
+  }
+  // bump counters
+  const fc = document.getElementById('fillCount');
+  let n = +fc.textContent; if(n<52) n++; fc.textContent=n;
+  document.getElementById('fillBar').style.width = (n/52*100)+'%';
+  const remaining = 52-n;
+  document.getElementById('needCount').innerHTML = remaining>0
+    ? `<svg data-l="user"></svg>${remaining} need Priya to confirm`
+    : `<svg data-l="check"></svg>All confirmed`;
+  if(remaining<=0) document.getElementById('needCount').className='tag t-green';
+
+  qIdx++;
+  if(qIdx>=QUESTIONS.length){
+    document.getElementById('qCard').classList.add('hide');
+    document.getElementById('qDone').classList.remove('hide');
+  } else {
+    const Qn = QUESTIONS[qIdx];
+    document.getElementById('qNum').textContent = qIdx+1;
+    document.getElementById('qText').textContent = Qn.q;
+    document.getElementById('qHint').textContent = Qn.hint;
+    const inp=document.getElementById('qInput'); inp.value=''; inp.placeholder=Qn.ph;
+  }
+  renderIcons();
+}
+function toggleSplit(){ splitMode=!splitMode; updateSplit(); }
+function updateSplit(){
+  const wrap=document.getElementById('splitWrap');
+  const cSide=document.getElementById('heroClient');
+  const aSide=document.getElementById('heroAgent');
+  const btn=document.getElementById('splitBtn');
+  const v=document.body.getAttribute('data-view');
+  if(splitMode){
+    wrap.style.gridTemplateColumns='1fr 1fr';
+    cSide.style.display='block'; aSide.style.display='block';
+    btn.innerHTML='<svg data-l="square"></svg>Single view';
+  } else {
+    wrap.style.gridTemplateColumns='1fr';
+    if(v==='agent'){ aSide.style.display='block'; cSide.style.display='none'; aSide.style.borderRight='none'; }
+    else { cSide.style.display='block'; aSide.style.display='none'; cSide.style.borderRight='none'; }
+    btn.innerHTML='<svg data-l="columns-2"></svg>Split screen';
+  }
+  renderIcons();
+}
+
+/* ============ ACTIONS ============ */
+function openQualify(){ document.getElementById('qualifyModal').classList.add('show'); renderIcons(); }
+function closeModal(){ document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('show')); }
+function recordDeposit(){ toast('Deposit recorded — $1,500 receipt issued'); }
+function sendChecklist(){ toast('Checklist sent to Priya’s portal'); setTimeout(()=>goto(6),700); }
+function clientUpload(){ toast('Document shared — we’ll read it once and reuse it'); }
+function approveVerify(){ toast('Verified — assembling government forms'); setTimeout(()=>goto(8),700); }
+function clientSign(){
+  document.getElementById('cSignPh').classList.add('hide');
+  document.getElementById('cSignVal').classList.remove('hide');
+  document.getElementById('cSign').style.borderColor='var(--teal)';
+  document.getElementById('cSignBtn').innerHTML='<svg data-l="check"></svg>Signed — thank you';
+  document.getElementById('cSignBtn').style.background='var(--teal)';
+  toast('Agreement signed'); renderIcons();
+}
+function lodge(){
+  document.getElementById('lodgeSuccess').classList.remove('hide');
+  toast('Lodged with the Department of Home Affairs');
+  done.add(9); refreshRail();
+  setTimeout(()=>document.getElementById('lodgeSuccess').scrollIntoView({behavior:'smooth',block:'center'}),120);
+  renderIcons();
+}
+let toastT;
+function toast(msg){
+  const t=document.getElementById('toast');
+  document.getElementById('toastMsg').textContent=msg;
+  t.classList.add('show'); renderIcons();
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+/* mode chips */
+function initModes(){
+  document.querySelectorAll('#modeRow [data-m]').forEach(b=>{
+    b.onclick=()=>{ document.querySelectorAll('#modeRow [data-m]').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); };
+  });
+}
+/* sign box focus */
+function initSignBox(){
+  const box=document.getElementById('cSign');
+  if(box) box.onclick=clientSign;
+}
+
+/* ============ ICONS ============ */
+function renderIcons(){ if(window.lucide) lucide.createIcons(); }
+
+/* map data-l -> data-lucide so lucide picks them up */
+function mapIcons(){
+  document.querySelectorAll('[data-l]').forEach(el=>{
+    if(!el.hasAttribute('data-lucide')) el.setAttribute('data-lucide', el.getAttribute('data-l'));
+  });
+}
+
+/* ============ INLINE STYLE INJECT for repeated row classes ============ */
+const extra = document.createElement('style');
+extra.textContent = `
+.oi{padding:11px 13px;border-radius:11px;transition:background .2s;cursor:pointer;margin-bottom:2px}
+.oi:hover{background:#0f1726}
+.oi b{color:#dfe5f0;font-size:13.5px;font-family:'Outfit'}
+.oi .d{color:#8a93a6;font-size:12px;margin-top:3px}
+.oi>div:first-child{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.vrow{display:flex;gap:12px;padding:13px 15px;border-radius:13px;align-items:flex-start}
+.vrow>svg{width:19px;height:19px;flex:0 0 auto;margin-top:1px}
+.vrow b{display:block;color:#fff;font-size:13.5px;font-family:'Outfit'}
+.vrow span{display:block;color:#9aa6bd;font-size:12px;margin-top:2px}
+.vrow.ok{background:rgba(17,122,61,.1);border:1px solid rgba(17,122,61,.3)} .vrow.ok>svg{color:#4ade80}
+.vrow.warn{background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.32)} .vrow.warn>svg{color:#fbbf24}
+.vrow.info{background:rgba(54,81,207,.12);border:1px solid rgba(54,81,207,.32)} .vrow.info>svg{color:#7fb3ff}
+.vbtn{margin-top:8px;font-size:11.5px;font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid #2b3650;padding:6px 11px;border-radius:9px;transition:background .2s}
+.vbtn:hover{background:rgba(255,255,255,.18)}
+.srcrow{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;background:#0f1726;border:1px solid #26314c;border-radius:10px;padding:9px 12px;font-size:12.5px}
+.srcrow span{color:#8a93a6} .srcrow b{color:#fff} .srcrow i{font-style:normal;font-size:10px;color:#5fd4c2;background:rgba(45,212,191,.12);padding:2px 7px;border-radius:6px}
+.relform{background:linear-gradient(180deg,#161f33,#121a2b);border:1px solid #25304a;border-radius:14px;padding:14px 16px}
+.relform b{color:#fff;font-family:'Outfit';font-size:14px;display:block}
+.relform span{color:#9aa6bd;font-size:11.5px;display:block;margin-top:3px;line-height:1.4}
+.rf-stat{margin-top:9px;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:7px}
+.rf-stat svg{width:12px;height:12px}
+.rf-stat.done{background:rgba(45,212,191,.14);color:#5fd4c2}
+.rf-stat.prog{background:rgba(122,90,248,.16);color:var(--purple-lite)}
+body[data-view="client"] .relform{background:#fff;border:1px solid #e6edec;box-shadow:var(--shadow-sm)}
+body[data-view="client"] .relform b{color:var(--navy)} body[data-view="client"] .relform span{color:var(--gray-text)}
+.brow{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:11px;background:#0f1726;border:1px solid #26314c;font-size:13px;color:#dfe5f0}
+.brow>svg{width:18px;height:18px;color:var(--purple-lite);flex:0 0 auto}
+.brow span{flex:1}
+.brow i.ok{width:24px;height:24px;border-radius:50%;background:var(--teal);display:grid;place-items:center} .brow i.ok svg{width:13px;height:13px;color:#fff}
+@media (max-width:900px){ #splitWrap{grid-template-columns:1fr!important} #heroClient{border-right:none!important} #relForms{grid-template-columns:1fr 1fr} }
+`;
+document.head.appendChild(extra);
+
+/* ============ INIT ============ */
+function init(){
+  mapIcons();
+  buildRail();
+  buildChecklists();
+  buildLedger();
+  initModes();
+  initSignBox();
+  // ensure all dynamically-added data-l mapped after builds
+  mapIcons();
+  renderIcons();
+  goto(1);
+  setView('agent');
+  // re-map icons created later
+  setTimeout(()=>{ mapIcons(); renderIcons(); },120);
+}
+
+// view toggle clicks
+document.addEventListener('click', e=>{
+  const b = e.target.closest('.seg button');
+  if(b){ setView(b.dataset.view); }
+  const mb = e.target.closest('.modal-bg');
+  if(mb && e.target===mb) closeModal();
+});
+
+window.addEventListener('load', init);
+// re-position pill on resize
+window.addEventListener('resize', ()=>setView(document.body.getAttribute('data-view')));
+</script>
+</body>
+</html>

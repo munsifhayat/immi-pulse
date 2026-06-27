@@ -39,3 +39,6 @@ htmlcov/
 
 # Local scratch / email preview output
 tmp/
+
+# Uploaded case documents (user content / PII — never commit)
+uploads/
