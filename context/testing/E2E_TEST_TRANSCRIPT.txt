@@ -2,12 +2,12 @@
 ========== 1. /org/plans without auth (should 401) ==========
 
 [list-plans-anon]
-$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' 'http://localhost:8000/api/v1/org/plans' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a'
+$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' 'http://localhost:8000/api/v1/org/plans' -H 'X-API-Key: <REDACTED_API_KEY>'
 HTTP 401
 
 ========== 2. Sign up a fresh org (default plan = Pro trial) ==========
 {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc",
+    "token": "<REDACTED_JWT>",
     "user": {
         "id": "9c5fc8a9-d015-4a7c-ab1d-241fcc7ee89a",
         "email": "immi.test.1777648129@gmail.com",
@@ -45,7 +45,7 @@ TOKEN_LEN=323
 ========== 3. /auth/me — confirms tier=pro, status=trial, trial_ends_at set ==========
 
 [auth-me]
-$ curl -s 'http://localhost:8000/api/v1/auth/me' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' | python -m json.tool
+$ curl -s 'http://localhost:8000/api/v1/auth/me' -H 'X-API-Key: <REDACTED_API_KEY>' -H 'Authorization: Bearer <REDACTED_JWT>' | python -m json.tool
 {
     "user": {
         "id": "9c5fc8a9-d015-4a7c-ab1d-241fcc7ee89a",
@@ -83,7 +83,7 @@ $ curl -s 'http://localhost:8000/api/v1/auth/me' -H 'X-API-Key: bc7f70987c26c871
 ========== 4. /org/plans returns 3 tiers with price_per_seat_aud_monthly + features ==========
 
 [list-plans]
-$ curl -s 'http://localhost:8000/api/v1/org/plans' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' | python -m json.tool
+$ curl -s 'http://localhost:8000/api/v1/org/plans' -H 'X-API-Key: <REDACTED_API_KEY>' -H 'Authorization: Bearer <REDACTED_JWT>' | python -m json.tool
 [
     {
         "tier": "starter",
@@ -142,7 +142,7 @@ $ curl -s 'http://localhost:8000/api/v1/org/plans' -H 'X-API-Key: bc7f70987c26c8
 ========== 5. /org/billing — fresh org has 1 owner seat @ $99 = $99/mo ==========
 
 [billing-initial]
-$ curl -s 'http://localhost:8000/api/v1/org/billing' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' | python -m json.tool
+$ curl -s 'http://localhost:8000/api/v1/org/billing' -H 'X-API-Key: <REDACTED_API_KEY>' -H 'Authorization: Bearer <REDACTED_JWT>' | python -m json.tool
 {
     "tier": "pro",
     "status": "trial",
@@ -171,7 +171,7 @@ $ curl -s 'http://localhost:8000/api/v1/org/billing' -H 'X-API-Key: bc7f70987c26
 ========== 6. Invite 2 seats: 1 admin, 1 staff ==========
 
 [invite-admin]
-$ curl -s -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"email":"immi.admin.1777648129@gmail.com","role":"admin"}' | python -m json.tool
+$ curl -s -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: <REDACTED_API_KEY>' -H 'Authorization: Bearer <REDACTED_JWT>' -H 'Content-Type: application/json' -d '{"email":"immi.admin.1777648129@gmail.com","role":"admin"}' | python -m json.tool
 {
     "id": "19834b17-74ad-43e9-ab61-7a4953fdcb62",
     "email": "immi.admin.1777648129@gmail.com",
@@ -182,7 +182,7 @@ $ curl -s -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key:
 }
 
 [invite-staff]
-$ curl -s -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"email":"immi.staff.1777648129@gmail.com","role":"staff"}' | python -m json.tool
+$ curl -s -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: <REDACTED_API_KEY>' -H 'Authorization: Bearer <REDACTED_JWT>' -H 'Content-Type: application/json' -d '{"email":"immi.staff.1777648129@gmail.com","role":"staff"}' | python -m json.tool
 {
     "id": "9b32727e-af7c-4b99-9529-0060b09f1c6e",
     "email": "immi.staff.1777648129@gmail.com",
@@ -195,7 +195,7 @@ $ curl -s -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key:
 ========== 7. /org/billing — should now show 3 seats × $99 = $297/mo (proves staff seats are billable now) ==========
 
 [billing-after-invites]
-$ curl -s 'http://localhost:8000/api/v1/org/billing' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' | python -m json.tool
+$ curl -s 'http://localhost:8000/api/v1/org/billing' -H 'X-API-Key: <REDACTED_API_KEY>' -H 'Authorization: Bearer <REDACTED_JWT>' | python -m json.tool
 {
     "tier": "pro",
     "status": "trial",
@@ -226,7 +226,7 @@ $ curl -s 'http://localhost:8000/api/v1/org/billing' -H 'X-API-Key: bc7f70987c26
 ========== 8. /org/seats — list shows 3 entries ==========
 
 [list-seats]
-$ curl -s 'http://localhost:8000/api/v1/org/seats' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' | python -m json.tool
+$ curl -s 'http://localhost:8000/api/v1/org/seats' -H 'X-API-Key: <REDACTED_API_KEY>' -H 'Authorization: Bearer <REDACTED_JWT>' | python -m json.tool
 [
     {
         "id": "c4dbadcc-194a-4a31-b6ff-07a710514b0c",
@@ -269,7 +269,7 @@ $ curl -s 'http://localhost:8000/api/v1/org/seats' -H 'X-API-Key: bc7f70987c26c8
 ========== 9. Switch plan to Starter — expect tier=starter, monthly = 3 × $29 = $87 ==========
 
 [select-starter]
-$ curl -s -X POST 'http://localhost:8000/api/v1/org/billing/select-plan' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"tier":"starter"}' | python -m json.tool
+$ curl -s -X POST 'http://localhost:8000/api/v1/org/billing/select-plan' -H 'X-API-Key: <REDACTED_API_KEY>' -H 'Authorization: Bearer <REDACTED_JWT>' -H 'Content-Type: application/json' -d '{"tier":"starter"}' | python -m json.tool
 {
     "tier": "starter",
     "status": "active",
@@ -298,7 +298,7 @@ $ curl -s -X POST 'http://localhost:8000/api/v1/org/billing/select-plan' -H 'X-A
 ========== 10. Switch plan to Enterprise — expect is_custom=true, monthly_total_aud=0 ==========
 
 [select-enterprise]
-$ curl -s -X POST 'http://localhost:8000/api/v1/org/billing/select-plan' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"tier":"enterprise"}' | python -m json.tool
+$ curl -s -X POST 'http://localhost:8000/api/v1/org/billing/select-plan' -H 'X-API-Key: <REDACTED_API_KEY>' -H 'Authorization: Bearer <REDACTED_JWT>' -H 'Content-Type: application/json' -d '{"tier":"enterprise"}' | python -m json.tool
 {
     "tier": "enterprise",
     "status": "active",
@@ -329,7 +329,7 @@ $ curl -s -X POST 'http://localhost:8000/api/v1/org/billing/select-plan' -H 'X-A
 ========== 11. Switch back to Pro ==========
 
 [select-pro]
-$ curl -s -X POST 'http://localhost:8000/api/v1/org/billing/select-plan' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"tier":"pro"}' | python -m json.tool
+$ curl -s -X POST 'http://localhost:8000/api/v1/org/billing/select-plan' -H 'X-API-Key: <REDACTED_API_KEY>' -H 'Authorization: Bearer <REDACTED_JWT>' -H 'Content-Type: application/json' -d '{"tier":"pro"}' | python -m json.tool
 {
     "tier": "pro",
     "status": "active",
@@ -360,36 +360,36 @@ $ curl -s -X POST 'http://localhost:8000/api/v1/org/billing/select-plan' -H 'X-A
 ========== 12. Try to invite the same email twice (expect 400) ==========
 
 [invite-duplicate]
-$ curl -s -w '\nHTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"email":"immi.admin.1777648129@gmail.com","role":"admin"}'
+$ curl -s -w '\nHTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: <REDACTED_API_KEY>' -H 'Authorization: Bearer <REDACTED_JWT>' -H 'Content-Type: application/json' -d '{"email":"immi.admin.1777648129@gmail.com","role":"admin"}'
 {"detail":"This email is already a seat or pending invite"}
 HTTP 400
 
 ========== 13. Invite 5 more seats (no cap) ==========
 
 [invite-bulk-1]
-$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"email":"immi.bulk1.1777648129@gmail.com","role":"consultant"}'
+$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: <REDACTED_API_KEY>' -H 'Authorization: Bearer <REDACTED_JWT>' -H 'Content-Type: application/json' -d '{"email":"immi.bulk1.1777648129@gmail.com","role":"consultant"}'
 HTTP 201
 
 [invite-bulk-2]
-$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"email":"immi.bulk2.1777648129@gmail.com","role":"consultant"}'
+$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: <REDACTED_API_KEY>' -H 'Authorization: Bearer <REDACTED_JWT>' -H 'Content-Type: application/json' -d '{"email":"immi.bulk2.1777648129@gmail.com","role":"consultant"}'
 HTTP 201
 
 [invite-bulk-3]
-$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"email":"immi.bulk3.1777648129@gmail.com","role":"consultant"}'
+$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: <REDACTED_API_KEY>' -H 'Authorization: Bearer <REDACTED_JWT>' -H 'Content-Type: application/json' -d '{"email":"immi.bulk3.1777648129@gmail.com","role":"consultant"}'
 HTTP 201
 
 [invite-bulk-4]
-$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"email":"immi.bulk4.1777648129@gmail.com","role":"consultant"}'
+$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: <REDACTED_API_KEY>' -H 'Authorization: Bearer <REDACTED_JWT>' -H 'Content-Type: application/json' -d '{"email":"immi.bulk4.1777648129@gmail.com","role":"consultant"}'
 HTTP 201
 
 [invite-bulk-5]
-$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' -H 'Content-Type: application/json' -d '{"email":"immi.bulk5.1777648129@gmail.com","role":"consultant"}'
+$ curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST 'http://localhost:8000/api/v1/org/seats/invite' -H 'X-API-Key: <REDACTED_API_KEY>' -H 'Authorization: Bearer <REDACTED_JWT>' -H 'Content-Type: application/json' -d '{"email":"immi.bulk5.1777648129@gmail.com","role":"consultant"}'
 HTTP 201
 
 ========== 14. /org/billing — 8 seats × $99 = $792/mo ==========
 
 [billing-final]
-$ curl -s 'http://localhost:8000/api/v1/org/billing' -H 'X-API-Key: bc7f70987c26c8719eee29257a8a36022886a189c33bddb685197ce6c220cc8a' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOWM1ZmM4YTktZDAxNS00YTdjLWFiMWQtMjQxZmNjN2VlODlhIiwic2VhdF9pZCI6ImM0ZGJhZGNjLTE5NGEtNGEzMS1iNmZmLTA3YTcxMDUxNGIwYyIsIm9yZ19pZCI6IjcxZGZmY2NlLTkxMTYtNDljMi05ZjBiLWUwZTY2ZGU2NzExNiIsImlhdCI6MTc3NzY0ODEzMCwiZXhwIjoxNzc4ODU3NzMwfQ.SePA7J7Vg9a7rjHiwnsMRgAUmHcFUkwRGX2fwX_IMPc' | python -m json.tool
+$ curl -s 'http://localhost:8000/api/v1/org/billing' -H 'X-API-Key: <REDACTED_API_KEY>' -H 'Authorization: Bearer <REDACTED_JWT>' | python -m json.tool
 {
     "tier": "pro",
     "status": "active",
