@@ -32,6 +32,12 @@ export const queryKeys = {
     processing: () => [...queryKeys.community.all, "processing"] as const,
     waitCheck: (subclass: string, lodgedOn: string) =>
       [...queryKeys.community.all, "wait-check", subclass, lodgedOn] as const,
+    identity: () => [...queryKeys.community.all, "identity"] as const,
+    feedSummary: () => [...queryKeys.community.all, "feed-summary"] as const,
+    journeys: (filters?: Record<string, unknown>) =>
+      [...queryKeys.community.all, "journeys", filters ?? {}] as const,
+    journey: (id: string) =>
+      [...queryKeys.community.all, "journey", id] as const,
   },
   portal: {
     all: ["portal"] as const,

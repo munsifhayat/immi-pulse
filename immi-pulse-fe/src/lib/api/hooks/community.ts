@@ -3,6 +3,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/lib/api/client";
 import { queryKeys } from "@/lib/api/hooks/query-keys";
+import {
+  getDeviceToken,
+  setDeviceToken,
+  type CommunityIdentity,
+} from "@/lib/community-identity";
 
 export type ThreadStatus = "active" | "hidden" | "removed";
 export type ReportTargetType = "thread" | "comment";
@@ -439,3 +444,303 @@ export function useActOnReport() {
     },
   });
 }
+
+// --- Community feed v2: journeys, identity, votes, comments ----------------
+
+export type PostType = "timeline" | "question";
+
+export const MILESTONE_TYPES = [
+  "Skills Assessment Lodged",
+  "Skills Assessment Approved",
+  "English Test Completed",
+  "EOI Submitted",
+  "Invitation Received",
+  "Nomination Lodged",
+  "Nomination Approved",
+  "State Nomination",
+  "Visa Lodged",
+  "Medical Examination",
+  "Police Checks",
+  "S56 Request Received",
+  "S56 Response Submitted",
+  "Visa Granted",
+  "Other",
+] as const;
+export type MilestoneType = (typeof MILESTONE_TYPES)[number];
+
+export interface MilestoneOut {
+  id: string;
+  milestone_type: MilestoneType;
+  occurred_on: string;
+  ordinal: number;
+  label?: string | null;
+}
+
+export interface JourneyOut {
+  id: string;
+  post_type: PostType;
+  subclass_slug?: string | null;
+  category_slug?: string | null;
+  subclass_code?: string | null;
+  subclass_name?: string | null;
+  category_name?: string | null;
+  stream?: string | null;
+  occupation?: string | null;
+  state?: string | null;
+  area?: string | null;
+  sponsor_type?: string | null;
+  outcome: TimelineOutcome;
+  title?: string | null;
+  note?: string | null;
+  handle: string;
+  color: string;
+  initials: string;
+  upvotes: number;
+  comment_count: number;
+  is_sample: boolean;
+  is_mine: boolean;
+  viewer_voted: boolean;
+  processing_days?: number | null;
+  elapsed_days?: number | null;
+  milestones: MilestoneOut[];
+  created_at: string;
+}
+
+export interface JourneyReply {
+  id: string;
+  handle: string;
+  color: string;
+  initials: string;
+  body: string;
+  upvotes: number;
+  is_op: boolean;
+  viewer_voted: boolean;
+  reply_to?: string | null;
+  created_at: string;
+}
+
+export interface JourneyMessage {
+  id: string;
+  handle: string;
+  color: string;
+  initials: string;
+  body: string;
+  upvotes: number;
+  is_op: boolean;
+  viewer_voted: boolean;
+  created_at: string;
+  replies: JourneyReply[];
+}
+
+export interface JourneyDetailOut extends JourneyOut {
+  messages: JourneyMessage[];
+}
+
+export interface FeedSummaryOut {
+  all: number;
+  questions: number;
+  timelines: number;
+  waiting: number;
+  granted: number;
+  by_category: Record<string, number>;
+}
+
+export interface VoteResultOut {
+  target_type: "journey" | "comment";
+  target_id: string;
+  upvotes: number;
+  voted: boolean;
+}
+
+export interface MilestonePayload {
+  milestone_type: MilestoneType;
+  occurred_on: string;
+  label?: string;
+}
+
+export interface CreateJourneyPayload {
+  post_type: PostType;
+  subclass_slug?: string | null;
+  category_slug?: string | null;
+  stream?: string | null;
+  occupation?: string | null;
+  state?: string | null;
+  area?: string | null;
+  sponsor_type?: string | null;
+  outcome?: TimelineOutcome;
+  title?: string | null;
+  note?: string | null;
+  milestones?: MilestonePayload[];
+}
+
+export interface JourneyFeedParams {
+  type?: PostType;
+  category?: string;
+  subclass?: string;
+  status?: "waiting" | "granted";
+  sort?: ThreadSort;
+  limit?: number;
+}
+
+/** Raised when an anonymous device has used its one-timeline allowance. */
+export class JourneyCapError extends Error {}
+
+function extractDetail(err: unknown, fallback: string): string {
+  const detail = (err as { response?: { data?: { detail?: unknown } } })?.response
+    ?.data?.detail;
+  return typeof detail === "string" ? detail : fallback;
+}
+
+// Bootstrap (or return) the device's anonymous identity. Persists the device
+// token so subsequent writes resolve to the same "temporary user".
+export function useIdentity() {
+  return useQuery({
+    queryKey: queryKeys.community.identity(),
+    queryFn: async () => {
+      const { data } = await apiClient.post<CommunityIdentity>(
+        "/community/public/identity"
+      );
+      setDeviceToken(data.device_token);
+      return data;
+    },
+    staleTime: Infinity,
+    retry: 1,
+  });
+}
+
+export function useRerollIdentity() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await apiClient.post<CommunityIdentity>(
+        "/community/public/identity/reroll"
+      );
+      setDeviceToken(data.device_token);
+      return data;
+    },
+    onSuccess: (data) => {
+      qc.setQueryData(queryKeys.community.identity(), data);
+    },
+  });
+}
+
+export function useFeedSummary() {
+  return useQuery({
+    queryKey: queryKeys.community.feedSummary(),
+    queryFn: async () => {
+      const { data } = await apiClient.get<FeedSummaryOut>(
+        "/community/public/feed-summary"
+      );
+      return data;
+    },
+    staleTime: 1000 * 30,
+  });
+}
+
+export function useJourneys(params: JourneyFeedParams = {}) {
+  return useQuery({
+    queryKey: queryKeys.community.journeys(params as Record<string, unknown>),
+    queryFn: async () => {
+      const { data } = await apiClient.get<JourneyOut[]>(
+        "/community/public/journeys",
+        { params: { ...params, limit: params.limit ?? 40 } }
+      );
+      return data;
+    },
+  });
+}
+
+export function useJourney(journeyId: string | undefined) {
+  return useQuery({
+    queryKey: journeyId
+      ? queryKeys.community.journey(journeyId)
+      : ["community", "journey", "none"],
+    enabled: !!journeyId,
+    queryFn: async () => {
+      const { data } = await apiClient.get<JourneyDetailOut>(
+        `/community/public/journeys/${journeyId}`
+      );
+      return data;
+    },
+  });
+}
+
+export function useCreateJourney() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: CreateJourneyPayload) => {
+      try {
+        const { data } = await apiClient.post<JourneyDetailOut>(
+          "/community/journeys",
+          payload
+        );
+        return data;
+      } catch (err) {
+        const status = (err as { response?: { status?: number } })?.response
+          ?.status;
+        if (status === 409) {
+          throw new JourneyCapError(
+            extractDetail(err, "You've already shared a timeline. Sign in to add more.")
+          );
+        }
+        throw new Error(extractDetail(err, "Something went wrong. Please try again."));
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.community.all });
+    },
+  });
+}
+
+export function useToggleJourneyVote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (journeyId: string) => {
+      const { data } = await apiClient.post<VoteResultOut>(
+        `/community/journeys/${journeyId}/upvote`
+      );
+      return data;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: queryKeys.community.journey(data.target_id) });
+      qc.invalidateQueries({ queryKey: queryKeys.community.journeys() });
+    },
+  });
+}
+
+export function useToggleCommentVote(journeyId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (commentId: string) => {
+      const { data } = await apiClient.post<VoteResultOut>(
+        `/community/comments/${commentId}/upvote`
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.community.journey(journeyId) });
+    },
+  });
+}
+
+export function usePostJourneyComment(journeyId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { body: string; parent_comment_id?: string }) => {
+      const { data } = await apiClient.post(
+        `/community/journeys/${journeyId}/comments`,
+        payload
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.community.journey(journeyId) });
+      qc.invalidateQueries({ queryKey: queryKeys.community.journeys() });
+    },
+  });
+}
+
+// Re-export so components can import the identity type from the hooks barrel.
+export type { CommunityIdentity };
+
+export { getDeviceToken };
