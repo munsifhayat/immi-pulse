@@ -99,6 +99,86 @@ export interface CreateCommentPayload {
   author_display_name?: string;
 }
 
+// --- Processing times & timelines -----------------------------------------
+
+export type TimelineOutcome = "waiting" | "granted" | "refused";
+export type Trend = "faster" | "slower" | "steady";
+export type WaitTier = "on_track" | "normal" | "longer" | "outlier" | "unknown";
+
+export interface VisaSubclassOut {
+  slug: string;
+  code: string;
+  name: string;
+  stream?: string | null;
+  category_slug?: string | null;
+}
+
+export interface CommunityDurationStats {
+  sample_size: number;
+  pending: number;
+  p25: number | null;
+  p50: number | null;
+  p75: number | null;
+  p90: number | null;
+  fastest: number | null;
+  slowest: number | null;
+}
+
+export interface ProcessingStatOut {
+  slug: string;
+  code: string;
+  name: string;
+  stream?: string | null;
+  category_slug?: string | null;
+  official_p50_days: number | null;
+  official_p90_days: number | null;
+  official_updated: string | null;
+  community: CommunityDurationStats;
+  trend: Trend;
+}
+
+export interface WaitCheckOut {
+  subclass_slug: string;
+  subclass_label: string;
+  elapsed_days: number;
+  tier: WaitTier;
+  headline: string;
+  detail: string;
+  share_decided_within: number | null;
+  sample_size: number;
+  pending: number;
+  p25: number | null;
+  p50: number | null;
+  p75: number | null;
+  p90: number | null;
+  fastest: number | null;
+  slowest: number | null;
+  official_p50_days: number | null;
+  official_p90_days: number | null;
+  official_updated: string | null;
+}
+
+export interface SubmitTimelinePayload {
+  subclass_slug: string;
+  lodged_on: string; // YYYY-MM-DD
+  outcome: TimelineOutcome;
+  decided_on?: string | null;
+  country?: string;
+  note?: string;
+}
+
+export interface TimelineOut {
+  id: string;
+  subclass_slug: string;
+  lodged_on: string;
+  decided_on?: string | null;
+  outcome: TimelineOutcome;
+  processing_days?: number | null;
+  country?: string | null;
+  note?: string | null;
+  created_at: string;
+}
+
 // --- Queries ---------------------------------------------------------------
 
 export function useCommunityStats() {
@@ -190,6 +270,69 @@ export function useCommunityThread(threadId: string | undefined) {
         `/community/public/threads/${threadId}`
       );
       return data;
+    },
+  });
+}
+
+export function useVisaSubclasses() {
+  return useQuery({
+    queryKey: queryKeys.community.subclasses(),
+    queryFn: async () => {
+      const { data } = await apiClient.get<VisaSubclassOut[]>(
+        "/community/public/subclasses"
+      );
+      return data;
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+}
+
+export function useProcessingStats() {
+  return useQuery({
+    queryKey: queryKeys.community.processing(),
+    queryFn: async () => {
+      const { data } = await apiClient.get<ProcessingStatOut[]>(
+        "/community/public/processing"
+      );
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+export function useWaitCheck(
+  subclassSlug: string | undefined,
+  lodgedOn: string | undefined
+) {
+  return useQuery({
+    queryKey:
+      subclassSlug && lodgedOn
+        ? queryKeys.community.waitCheck(subclassSlug, lodgedOn)
+        : ["community", "wait-check", "none"],
+    enabled: !!subclassSlug && !!lodgedOn,
+    queryFn: async () => {
+      const { data } = await apiClient.get<WaitCheckOut>(
+        "/community/public/wait-check",
+        { params: { subclass: subclassSlug, lodged_on: lodgedOn } }
+      );
+      return data;
+    },
+  });
+}
+
+export function useSubmitTimeline() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: SubmitTimelinePayload) => {
+      const { data } = await apiClient.post<TimelineOut>(
+        "/community/timelines",
+        payload
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.community.processing() });
+      qc.invalidateQueries({ queryKey: queryKeys.community.all });
     },
   });
 }

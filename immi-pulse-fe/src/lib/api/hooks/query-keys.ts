@@ -28,6 +28,10 @@ export const queryKeys = {
       [...queryKeys.community.all, "threads", spaceSlug, sort ?? "new"] as const,
     thread: (id: string) => [...queryKeys.community.all, "thread", id] as const,
     reports: () => [...queryKeys.community.all, "reports"] as const,
+    subclasses: () => [...queryKeys.community.all, "subclasses"] as const,
+    processing: () => [...queryKeys.community.all, "processing"] as const,
+    waitCheck: (subclass: string, lodgedOn: string) =>
+      [...queryKeys.community.all, "wait-check", subclass, lodgedOn] as const,
   },
   portal: {
     all: ["portal"] as const,
