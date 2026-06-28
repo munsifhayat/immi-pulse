@@ -13,7 +13,53 @@ Design rules baked in (from the community product plan):
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Optional, Sequence
+
+# Milestone types that mark the start of the official wait, in priority order.
+# The visa lodgement is the truest "clock start"; fall back progressively.
+LODGED_MILESTONES = ("Visa Lodged", "Nomination Lodged", "Skills Assessment Lodged")
+GRANTED_MILESTONE = "Visa Granted"
+
+
+def derive_span(
+    milestones: Sequence[tuple[str, Optional[date]]],
+    outcome: str,
+) -> tuple[Optional[date], Optional[date], Optional[int]]:
+    """Collapse an ordered milestone list into a (lodged, decided, days) span.
+
+    Keeps the legacy percentile engine working: ``lodged`` is the earliest
+    lodgement-type milestone (or the earliest milestone overall), ``decided`` is
+    the grant date when the outcome is decided. Returns ``None`` parts when a
+    span can't be formed (e.g. a question post or a profile with no dates).
+    """
+    dated = sorted(
+        [(t, d) for t, d in milestones if d is not None], key=lambda x: x[1]
+    )
+    if not dated:
+        return (None, None, None)
+
+    lodged: Optional[date] = None
+    for anchor in LODGED_MILESTONES:
+        candidates = [d for t, d in dated if t == anchor]
+        if candidates:
+            lodged = min(candidates)
+            break
+    if lodged is None:
+        lodged = dated[0][1]
+
+    decided: Optional[date] = None
+    if outcome == "granted":
+        grants = [d for t, d in dated if t == GRANTED_MILESTONE]
+        decided = max(grants) if grants else dated[-1][1]
+    elif outcome == "refused":
+        decided = dated[-1][1]
+
+    days: Optional[int] = None
+    if decided is not None and lodged is not None and decided >= lodged:
+        days = (decided - lodged).days
+
+    return (lodged, decided, days)
 
 
 def percentile(values: Sequence[int], p: float) -> Optional[float]:

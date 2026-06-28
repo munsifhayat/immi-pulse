@@ -14,6 +14,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.immigration.community.identity import initials_of
 from app.agents.immigration.community.models import (
     CommunitySpace,
     CommunityThread,
@@ -25,7 +26,14 @@ from app.agents.immigration.community.schemas import (
     CommunityStatsOut,
     CreateCommentRequest,
     CreateCommunitySpaceRequest,
+    CreateJourneyCommentRequest,
+    CreateJourneyRequest,
     CreateThreadRequest,
+    FeedSummaryOut,
+    IdentityOut,
+    JourneyCommentOut,
+    JourneyDetailOut,
+    JourneyOut,
     ModerationActionRequest,
     ProcessingStatOut,
     ReportOut,
@@ -35,11 +43,13 @@ from app.agents.immigration.community.schemas import (
     ThreadWithCommentsOut,
     TimelineOut,
     VisaSubclassOut,
+    VoteResultOut,
     WaitCheckOut,
 )
 from app.agents.immigration.community.service import (
     CommunityRateLimitError,
     CommunityService,
+    JourneyCapError,
     hash_ip,
 )
 from app.db.session import get_db
@@ -59,6 +69,12 @@ def _client_ip_hash(request: Request) -> str:
     else:
         ip = request.client.host if request.client else None
     return hash_ip(ip)
+
+
+def _device_token(request: Request) -> Optional[str]:
+    """The per-device anonymous identity token (set client-side at bootstrap)."""
+    token = request.headers.get("x-device-token")
+    return token.strip() if token and token.strip() else None
 
 
 async def _thread_out(db: AsyncSession, thread: CommunityThread) -> ThreadOut:
@@ -150,6 +166,207 @@ async def submit_timeline(
     await db.commit()
     await db.refresh(timeline)
     return _timeline_out(timeline)
+
+
+# --- Community feed v2: anonymous identity ----------------------------------
+
+
+@router.post("/public/identity", response_model=IdentityOut)
+async def bootstrap_identity(request: Request, db: AsyncSession = Depends(get_db)):
+    """Issue or return this device's anonymous handle + colour + device token."""
+    identity = await CommunityService.get_or_create_identity(
+        db, token=_device_token(request), ip_hash=_client_ip_hash(request)
+    )
+    await db.commit()
+    return IdentityOut(**CommunityService.identity_out(identity, include_token=True))
+
+
+@router.post("/public/identity/reroll", response_model=IdentityOut)
+async def reroll_identity(request: Request, db: AsyncSession = Depends(get_db)):
+    """Generate a new handle (allowed only before the first timeline is shared)."""
+    identity = await CommunityService.get_or_create_identity(
+        db, token=_device_token(request), ip_hash=_client_ip_hash(request)
+    )
+    try:
+        identity = await CommunityService.reroll_identity(db, identity)
+    except ValueError as err:
+        raise HTTPException(status_code=409, detail=str(err)) from err
+    await db.commit()
+    return IdentityOut(**CommunityService.identity_out(identity, include_token=True))
+
+
+# --- Community feed v2: journeys (reads) ------------------------------------
+
+
+@router.get("/public/feed-summary", response_model=FeedSummaryOut)
+async def get_feed_summary(db: AsyncSession = Depends(get_db)):
+    return FeedSummaryOut(**await CommunityService.feed_summary(db))
+
+
+@router.get("/public/journeys", response_model=list[JourneyOut])
+async def list_journeys(
+    request: Request,
+    type: Optional[str] = Query(None, pattern="^(timeline|question)$"),
+    category: Optional[str] = Query(None),
+    subclass: Optional[str] = Query(None),
+    status_filter: Optional[str] = Query(
+        None, alias="status", pattern="^(waiting|granted)$"
+    ),
+    sort: str = Query("new", pattern="^(new|top|trending)$"),
+    limit: int = Query(30, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db),
+):
+    identity = await CommunityService.get_identity_by_token(db, _device_token(request))
+    journeys = await CommunityService.list_journeys(
+        db,
+        post_type=type,
+        category=category,
+        subclass=subclass,
+        status_filter=status_filter,
+        sort=sort,
+        limit=limit,
+        offset=offset,
+    )
+    outs = await CommunityService.build_journey_outs(db, journeys, identity=identity)
+    return [JourneyOut(**o) for o in outs]
+
+
+@router.get("/public/journeys/{journey_id}", response_model=JourneyDetailOut)
+async def get_journey_detail(
+    journey_id: UUID, request: Request, db: AsyncSession = Depends(get_db)
+):
+    journey = await CommunityService.get_journey(db, journey_id)
+    if journey is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    identity = await CommunityService.get_identity_by_token(db, _device_token(request))
+    detail = await CommunityService.get_journey_detail(db, journey, identity=identity)
+    return JourneyDetailOut(**detail)
+
+
+# --- Community feed v2: journeys (writes, device-token resolved) ------------
+
+
+@router.post(
+    "/journeys", response_model=JourneyDetailOut, status_code=status.HTTP_201_CREATED
+)
+async def create_journey(
+    payload: CreateJourneyRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    ip_hash = _client_ip_hash(request)
+    identity = await CommunityService.get_or_create_identity(
+        db, token=_device_token(request), ip_hash=ip_hash
+    )
+    try:
+        journey = await CommunityService.create_journey(
+            db, payload, identity=identity, ip_hash=ip_hash
+        )
+    except JourneyCapError as err:
+        # 409 → frontend shows the "sign in to do more" gate.
+        raise HTTPException(status_code=409, detail=str(err)) from err
+    except CommunityRateLimitError as err:
+        raise HTTPException(status_code=429, detail=str(err)) from err
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
+    await db.commit()
+    detail = await CommunityService.get_journey_detail(db, journey, identity=identity)
+    return JourneyDetailOut(**detail)
+
+
+@router.post("/journeys/{journey_id}/upvote", response_model=VoteResultOut)
+async def upvote_journey(
+    journey_id: UUID, request: Request, db: AsyncSession = Depends(get_db)
+):
+    identity = await CommunityService.get_or_create_identity(
+        db, token=_device_token(request), ip_hash=_client_ip_hash(request)
+    )
+    result = await CommunityService.toggle_vote(
+        db, target_type="journey", target_id=journey_id, identity=identity
+    )
+    if result is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    await db.commit()
+    return VoteResultOut(**result)
+
+
+@router.post(
+    "/journeys/{journey_id}/comments",
+    response_model=JourneyCommentOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_journey_comment(
+    journey_id: UUID,
+    payload: CreateJourneyCommentRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    ip_hash = _client_ip_hash(request)
+    identity = await CommunityService.get_or_create_identity(
+        db, token=_device_token(request), ip_hash=ip_hash
+    )
+    try:
+        comment = await CommunityService.create_journey_comment(
+            db, journey_id, payload, identity=identity, ip_hash=ip_hash
+        )
+    except CommunityRateLimitError as err:
+        raise HTTPException(status_code=429, detail=str(err)) from err
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail=str(err)) from err
+    await db.commit()
+    return JourneyCommentOut(
+        id=comment.id,
+        journey_id=comment.journey_id,
+        parent_comment_id=comment.parent_comment_id,
+        handle=comment.handle,
+        color=comment.color,
+        initials=initials_of(comment.handle),
+        body=comment.body,
+        upvotes=comment.upvotes or 0,
+        created_at=comment.created_at,
+    )
+
+
+@router.post("/comments/{comment_id}/upvote", response_model=VoteResultOut)
+async def upvote_journey_comment(
+    comment_id: UUID, request: Request, db: AsyncSession = Depends(get_db)
+):
+    identity = await CommunityService.get_or_create_identity(
+        db, token=_device_token(request), ip_hash=_client_ip_hash(request)
+    )
+    result = await CommunityService.toggle_vote(
+        db, target_type="comment", target_id=comment_id, identity=identity
+    )
+    if result is None:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    await db.commit()
+    return VoteResultOut(**result)
+
+
+@router.post(
+    "/journeys/{journey_id}/report",
+    response_model=ReportOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def report_journey(
+    journey_id: UUID,
+    payload: ReportRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        report = await CommunityService.report_target(
+            db,
+            target_type="journey",
+            target_id=journey_id,
+            payload=payload,
+            ip_hash=_client_ip_hash(request),
+        )
+    except CommunityRateLimitError as err:
+        raise HTTPException(status_code=429, detail=str(err)) from err
+    await db.commit()
+    return ReportOut.model_validate(report)
 
 
 # --- Public: spaces ---------------------------------------------------------

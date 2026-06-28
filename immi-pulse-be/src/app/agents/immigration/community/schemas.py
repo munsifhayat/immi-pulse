@@ -7,6 +7,8 @@ from uuid import UUID
 from pydantic import BaseModel, Field, model_validator
 
 from app.agents.immigration.community.models import (
+    MILESTONE_TYPES,
+    POST_TYPES,
     REPORT_REASONS,
     REPORT_STATUSES,
     REPORT_TARGET_TYPES,
@@ -15,7 +17,7 @@ from app.agents.immigration.community.models import (
 )
 
 ThreadStatusLiteral = Literal["active", "hidden", "removed"]
-ReportTargetLiteral = Literal["thread", "comment"]
+ReportTargetLiteral = Literal["thread", "comment", "journey", "journey_comment"]
 ReportReasonLiteral = Literal["spam", "harassment", "misleading_advice", "other"]
 ReportStatusLiteral = Literal["open", "actioned", "dismissed"]
 ThreadSortLiteral = Literal["new", "top", "trending"]
@@ -23,12 +25,14 @@ TimelineOutcomeLiteral = Literal["waiting", "granted", "refused"]
 TrendLiteral = Literal["faster", "slower", "steady"]
 WaitTierLiteral = Literal["on_track", "normal", "longer", "outlier", "unknown"]
 WaitBasisLiteral = Literal["community", "official", "none"]
+PostTypeLiteral = Literal["timeline", "question"]
 
 assert set(THREAD_STATUSES) == set(ThreadStatusLiteral.__args__)
 assert set(REPORT_TARGET_TYPES) == set(ReportTargetLiteral.__args__)
 assert set(REPORT_REASONS) == set(ReportReasonLiteral.__args__)
 assert set(REPORT_STATUSES) == set(ReportStatusLiteral.__args__)
 assert set(TIMELINE_OUTCOMES) == set(TimelineOutcomeLiteral.__args__)
+assert set(POST_TYPES) == set(PostTypeLiteral.__args__)
 
 
 # --- Spaces ------------------------------------------------------------------
@@ -259,6 +263,196 @@ class WaitCheckOut(BaseModel):
     official_p50_days: Optional[int] = None
     official_p90_days: Optional[int] = None
     official_updated: Optional[str] = None
+
+
+# --- Community feed v2: identity, journeys, milestones, comments, votes ------
+
+
+class IdentityOut(BaseModel):
+    """The device's anonymous identity. ``device_token`` is returned only on
+    bootstrap/reroll so the client can persist it; reads omit it."""
+
+    handle: str
+    color: str
+    initials: str
+    journeys_posted: int
+    is_claimed: bool  # True once linked to a real account → posting uncapped
+    can_post_timeline: bool
+    device_token: Optional[str] = None
+
+
+class MilestoneIn(BaseModel):
+    milestone_type: str
+    occurred_on: date
+    label: Optional[str] = Field(default=None, max_length=80)
+
+    @model_validator(mode="after")
+    def _check(self) -> "MilestoneIn":
+        if self.milestone_type not in MILESTONE_TYPES:
+            raise ValueError(f"Unknown milestone type '{self.milestone_type}'.")
+        if self.occurred_on > date.today():
+            raise ValueError("Milestone date cannot be in the future.")
+        return self
+
+
+class MilestoneOut(BaseModel):
+    id: UUID
+    milestone_type: str
+    occurred_on: date
+    ordinal: int
+    label: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class CreateJourneyRequest(BaseModel):
+    post_type: PostTypeLiteral = "timeline"
+
+    subclass_slug: Optional[str] = Field(default=None, max_length=64)
+    category_slug: Optional[str] = Field(default=None, max_length=64)
+
+    # Coarse profile (timeline posts)
+    stream: Optional[str] = Field(default=None, max_length=60)
+    occupation: Optional[str] = Field(default=None, max_length=80)
+    state: Optional[str] = Field(default=None, max_length=40)
+    area: Optional[str] = Field(default=None, max_length=20)
+    sponsor_type: Optional[str] = Field(default=None, max_length=40)
+
+    outcome: TimelineOutcomeLiteral = "waiting"
+
+    title: Optional[str] = Field(default=None, max_length=200)
+    note: Optional[str] = Field(default=None, max_length=2000)
+
+    milestones: list[MilestoneIn] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _check(self) -> "CreateJourneyRequest":
+        if self.post_type == "question":
+            if not (self.title and self.title.strip()):
+                raise ValueError("A question needs a title.")
+            if not (self.note and self.note.strip()):
+                raise ValueError("A question needs a body.")
+            self.milestones = []
+            self.outcome = "waiting"
+        else:  # timeline
+            if not self.subclass_slug:
+                raise ValueError("Pick the visa subclass for your timeline.")
+            if not self.milestones:
+                raise ValueError("Add at least one milestone to your timeline.")
+            if self.outcome == "granted" and not any(
+                m.milestone_type == "Visa Granted" for m in self.milestones
+            ):
+                # Tolerant: the derived span uses the last milestone as the
+                # decision date if no explicit "Visa Granted" was added.
+                pass
+        return self
+
+
+class JourneyOut(BaseModel):
+    """A feed card (timeline or question)."""
+
+    id: UUID
+    post_type: PostTypeLiteral
+    subclass_slug: Optional[str] = None
+    category_slug: Optional[str] = None
+    subclass_code: Optional[str] = None
+    subclass_name: Optional[str] = None
+    category_name: Optional[str] = None
+
+    stream: Optional[str] = None
+    occupation: Optional[str] = None
+    state: Optional[str] = None
+    area: Optional[str] = None
+    sponsor_type: Optional[str] = None
+    outcome: TimelineOutcomeLiteral
+
+    title: Optional[str] = None
+    note: Optional[str] = None
+
+    handle: str
+    color: str
+    initials: str
+
+    upvotes: int
+    comment_count: int
+    is_sample: bool
+    is_mine: bool = False
+    viewer_voted: bool = False
+
+    processing_days: Optional[int] = None
+    elapsed_days: Optional[int] = None  # lodged → today, for "still waiting"
+
+    milestones: list[MilestoneOut] = []
+    created_at: datetime
+
+
+class JourneyReplyOut(BaseModel):
+    id: UUID
+    handle: str
+    color: str
+    initials: str
+    body: str
+    upvotes: int
+    is_op: bool
+    viewer_voted: bool = False
+    reply_to: Optional[str] = None  # handle being replied to
+    created_at: datetime
+
+
+class JourneyMessageOut(BaseModel):
+    """A top-level conversation message + its flat replies (one level)."""
+
+    id: UUID
+    handle: str
+    color: str
+    initials: str
+    body: str
+    upvotes: int
+    is_op: bool
+    viewer_voted: bool = False
+    created_at: datetime
+    replies: list[JourneyReplyOut] = []
+
+
+class JourneyDetailOut(JourneyOut):
+    messages: list[JourneyMessageOut] = []
+
+
+class CreateJourneyCommentRequest(BaseModel):
+    body: str = Field(min_length=1, max_length=5000)
+    parent_comment_id: Optional[UUID] = None
+
+
+class JourneyCommentOut(BaseModel):
+    id: UUID
+    journey_id: UUID
+    parent_comment_id: Optional[UUID] = None
+    handle: str
+    color: str
+    initials: str
+    body: str
+    upvotes: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class VoteResultOut(BaseModel):
+    target_type: Literal["journey", "comment"]
+    target_id: UUID
+    upvotes: int
+    voted: bool
+
+
+class FeedSummaryOut(BaseModel):
+    """Live counts for the left filter rail."""
+
+    all: int
+    questions: int
+    timelines: int
+    waiting: int
+    granted: int
+    by_category: dict[str, int]
 
 
 ThreadWithCommentsOut.model_rebuild()

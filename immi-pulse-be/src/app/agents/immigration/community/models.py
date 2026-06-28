@@ -12,13 +12,14 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.db.base import Base
 
 THREAD_STATUSES = ("active", "hidden", "removed")
-REPORT_TARGET_TYPES = ("thread", "comment")
+REPORT_TARGET_TYPES = ("thread", "comment", "journey", "journey_comment")
 REPORT_REASONS = ("spam", "harassment", "misleading_advice", "other")
 REPORT_STATUSES = ("open", "actioned", "dismissed")
 
@@ -26,6 +27,226 @@ REPORT_STATUSES = ("open", "actioned", "dismissed")
 # yet (the survivorship-bias denominator); "granted"/"refused" are decided.
 TIMELINE_OUTCOMES = ("waiting", "granted", "refused")
 TIMELINE_STATUSES = ("active", "hidden", "removed")
+
+# --- Community feed v2 (journeys = unified feed posts) -----------------------
+
+# A feed post is either a milestone "timeline" or a free-text "question".
+POST_TYPES = ("timeline", "question")
+
+# Server-validated milestone vocabulary, ordered the way an Australian
+# application actually flows. "Other" lets people record anything unusual
+# without polluting the enum. Icon + colour mapping lives on the frontend.
+MILESTONE_TYPES = (
+    "Skills Assessment Lodged",
+    "Skills Assessment Approved",
+    "English Test Completed",
+    "EOI Submitted",
+    "Invitation Received",
+    "Nomination Lodged",
+    "Nomination Approved",
+    "State Nomination",
+    "Visa Lodged",
+    "Medical Examination",
+    "Police Checks",
+    "S56 Request Received",
+    "S56 Response Submitted",
+    "Visa Granted",
+    "Other",
+)
+
+# What a journey's votes/comments can hang off.
+VOTE_TARGET_TYPES = ("journey", "comment")
+
+
+class AnonIdentity(Base):
+    """One anonymous identity per device — the spine of the guardrail layer.
+
+    The device holds an opaque ``device_token`` (issued at bootstrap, persisted
+    client-side) and is shown a generated, unique ``handle`` + ``color``. While
+    anonymous, an identity may post a single timeline (``journeys_posted`` is
+    capped at 1); after that the Share CTA flips to a sign-in gate. Signing in
+    sets ``user_id`` and lifts the cap. No PII is ever stored here.
+    """
+
+    __tablename__ = "anon_identities"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    device_token = Column(String, nullable=False, unique=True, index=True)
+    handle = Column(String, nullable=False, unique=True, index=True)
+    color = Column(String, nullable=False)
+
+    journeys_posted = Column(Integer, nullable=False, default=0)
+
+    # Set when the device is claimed by a real (portal) account → uncaps posting
+    # and lets the portal stitch the prior anonymous activity to the account.
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    ip_hash = Column(String, nullable=True, index=True)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    last_seen_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class Journey(Base):
+    """A single feed post — a shared milestone timeline OR a question.
+
+    Timeline posts carry an ordered list of :class:`JourneyMilestone` rows plus
+    a coarse profile (stream/occupation/state/sponsor). Question posts carry a
+    title + body. The lodged/decided span is *derived* from the milestones and
+    mirrored into ``community_timelines`` so the existing percentile engine
+    keeps working untouched. Seeded sample posts (``is_sample``) populate the
+    feed but never feed the stats — keeping the wait-check honest.
+    """
+
+    __tablename__ = "community_journeys"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    identity_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("anon_identities.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    post_type = Column(String, nullable=False, default="timeline", index=True)
+
+    # Classification / filtering
+    subclass_slug = Column(String, nullable=True, index=True)  # e.g. "186"
+    category_slug = Column(String, nullable=True, index=True)  # visa family / space
+
+    # Coarse, non-identifying profile (timeline posts)
+    stream = Column(String, nullable=True)        # DE | TRT | Labour Agreement | PT…
+    occupation = Column(String, nullable=True)    # free text, optional
+    state = Column(String, nullable=True)         # NSW… | Offshore
+    area = Column(String, nullable=True)          # metro | regional
+    sponsor_type = Column(String, nullable=True)  # accredited | non_accredited | null
+
+    outcome = Column(String, nullable=False, default="waiting", index=True)
+
+    # Content
+    title = Column(String, nullable=True)         # question posts
+    note = Column(Text, nullable=True)            # caption / question body
+
+    # Display snapshot (stable even if the identity later changes)
+    handle = Column(String, nullable=False)
+    color = Column(String, nullable=False)
+
+    upvotes = Column(Integer, nullable=False, default=0)
+    comment_count = Column(Integer, nullable=False, default=0)
+    is_sample = Column(Boolean, nullable=False, default=False, index=True)
+    status = Column(String, nullable=False, default="active", index=True)
+
+    # Derived span for the stats engine (recomputed from milestones)
+    lodged_on = Column(Date, nullable=True)
+    decided_on = Column(Date, nullable=True)
+    processing_days = Column(Integer, nullable=True)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class JourneyMilestone(Base):
+    """One dated step inside a :class:`Journey` (ordered by ``ordinal``)."""
+
+    __tablename__ = "community_journey_milestones"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    journey_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("community_journeys.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    milestone_type = Column(String, nullable=False)
+    occurred_on = Column(Date, nullable=False)
+    ordinal = Column(Integer, nullable=False, default=0)
+    label = Column(String, nullable=True)  # optional custom label for "Other"
+
+
+class JourneyComment(Base):
+    """A flat (one-level) comment on a journey.
+
+    ``parent_comment_id`` always points at a *top-level* message — the service
+    flattens any deeper reply onto its top-level ancestor — so the conversation
+    is "message → replies", never a branching tree.
+    """
+
+    __tablename__ = "community_journey_comments"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    journey_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("community_journeys.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    parent_comment_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("community_journey_comments.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    identity_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("anon_identities.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    handle = Column(String, nullable=False)
+    color = Column(String, nullable=False)
+    body = Column(Text, nullable=False)
+    upvotes = Column(Integer, nullable=False, default=0)
+    status = Column(String, nullable=False, default="active", index=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
+
+
+class CommunityVote(Base):
+    """Dedup table — one row per (identity, target). Re-voting toggles off."""
+
+    __tablename__ = "community_votes"
+    __table_args__ = (
+        UniqueConstraint(
+            "identity_id",
+            "target_type",
+            "target_id",
+            name="uq_community_vote_identity_target",
+        ),
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    identity_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("anon_identities.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    target_type = Column(String, nullable=False)  # journey | comment
+    target_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
 
 
 class CommunitySpace(Base):
@@ -199,6 +420,16 @@ class CommunityTimeline(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     subclass_slug = Column(String, nullable=False, index=True)
+
+    # When a row is the materialised span of a shared Journey, this links back
+    # to it so moderation of the journey can suppress its stats contribution.
+    # NULL for legacy / directly-submitted timelines.
+    journey_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("community_journeys.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
 
     lodged_on = Column(Date, nullable=False)
     decided_on = Column(Date, nullable=True)  # grant/refusal date; NULL = waiting
