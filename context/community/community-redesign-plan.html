@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IMMI-PULSE · Community Redesign — Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root{
+    --navy:#101928; --purple:#7A5AF8; --purple-deep:#3E1C96;
+    --purple-light:#BDB4FE; --purple-muted:#D9D6FE;
+    --gray-text:#475367; --gray-light:#F0F2F5; --white:#fff;
+    --teal:#1B7B6F; --teal-light:#2DD4BF; --border:#E4E7EC;
+    --amber:#B45309; --amber-bg:#FEF3C7; --rose:#E11D48; --rose-bg:#FFE4E6; --teal-bg:#E6F4F1;
+    --shadow:0 4px 24px rgba(16,25,40,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',sans-serif;color:var(--navy);background:#FBFBFE;line-height:1.6;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{font-family:'Outfit',sans-serif;font-weight:500;letter-spacing:-.02em;line-height:1.15}
+  code,.mono{font-family:'JetBrains Mono',monospace;font-size:.86em}
+  a{color:var(--purple);text-decoration:none}
+  ::selection{background:var(--purple-muted)}
+
+  .wrap{max-width:960px;margin:0 auto;padding:0 28px}
+
+  /* hero */
+  .top{padding:56px 0 40px;background:
+    radial-gradient(680px 300px at 88% -10%, rgba(122,90,248,.10), transparent 60%),
+    radial-gradient(560px 280px at 0% 120%, rgba(45,212,191,.07), transparent 60%);
+    border-bottom:1px solid var(--border)}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--purple)}
+  .eyebrow i{width:15px;height:15px}
+  .top h1{font-size:clamp(2rem,4.4vw,3.1rem);font-weight:600;margin:14px 0 14px}
+  .top h1 .g{background:linear-gradient(90deg,var(--purple),var(--purple-deep));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .top .sub{font-size:17px;color:var(--gray-text);max-width:680px}
+  .meta-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+  .mtag{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:500;color:var(--gray-text);
+    background:#fff;border:1px solid var(--border);border-radius:999px;padding:7px 14px;box-shadow:var(--shadow)}
+  .mtag i{width:14px;height:14px;color:var(--purple)}
+  .mtag a{color:var(--purple-deep);font-weight:600}
+
+  /* sections */
+  section{padding:46px 0;border-bottom:1px solid var(--border)}
+  .snum{font-size:12.5px;font-weight:700;color:var(--purple);letter-spacing:.04em}
+  h2.sh{font-size:clamp(1.5rem,3vw,2.05rem);font-weight:600;margin:6px 0 10px}
+  .lead{font-size:15.5px;color:var(--gray-text);max-width:720px}
+  h3.b{font-size:18px;font-weight:600;margin:30px 0 12px;display:flex;align-items:center;gap:9px}
+  h3.b i{width:18px;height:18px;color:var(--purple)}
+  p{margin:10px 0;font-size:15px;color:#2A3343}
+  ul{margin:10px 0 10px 4px;padding-left:20px}
+  li{font-size:15px;margin:6px 0;color:#2A3343}
+  li::marker{color:var(--purple)}
+  b,strong{font-weight:600;color:var(--navy)}
+
+  /* principle cards */
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:760px){.g2,.g3{grid-template-columns:1fr}}
+  .card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
+  .card .ic{width:38px;height:38px;border-radius:11px;background:rgba(122,90,248,.1);display:grid;place-items:center;margin-bottom:13px}
+  .card .ic i{width:19px;height:19px;color:var(--purple)}
+  .card h4{font-size:15.5px;font-weight:600;margin-bottom:6px}
+  .card p{font-size:13.5px;color:var(--gray-text);margin:0}
+
+  /* before/after */
+  .ba{display:grid;grid-template-columns:1fr 44px 1fr;gap:0;align-items:stretch;margin-top:18px}
+  @media(max-width:760px){.ba{grid-template-columns:1fr;gap:14px}.ba .arrowcol{display:none}}
+  .col{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:#fff}
+  .col.before{opacity:.92}
+  .col-h{padding:12px 16px;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:8px}
+  .col-h i{width:15px;height:15px}
+  .before .col-h{background:#FFF5F5;color:var(--rose);border-bottom:1px solid var(--border)}
+  .after .col-h{background:#F1FBF8;color:var(--teal);border-bottom:1px solid var(--border)}
+  .col ol{margin:0;padding:14px 16px 14px 34px}
+  .col li{font-size:13px;margin:7px 0;color:var(--gray-text)}
+  .col li b{color:var(--navy)}
+  .arrowcol{display:grid;place-items:center}
+  .arrowcol .a{width:34px;height:34px;border-radius:999px;background:var(--purple);color:#fff;display:grid;place-items:center}
+  .arrowcol .a i{width:17px;height:17px}
+
+  /* tables */
+  .tbl{width:100%;border-collapse:collapse;margin-top:14px;font-size:13.5px;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .tbl th{background:var(--gray-light);text-align:left;padding:11px 14px;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--gray-text);font-weight:700}
+  .tbl td{padding:11px 14px;border-top:1px solid var(--gray-light);vertical-align:top;color:#2A3343}
+  .tbl td b{color:var(--navy)}
+  .tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:6px;white-space:nowrap}
+  .t-keep{background:var(--teal-bg);color:var(--teal)}
+  .t-change{background:var(--amber-bg);color:var(--amber)}
+  .t-new{background:rgba(122,90,248,.12);color:var(--purple-deep)}
+  .t-remove{background:var(--rose-bg);color:var(--rose)}
+
+  /* code block */
+  pre{background:var(--navy);color:#E6E8EE;border-radius:12px;padding:18px 20px;overflow:auto;font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;line-height:1.65;margin:14px 0}
+  pre .c{color:#8B97AE}
+  pre .k{color:#C4B5FD}
+  pre .s{color:#7EE0C7}
+  pre .n{color:#FCD34D}
+
+  /* callout */
+  .callout{display:flex;gap:14px;background:linear-gradient(180deg,#FAF8FF,#fff);border:1px solid var(--purple-light);
+    border-radius:14px;padding:18px 20px;margin:18px 0}
+  .callout .ic{flex:0 0 36px;width:36px;height:36px;border-radius:10px;background:var(--purple);color:#fff;display:grid;place-items:center}
+  .callout .ic i{width:18px;height:18px}
+  .callout h4{font-size:15px;font-weight:600;margin-bottom:4px}
+  .callout p{font-size:13.5px;color:var(--gray-text);margin:3px 0}
+
+  /* roadmap */
+  .phase{display:flex;gap:18px;padding:18px 0;border-top:1px solid var(--border)}
+  .phase:first-child{border-top:none}
+  .ph-no{flex:0 0 50px}
+  .ph-no .b{width:50px;height:50px;border-radius:14px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));
+    color:#fff;display:grid;place-items:center;font-family:'Outfit';font-weight:700;font-size:18px}
+  .ph-body{flex:1}
+  .ph-body h4{font-size:16.5px;font-weight:600;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .ph-body .est{font-size:11px;font-weight:700;color:var(--teal);background:var(--teal-bg);padding:2px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em}
+  .ph-body p{font-size:13.5px;color:var(--gray-text);margin:5px 0 8px}
+  .ph-body .files{display:flex;flex-wrap:wrap;gap:6px}
+  .ph-body .f{font-family:'JetBrains Mono';font-size:11px;background:var(--gray-light);border:1px solid var(--border);border-radius:6px;padding:3px 8px;color:var(--gray-text)}
+
+  /* decisions */
+  .dec{background:#fff;border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:10px;padding:14px 16px;margin:12px 0}
+  .dec .q{font-size:14px;font-weight:600;display:flex;gap:8px;align-items:center}
+  .dec .q i{width:16px;height:16px;color:var(--amber)}
+  .dec .r{font-size:13px;color:var(--gray-text);margin-top:5px}
+  .dec .r b{color:var(--purple-deep)}
+
+  .foot{padding:34px 0;text-align:center;color:var(--gray-text);font-size:13px}
+  .pri{display:inline-flex;align-items:center;gap:7px;background:var(--navy);color:#fff;font-size:13px;font-weight:600;
+    padding:11px 20px;border-radius:11px;margin-top:8px}
+  .pri i{width:16px;height:16px}
+  .anchor{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+  .anchor a{font-size:12.5px;font-weight:500;background:#fff;border:1px solid var(--border);border-radius:999px;padding:7px 14px;color:var(--gray-text)}
+  .anchor a:hover{border-color:var(--purple-light);color:var(--navy)}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="top">
+  <div class="wrap">
+    <span class="eyebrow"><i data-lucide="layout-dashboard"></i> Community 2.0 · Product &amp; Build Plan</span>
+    <h1>One community page that <span class="g">earns its real estate</span></h1>
+    <p class="sub">Today the community lives in three disconnected scrolls — a buried wait-check, a huge empty "Find your visa community" grid, and a thin thread list. This plan collapses them into a single, engaging feed led by the thing people actually want: <b>real timelines from real applicants</b>, with the official figures as a quiet second source and discussion right below.</p>
+    <div class="meta-row">
+      <span class="mtag"><i data-lucide="mouse-pointer-click"></i> Interactive mock: <a href="community-redesign-mockups.html">community-redesign-mockups.html</a></span>
+      <span class="mtag"><i data-lucide="git-branch"></i> Scope: FE redesign + BE journey/milestone model</span>
+      <span class="mtag"><i data-lucide="calendar"></i> 28 Jun 2026</span>
+    </div>
+    <div class="anchor">
+      <a href="#why">Why change</a>
+      <a href="#principles">Principles</a>
+      <a href="#ia">New page</a>
+      <a href="#components">Components</a>
+      <a href="#data">Data model</a>
+      <a href="#api">API</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="#decisions">Decisions</a>
+    </div>
+  </div>
+</div>
+
+<!-- WHY -->
+<section id="why">
+  <div class="wrap">
+    <span class="snum">01 — THE PROBLEM</span>
+    <h2 class="sh">The page asks people to work for the value</h2>
+    <p class="lead">Everything good is here already — the wait-check engine, official-vs-community processing times, spaces, threads. But it's laid out as a brochure, not a feed. The visitor has to scroll, switch tabs, and click into separate pages to assemble the picture themselves.</p>
+
+    <div class="grid g3" style="margin-top:22px">
+      <div class="card">
+        <div class="ic"><i data-lucide="layers"></i></div>
+        <h4>Three separate scrolls</h4>
+        <p>Processing times, a full-page spaces grid, and discussions live in stacked sections. Timelines, official figures and community chatter never appear together.</p>
+      </div>
+      <div class="card">
+        <div class="ic"><i data-lucide="square-dashed"></i></div>
+        <h4>Dead real estate</h4>
+        <p>"Find Your Visa Community" is a 10-card grid where 9 of 10 spaces read <b>0 threads</b>. It's the largest section and the emptiest — it makes the place feel abandoned.</p>
+      </div>
+      <div class="card">
+        <div class="ic"><i data-lucide="git-commit-horizontal"></i></div>
+        <h4>Timelines are invisible</h4>
+        <p>The richest signal — applicants' real milestone-by-milestone journeys — is hidden behind a single-span "Share your timeline" dialog and never rendered as content.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="ic"><i data-lucide="target"></i></div>
+      <div>
+        <h4>The wedge, in one line</h4>
+        <p>People arrive asking <b>"is my wait normal?"</b> — the whole page should answer that on sight: here are people exactly like you, here's where you sit, here's the official number, here's what they're discussing. No tab-hunting.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRINCIPLES -->
+<section id="principles">
+  <div class="wrap">
+    <span class="snum">02 — PRINCIPLES</span>
+    <h2 class="sh">What the redesign optimises for</h2>
+    <div class="grid g2" style="margin-top:20px">
+      <div class="card">
+        <div class="ic"><i data-lucide="eye"></i></div>
+        <h4>Show, don't gate</h4>
+        <p>Whole timeline cards and full thread previews render inline — no tap-to-expand. The visitor feels the activity in the first screen.</p>
+      </div>
+      <div class="card">
+        <div class="ic"><i data-lucide="users"></i></div>
+        <h4>Community first, official second</h4>
+        <p>Lead with what applicants are sharing. The official Home Affairs figures become a trusted-but-secondary reference strip, collapsible.</p>
+      </div>
+      <div class="card">
+        <div class="ic"><i data-lucide="move-horizontal"></i></div>
+        <h4>Density via horizontal scroll</h4>
+        <p>Shorter, narrower timeline cards in a horizontal rail let people see six journeys at a glance instead of one tall block.</p>
+      </div>
+      <div class="card">
+        <div class="ic"><i data-lucide="hand-heart"></i></div>
+        <h4>Contribute → belong</h4>
+        <p>"Share your timeline" is pinned in the rail and ends in "you're part of this." Sharing posts to the feed <i>and</i> feeds the stats.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- IA -->
+<section id="ia">
+  <div class="wrap">
+    <span class="snum">03 — THE NEW PAGE</span>
+    <h2 class="sh">From brochure to feed</h2>
+    <p class="lead">Same ingredients, re-sequenced around the four priorities you set: (1) timelines people share, (2) encourage sharing, (3) official as secondary, (4) visa community + discussion.</p>
+
+    <div class="ba">
+      <div class="col before">
+        <div class="col-h"><i data-lucide="x-circle"></i> Today</div>
+        <ol>
+          <li>Tall hero (50vh) — "Where Journeys Connect"</li>
+          <li>Stats bar (10 / 1 / 1)</li>
+          <li>Processing Times — wait-check + <b>tabbed</b> official/community board</li>
+          <li><b>Find Your Visa Community</b> — 10-card grid, mostly empty</li>
+          <li>Recent Discussions — thread list + sidebar</li>
+        </ol>
+      </div>
+      <div class="arrowcol"><div class="a"><i data-lucide="arrow-right"></i></div></div>
+      <div class="col after">
+        <div class="col-h"><i data-lucide="check-circle-2"></i> Proposed</div>
+        <ol>
+          <li><b>Compact hero + inline wait-check</b> — "Is my wait normal?" answered on screen one</li>
+          <li><b>Official figures</b> — collapsible secondary strip right under the hero, with community delta</li>
+          <li><b>One community feed</b> (PRIMARY, Facebook/IG-web shape) — sticky left rail to pick interest · single scrolling feed of timelines + questions · sticky right context rail</li>
+          <li><b>Colorful inline timelines</b> — timeline posts render a horizontal milestone strip (per-type coloured icons + day-gaps) right in the feed, no tap needed</li>
+          <li>Tap any post → <b>detail drawer on the right</b> with the full coloured journey + a flat reply conversation</li>
+        </ol>
+      </div>
+    </div>
+
+    <h3 class="b"><i data-lucide="layout-panel-left"></i> One feed, three columns — like Facebook / Instagram web</h3>
+    <p>The two-pane "browser" (sidebar scroll + grid scroll) was two competing scrolls — tiring. Replaced with a single social-feed shell: a <b>sticky left rail</b> ("pick what you're interested in" — All posts · Questions · Timelines · the four visa families · Still waiting / Recently granted, each with a live count + a prominent Share button), a <b>single center feed that owns the page scroll</b> (one continuous list, like reels/posts), and a <b>sticky right context rail</b> (share prompt · "built to stay honest" · popular spaces). The left and right pin; only the feed scrolls — one scroll, not three.</p>
+
+    <h3 class="b"><i data-lucide="git-merge"></i> One "post" model — timeline or question, shown richly</h3>
+    <p>A shared timeline and a question are the <b>same post type</b> in the one feed. Question posts render title + body; <b>timeline posts render a colourful horizontal milestone strip</b> inline (each milestone a per-type coloured icon — Visa Lodged, Medical, S56, Granted… — with day-gap chips between), plus a wait-tier badge. Everything's visible without tapping; tapping opens the <b>same detail drawer</b> for the full journey + conversation. No separate "thread" concept to learn.</p>
+
+    <h3 class="b"><i data-lucide="messages-square"></i> Detail drawer + flat conversation (no nested threads)</h3>
+    <p>Tapping a post slides in a wide right drawer (~600px): the note, a <b>scrollable "Application Journey"</b> box (fixed height, all milestones in colour), a reactions row, then the conversation. Replies are deliberately <b>one level deep</b> — a message, replies under it shown flat with an <code>OP</code> tag, and replying to a reply appends to the same message's conversation. This is the "message → reply → reply-back" model the user wanted, not a branching Reddit tree.</p>
+  </div>
+</section>
+
+<!-- COMPONENTS -->
+<section id="components">
+  <div class="wrap">
+    <span class="snum">04 — COMPONENT INVENTORY</span>
+    <h2 class="sh">What we keep, change, add, retire</h2>
+    <p class="lead">Most of the build already exists. The redesign is re-composition plus a new component family for the timeline rails, the unified post feed, the detail drawer + flat conversation, and the anonymous identity / guardrail layer.</p>
+
+    <table class="tbl">
+      <thead><tr><th>Component / file</th><th style="width:120px">Action</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>community/page.tsx</code></td><td><span class="tag t-change">RE-COMPOSE</span></td><td>Re-order sections to the new IA; drop the standalone spaces grid; compact the hero.</td></tr>
+        <tr><td><code>_components/wait-check.tsx</code></td><td><span class="tag t-keep">KEEP</span></td><td>Move into the hero as the right-hand card. Logic and <code>useWaitCheck</code> unchanged.</td></tr>
+        <tr><td><code>_components/processing-times.tsx</code></td><td><span class="tag t-change">SPLIT</span></td><td>Demote to a collapsible "Official figures" strip (<code>official-times.tsx</code>). The tabbed board is no longer the centrepiece.</td></tr>
+        <tr><td><code>_components/share-timeline.tsx</code></td><td><span class="tag t-change">EXTEND</span></td><td>Grow from single lodged→decided span into the multi-milestone builder + profile fields (see §05). Biggest FE change.</td></tr>
+        <tr><td><code>_components/thread-preview.tsx</code></td><td><span class="tag t-keep">KEEP</span></td><td>Reuse as-is in the discussion list; add a "+space chip" badge variant.</td></tr>
+        <tr><td><code>_components/community-sidebar.tsx</code></td><td><span class="tag t-keep">KEEP</span></td><td>Reuse for "Start a thread" CTA + popular/trending spaces.</td></tr>
+        <tr><td><code>_components/space-card.tsx</code></td><td><span class="tag t-remove">RETIRE</span></td><td>Replaced by horizontal space <b>chips</b>. Keep the file until chips ship, then delete.</td></tr>
+        <tr><td><b>community-feed.tsx</b></td><td><span class="tag t-new">NEW</span></td><td>The 3-column shell: sticky left filter rail + single scrolling feed + sticky right context rail. Owns the page scroll.</td></tr>
+        <tr><td><b>feed-filter-rail.tsx</b></td><td><span class="tag t-new">NEW</span></td><td>Left "pick your interest" nav: All / Questions / Timelines / visa families / status, each with a live count, + prominent Share.</td></tr>
+        <tr><td><b>feed-post.tsx</b></td><td><span class="tag t-new">NEW</span></td><td>One post (timeline | question). Timeline variant renders the <b>colourful horizontal milestone strip</b> inline (per-type icons + day-gaps) + wait badge.</td></tr>
+        <tr><td><b>post-detail-drawer.tsx</b></td><td><span class="tag t-new">NEW</span></td><td>Wide right drawer: note + scrollable journey box + reactions + flat conversation + composer. Same drawer for timelines &amp; questions.</td></tr>
+        <tr><td><b>conversation.tsx</b></td><td><span class="tag t-new">NEW</span></td><td>Flat message→reply list (one level), inline per-message reply composer, OP tag. No nested trees.</td></tr>
+        <tr><td><b>identity.ts</b></td><td><span class="tag t-new">NEW</span></td><td>Per-device anonymous identity: generate/persist handle + colour, "new name" reroll before first post.</td></tr>
+        <tr><td><b>login-gate.tsx</b></td><td><span class="tag t-new">NEW</span></td><td>"Sign in to do more" prompt fired after the one-time anonymous action (post / repeat share).</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- DATA -->
+<section id="data">
+  <div class="wrap">
+    <span class="snum">05 — DATA MODEL</span>
+    <h2 class="sh">Journeys &amp; milestones — plus the guardrails that keep it honest</h2>
+
+    <div class="callout">
+      <div class="ic"><i data-lucide="alert-triangle"></i></div>
+      <div>
+        <h4>Today's model can't express the new card</h4>
+        <p><code>SubmitTimelineRequest</code> stores a single <code>lodged_on → decided_on</code> span (good for percentile stats). The redesigned card shows an <b>ordered list of milestones</b> (Nomination Lodged → Visa Lodged → Medical → S56 → Granted) plus a <b>profile</b> (stream, occupation, state, sponsor). We need a richer record — without losing the existing stats pipeline.</p>
+      </div>
+    </div>
+
+    <h3 class="b"><i data-lucide="database"></i> Approach: add a <code>journeys</code> + <code>journey_milestones</code> pair, derive the span</h3>
+    <p>Keep the existing percentile engine working by <b>deriving</b> the lodged/decided span from the milestones (lodged = first "Lodged" milestone, decided = "Granted/Refused" milestone). The legacy single-span <code>timelines</code> table can stay as the materialised stats source, populated from journeys — or journeys can replace it with a compatibility view. New columns are additive; no destructive migration.</p>
+
+<pre><span class="c"># immi-pulse-be · new tables (Alembic, additive)</span>
+
+<span class="k">class</span> <span class="n">Journey</span>:                         <span class="c"># one shared application journey (= a feed post)</span>
+    id, subclass_slug, <span class="s">"186"</span>
+    stream            <span class="c"># DE | TRT | Labour Agreement | points-tested | null</span>
+    occupation        <span class="c"># free text, optional</span>
+    state, area       <span class="c"># NSW… | Offshore ; metro | regional</span>
+    sponsor_type      <span class="c"># accredited | non_accredited | null</span>
+    outcome           <span class="c"># waiting | granted | refused  (reuses TIMELINE_OUTCOMES)</span>
+    note              <span class="c"># the caption (≤280)</span>
+    handle            <span class="c"># auto anonymous handle e.g. "BoldLagoon7745"</span>
+    upvotes, comment_count, status, created_at
+
+    <span class="c"># derived for the stats engine, recomputed on milestone change:</span>
+    lodged_on, decided_on, processing_days
+
+<span class="k">class</span> <span class="n">JourneyMilestone</span>:
+    id, journey_id, milestone_type, occurred_on, ordinal
+    <span class="c"># milestone_type ∈ MILESTONE_TYPES (see below)</span>
+
+<span class="c"># --- identity & anti-abuse (the guardrails) ---</span>
+<span class="k">class</span> <span class="n">AnonIdentity</span>:               <span class="c"># one per device, no PII</span>
+    id, handle, <span class="s">"BoldLagoon7745"</span>    <span class="c"># generated, unique</span>
+    device_token      <span class="c"># httpOnly cookie / signed device id</span>
+    journeys_posted   <span class="c"># int — capped at 1 while anonymous</span>
+    user_id           <span class="c"># null until they sign in → then uncapped</span>
+
+<span class="k">class</span> <span class="n">Vote</span>:                        <span class="c"># dedup table — one row per (identity,target)</span>
+    identity_id, target_type, target_id   <span class="c"># UNIQUE(identity_id,target_type,target_id)</span>
+    <span class="c"># re-voting is a no-op/toggle, never increments past 1</span>
+
+<span class="k">class</span> <span class="n">Comment</span>:                     <span class="c"># flat — one level only</span>
+    id, post_id, parent_comment_id        <span class="c"># parent is always a top-level message, never another reply</span>
+    identity_id, body, created_at         <span class="c"># server flattens depth &gt; 1 onto the parent</span>
+</pre>
+
+    <h3 class="b"><i data-lucide="list-checks"></i> Milestone vocabulary (server-validated enum)</h3>
+    <p>Lifted from the reference app, ordered the way an Australian application actually flows:</p>
+    <table class="tbl">
+      <thead><tr><th>Skilled / Employer-sponsored flow</th><th>Family / Partner &amp; general</th></tr></thead>
+      <tbody>
+        <tr><td>Skills Assessment Lodged · Approved</td><td>Visa Lodged</td></tr>
+        <tr><td>English Test Completed</td><td>S56 Request Received</td></tr>
+        <tr><td>EOI Submitted · Invitation Received</td><td>S56 Response Submitted</td></tr>
+        <tr><td>Nomination Lodged · Approved</td><td>Medical Examination</td></tr>
+        <tr><td>Visa Lodged</td><td>Police Checks</td></tr>
+        <tr><td>Visa Granted</td><td>Visa Granted · Other</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:13px;color:var(--gray-text)">Each milestone carries an icon + colour mapping on the FE (already prototyped in the mock's <code>MS_ICON</code> map). "Other" lets people record anything unusual without polluting the enum.</p>
+
+    <h3 class="b"><i data-lucide="shield-check"></i> Identity &amp; anti-abuse — the guardrails</h3>
+    <p>The system must be usable with no sign-in, but not abusable. The model: <b>one anonymous identity per device</b>, with hard one-time limits that convert into a sign-in prompt.</p>
+    <div class="grid g3" style="margin-top:16px">
+      <div class="card">
+        <div class="ic"><i data-lucide="user-check"></i></div>
+        <h4>Auto identity, not free text</h4>
+        <p>On first visit the server issues a unique handle (e.g. <code>BoldLagoon7745</code>) bound to a signed device token — shown in the nav and pre-filled when posting. Users can reroll the name <i>before</i> their first post, then it locks. No impersonation, no handle-squatting.</p>
+      </div>
+      <div class="card">
+        <div class="ic"><i data-lucide="check-circle-2"></i></div>
+        <h4>One vote per person</h4>
+        <p>Votes are deduped server-side by <code>UNIQUE(identity, target)</code>. Clicking again toggles off — it can never inflate a count. Fixes the "I could upvote 100 times" hole directly.</p>
+      </div>
+      <div class="card">
+        <div class="ic"><i data-lucide="lock"></i></div>
+        <h4>One timeline, then sign in</h4>
+        <p>An anonymous identity may post a single timeline. After that, every Share CTA flips to a "you've shared ✓" / <b>sign-in-to-do-more</b> gate. Signing in lifts the cap and unlocks edit, reply notifications, and following a cohort.</p>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--gray-text);margin-top:12px">Defence in depth, server-enforced (never client-trusted): device token + per-identity rate caps, optional lightweight challenge on post, and the existing report/moderation pipeline. Comments stay anonymous but are rate-limited per identity.</p>
+
+    <div class="callout">
+      <div class="ic"><i data-lucide="shield"></i></div>
+      <div>
+        <h4>Privacy &amp; moderation hold</h4>
+        <p>Posts are anonymous (handle only — no name/email). Occupation + state + sponsor are coarse enough not to identify anyone. Reuse the existing s276/report + moderation pipeline; posts (timeline or question) and comments are reportable, and the same hide/remove actions apply.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- API -->
+<section id="api">
+  <div class="wrap">
+    <span class="snum">06 — API SURFACE</span>
+    <h2 class="sh">New endpoints, existing patterns</h2>
+    <p class="lead">All public + anonymous, mirroring the current <code>/community/public/*</code> conventions. Every write carries the device token; the server resolves it to an <code>AnonIdentity</code> and enforces the caps — the client is never trusted for limits.</p>
+    <table class="tbl">
+      <thead><tr><th>Method · Path</th><th>Purpose &amp; guardrail</th></tr></thead>
+      <tbody>
+        <tr><td><code>POST /community/public/identity</code></td><td><span class="tag t-new">NEW</span> Bootstrap: issue/return the device's anonymous handle + colour. Sets the signed device cookie.</td></tr>
+        <tr><td><code>GET /community/public/journeys</code></td><td>Feed for the rails. Query: <code>category</code>, <code>subclass</code>, <code>type</code>, <code>sort</code>, <code>cursor</code>.</td></tr>
+        <tr><td><code>GET /community/public/journeys/{id}</code></td><td>Single post + milestones + flat conversation (drawer).</td></tr>
+        <tr><td><code>POST /community/journeys</code></td><td>Create post (timeline) w/ milestones[] + profile. <b>409 if identity already posted</b> &amp; not signed in → FE shows the sign-in gate.</td></tr>
+        <tr><td><code>POST /community/journeys/{id}/upvote</code></td><td>Toggle vote. Idempotent via <code>UNIQUE(identity,target)</code> — never inflates.</td></tr>
+        <tr><td><code>POST /community/journeys/{id}/comments</code></td><td>Add message or reply. <code>parent_comment_id</code> optional; server flattens depth &gt; 1 onto the parent. Rate-limited per identity.</td></tr>
+        <tr><td><code>GET /community/public/processing</code></td><td><span class="tag t-keep">KEEP</span> — now fed by journey-derived spans.</td></tr>
+        <tr><td><code>GET /community/public/wait-check</code></td><td><span class="tag t-keep">KEEP</span> — unchanged contract.</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:14px">FE hooks in <code>lib/api/hooks/community.ts</code>: <code>useIdentity</code>, <code>useJourneys</code>, <code>useJourney</code>, <code>useCreateJourney</code> (catches 409 → login gate), <code>useToggleVote</code>, <code>usePostComment</code> — modelled on the thread hooks already there.</p>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section id="roadmap">
+  <div class="wrap">
+    <span class="snum">07 — ROADMAP</span>
+    <h2 class="sh">Ship in four passes, value on the first</h2>
+    <p class="lead">Front-load visible wins. The page can look and feel redesigned (Phase 1–2) on <i>seeded</i> data before the journey backend is finished, then go fully live in Phase 3.</p>
+
+    <div style="margin-top:18px">
+      <div class="phase">
+        <div class="ph-no"><div class="b">1</div></div>
+        <div class="ph-body">
+          <h4>Re-compose the page <span class="est">FE · 1–2 days</span></h4>
+          <p>New IA in <code>page.tsx</code>: compact hero + inline wait-check, official strip demoted &amp; collapsible, spaces grid → chip filter, discussions carry the lower page. No backend needed — uses existing hooks.</p>
+          <div class="files"><span class="f">page.tsx</span><span class="f">official-times.tsx</span><span class="f">visa-filter-chips.tsx</span></div>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="ph-no"><div class="b">2</div></div>
+        <div class="ph-body">
+          <h4>Community feed shell, rich posts, detail drawer <span class="est">FE · 3 days</span></h4>
+          <p>Build <code>community-feed</code> (3-col shell), <code>feed-filter-rail</code>, <code>feed-post</code> (with the colourful inline milestone strip), <code>post-detail-drawer</code> + <code>conversation</code> (flat replies). One unified feed of timeline/question posts. Wire to seeded data so it's rich from day one.</p>
+          <div class="files"><span class="f">community-feed.tsx</span><span class="f">feed-filter-rail.tsx</span><span class="f">feed-post.tsx</span><span class="f">post-detail-drawer.tsx</span><span class="f">conversation.tsx</span></div>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="ph-no"><div class="b">3</div></div>
+        <div class="ph-body">
+          <h4>Backend: posts, milestones, identity, votes <span class="est">BE · 3 days</span></h4>
+          <p>Tables + schemas + router for journeys/milestones, <code>AnonIdentity</code> (device token), <code>Vote</code> dedup, flat comments. Derived-span recompute backfills the stats engine. Additive Alembic migration. Wire FE off seed data onto live endpoints.</p>
+          <div class="files"><span class="f">community/models.py</span><span class="f">schemas.py</span><span class="f">router.py</span><span class="f">migrations/</span></div>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="ph-no"><div class="b">4</div></div>
+        <div class="ph-body">
+          <h4>Rich share builder + guardrail gate <span class="est">FE+BE · 2 days</span></h4>
+          <p>Extend <code>share-timeline.tsx</code> into the multi-step builder (identity row + profile + add-milestone list + note). Enforce one-post (409 → <code>login-gate</code>), one-vote toggle, per-identity comment limits. Seeding policy, moderation parity, analytics, ship.</p>
+          <div class="files"><span class="f">share-timeline.tsx</span><span class="f">login-gate.tsx</span><span class="f">identity.ts</span><span class="f">community.ts hooks</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DECISIONS -->
+<section id="decisions">
+  <div class="wrap">
+    <span class="snum">08 — OPEN DECISIONS</span>
+    <h2 class="sh">Calls to make before Phase 3</h2>
+
+    <div class="dec">
+      <div class="q"><i data-lucide="help-circle"></i> Replace the legacy <code>timelines</code> table, or keep both?</div>
+      <div class="r"><b>Recommend:</b> keep <code>timelines</code> as the stats source, populate it from journey-derived spans via a trigger/recompute. Lowest risk — the wait-check &amp; processing endpoints keep working untouched.</div>
+    </div>
+    <div class="dec">
+      <div class="q"><i data-lucide="help-circle"></i> Seed the empty feed, or launch sparse?</div>
+      <div class="r"><b>Recommend:</b> seed a curated set of realistic journeys (clearly handled, never fabricated outcomes) so the rail never looks dead — consistent with the honest-sourcing stance already in the repo. Decide the labelling: "sample" vs real.</div>
+    </div>
+    <div class="dec">
+      <div class="q"><i data-lucide="help-circle"></i> Are journeys their own entity, or a thread subtype?</div>
+      <div class="r"><b>Recommend:</b> separate <code>journeys</code> entity unified at the <i>feed</i> level (timeline | question post type), reusing comments/votes/reports polymorphically. Cleaner stats derivation than overloading <code>threads</code>.</div>
+    </div>
+    <div class="dec">
+      <div class="q"><i data-lucide="help-circle"></i> Device-token identity — how strict before it hurts real users?</div>
+      <div class="r"><b>Recommend:</b> signed httpOnly cookie as the primary key, soft-backed by coarse fingerprint for cookie-clearers. One post + one-vote-per-target is enough friction without blocking shared/public devices. Escalate (challenge) only on burst abuse, never on the first action.</div>
+    </div>
+    <div class="dec">
+      <div class="q"><i data-lucide="help-circle"></i> Flat conversation vs. allowing deeper threads later?</div>
+      <div class="r"><b>Decided (per feedback):</b> one level only — message → replies, replies-to-replies flatten onto the parent with an <code>@mention</code>. Store <code>parent_comment_id</code> anyway so we could relax this later without a migration.</div>
+    </div>
+    <div class="dec">
+      <div class="q"><i data-lucide="help-circle"></i> What exactly does signing in unlock?</div>
+      <div class="r"><b>Recommend:</b> multiple/editable timelines, reply notifications, save-visa &amp; follow-cohort. Keep <i>reading</i> and the <i>first</i> post fully anonymous so the funnel stays frictionless.</div>
+    </div>
+    <div class="dec">
+      <div class="q"><i data-lucide="help-circle"></i> How much profile is too much (re-identification)?</div>
+      <div class="r"><b>Recommend:</b> cap at visa · stream · occupation · state/area · sponsor. No DOB, no exact dates beyond milestones, no employer. Revisit if any combo gets too specific for rare occupations.</div>
+    </div>
+  </div>
+</section>
+
+<div class="foot">
+  <p>Next step → walk the interactive mock, confirm the card layout &amp; share-builder fields, then start Phase 1.</p>
+  <a class="pri" href="community-redesign-mockups.html"><i data-lucide="mouse-pointer-click"></i> Open the interactive mockup</a>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>
