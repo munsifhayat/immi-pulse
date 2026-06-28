@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Now Live · IMMI-PULSE Community — What we published & how to use it</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root{
+    --navy:#0F1117; --navy-2:#161A23;
+    --purple:#7C5CFC; --purple-deep:#5B3ADB; --purple-light:#BDB4FE; --purple-muted:#D9D6FE;
+    --teal:#1B7B6F; --teal-light:#2DD4BF; --amber:#F59E0B; --rose:#E5484D;
+    --ink:#0F1117; --gray:#4B5563; --gray-2:#6B7280; --gray-3:#9CA3AF;
+    --line:#E7E9EE; --line-2:#F0F1F5; --soft:#F7F8FA; --soft-2:#F4F3FC;
+    --shadow:0 1px 2px rgba(16,17,23,.04),0 12px 32px -16px rgba(16,17,23,.16);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:#EDEEF2;line-height:1.6;-webkit-font-smoothing:antialiased;padding:26px 16px}
+  h1,h2,h3,h4{font-family:'Outfit',sans-serif;font-weight:600;letter-spacing:-.02em;line-height:1.14}
+  .mono{font-family:'JetBrains Mono',monospace}
+  a{color:inherit;text-decoration:none}
+  .sheet{max-width:920px;margin:0 auto;background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 40px 90px -40px rgba(16,17,23,.5)}
+
+  /* hero */
+  .hero{position:relative;background:radial-gradient(900px 420px at 85% -20%,rgba(124,92,252,.45),transparent 60%),radial-gradient(700px 360px at -10% 10%,rgba(45,212,191,.16),transparent 55%),linear-gradient(180deg,var(--navy),#0B0D13);color:#fff;padding:40px 40px 36px;overflow:hidden}
+  .hero .grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:42px 42px;mask-image:radial-gradient(600px 300px at 70% 0%,#000,transparent 75%)}
+  .hero>*{position:relative}
+  .brand{display:flex;align-items:center;gap:10px;font-family:'Outfit';font-weight:700;font-size:15px}
+  .brand .lk{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));display:grid;place-items:center;box-shadow:0 0 0 3px rgba(124,92,252,.16)}
+  .brand .lk svg{width:17px;height:17px}
+  .badge-live{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;letter-spacing:.03em;color:var(--teal-light);background:rgba(45,212,191,.12);border:1px solid rgba(45,212,191,.3);padding:6px 13px;border-radius:999px;margin-top:24px}
+  .badge-live .dot{width:7px;height:7px;border-radius:50%;background:var(--teal-light);box-shadow:0 0 0 0 rgba(45,212,191,.6);animation:pulse 1.8s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(45,212,191,.5)}70%{box-shadow:0 0 0 8px rgba(45,212,191,0)}100%{box-shadow:0 0 0 0 rgba(45,212,191,0)}}
+  .hero h1{font-size:clamp(28px,4.6vw,40px);font-weight:700;margin-top:14px;max-width:20ch}
+  .hero h1 .g{background:linear-gradient(110deg,var(--purple-light),var(--teal-light));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{color:#c4c9d4;font-size:15.5px;margin-top:14px;max-width:62ch}
+  .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px;align-items:center}
+  .btn{display:inline-flex;align-items:center;gap:9px;font-weight:600;font-size:14px;padding:12px 20px;border-radius:11px;transition:.16s}
+  .btn-pri{background:#fff;color:var(--navy);box-shadow:0 10px 26px -12px rgba(0,0,0,.5)}
+  .btn-pri:hover{transform:translateY(-2px)}
+  .urlchip{font-family:'JetBrains Mono';font-size:12.5px;color:#aab0bd;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);padding:9px 14px;border-radius:10px}
+
+  /* body */
+  .body{padding:34px 40px 40px}
+  .kick{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--purple-deep)}
+  .lead{font-size:17px;color:var(--gray);margin-top:8px}
+  h2.sec{font-size:21px;margin:36px 0 4px}
+  .muted{color:var(--gray-2);font-size:13.5px}
+
+  /* steps */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+  @media(max-width:760px){.steps{grid-template-columns:1fr}}
+  .step{border:1px solid var(--line);border-radius:14px;padding:18px;background:#fff;box-shadow:var(--shadow);position:relative}
+  .step .n{position:absolute;top:-11px;left:18px;width:24px;height:24px;border-radius:8px;background:var(--navy);color:#fff;font-family:'Outfit';font-weight:700;font-size:12px;display:grid;place-items:center}
+  .step .ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--soft-2);color:var(--purple-deep);margin:6px 0 10px}
+  .step .ic svg{width:19px;height:19px}
+  .step h4{font-size:15px}
+  .step p{font-size:13px;color:var(--gray);margin-top:5px}
+
+  /* feature grid */
+  .feats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+  @media(max-width:760px){.feats{grid-template-columns:1fr}}
+  .feat{border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;gap:14px}
+  .feat .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;flex:none}
+  .feat .ic svg{width:20px;height:20px}
+  .feat h4{font-size:15px}
+  .feat p{font-size:13px;color:var(--gray);margin-top:4px}
+
+  /* wait-check mini mock */
+  .mock{border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);margin-top:18px}
+  .mock .mh{background:var(--soft);border-bottom:1px solid var(--line-2);padding:16px 18px}
+  .mock .mh .t{display:flex;align-items:center;gap:9px;font-family:'Outfit';font-weight:600;font-size:16px}
+  .mock .mh .t .a{width:28px;height:28px;border-radius:8px;background:rgba(124,92,252,.12);display:grid;place-items:center}
+  .mock .mh .t .a svg{width:15px;height:15px;color:var(--purple)}
+  .mock .ctrls{display:grid;grid-template-columns:1fr 150px;gap:10px;margin-top:12px}
+  .mock .ctrls .f{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 12px;font-size:13px;color:var(--gray);display:flex;align-items:center;justify-content:space-between}
+  .mock .res{padding:20px 18px}
+  .bar{position:relative;height:12px;border-radius:999px;background:var(--soft);margin:30px 0 36px}
+  .bar .band{position:absolute;top:0;height:12px;border-radius:999px;background:rgba(124,92,252,.16);left:30%;width:32%}
+  .bar .med{position:absolute;top:-6px;height:24px;width:2px;background:rgba(15,17,23,.4);left:50%}
+  .bar .med span{position:absolute;top:-20px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;color:var(--gray-2)}
+  .bar .p90{position:absolute;top:-6px;height:24px;width:2px;background:rgba(15,17,23,.25);left:74%}
+  .bar .p90 span{position:absolute;top:-20px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;color:var(--gray-3)}
+  .bar .you{position:absolute;top:-7px;left:40%;transform:translateX(-50%)}
+  .bar .you .dot{width:26px;height:26px;border-radius:50%;background:var(--teal);border:2px solid #fff;box-shadow:0 0 0 4px rgba(27,123,111,.22)}
+  .bar .you .tag{position:absolute;top:-26px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;font-weight:700;color:var(--teal);background:rgba(27,123,111,.1);padding:2px 8px;border-radius:999px}
+  .verdict{font-family:'Outfit';font-weight:700;color:var(--teal);font-size:16px}
+  .vdetail{font-size:13px;color:var(--gray);margin-top:5px}
+  .vmeta{display:flex;gap:18px;flex-wrap:wrap;border-top:1px solid var(--line-2);margin-top:14px;padding-top:12px;font-size:12px;color:var(--gray-2)}
+  .vmeta b{color:var(--ink)}
+
+  /* callouts */
+  .note{display:flex;gap:13px;border-radius:14px;padding:16px 18px;margin-top:16px;font-size:13.5px}
+  .note svg{width:18px;height:18px;flex:none;margin-top:1px}
+  .note.teal{background:rgba(27,123,111,.06);border:1px solid rgba(27,123,111,.2);color:#14584F}
+  .note.purple{background:var(--soft-2);border:1px solid var(--purple-muted);color:#3F2E86}
+  .note.amber{background:#FFF8ED;border:1px solid #FCE3B8;color:#92580E}
+  .note b{font-weight:600}
+
+  .pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .pill{font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;background:var(--soft-2);color:var(--purple-deep);display:inline-flex;align-items:center;gap:6px}
+  .pill svg{width:13px;height:13px}
+
+  .foot{border-top:1px solid var(--line-2);margin-top:34px;padding-top:20px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:center}
+  .foot p{font-size:12.5px;color:var(--gray-2)}
+  .link{font-family:'JetBrains Mono';font-size:12.5px;color:var(--purple-deep);font-weight:500}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <!-- HERO -->
+  <div class="hero">
+    <div class="grid"></div>
+    <div class="brand"><span class="lk"><i data-lucide="activity"></i></span> IMMI-PULSE <span style="color:#6b7280;font-weight:400">/ Community</span></div>
+    <div class="badge-live"><span class="dot"></span> NOW LIVE IN PRODUCTION</div>
+    <h1>The Community is live — starting with <span class="g">“Is my wait normal?”</span></h1>
+    <p>Anyone can now check their visa wait against real community timelines, compare official vs reported processing times, and share their own journey — <b style="color:#fff">anonymously, no sign-in, free.</b></p>
+    <div class="cta">
+      <a class="btn btn-pri" href="https://immi-pulse-fe.vercel.app/community" target="_blank">Open the live page <i data-lucide="arrow-up-right" style="width:16px;height:16px"></i></a>
+      <span class="urlchip">immi-pulse-fe.vercel.app/community</span>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="body">
+    <span class="kick">What we published</span>
+    <p class="lead">A public community hub on the IMMI-PULSE site, centred on the <b>visa-journey</b> experience. No account required — people land from Google or social and can use it instantly.</p>
+
+    <div class="pills">
+      <span class="pill"><i data-lucide="user-x"></i> No sign-in</span>
+      <span class="pill"><i data-lucide="eye-off"></i> Anonymous</span>
+      <span class="pill"><i data-lucide="gift"></i> Free</span>
+      <span class="pill"><i data-lucide="bar-chart-3"></i> 8 visa subclasses</span>
+      <span class="pill"><i data-lucide="database"></i> Live community data</span>
+    </div>
+
+    <!-- HOW PEOPLE USE IT -->
+    <h2 class="sec">How people use it</h2>
+    <p class="muted">Three things, in under a minute — no friction, no form-walls.</p>
+    <div class="steps">
+      <div class="step"><span class="n">1</span><div class="ic"><i data-lucide="calendar-check"></i></div><h4>Check their wait</h4><p>Pick a visa and lodgement date. Instantly see where they sit on a real percentile band — and a plain-English “you’re tracking normally” verdict.</p></div>
+      <div class="step"><span class="n">2</span><div class="ic"><i data-lucide="scale"></i></div><h4>Compare the numbers</h4><p>Toggle <b>Official</b> (Home Affairs figures) vs <b>Community</b> (what applicants actually report) for every visa, side by side.</p></div>
+      <div class="step"><span class="n">3</span><div class="ic"><i data-lucide="plus-circle"></i></div><h4>Share their timeline</h4><p>Add their own lodge → decision dates anonymously. Every submission makes the “is my wait normal?” answer better for the next person.</p></div>
+    </div>
+
+    <!-- WAIT-CHECK MINI MOCK -->
+    <h2 class="sec">The centrepiece: “Is my wait normal?”</h2>
+    <p class="muted">A reassurance engine, not a leaderboard — it frames a wait as <i>normalcy</i> and always shows how many people are still waiting.</p>
+    <div class="mock">
+      <div class="mh">
+        <div class="t"><span class="a"><i data-lucide="activity"></i></span> Is my wait normal?</div>
+        <div class="ctrls">
+          <div class="f">189 · Skilled Independent (Points-tested) <i data-lucide="chevron-down" style="width:15px"></i></div>
+          <div class="f">01 / 09 / 2025 <i data-lucide="calendar" style="width:15px"></i></div>
+        </div>
+      </div>
+      <div class="res">
+        <div class="bar">
+          <div class="band"></div>
+          <div class="med"><span>median 10.3 mo</span></div>
+          <div class="p90"><span>90% by 14.5 mo</span></div>
+          <div class="you"><span class="tag">you · 9.9 mo</span><span class="dot"></span></div>
+        </div>
+        <div class="verdict">On track</div>
+        <div class="vdetail">Your wait is within the typical range. Most 189 applications are still in progress at this point — there’s no signal here that anything is wrong. Around 44 people who lodged a 189 are still waiting too.</div>
+        <div class="vmeta"><span>Based on <b>68</b> grants</span><span><b>44</b> still waiting</span><span>Official median <b>10.8 months</b></span></div>
+      </div>
+    </div>
+
+    <!-- FEATURES -->
+    <h2 class="sec">What’s in the hub</h2>
+    <div class="feats">
+      <div class="feat"><div class="ic" style="background:rgba(124,92,252,.12);color:var(--purple-deep)"><i data-lucide="gauge"></i></div><div><h4>Wait-check</h4><p>Percentile position + reassurance verdict for 8 subclasses (189, 190, 491, 482, 186, 500, 485, 820).</p></div></div>
+      <div class="feat"><div class="ic" style="background:rgba(27,123,111,.1);color:var(--teal)"><i data-lucide="table-2"></i></div><div><h4>Official vs Community board</h4><p>Every visa side by side — Home Affairs figures next to crowd-reported medians and ranges.</p></div></div>
+      <div class="feat"><div class="ic" style="background:rgba(245,158,11,.12);color:#B45309"><i data-lucide="share-2"></i></div><div><h4>Share your timeline</h4><p>Anonymous lodge → decision dates that grow the dataset. The network effect that makes the stats trustworthy.</p></div></div>
+      <div class="feat"><div class="ic" style="background:rgba(236,72,153,.1);color:#BE185D"><i data-lucide="messages-square"></i></div><div><h4>Spaces & discussions</h4><p>Visa-specific spaces and recent threads — ask, share, and connect with people on the same journey.</p></div></div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="note teal"><i data-lucide="shield-check"></i><div><b>Honest by design.</b> We show percentile bands (not a single misleading average), always display how many are still waiting, and label community data as a crowd-sourced sanity check — with a nudge to corroborate with an OMARA-registered agent.</div></div>
+    <div class="note amber"><i data-lucide="eye-off"></i><div><b>“Find an Agent” is hidden for now.</b> The agent directory is temporarily turned off so the public experience stays focused on the community + journey. Anyone visiting <span class="mono">/find-consultants</span> is gently redirected to the community. It’s one config line to switch back on when we’re ready.</div></div>
+    <div class="note purple"><i data-lucide="rocket"></i><div><b>This is the wedge.</b> “Is my wait normal?” is the #1 reason applicants gather online. It’s the free front door — the data and trust it builds feed everything that comes next (personal timelines, cohorts, the agent directory, the consultant SaaS).</div></div>
+
+    <!-- FOOT -->
+    <div class="foot">
+      <div>
+        <p><b>Live:</b> <span class="link">immi-pulse-fe.vercel.app/community</span></p>
+        <p style="margin-top:3px">Backend on Heroku (release v16) · Frontend on Vercel (production)</p>
+      </div>
+      <p>IMMI-PULSE Community · Phase 1 · shipped 28 Jun 2026</p>
+    </div>
+  </div>
+</div>
+<script>lucide.createIcons();</script>
+</body>
+</html>

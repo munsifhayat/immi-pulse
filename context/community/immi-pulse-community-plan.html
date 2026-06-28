@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pulse — The Community Layer · IMMI-PULSE Product Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root{
+    --navy:#0F1117; --navy-2:#161A23; --navy-3:#1E293B;
+    --purple:#7C5CFC; --purple-deep:#5B3ADB; --purple-light:#BDB4FE; --purple-muted:#D9D6FE;
+    --teal:#1B7B6F; --teal-light:#2DD4BF;
+    --amber:#F59E0B; --rose:#E5484D;
+    --ink:#0F1117; --gray:#4B5563; --gray-2:#6B7280; --line:#E7E9EE; --line-2:#EFF1F5;
+    --bg:#FFFFFF; --bg-soft:#F7F8FA; --bg-soft-2:#F2F1FB;
+    --radius:16px; --radius-sm:10px; --radius-lg:24px;
+    --shadow:0 1px 2px rgba(16,17,23,.04), 0 8px 24px -12px rgba(16,17,23,.12);
+    --shadow-lg:0 30px 60px -25px rgba(40,28,120,.30);
+    --maxw:1180px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;scroll-padding-top:90px}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif;font-weight:600;line-height:1.12;letter-spacing:-0.02em}
+  .serif{font-family:'Instrument Serif',serif;font-weight:400;letter-spacing:0}
+  .mono{font-family:'JetBrains Mono',monospace}
+  a{color:inherit;text-decoration:none}
+  section{scroll-margin-top:84px}
+
+  /* ---------- progress + nav ---------- */
+  .progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--purple),var(--teal-light));z-index:120;transition:width .1s linear}
+  nav.top{position:fixed;top:0;left:0;right:0;z-index:100;backdrop-filter:saturate(180%) blur(14px);background:rgba(15,17,23,.72);border-bottom:1px solid rgba(255,255,255,.07)}
+  nav.top .wrap{max-width:var(--maxw);margin:0 auto;padding:13px 24px;display:flex;align-items:center;gap:18px}
+  .brand{display:flex;align-items:center;gap:10px;color:#fff;font-family:'Outfit';font-weight:700;font-size:15px;letter-spacing:-.01em}
+  .brand .dot{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));display:grid;place-items:center;box-shadow:0 0 0 3px rgba(124,92,252,.18)}
+  .brand .dot svg{width:15px;height:15px;color:#fff}
+  nav.top .links{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap}
+  nav.top .links a{color:#aab0bd;font-size:12.5px;font-weight:500;padding:7px 11px;border-radius:8px;transition:.15s;white-space:nowrap}
+  nav.top .links a:hover{color:#fff;background:rgba(255,255,255,.08)}
+  @media(max-width:1080px){nav.top .links{display:none}}
+
+  .container{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+  /* ---------- hero ---------- */
+  .hero{background:radial-gradient(1200px 600px at 80% -10%,rgba(124,92,252,.35),transparent 60%),radial-gradient(900px 500px at 0% 20%,rgba(45,212,191,.14),transparent 55%),linear-gradient(180deg,var(--navy),#0B0D13);color:#fff;padding:140px 0 90px;position:relative;overflow:hidden}
+  .hero .grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:46px 46px;mask-image:radial-gradient(900px 500px at 60% 0%,#000,transparent 75%)}
+  .hero .container{position:relative}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--purple-light);background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.3);padding:6px 13px;border-radius:999px}
+  .hero h1{font-size:clamp(38px,6vw,66px);font-weight:700;margin:22px 0 0;max-width:16ch}
+  .hero h1 .grad{background:linear-gradient(120deg,var(--purple-light),var(--teal-light));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero .lede{font-size:clamp(17px,2.2vw,21px);color:#c4c9d4;max-width:60ch;margin-top:24px}
+  .hero .lede b{color:#fff;font-weight:600}
+  .chips{display:flex;gap:12px;flex-wrap:wrap;margin-top:38px}
+  .chip{display:flex;flex-direction:column;gap:2px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 18px;min-width:150px}
+  .chip .n{font-family:'Outfit';font-weight:700;font-size:24px;color:#fff}
+  .chip .n .u{font-size:13px;color:var(--teal-light);font-weight:600}
+  .chip .l{font-size:12px;color:#9aa0ad}
+  .hero-cta{margin-top:40px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .btn{display:inline-flex;align-items:center;gap:9px;font-weight:600;font-size:14px;padding:13px 22px;border-radius:11px;cursor:pointer;transition:.18s;border:1px solid transparent}
+  .btn-primary{background:linear-gradient(135deg,var(--purple),var(--purple-deep));color:#fff;box-shadow:0 10px 30px -10px rgba(124,92,252,.6)}
+  .btn-primary:hover{transform:translateY(-2px)}
+  .btn-ghost{background:rgba(255,255,255,.06);color:#fff;border-color:rgba(255,255,255,.16)}
+  .btn-ghost:hover{background:rgba(255,255,255,.12)}
+
+  /* ---------- section scaffolding ---------- */
+  .sec{padding:88px 0}
+  .sec.alt{background:var(--bg-soft)}
+  .sec.dark{background:linear-gradient(180deg,#0B0D13,var(--navy));color:#fff}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--purple-deep)}
+  .sec.dark .kicker{color:var(--teal-light)}
+  .sec-head{max-width:760px;margin-bottom:46px}
+  .sec-head h2{font-size:clamp(28px,4vw,42px);margin:14px 0 0}
+  .sec-head p{font-size:17px;color:var(--gray);margin-top:16px}
+  .sec.dark .sec-head p{color:#b8bdc9}
+  .num-tag{font-family:'JetBrains Mono';font-size:12px;font-weight:600;color:var(--purple);opacity:.7}
+
+  /* ---------- generic cards/grid ---------- */
+  .grid{display:grid;gap:20px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:900px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow)}
+  .sec.dark .card{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.09)}
+  .card .ico{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:var(--bg-soft-2);color:var(--purple-deep);margin-bottom:16px}
+  .sec.dark .card .ico{background:rgba(124,92,252,.16);color:var(--purple-light)}
+  .card .ico svg{width:21px;height:21px}
+  .card h4{font-size:17px;margin-bottom:8px}
+  .card p{font-size:14px;color:var(--gray)}
+  .sec.dark .card p{color:#aeb4c0}
+
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--line)}
+  .pill.purple{background:var(--bg-soft-2);color:var(--purple-deep);border-color:transparent}
+  .pill.teal{background:rgba(27,123,111,.1);color:var(--teal);border-color:transparent}
+  .pill.amber{background:rgba(245,158,11,.12);color:#B45309;border-color:transparent}
+  .pill.rose{background:rgba(229,72,77,.1);color:#B42318;border-color:transparent}
+
+  /* ---------- chart frames ---------- */
+  .chart-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
+  .chart-card .ct{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:6px}
+  .chart-card .ct h4{font-size:16px}
+  .chart-card .ct p{font-size:12.5px;color:var(--gray-2);margin-top:3px}
+  .chart-wrap{position:relative;height:300px;margin-top:10px}
+  .chart-foot{font-size:11px;color:var(--gray-2);margin-top:12px;display:flex;align-items:center;gap:6px}
+  .chart-foot svg{width:13px;height:13px;flex:none}
+
+  /* ---------- mock UI ---------- */
+  .mock{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow-lg)}
+  .mock .bar{display:flex;align-items:center;gap:7px;padding:11px 15px;background:#fff;border-bottom:1px solid var(--line-2)}
+  .mock .bar .d{width:11px;height:11px;border-radius:50%}
+  .mock .bar .u{margin-left:12px;font-size:11.5px;color:var(--gray-2);font-family:'JetBrains Mono';background:var(--bg-soft);padding:4px 12px;border-radius:7px;flex:1}
+  .mock .body{padding:18px}
+  .mock.dark{background:var(--navy)}
+  .mock.dark .bar{background:var(--navy-2);border-color:rgba(255,255,255,.06)}
+  .mock.dark .bar .u{background:rgba(255,255,255,.05);color:#8b91a0}
+
+  /* timeline mock */
+  .tl{list-style:none;position:relative;padding-left:8px}
+  .tl li{position:relative;padding:0 0 4px 30px;margin-bottom:14px}
+  .tl li::before{content:'';position:absolute;left:5px;top:18px;bottom:-14px;width:2px;background:var(--line)}
+  .tl li:last-child::before{display:none}
+  .tl .node{position:absolute;left:0;top:3px;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 2px var(--line)}
+  .tl .done .node{background:var(--teal);box-shadow:0 0 0 2px var(--teal)}
+  .tl .now .node{background:var(--purple);box-shadow:0 0 0 4px rgba(124,92,252,.25);animation:pulse 2s infinite}
+  .tl .todo .node{background:#fff}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(124,92,252,.25)}50%{box-shadow:0 0 0 7px rgba(124,92,252,.08)}}
+  .tl .mtitle{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+  .tl .mmeta{font-size:12px;color:var(--gray-2)}
+  .tl .todo .mtitle{color:var(--gray-2);font-weight:500}
+  .tag-v{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(27,123,111,.12);color:var(--teal)}
+
+  /* feed mock */
+  .post{display:flex;gap:13px;padding:15px 4px;border-bottom:1px solid var(--line-2)}
+  .post:last-child{border:0}
+  .av{width:38px;height:38px;border-radius:11px;flex:none;display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff;font-family:'Outfit'}
+  .post .meta{font-size:12px;color:var(--gray-2);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .post .meta b{color:var(--ink);font-weight:600}
+  .post .ptitle{font-weight:600;font-size:14.5px;margin:4px 0 5px}
+  .post .pbody{font-size:13px;color:var(--gray)}
+  .post .pact{display:flex;gap:16px;margin-top:9px;font-size:12px;color:var(--gray-2)}
+  .post .pact span{display:inline-flex;align-items:center;gap:5px}
+  .vbadge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px}
+  .vb-omara{background:linear-gradient(135deg,var(--purple),var(--purple-deep));color:#fff}
+  .vb-verified{background:rgba(27,123,111,.12);color:var(--teal)}
+  .vb-anon{background:var(--bg-soft);color:var(--gray-2)}
+
+  /* trust ladder */
+  .ladder{display:grid;gap:14px}
+  .rung{display:grid;grid-template-columns:54px 1fr auto;gap:16px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden}
+  .rung .lv{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;color:#fff;font-family:'Outfit';font-weight:700}
+  .rung h4{font-size:15.5px;display:flex;align-items:center;gap:9px}
+  .rung p{font-size:13px;color:var(--gray);margin-top:3px}
+  .rung .can{font-size:12px;color:var(--gray-2);text-align:right;max-width:230px}
+  @media(max-width:720px){.rung{grid-template-columns:54px 1fr}.rung .can{display:none}}
+
+  /* feature split */
+  .split{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center}
+  .split.rev{grid-template-columns:.95fr 1.05fr}
+  @media(max-width:920px){.split,.split.rev{grid-template-columns:1fr;gap:26px}}
+  .feat-list{list-style:none;margin-top:20px;display:grid;gap:13px}
+  .feat-list li{display:flex;gap:11px;font-size:14.5px;color:var(--gray)}
+  .feat-list li b{color:var(--ink)}
+  .feat-list .ck{width:22px;height:22px;border-radius:7px;background:var(--bg-soft-2);color:var(--purple-deep);display:grid;place-items:center;flex:none;margin-top:1px}
+  .sec.dark .feat-list li{color:#b3b9c5}
+  .sec.dark .feat-list li b{color:#fff}
+  .sec.dark .feat-list .ck{background:rgba(45,212,191,.15);color:var(--teal-light)}
+  .feat-list .ck svg{width:13px;height:13px}
+
+  /* tables */
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  .tbl-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+  th,td{padding:13px 16px;text-align:left;border-bottom:1px solid var(--line-2)}
+  th{font-family:'Outfit';font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--gray-2);background:var(--bg-soft)}
+  tr:last-child td{border-bottom:0}
+  td.has{color:var(--teal);font-weight:600}
+  td.miss{color:var(--rose);font-weight:600}
+  .yes{color:var(--teal)} .no{color:var(--rose)} .part{color:var(--amber)}
+
+  /* flywheel / ecosystem */
+  .eco{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;position:relative}
+  @media(max-width:820px){.eco{grid-template-columns:1fr}}
+  .eco .node-c{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:26px;text-align:center}
+  .eco .node-c .ic{width:50px;height:50px;border-radius:14px;margin:0 auto 14px;display:grid;place-items:center}
+  .eco .node-c h4{font-size:18px;color:#fff}
+  .eco .node-c p{font-size:13px;color:#aeb4c0;margin-top:8px}
+  .eco .node-c .tagi{margin-top:13px;font-size:11px;color:var(--teal-light);font-weight:600;letter-spacing:.03em}
+
+  /* roadmap */
+  .road{display:grid;gap:18px}
+  .phase{display:grid;grid-template-columns:130px 1fr;gap:24px;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;box-shadow:var(--shadow);position:relative}
+  @media(max-width:720px){.phase{grid-template-columns:1fr;gap:12px}}
+  .phase .pl{font-family:'Outfit';font-weight:700}
+  .phase .pl .p0{font-size:12px;color:var(--purple);letter-spacing:.05em;text-transform:uppercase}
+  .phase .pl .pt{font-size:19px;margin-top:2px}
+  .phase .pl .pw{font-size:12px;color:var(--gray-2);margin-top:6px;font-family:'Inter';font-weight:500}
+  .phase ul{list-style:none;display:grid;gap:8px}
+  .phase ul li{font-size:13.5px;color:var(--gray);display:flex;gap:9px}
+  .phase ul li::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--purple-light);margin-top:8px;flex:none}
+  .phase .badge-ship{position:absolute;top:18px;right:20px}
+
+  /* stat band */
+  .band{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:#fff}
+  @media(max-width:820px){.band{grid-template-columns:repeat(2,1fr)}}
+  .band .b{padding:26px 22px;border-right:1px solid var(--line-2);border-bottom:1px solid var(--line-2)}
+  .band .b .n{font-family:'Outfit';font-weight:700;font-size:30px;background:linear-gradient(120deg,var(--purple-deep),var(--teal));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .band .b .l{font-size:13px;color:var(--gray);margin-top:5px}
+
+  /* callout */
+  .callout{display:flex;gap:18px;background:linear-gradient(120deg,rgba(124,92,252,.07),rgba(45,212,191,.06));border:1px solid var(--purple-muted);border-radius:18px;padding:24px 26px}
+  .callout .qi{font-family:'Instrument Serif';font-size:60px;line-height:.6;color:var(--purple);flex:none}
+  .callout .qt{font-family:'Instrument Serif';font-size:22px;line-height:1.35;color:var(--navy)}
+  .callout .qa{font-size:13px;color:var(--gray-2);margin-top:10px;font-style:normal}
+
+  /* gauge */
+  .gauge-row{display:flex;align-items:center;gap:18px}
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}
+  .reveal.in{opacity:1;transform:none}
+
+  footer{background:var(--navy);color:#fff;padding:60px 0 50px}
+  footer .container{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:center}
+  footer p{color:#9aa0ad;font-size:13px}
+  .divider{height:1px;background:var(--line);margin:8px 0 0}
+  .anchor-mini{font-family:'JetBrains Mono';font-size:11px;color:var(--gray-2)}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<nav class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot"><i data-lucide="activity"></i></span> IMMI-PULSE <span style="color:#6b7280;font-weight:400">/ Pulse</span></div>
+    <div class="links">
+      <a href="#problem">Problem</a>
+      <a href="#wedge">The Wedge</a>
+      <a href="#audit">What We Have</a>
+      <a href="#vision">Vision</a>
+      <a href="#product">Product</a>
+      <a href="#identity">Identity</a>
+      <a href="#data">Data Model</a>
+      <a href="#arch">Architecture</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="#money">Business</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="grid-bg"></div>
+  <div class="container">
+    <span class="eyebrow"><i data-lucide="sparkles" style="width:14px;height:14px"></i> Community Layer · Product Plan · v1</span>
+    <h1>Become the <span class="grad">default home</span> for Australia's visa journey.</h1>
+    <p class="lede">Today, applicants are scattered across Reddit, dying Facebook groups, scam-ridden Telegram channels and half-built trackers. <b>Pulse</b> unifies them into one anonymous, structured, trustworthy community — a living map of every visa timeline in Australia — that funnels naturally into your agent directory and SaaS.</p>
+
+    <div class="chips">
+      <div class="chip"><div class="n">85k<span class="u"> +58%/yr</span></div><div class="l">r/AusVisa members & growth</div></div>
+      <div class="chip"><div class="n">47k<span class="u"> → 0</span></div><div class="l">PomsInOz died in 2024</div></div>
+      <div class="chip"><div class="n">#1</div><div class="l">job-to-be-done: "Is my wait normal?"</div></div>
+      <div class="chip"><div class="n">$0</div><div class="l">"Lawfully for Australia" today</div></div>
+    </div>
+
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#product">Explore the product <i data-lucide="arrow-right" style="width:16px;height:16px"></i></a>
+      <a class="btn btn-ghost" href="#roadmap">See the 4-phase roadmap</a>
+    </div>
+  </div>
+</header>
+
+<!-- ============ THE PROBLEM ============ -->
+<section class="sec" id="problem">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="kicker"><span class="num-tag">01</span> The Problem</span>
+      <h2>A market that's saturated with <em class="serif" style="font-style:normal">noise</em> — and starved of structure.</h2>
+      <p>Australian visa applicants are highly active but badly served. Demand is exploding, yet it's splintered across five platform types — and <b>none</b> combines the four things applicants actually want: structured timeline data, a trustworthy answer layer, persistent searchable history, and a single, mobile, real-time home.</p>
+    </div>
+
+    <div class="grid g2" style="align-items:start">
+      <div class="chart-card reveal">
+        <div class="ct"><div><h4>Where Australians track their visa today</h4><p>Fragmented across platforms, nationalities, subclasses & states</p></div><span class="pill purple">Fragmentation</span></div>
+        <div class="chart-wrap"><canvas id="venueChart"></canvas></div>
+        <div class="chart-foot"><i data-lucide="info"></i> Sizes are confirmed/estimated members or active cases (mid-2026). A single applicant typically juggles 5–15 of these.</div>
+      </div>
+
+      <div class="chart-card reveal">
+        <div class="ct"><div><h4>Demand is compounding</h4><p>r/AusVisa subscriber growth — the strongest signal of unmet need</p></div><span class="pill teal">+58% YoY</span></div>
+        <div class="chart-wrap"><canvas id="growthChart"></canvas></div>
+        <div class="chart-foot"><i data-lucide="trending-up"></i> ~5× growth in two years (16k → 85k). The audience is here, growing, and homeless.</div>
+      </div>
+    </div>
+
+    <div class="grid g3" style="margin-top:24px">
+      <div class="card reveal"><div class="ico"><i data-lucide="users"></i></div><h4>Reddit & Facebook</h4><p>Anecdotes not data; survivorship bias; zero verification; "ghost agent" spam; the same questions re-asked daily; sensitive topics tied to your real name & network.</p></div>
+      <div class="card reveal"><div class="ico"><i data-lucide="message-square-off"></i></div><h4>Telegram / WhatsApp</h4><p>WhatsApp's 1,024-member cap forces "Group 2 / Group 3" splits. Telegram is the worst scam vector — fake sponsorships, impersonated agents. Ephemeral & unsearchable.</p></div>
+      <div class="card reveal"><div class="ico"><i data-lucide="skull"></i></div><h4>The old guard is dying</h4><p><b>PomsInOz (47k members) collapsed in 2024</b> — single-owner, no succession, content lost, domain now redirects to a New York restaurant. Forum timelines stall at 2022–23.</p></div>
+    </div>
+
+    <div class="callout reveal" style="margin-top:24px">
+      <span class="qi">“</span>
+      <div>
+        <div class="qt">Structured trackers survive; free-text discussion dies. But no tracker has critical mass <em>and</em> a community — and the new official ImmiAccount tracker gives you a queue number with zero peer comparison.</div>
+        <div class="qa">— Synthesis across Reddit, Facebook, Whirlpool, MyImmiTracker, Trackitt, Telegram & Discord (mid-2026)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE WEDGE ============ -->
+<section class="sec dark" id="wedge">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="kicker"><span class="num-tag" style="color:var(--teal-light)">02</span> The Wedge</span>
+      <h2>One question owns the whole category:<br/><span class="serif" style="color:var(--teal-light);font-size:1.05em">“Is my wait normal?”</span></h2>
+      <p>It's the #1 reason applicants show up everywhere. It's answered today with scattered anecdotes. We answer it with <b>structured, percentile-based, cohort-matched data</b> — the one thing Reddit, Facebook, Telegram and even the government tracker cannot produce.</p>
+    </div>
+
+    <div class="grid g2" style="align-items:start">
+      <div class="chart-card reveal" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1)">
+        <div class="ct"><div><h4 style="color:#fff">"Where do I sit?" — processing percentile bands</h4><p style="color:#9aa0ad">25th–90th percentile per subclass, fused from DHA + community data</p></div><span class="pill teal">Signature view</span></div>
+        <div class="chart-wrap"><canvas id="percentileChart"></canvas></div>
+        <div class="chart-foot" style="color:#8b91a0"><i data-lucide="info"></i> Illustrative bands (months). Live pipeline: DHA 75/90 percentiles (monthly, CC-BY) + verified community timelines.</div>
+      </div>
+
+      <div class="reveal">
+        <h3 style="color:#fff;font-size:22px;margin-bottom:6px">The gap no one owns</h3>
+        <p style="color:#aeb4c0;font-size:14.5px;margin-bottom:18px">Each incumbent has at most two of the four pillars. The white space is the combination.</p>
+        <div class="tbl-card" style="background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.1)">
+          <table>
+            <thead><tr><th style="background:rgba(255,255,255,.04);color:#9aa0ad">Pillar</th><th style="background:rgba(255,255,255,.04);color:#9aa0ad">Reddit/FB</th><th style="background:rgba(255,255,255,.04);color:#9aa0ad">Trackers</th><th style="background:rgba(255,255,255,.04);color:#9aa0ad">Gov't</th><th style="background:rgba(255,255,255,.04);color:#9aa0ad;color:var(--teal-light)">Pulse</th></tr></thead>
+            <tbody style="color:#cfd3dc">
+              <tr><td>Structured data</td><td class="no">✕</td><td class="yes">✓</td><td class="part">~</td><td class="yes">✓</td></tr>
+              <tr><td>Trust / verification</td><td class="no">✕</td><td class="no">✕</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+              <tr><td>Persistent & searchable</td><td class="no">✕</td><td class="part">~</td><td class="no">✕</td><td class="yes">✓</td></tr>
+              <tr><td>Peer comparison</td><td class="part">~</td><td class="part">~</td><td class="no">✕</td><td class="yes">✓</td></tr>
+              <tr><td>Anonymity + trust together</td><td class="no">✕</td><td class="no">✕</td><td class="no">✕</td><td class="yes">✓</td></tr>
+              <tr><td>Modern / mobile</td><td class="part">~</td><td class="no">✕</td><td class="part">~</td><td class="yes">✓</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:18px;font-size:14px;color:#aeb4c0">One line: be the <b style="color:#fff">verified, structured, AI-powered "is my wait normal?" community</b> — Reddit's anonymity + a tracker's structure + the diaspora groups' scale + an OMARA-trust layer none of them has.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHAT WE ALREADY HAVE ============ -->
+<section class="sec" id="audit">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="kicker"><span class="num-tag">03</span> What We Already Have</span>
+      <h2>A head start: the forum skeleton already ships in your codebase.</h2>
+      <p>The audit found a working community module — backend tables, public routes, seeded spaces, anonymous posting & moderation. It's a bare forum. The opportunity is the <b>layer that makes it sticky</b>: timelines, cohorts, stats, trust tiers and agent integration.</p>
+    </div>
+
+    <div class="grid g2" style="align-items:start">
+      <div class="tbl-card reveal">
+        <table>
+          <thead><tr><th>Capability</th><th>Status</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td>Community spaces (7 visa categories)</td><td><span class="pill teal">Exists</span></td><td class="anchor-mini">community_spaces</td></tr>
+            <tr><td>Anonymous threads + nested comments</td><td><span class="pill teal">Exists</span></td><td class="anchor-mini">community_threads/comments</td></tr>
+            <tr><td>Upvotes · reports · admin moderation</td><td><span class="pill teal">Exists</span></td><td class="anchor-mini">/dashboard/admin/moderation</td></tr>
+            <tr><td>Agent directory (marketplace)</td><td><span class="pill teal">Exists</span></td><td class="anchor-mini">/find-consultants</td></tr>
+            <tr><td>Persistent anonymous identity</td><td><span class="pill rose">Missing</span></td><td class="anchor-mini">IP-hash only</td></tr>
+            <tr><td>Visa-subclass reference data</td><td><span class="pill rose">Missing</span></td><td class="anchor-mini">hardcoded names</td></tr>
+            <tr><td>Timeline / milestone model</td><td><span class="pill rose">Missing</span></td><td class="anchor-mini">—</td></tr>
+            <tr><td>Processing-time aggregates</td><td><span class="pill rose">Missing</span></td><td class="anchor-mini">—</td></tr>
+            <tr><td>Cohorts · trust tiers · badges</td><td><span class="pill rose">Missing</span></td><td class="anchor-mini">—</td></tr>
+            <tr><td>Notifications · follow · search</td><td><span class="pill rose">Missing</span></td><td class="anchor-mini">—</td></tr>
+            <tr><td>Verified OMARA agent badges</td><td><span class="pill rose">Missing</span></td><td class="anchor-mini">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="reveal">
+        <div class="card" style="margin-bottom:18px">
+          <div class="ico"><i data-lucide="check-check"></i></div>
+          <h4>Reuse, don't rebuild</h4>
+          <p>The stack is ready: Next.js 16 + React Query + Recharts on the front; FastAPI + async SQLAlchemy + Alembic + an AWS Bedrock (Claude) gateway on the back. Brand tokens (Navy <span class="mono">#0F1117</span>, Purple <span class="mono">#7C5CFC</span>, Teal <span class="mono">#1B7B6F</span>), Outfit + Inter fonts and shadcn/ui are all in place.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><i data-lucide="git-merge"></i></div>
+          <h4>The Claude gateway is the unlock</h4>
+          <p>You already route to Claude Haiku for analysis. The same gateway powers the <b>s276 advice-classifier</b>, AI thread summaries, milestone extraction from screenshots, and the "what usually happens next" assistant — no new infra.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE 360 VISION ============ -->
+<section class="sec dark" id="vision">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="kicker"><span class="num-tag" style="color:var(--teal-light)">04</span> The 360° Vision</span>
+      <h2>Community is the <em class="serif" style="font-style:normal;color:var(--teal-light)">front door</em> to the whole ecosystem.</h2>
+      <p>A free, anonymous, SEO-rich community brings millions of applicants in. The directory and SaaS monetize the intent the community creates. Every part feeds the others — a flywheel no competitor can assemble.</p>
+    </div>
+
+    <div class="eco reveal">
+      <div class="node-c">
+        <div class="ic" style="background:rgba(45,212,191,.16)"><i data-lucide="heart-handshake" style="color:var(--teal-light)"></i></div>
+        <h4>① Pulse Community</h4>
+        <p>Anonymous timelines, cohorts, processing stats, the Grant Wall. Free forever. The acquisition & data engine.</p>
+        <div class="tagi">ACQUIRE · DATA NETWORK EFFECT</div>
+      </div>
+      <div class="node-c">
+        <div class="ic" style="background:rgba(124,92,252,.18)"><i data-lucide="badge-check" style="color:var(--purple-light)"></i></div>
+        <h4>② Verified Directory</h4>
+        <p>OMARA-checked agents answer questions, run AMAs, earn reviews tied to real outcomes. Trust as a feature.</p>
+        <div class="tagi">CONVERT · TRUST LAYER</div>
+      </div>
+      <div class="node-c">
+        <div class="ic" style="background:rgba(245,158,11,.16)"><i data-lucide="briefcase" style="color:var(--amber)"></i></div>
+        <h4>③ Consultant SaaS</h4>
+        <p>Your existing dashboard: pre-case → case → e-sign → payments. The agent's workflow & revenue home.</p>
+        <div class="tagi">MONETIZE · RETAIN</div>
+      </div>
+    </div>
+
+    <div class="grid g3 reveal" style="margin-top:22px">
+      <div class="card"><h4 style="color:#fff;display:flex;gap:8px;align-items:center"><i data-lucide="repeat" style="width:18px;color:var(--teal-light)"></i> The flywheel</h4><p>More timelines → better "is my wait normal?" stats → more applicants → more questions → more agent demand → more verified agents → more trust → more timelines.</p></div>
+      <div class="card"><h4 style="color:#fff;display:flex;gap:8px;align-items:center"><i data-lucide="search" style="width:18px;color:var(--teal-light)"></i> SEO moat</h4><p>Every cohort club, grant story and percentile page is individually indexable. VisaJourney built a traffic engine this way; we do it AU-first with fresh structured data.</p></div>
+      <div class="card"><h4 style="color:#fff;display:flex;gap:8px;align-items:center"><i data-lucide="arrow-right-left" style="width:18px;color:var(--teal-light)"></i> Account graduation</h4><p>Anonymous in community → email-verified → (if they engage an agent) a real portal account is created inside the SaaS. One identity spine, four trust tiers.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE PRODUCT ============ -->
+<section class="sec" id="product">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="kicker"><span class="num-tag">05</span> The Product</span>
+      <h2>What we build — feature by feature, with the screens.</h2>
+      <p>Ten surfaces, one coherent experience. Each is grounded in a validated pattern (BabyCenter cohorts, VisaJourney signatures, Lawfully push, Blind anonymity) but tuned for an anxious, high-stakes audience.</p>
+    </div>
+
+    <!-- 5.1 Community home + feed -->
+    <div class="split reveal" style="margin-bottom:70px">
+      <div>
+        <span class="pill purple">5.1 · Community Home</span>
+        <h3 style="font-size:26px;margin:14px 0 6px">A living feed, not a dead forum.</h3>
+        <p style="color:var(--gray);font-size:15px">The landing surface mixes the Grant Wall, your cohort's movement, trending threads and processing-time shifts. Read everything with zero account (Levels.fyi-style open read). Posting mints you an anonymous Aussie-animal handle in one tap.</p>
+        <ul class="feat-list">
+          <li><span class="ck"><i data-lucide="check"></i></span><span><b>Spaces</b> by visa family (Skilled · Employer · Partner · Student · Graduate · Visitor · WHV) — already seeded.</span></li>
+          <li><span class="ck"><i data-lucide="check"></i></span><span><b>Signature cards</b> — every post shows the author's live timeline inline (VisaJourney's stickiest mechanic).</span></li>
+          <li><span class="ck"><i data-lucide="check"></i></span><span><b>Verified badges</b> distinguish Anonymous · Email-verified · OMARA Agent at a glance.</span></li>
+        </ul>
+      </div>
+      <div class="mock">
+        <div class="bar"><span class="d" style="background:#FF5F57"></span><span class="d" style="background:#FEBC2E"></span><span class="d" style="background:#28C840"></span><span class="u">pulse.immi-pulse.au / feed</span></div>
+        <div class="body">
+          <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+            <span class="pill purple">🔥 Trending</span><span class="pill" style="background:#fff">189 Skilled</span><span class="pill" style="background:#fff">Partner</span><span class="pill" style="background:#fff">482 SID</span>
+          </div>
+          <div class="post">
+            <div class="av" style="background:linear-gradient(135deg,#7C5CFC,#5B3ADB)">QW</div>
+            <div style="flex:1">
+              <div class="meta"><b>QuokkaWaiting88</b> <span class="vbadge vb-verified"><i data-lucide="shield-check" style="width:10px"></i>Verified</span> · 189 · lodged Mar 2026 · <span style="color:var(--teal)">2h</span></div>
+              <div class="ptitle">Got CO contact today — day 94. Anyone else in the March 189 club? 🎉</div>
+              <div class="pact"><span><i data-lucide="arrow-up" style="width:13px"></i> 142</span><span><i data-lucide="message-circle" style="width:13px"></i> 38</span><span><i data-lucide="users" style="width:13px"></i> March · 189 Club</span></div>
+            </div>
+          </div>
+          <div class="post">
+            <div class="av" style="background:linear-gradient(135deg,#1B7B6F,#2DD4BF)">SM</div>
+            <div style="flex:1">
+              <div class="meta"><b>Sarah M.</b> <span class="vbadge vb-omara"><i data-lucide="badge-check" style="width:10px"></i>OMARA Agent</span> · MARN 12345 · <span style="color:var(--teal)">4h</span></div>
+              <div class="ptitle">An s56 request is normal — here's what it means (general info, not advice)</div>
+              <div class="pact"><span><i data-lucide="arrow-up" style="width:13px"></i> 311</span><span><i data-lucide="message-circle" style="width:13px"></i> 64</span><span style="color:var(--purple-deep);font-weight:600"><i data-lucide="pin" style="width:13px"></i> Pinned</span></div>
+            </div>
+          </div>
+          <div class="post">
+            <div class="av" style="background:linear-gradient(135deg,#9CA3AF,#6B7280)">WP</div>
+            <div style="flex:1">
+              <div class="meta"><b>WallabyPending</b> <span class="vbadge vb-anon">Anonymous</span> · 820 Partner · <span style="color:var(--gray-2)">6h</span></div>
+              <div class="ptitle">16 months in, no CO. Is this normal for onshore partner? 😩</div>
+              <div class="pact"><span><i data-lucide="arrow-up" style="width:13px"></i> 57</span><span><i data-lucide="message-circle" style="width:13px"></i> 29</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5.2 Pulse Timeline -->
+    <div class="split rev reveal" style="margin-bottom:70px">
+      <div class="mock">
+        <div class="bar"><span class="d" style="background:#FF5F57"></span><span class="d" style="background:#FEBC2E"></span><span class="d" style="background:#28C840"></span><span class="u">pulse · my journey · 189</span></div>
+        <div class="body">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div><div style="font-weight:700;font-family:Outfit">Your 189 journey</div><div style="font-size:12px;color:var(--gray-2)">Day 94 · ANZSCO 261313 · 90 pts · onshore</div></div>
+            <span class="pill teal"><i data-lucide="shield-check" style="width:12px"></i> Verified case</span>
+          </div>
+          <ul class="tl">
+            <li class="done"><span class="node"></span><div class="mtitle">Skills assessment (ACS) <span class="tag-v">positive</span></div><div class="mmeta">12 Aug 2025</div></li>
+            <li class="done"><span class="node"></span><div class="mtitle">EOI submitted · 90 pts</div><div class="mmeta">3 Oct 2025</div></li>
+            <li class="done"><span class="node"></span><div class="mtitle">Invitation (ITA) received 🎯</div><div class="mmeta">4 Jan 2026 · +0 days waited</div></li>
+            <li class="done"><span class="node"></span><div class="mtitle">Visa lodged</div><div class="mmeta">24 Mar 2026 · cohort anchor set</div></li>
+            <li class="done"><span class="node"></span><div class="mtitle">Health + police cleared</div><div class="mmeta">2 Apr 2026</div></li>
+            <li class="now"><span class="node"></span><div class="mtitle">CO allocated · s56 possible</div><div class="mmeta" style="color:var(--purple-deep);font-weight:600">You are here — day 94</div></li>
+            <li class="todo"><span class="node"></span><div class="mtitle">Grant decision</div><div class="mmeta">est. window: months 7–13</div></li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <span class="pill purple">5.2 · Pulse Timeline</span>
+        <h3 style="font-size:26px;margin:14px 0 6px">One lifelong timeline. You enter dates; we do the math.</h3>
+        <p style="color:var(--gray);font-size:15px">A generic milestone <b>spine</b> (lodge → biometrics → health → police → CO → s56 → grant) with per-visa branches grafted on. Auto-computed durations, a head-start progress bar, and a "you are here" pulse turn the silent wait into visible motion.</p>
+        <ul class="feat-list">
+          <li><span class="ck"><i data-lucide="check"></i></span><span><b>Add a milestone in one tap</b>, or upload an ImmiAccount screenshot — Claude extracts the dates.</span></li>
+          <li><span class="ck"><i data-lucide="check"></i></span><span><b>Self-reported vs Verified</b> — uploading a redacted grant/lodge PDF earns a "Verified" badge and full statistical weight.</span></li>
+          <li><span class="ck"><i data-lucide="check"></i></span><span><b>Privacy by design</b> — share as much or as little as you want; numbers lightly perturbed in aggregates.</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 5.3 Lodgement Clubs -->
+    <div class="split reveal" style="margin-bottom:70px">
+      <div>
+        <span class="pill purple">5.3 · Lodgement Clubs</span>
+        <h3 style="font-size:26px;margin:14px 0 6px">"March 2026 · 189 Club" — your people.</h3>
+        <p style="color:var(--gray);font-size:15px">The single strongest validated mechanic in the research: BabyCenter's "Birth Clubs" auto-group people by due-date month and score peer support <b>as high as family & friends</b>. We auto-assign every applicant to a cohort by <b>subclass + lodgement month</b>, with optional micro-cohorts (occupation, state, onshore/offshore).</p>
+        <ul class="feat-list">
+          <li><span class="ck"><i data-lucide="check"></i></span><span><b>Communal milestones</b> — "your club just had its first grant" lights up the whole cohort.</span></li>
+          <li><span class="ck"><i data-lucide="check"></i></span><span><b>Cohort movement push</b> — "3 people who lodged your week just got a CO." Honest, useful, anxiety-reducing.</span></li>
+          <li><span class="ck"><i data-lucide="check"></i></span><span><b>Graduation</b> — granted members move to an Alumni space (and are invited to keep mentoring).</span></li>
+        </ul>
+      </div>
+      <div class="mock dark">
+        <div class="bar"><span class="d" style="background:#FF5F57"></span><span class="d" style="background:#FEBC2E"></span><span class="d" style="background:#28C840"></span><span class="u" style="color:#8b91a0">clubs / mar-2026-189</span></div>
+        <div class="body" style="color:#fff">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div><div style="font-family:Outfit;font-weight:700;font-size:17px">March 2026 · 189 Club</div><div style="font-size:12px;color:#9aa0ad">412 members · 38 granted · 22 CO this week</div></div>
+            <span class="pill teal">Joined</span>
+          </div>
+          <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:14px;margin-bottom:12px">
+            <div style="font-size:12px;color:#9aa0ad;margin-bottom:8px">Cohort progress — % granted over time</div>
+            <div style="height:120px;position:relative"><canvas id="cohortChart"></canvas></div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <span class="pill teal" style="background:rgba(45,212,191,.14);color:var(--teal-light)">🎉 9.2% granted</span>
+            <span class="pill" style="background:rgba(124,92,252,.16);color:var(--purple-light);border:0">📍 You: day 94 — tracking normally</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5.4 Your Wait engine + gauge -->
+    <div class="split rev reveal" style="margin-bottom:70px">
+      <div class="card" style="padding:28px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-family:Outfit;font-weight:700;font-size:18px">Is your wait normal?</div><span class="pill teal">Reassurance engine</span></div>
+        <p style="font-size:13px;color:var(--gray);margin-bottom:18px">Subclass 189 · ANZSCO 261313 · onshore · lodged Mar 2026</p>
+        <div class="chart-wrap" style="height:210px"><canvas id="gaugeChart"></canvas></div>
+        <div style="text-align:center;margin-top:-6px">
+          <div style="font-family:Outfit;font-weight:700;font-size:20px;color:var(--teal)">You're in the 38th percentile</div>
+          <div style="font-size:13px;color:var(--gray)">Day 94 of your wait. Half your cohort is granted by ~month 7. <b>You're tracking completely normally.</b></div>
+        </div>
+        <div style="margin-top:14px;background:var(--bg-soft);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--gray-2);display:flex;gap:9px"><i data-lucide="info" style="width:15px;flex:none;margin-top:1px;color:var(--purple)"></i> Processing is <b style="color:var(--ink)">not</b> first-in-first-out. Someone who lodged after you being granted first is normal — we say so, up front.</div>
+      </div>
+      <div>
+        <span class="pill purple">5.4 · The "Your Wait" Engine</span>
+        <h3 style="font-size:26px;margin:14px 0 6px">Turn anxiety into a percentile.</h3>
+        <p style="color:var(--gray);font-size:15px">The biggest daily re-engagement lever — and it <b>reduces</b> stress instead of manufacturing it. The moment you cross your cohort's median, we auto-fire a "your wait is still normal" reassurance. We publish honest <b>25/50/75/90 percentile bands</b> (mirroring DHA's own method), never misleading single averages.</p>
+        <ul class="feat-list">
+          <li><span class="ck"><i data-lucide="check"></i></span><span><b>Confidence-shown predictions</b> — "likely grant window: months 7–13" with the cohort it's based on. Nobody else shows the working.</span></li>
+          <li><span class="ck"><i data-lucide="check"></i></span><span><b>Survivorship-bias fixed</b> — we show the pending denominator ("most of your cohort is still waiting") and decay stale data.</span></li>
+          <li><span class="ck"><i data-lucide="check"></i></span><span><b>Official + community fused</b> — "DHA says X; people like you actually got Y."</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 5.5 PulseStats + Grant Wall + Directory cards -->
+    <div class="grid g3 reveal">
+      <div class="card">
+        <div class="ico"><i data-lucide="bar-chart-3"></i></div>
+        <h4>5.5 · PulseStats Dashboard</h4>
+        <p>Public, SEO-rich, free-to-read aggregate pages per subclass: percentile bands, monthly-cohort status distribution, SkillSelect round cut-offs, occupation ceilings — benchmarked against live DHA data.</p>
+      </div>
+      <div class="card">
+        <div class="ico" style="background:rgba(27,123,111,.1);color:var(--teal)"><i data-lucide="party-popper"></i></div>
+        <h4>5.6 · The Grant Wall</h4>
+        <p>A celebration feed of fresh grants — the dopamine + hope ritual. Granted users are gently routed to Alumni so the waiting feed never becomes a wall of "everyone but me." Default-muteable.</p>
+      </div>
+      <div class="card">
+        <div class="ico" style="background:rgba(124,92,252,.14);color:var(--purple-deep)"><i data-lucide="user-check"></i></div>
+        <h4>5.7 · Verified Agent Directory</h4>
+        <p>Your existing marketplace, supercharged: OMARA-checked badges, agent answers ranked above peers, AMAs, and <b>reviews tied to real case outcomes</b> — a trust signal no Facebook group can fake.</p>
+      </div>
+    </div>
+
+    <!-- agent card mock + gamification -->
+    <div class="split reveal" style="margin-top:50px">
+      <div class="mock">
+        <div class="bar"><span class="d" style="background:#FF5F57"></span><span class="d" style="background:#FEBC2E"></span><span class="d" style="background:#28C840"></span><span class="u">find-consultants / sarah-m</span></div>
+        <div class="body">
+          <div style="display:flex;gap:14px;align-items:center">
+            <div class="av" style="width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg,#1B7B6F,#2DD4BF);font-size:18px">SM</div>
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-family:Outfit;font-weight:700;font-size:16px">Sarah Mitchell</span><span class="vbadge vb-omara"><i data-lucide="badge-check" style="width:10px"></i>OMARA ✓</span></div>
+              <div style="font-size:12px;color:var(--gray-2)">MARN 1234567 · Skilled & Partner · Melbourne</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:14px">
+            <div style="flex:1;background:var(--bg-soft);border-radius:10px;padding:10px;text-align:center"><div style="font-family:Outfit;font-weight:700;font-size:17px">4.9★</div><div style="font-size:11px;color:var(--gray-2)">312 verified</div></div>
+            <div style="flex:1;background:var(--bg-soft);border-radius:10px;padding:10px;text-align:center"><div style="font-family:Outfit;font-weight:700;font-size:17px">94%</div><div style="font-size:11px;color:var(--gray-2)">grant rate</div></div>
+            <div style="flex:1;background:var(--bg-soft);border-radius:10px;padding:10px;text-align:center"><div style="font-family:Outfit;font-weight:700;font-size:17px">1.2k</div><div style="font-size:11px;color:var(--gray-2)">answers</div></div>
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:var(--gray);background:rgba(27,123,111,.07);border:1px solid rgba(27,123,111,.18);border-radius:10px;padding:10px 12px">★★★★★ "Helped with my 820 s56 response — granted in 14 months." <span style="color:var(--teal);font-weight:600">— verified 820 outcome</span></div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:12px">Book a consult · funnels into SaaS</button>
+        </div>
+      </div>
+      <div>
+        <span class="pill purple">5.8 · Gamification, tuned for anxiety</span>
+        <h3 style="font-size:26px;margin:14px 0 6px">Streak the community — never the visa.</h3>
+        <p style="color:var(--gray);font-size:15px">The visa is government-paced and uncontrollable, and the audience is anxious by default. So we gamify the <b>controllable</b> behaviour, gently. <b style="color:var(--rose)">Hard veto on any "fastest grant" leaderboard</b> — it's actively harmful.</p>
+        <ul class="feat-list">
+          <li><span class="ck"><i data-lucide="check"></i></span><span><b>Journey badges</b> (Lodged · Biometrics · CO Allocated · 6 Months In · Granted) = progress reveals, not points.</span></li>
+          <li><span class="ck"><i data-lucide="check"></i></span><span><b>Contribution badges</b> — flagship "Granted &amp; Still Helping" keeps senior, trustworthy voices around after success.</span></li>
+          <li><span class="ck"><i data-lucide="check"></i></span><span><b>Warm weekly check-in streak</b> with generous streak-freeze (Duolingo's mercy mechanic, none of the guilt).</span></li>
+          <li><span class="ck"><i data-lucide="check"></i></span><span><b>Only safe leaderboard:</b> "Top Helpers." Comparison is framed as collective intelligence, not ranking.</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ IDENTITY & TRUST ============ -->
+<section class="sec alt" id="identity">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="kicker"><span class="num-tag">06</span> Identity, Trust &amp; the Law</span>
+      <h2>Anonymous by default. Trusted by design. Legal by architecture.</h2>
+      <p>Your users are visa-precarious and government-wary — <b>more</b> vulnerable than the tech workers Blind serves. So anonymity must be real at the infrastructure level, trust must be earned, and moderation must be built directly on the Migration Act.</p>
+    </div>
+
+    <div class="ladder reveal">
+      <div class="rung">
+        <div class="lv" style="background:#9CA3AF">T0</div>
+        <div><h4>Ghost <span class="pill" style="background:#fff">no account</span></h4><p>Lands from Google. Reads <b>everything</b> — timelines, stats, threads. We never gate reading (Levels.fyi model = SEO + trust).</p></div>
+        <div class="can">Read all · contribute nothing</div>
+      </div>
+      <div class="rung">
+        <div class="lv" style="background:#6B7280">T1</div>
+        <div><h4>Named <span class="vbadge vb-anon">Anonymous handle</span></h4><p>One tap mints an Aussie-animal handle (QuokkaWaiting88). Email is <b>decoupled &amp; encrypted</b> in a separate store — even we can't map posts → email.</p></div>
+        <div class="can">Post · add a self-reported timeline · join a club</div>
+      </div>
+      <div class="rung">
+        <div class="lv" style="background:var(--teal)">T2</div>
+        <div><h4>Verified case <span class="vbadge vb-verified"><i data-lucide="shield-check" style="width:10px"></i>Verified</span></h4><p>Upload a redacted grant / lodge / ImmiAccount PDF → reviewed → the <b>data point</b> is badged. Numbers lightly perturbed; rare subclasses suppressed.</p></div>
+        <div class="can">Full statistical weight · higher feed trust</div>
+      </div>
+      <div class="rung">
+        <div class="lv" style="background:var(--purple)">T3</div>
+        <div><h4>Trusted member <span class="pill purple">Mentor</span></h4><p>Earned by <b>behaviour</b> (Discourse-style: days visited, posts read, likes, low flags) — auto-promoted. Powers community self-moderation with no paid staff.</p></div>
+        <div class="can">Flag→auto-hide · edit wiki · prominent answers</div>
+      </div>
+      <div class="rung" style="border-color:var(--purple);box-shadow:0 0 0 3px rgba(124,92,252,.08)">
+        <div class="lv" style="background:linear-gradient(135deg,var(--purple),var(--purple-deep))">T4</div>
+        <div><h4>OMARA Agent <span class="vbadge vb-omara"><i data-lucide="badge-check" style="width:10px"></i>OMARA ✓</span></h4><p>Verified against the public OMARA register. The <b>only</b> tier permitted to give case-specific advice within ToS. Doubles as the monetization funnel.</p></div>
+        <div class="can">Give advice (lawful) · rank above peers · AMAs</div>
+      </div>
+    </div>
+
+    <div class="grid g2 reveal" style="margin-top:28px;align-items:stretch">
+      <div class="card" style="border-color:var(--purple-muted);background:linear-gradient(120deg,#fff,#FBFAFF)">
+        <div class="ico"><i data-lucide="scale"></i></div>
+        <h4>Moderation = the Migration Act, enforced by AI</h4>
+        <p>Under <b>s276</b>, giving "immigration assistance" while unregistered is an offence — <b>but it expressly exempts passing on official information without substantial comment.</b> That single line <em>is</em> our policy: sharing your own timeline &amp; DHA info ✓; telling another user "claim X / answer your s56 like this" ✗.</p>
+        <ul class="feat-list" style="margin-top:14px">
+          <li><span class="ck"><i data-lucide="bot"></i></span><span><b>AI advice-classifier</b> (Claude Haiku) flags advice-shaped posts and appends "only an OMARA agent can advise on your case."</span></li>
+          <li><span class="ck"><i data-lucide="users"></i></span><span><b>Distributed multi-flag auto-hide</b> requiring several independent high-trust accounts — resists brigading.</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="ico" style="background:rgba(229,72,77,.1);color:var(--rose)"><i data-lucide="shield-alert"></i></div>
+        <h4>Anti-scam &amp; trauma-informed by default</h4>
+        <p>Directly attacks Facebook's &gt;$5M student-scam problem and Telegram's fraud:</p>
+        <ul class="feat-list" style="margin-top:14px">
+          <li><span class="ck"><i data-lucide="lock"></i></span><span>Hard-block DMs &amp; links from new / low-trust accounts; rate-limit; OMARA-check anyone posting <i>as</i> an agent.</span></li>
+          <li><span class="ck"><i data-lucide="heart"></i></span><span>A separate, gentle, moderated <b>"Refused / Appealing / Long-delay"</b> space. Toxic positivity banned as a norm, not just despair.</span></li>
+          <li><span class="ck"><i data-lucide="git-branch"></i></span><span>Every data point <b>versioned against its policy / occupation-list period</b> so changing rules never become misinformation.</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DATA MODEL ============ -->
+<section class="sec" id="data">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="kicker"><span class="num-tag">07</span> The Data Backbone</span>
+      <h2>A generic milestone <em class="serif" style="font-style:normal">spine</em>, with per-visa branches.</h2>
+      <p>The entire model is one event spine — used by every pathway — with branch flags switching milestones on or off. This is what makes "is my wait normal?" computable across 12 subclasses without 12 bespoke schemas.</p>
+    </div>
+
+    <div class="card reveal" style="padding:26px;margin-bottom:22px;background:linear-gradient(120deg,#0F1117,#161A23);border:0">
+      <div style="font-family:JetBrains Mono;font-size:12px;color:var(--teal-light);margin-bottom:14px;letter-spacing:.05em">THE SPINE — every case is a sequence of these</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span class="pill" style="background:rgba(45,212,191,.14);color:var(--teal-light);border:0">Occupation ✓</span><i data-lucide="chevron-right" style="width:14px;color:#6b7280"></i>
+        <span class="pill" style="background:rgba(45,212,191,.14);color:var(--teal-light);border:0">Skills assess</span><i data-lucide="chevron-right" style="width:14px;color:#6b7280"></i>
+        <span class="pill" style="background:rgba(45,212,191,.14);color:var(--teal-light);border:0">English</span><i data-lucide="chevron-right" style="width:14px;color:#6b7280"></i>
+        <span class="pill" style="background:rgba(124,92,252,.2);color:var(--purple-light);border:0">EOI / ITA</span><i data-lucide="chevron-right" style="width:14px;color:#6b7280"></i>
+        <span class="pill" style="background:rgba(124,92,252,.2);color:var(--purple-light);border:0">State nom</span><i data-lucide="chevron-right" style="width:14px;color:#6b7280"></i>
+        <span class="pill" style="background:rgba(124,92,252,.2);color:var(--purple-light);border:0">Sponsor + Nom</span><i data-lucide="chevron-right" style="width:14px;color:#6b7280"></i>
+        <span class="pill" style="background:rgba(245,158,11,.2);color:#FBBF6B;border:0">⚑ Lodged</span><i data-lucide="chevron-right" style="width:14px;color:#6b7280"></i>
+        <span class="pill" style="background:rgba(245,158,11,.16);color:#FBBF6B;border:0">Biometrics</span><i data-lucide="chevron-right" style="width:14px;color:#6b7280"></i>
+        <span class="pill" style="background:rgba(245,158,11,.16);color:#FBBF6B;border:0">Health</span><i data-lucide="chevron-right" style="width:14px;color:#6b7280"></i>
+        <span class="pill" style="background:rgba(245,158,11,.16);color:#FBBF6B;border:0">Police</span><i data-lucide="chevron-right" style="width:14px;color:#6b7280"></i>
+        <span class="pill" style="background:rgba(229,72,77,.18);color:#F4A0A2;border:0">CO allocated</span><i data-lucide="chevron-right" style="width:14px;color:#6b7280"></i>
+        <span class="pill" style="background:rgba(229,72,77,.18);color:#F4A0A2;border:0">s56 ⚡</span><i data-lucide="chevron-right" style="width:14px;color:#6b7280"></i>
+        <span class="pill" style="background:rgba(45,212,191,.22);color:var(--teal-light);border:0">🎉 Grant</span>
+        <span class="pill" style="background:rgba(124,92,252,.2);color:var(--purple-light);border:0">→ 2nd-stage PR / 191</span>
+      </div>
+      <div style="font-size:12px;color:#9aa0ad;margin-top:14px"><b style="color:#fff">⚡ s56</b> (Request for More Information) is the #1 panic moment → the #1 engagement moment. <b style="color:#fff">⚑ Lodged</b> sets the cohort anchor.</div>
+    </div>
+
+    <div class="tbl-card reveal">
+      <table>
+        <thead><tr><th>Visa</th><th>Skills</th><th>English</th><th>EOI/ITA</th><th>State nom</th><th>Sponsor+Nom</th><th>2-stage PR</th><th>Model note</th></tr></thead>
+        <tbody>
+          <tr><td><b>189</b> Skilled Indep.</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td>—</td><td>—</td><td>—</td><td style="color:var(--gray-2)">points-tested</td></tr>
+          <tr><td><b>190</b> Skilled Nom.</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td>—</td><td>—</td><td style="color:var(--gray-2)">+5 pts</td></tr>
+          <tr><td><b>491</b> Regional</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td>—</td><td class="part">→191</td><td style="color:var(--gray-2)">provisional → 191</td></tr>
+          <tr><td><b>482</b> Skills in Demand</td><td class="part">~</td><td class="yes">✓</td><td>—</td><td>—</td><td class="yes">✓✓</td><td>—</td><td style="color:var(--gray-2)">3-object bundle · 3 streams</td></tr>
+          <tr><td><b>186</b> ENS (PR)</td><td class="part">DE</td><td class="yes">✓</td><td>—</td><td>—</td><td class="yes">✓</td><td>—</td><td style="color:var(--gray-2)">DE vs TRT</td></tr>
+          <tr><td><b>500</b> Student</td><td>—</td><td class="part">~</td><td>—</td><td>—</td><td>—</td><td>—</td><td style="color:var(--gray-2)">CoE · GS · OSHC · provider tier</td></tr>
+          <tr><td><b>485</b> Graduate</td><td class="part">voc</td><td class="yes">✓</td><td>—</td><td>—</td><td>—</td><td>—</td><td style="color:var(--gray-2)">2 streams</td></tr>
+          <tr><td><b>820/801 · 309/100</b> Partner</td><td>—</td><td>—</td><td>—</td><td>—</td><td class="part">sponsor</td><td class="yes">✓</td><td style="color:var(--gray-2)">2-stage · s56-heavy · evidence-heavy</td></tr>
+          <tr><td><b>188</b> / <b>858</b> NIV</td><td>—</td><td class="part">~</td><td class="part">858</td><td>—</td><td>—</td><td class="part">→888</td><td style="color:var(--gray-2)">188 closed-intake · 858 invite-only</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid g3 reveal" style="margin-top:22px">
+      <div class="card"><div class="ico"><i data-lucide="database"></i></div><h4>New tables</h4><p><span class="mono" style="font-size:12px">visa_subclasses</span>, <span class="mono" style="font-size:12px">milestone_types</span>, <span class="mono" style="font-size:12px">user_timelines</span>, <span class="mono" style="font-size:12px">timeline_milestones</span>, <span class="mono" style="font-size:12px">cohorts</span>, <span class="mono" style="font-size:12px">processing_snapshots</span>, <span class="mono" style="font-size:12px">anon_identities</span>, <span class="mono" style="font-size:12px">trust_grants</span>, <span class="mono" style="font-size:12px">badges</span>.</p></div>
+      <div class="card"><div class="ico"><i data-lucide="key-round"></i></div><h4>The cohort key</h4><p><span class="mono" style="font-size:12px">subclass × stream × ANZSCO × state × lodge-month</span> — exactly how applicants self-segment in forums, and the bucket for every stat.</p></div>
+      <div class="card"><div class="ico"><i data-lucide="git-commit-horizontal"></i></div><h4>Versioned by policy</h4><p>Occupation→list→visa mapping is <b>date-versioned</b> (CSOL replaced MLTSSL/STSOL on 7 Dec 2024). An eligible occupation last year may not be now — so stats never lie.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ARCHITECTURE ============ -->
+<section class="sec dark" id="arch">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="kicker"><span class="num-tag" style="color:var(--teal-light)">08</span> Architecture &amp; Pipelines</span>
+      <h2>Build on what ships. Add three things.</h2>
+      <p>No re-platform. Extend the existing FastAPI <span class="mono" style="font-size:.9em">/community</span> module, add a data ingestion job, and wire the Claude gateway into moderation &amp; insight.</p>
+    </div>
+    <div class="grid g3 reveal">
+      <div class="card"><div class="ico"><i data-lucide="server"></i></div><h4>① Timeline &amp; cohort service</h4><p>New SQLAlchemy models + Alembic migration; a stats aggregator that recomputes percentile bands per cohort nightly with staleness decay &amp; outlier rejection. Surfaced via <span class="mono" style="font-size:12px">/community/stats/*</span>.</p></div>
+      <div class="card"><div class="ico"><i data-lucide="download-cloud"></i></div><h4>② DHA data pipeline</h4><p>APScheduler job (you already run one) scrapes DHA global processing times (75/90 percentile, monthly), SkillSelect rounds &amp; the CSOL PDF. <b>Robots-permitted, CC-BY licensed</b> — attribute, throttle, never imply endorsement.</p></div>
+      <div class="card"><div class="ico"><i data-lucide="cpu"></i></div><h4>③ Claude intelligence layer</h4><p>One gateway, four jobs: s276 advice-classifier, milestone extraction from screenshots, thread summarisation, and the "what usually happens next" assistant grounded in cohort data.</p></div>
+    </div>
+    <div class="grid g4 reveal" style="margin-top:20px">
+      <div class="card"><h4 style="color:#fff;font-size:14px"><i data-lucide="bell" style="width:15px;color:var(--teal-light)"></i> Notifications</h4><p style="font-size:12.5px">Event-based only: cohort movement, processing-time shifts, occupation-list &amp; fee-deadline changes. Calm by default, user-tunable.</p></div>
+      <div class="card"><h4 style="color:#fff;font-size:14px"><i data-lucide="search" style="width:15px;color:var(--teal-light)"></i> Search</h4><p style="font-size:12.5px">Postgres full-text first (cheap, ships now); pgvector semantic search later for "find threads like mine."</p></div>
+      <div class="card"><h4 style="color:#fff;font-size:14px"><i data-lucide="smartphone" style="width:15px;color:var(--teal-light)"></i> Mobile</h4><p style="font-size:12.5px">PWA first (installable, push via web-push). The only native AU tracker is single-subclass — PWA closes the gap fast.</p></div>
+      <div class="card"><h4 style="color:#fff;font-size:14px"><i data-lucide="lock-keyhole" style="width:15px;color:var(--teal-light)"></i> Anonymity infra</h4><p style="font-size:12.5px">Email hashed+salted in a <b>separate encrypted store</b>, no recoverable post→email link. Minimal PII; explicit subpoena disclosure in ToS.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ROADMAP ============ -->
+<section class="sec" id="roadmap">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="kicker"><span class="num-tag">09</span> Phased Roadmap</span>
+      <h2>From bare forum to default platform, in four phases.</h2>
+      <p>Each phase ships something users feel immediately, and each de-risks the next. The data network effect compounds from Phase 1 onward.</p>
+    </div>
+    <div class="road reveal">
+      <div class="phase">
+        <div class="pl"><div class="p0">Phase 1</div><div class="pt">The Tracker</div><div class="pw">~3–4 weeks</div></div>
+        <ul>
+          <li>Persistent anonymous identity (Aussie-animal handles) + email-verified tier on the existing community module</li>
+          <li><span class="mono" style="font-size:12px">visa_subclasses</span> reference data + the milestone spine + per-visa branches</li>
+          <li><b>Pulse Timeline</b> — add/track your journey; auto-computed durations; the "you are here" view</li>
+          <li>Glow-up the existing feed/spaces to the new design system</li>
+        </ul>
+        <span class="badge-ship pill teal">Wedge: own "track my visa"</span>
+      </div>
+      <div class="phase">
+        <div class="pl"><div class="p0">Phase 2</div><div class="pt">Is My Wait Normal?</div><div class="pw">~3–4 weeks</div></div>
+        <ul>
+          <li>Cohort engine + <b>Lodgement Clubs</b> (subclass + lodge-month auto-assignment)</li>
+          <li><b>PulseStats</b> percentile bands + DHA ingestion pipeline (processing times, SkillSelect rounds, CSOL)</li>
+          <li>The "Your Wait" reassurance engine + Grant Wall + cohort-movement notifications</li>
+        </ul>
+        <span class="badge-ship pill purple">The retention engine</span>
+      </div>
+      <div class="phase">
+        <div class="pl"><div class="p0">Phase 3</div><div class="pt">Trust &amp; Agents</div><div class="pw">~3–4 weeks</div></div>
+        <ul>
+          <li>Full trust ladder (T2 document-verified, T3 behaviour-based, T4 OMARA badge)</li>
+          <li>s276 AI advice-classifier + distributed flagging + anti-scam controls</li>
+          <li>Directory integration: verified agent answers, AMAs, reviews tied to real outcomes → SaaS funnel</li>
+        </ul>
+        <span class="badge-ship pill amber">Trust = moat + money</span>
+      </div>
+      <div class="phase">
+        <div class="pl"><div class="p0">Phase 4</div><div class="pt">Scale &amp; Delight</div><div class="pw">ongoing</div></div>
+        <ul>
+          <li>PWA + push, semantic search, badges/streaks, screenshot→milestone AI extraction</li>
+          <li>B2B data product for agents/firms; predictive grant windows with confidence intervals</li>
+          <li>Multi-language surfaces (Hindi/Nepali/Tagalog/Punjabi) to capture the diaspora groups</li>
+        </ul>
+        <span class="badge-ship pill" style="background:#fff">Default platform</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BUSINESS ============ -->
+<section class="sec alt" id="money">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="kicker"><span class="num-tag">10</span> Business &amp; Differentiation</span>
+      <h2>Free community, dual monetization, defensible by data.</h2>
+      <p>Lawfully proved the model: a cheap consumer layer + a B2B data SaaS off the same dataset. We do it AU-first, fused with your existing agent SaaS and directory.</p>
+    </div>
+
+    <div class="grid g3 reveal" style="margin-bottom:30px">
+      <div class="card"><div class="ico" style="background:rgba(45,212,191,.1);color:var(--teal)"><i data-lucide="gift"></i></div><h4>Free community (forever)</h4><p>Acquisition + SEO + the data network effect. Reading is never gated. Soft "give-to-get" only on the personalized layer ("add your lodge date to see where you sit").</p></div>
+      <div class="card"><div class="ico"><i data-lucide="user-plus"></i></div><h4>Consumer Pulse+ <span class="pill purple">~A$5–9/mo</span></h4><p>Predictions with confidence intervals, document vault + expiry alerts, premium stats. iScah shows A$140 willingness-to-pay for prediction; the 88-days app shows A$30 for compliance output.</p></div>
+      <div class="card"><div class="ico" style="background:rgba(245,158,11,.12);color:var(--amber)"><i data-lucide="building-2"></i></div><h4>Agent / B2B <span class="pill amber">existing SaaS</span></h4><p>Verified-agent subscriptions, lead-gen from community intent, and an aggregated <b>AU case-data product</b> for firms — the moat is the dataset, not the model.</p></div>
+    </div>
+
+    <div class="grid g2 reveal" style="align-items:start">
+      <div class="chart-card">
+        <div class="ct"><div><h4>Why we win — capability radar</h4><p>IMMI-PULSE vs the incumbents across the dimensions that matter</p></div></div>
+        <div class="chart-wrap" style="height:340px"><canvas id="radarChart"></canvas></div>
+        <div class="chart-foot"><i data-lucide="info"></i> Pulse is the only product that scores on all axes at once — the whitespace from §02.</div>
+      </div>
+      <div>
+        <div class="band" style="margin-bottom:18px">
+          <div class="b"><div class="n">12</div><div class="l">subclasses with real timeline depth (trackers cover 1–3)</div></div>
+          <div class="b"><div class="n">25/50/75/90</div><div class="l">honest percentile bands — never single means</div></div>
+          <div class="b"><div class="n">4</div><div class="l">trust tiers, anonymity intact at every one</div></div>
+          <div class="b"><div class="n">0</div><div class="l">speed leaderboards (hard veto — anxiety-safe)</div></div>
+        </div>
+        <h3 style="font-size:20px;margin-bottom:10px">North-star &amp; guardrails</h3>
+        <ul class="feat-list">
+          <li><span class="ck"><i data-lucide="target"></i></span><span><b>North star:</b> weekly active timeline-trackers (data contributors), not raw page views.</span></li>
+          <li><span class="ck"><i data-lucide="activity"></i></span><span><b>Engagement:</b> % of waiters who check their cohort weekly; cohort-movement notification open rate.</span></li>
+          <li><span class="ck"><i data-lucide="shield"></i></span><span><b>Trust guardrail:</b> verified-data share, advice-classifier precision, scam-report resolution time.</span></li>
+          <li><span class="ck"><i data-lucide="git-pull-request-arrow"></i></span><span><b>Funnel:</b> community → "talk to a verified agent" → SaaS portal account created.</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout reveal" style="margin-top:30px">
+      <span class="qi">“</span>
+      <div>
+        <div class="qt">Be the verified, structured, AI-powered "is my wait normal?" community — Reddit's anonymity, a tracker's structure, the diaspora groups' scale, and an OMARA-trust layer none of them has — across every subclass the trackers ignore, on mobile, in real time.</div>
+        <div class="qa">— The one-line thesis</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div>
+      <div class="brand" style="margin-bottom:8px"><span class="dot"><i data-lucide="activity"></i></span> IMMI-PULSE / Pulse</div>
+      <p>Community Layer · Product Plan v1 · research-backed, mid-2026</p>
+    </div>
+    <div style="text-align:right">
+      <p>Next: validate scope → Phase 1 build on the existing <span class="mono">/community</span> module.</p>
+      <p style="margin-top:4px">Australia's immigration heartbeat. ❤️</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  lucide.createIcons();
+
+  // ---- shared chart defaults ----
+  const FONT = "'Inter', sans-serif";
+  Chart.defaults.font.family = FONT;
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = '#6B7280';
+  const PURPLE='#7C5CFC', PURPLE_D='#5B3ADB', TEAL='#1B7B6F', TEAL_L='#2DD4BF', AMBER='#F59E0B', NAVY='#0F1117', GRAY='#9CA3AF';
+
+  // ---- 1. venue fragmentation ----
+  new Chart(document.getElementById('venueChart'), {
+    type:'bar',
+    data:{
+      labels:['Indians in Sydney (FB)','Skilled FB groups (est.)','r/AusVisa','PomsInOz (DIED 2024)','Telegram updates','MyImmiTracker AU cases','186 Tracker app'],
+      datasets:[{
+        data:[135000,100000,85000,47000,10600,11000,2200],
+        backgroundColor:(c)=>{const l=c.chart.data.labels[c.dataIndex];return l.includes('DIED')?'#E5484D':(l.includes('r/AusVisa')?PURPLE:'#C9C3F5');},
+        borderRadius:6, barThickness:18
+      }]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>' '+c.raw.toLocaleString()+' members / cases'}}},
+      scales:{x:{grid:{color:'#F0F1F5'},ticks:{callback:(v)=>v>=1000?(v/1000)+'k':v}},y:{grid:{display:false},ticks:{font:{size:11}}}}
+    }
+  });
+
+  // ---- 2. r/AusVisa growth ----
+  new Chart(document.getElementById('growthChart'), {
+    type:'line',
+    data:{labels:['Apr 24','Aug 24','Dec 24','Apr 25','Aug 25','Dec 25','Jun 26'],
+      datasets:[{data:[16000,28000,40000,54000,65000,76000,85000],
+        borderColor:PURPLE,borderWidth:3,fill:true,tension:.4,pointRadius:3,pointBackgroundColor:PURPLE,
+        backgroundColor:(c)=>{const g=c.chart.ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,'rgba(124,92,252,.35)');g.addColorStop(1,'rgba(124,92,252,0)');return g;}}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>' '+c.raw.toLocaleString()+' members'}}},
+      scales:{y:{grid:{color:'#F0F1F5'},ticks:{callback:(v)=>(v/1000)+'k'}},x:{grid:{display:false}}}}
+  });
+
+  // ---- 3. percentile bands (floating bar) ----
+  new Chart(document.getElementById('percentileChart'), {
+    type:'bar',
+    data:{labels:['189','190','491','482 Core','186 DE','500 Student','485 Grad','820 Partner'],
+      datasets:[
+        {label:'25th–90th percentile (months)',data:[[5,16],[6,17],[5,15],[1,4],[8,19],[1,3],[4,9],[12,24]],
+         backgroundColor:'rgba(124,92,252,.30)',borderColor:PURPLE,borderWidth:1,borderRadius:5,barThickness:20},
+        {label:'Median (50th)',type:'scatter',data:[10,11,9,2,12,1.5,6,18].map((v,i)=>({x:v,y:i})),
+         backgroundColor:TEAL_L,borderColor:TEAL,borderWidth:2,pointRadius:6,pointStyle:'rectRot'}
+      ]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#9aa0ad',usePointStyle:true,boxWidth:8}},
+        tooltip:{callbacks:{label:(c)=>c.datasetIndex===0?' band: '+c.raw[0]+'–'+c.raw[1]+' months':' median: '+c.raw.x+' months'}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,.08)'},ticks:{color:'#8b91a0',callback:(v)=>v+'mo'},min:0,max:26},
+        y:{grid:{display:false},ticks:{color:'#cfd3dc',font:{size:12}}}}}
+  });
+
+  // ---- 4. cohort cumulative grants ----
+  new Chart(document.getElementById('cohortChart'), {
+    type:'line',
+    data:{labels:['M1','M2','M3','M4','M5','M6','M7','M8','M9','M10'],
+      datasets:[{data:[0,1,3,9,18,31,50,66,79,88],borderColor:TEAL_L,borderWidth:2.5,fill:true,tension:.4,pointRadius:0,
+        backgroundColor:(c)=>{const g=c.chart.ctx.createLinearGradient(0,0,0,120);g.addColorStop(0,'rgba(45,212,191,.4)');g.addColorStop(1,'rgba(45,212,191,0)');return g;}}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>' '+c.raw+'% granted'}}},
+      scales:{y:{display:false,max:100},x:{grid:{display:false},ticks:{color:'#7b8190',font:{size:9}}}}}
+  });
+
+  // ---- 5. gauge (your wait percentile) ----
+  new Chart(document.getElementById('gaugeChart'), {
+    type:'doughnut',
+    data:{labels:['You (38th pct)','Remaining'],datasets:[{data:[38,62],
+      backgroundColor:[TEAL,'#EDEAFB'],borderWidth:0,circumference:180,rotation:270,cutout:'72%'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}}}
+  });
+
+  // ---- 6. competitive radar ----
+  new Chart(document.getElementById('radarChart'), {
+    type:'radar',
+    data:{labels:['Structured data','Trust / verify','Anonymity','Modern / mobile','AU subclass depth','Community','AI insight'],
+      datasets:[
+        {label:'IMMI-PULSE Pulse',data:[5,5,5,5,5,5,5],borderColor:PURPLE,backgroundColor:'rgba(124,92,252,.18)',borderWidth:2,pointBackgroundColor:PURPLE},
+        {label:'MyImmiTracker',data:[4,1,3,1,3,2,1],borderColor:TEAL,backgroundColor:'rgba(27,123,111,.10)',borderWidth:1.5,pointBackgroundColor:TEAL},
+        {label:'Facebook / Reddit',data:[1,1,3,3,3,4,1],borderColor:AMBER,backgroundColor:'rgba(245,158,11,.08)',borderWidth:1.5,pointBackgroundColor:AMBER}
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:8,font:{size:11}}}},
+      scales:{r:{min:0,max:5,grid:{color:'#ECEEF2'},angleLines:{color:'#ECEEF2'},pointLabels:{font:{size:11},color:'#4B5563'},ticks:{display:false,stepSize:1}}}}
+  });
+
+  // ---- progress bar + reveal ----
+  const prog=document.getElementById('progress');
+  window.addEventListener('scroll',()=>{const h=document.documentElement;const s=(h.scrollTop)/(h.scrollHeight-h.clientHeight);prog.style.width=(s*100)+'%';},{passive:true});
+  const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}})},{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>

@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pulse — Community App Mockups · IMMI-PULSE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root{
+    --navy:#0F1117; --navy-2:#161A23; --navy-3:#1E293B;
+    --purple:#7C5CFC; --purple-deep:#5B3ADB; --purple-light:#BDB4FE; --purple-muted:#D9D6FE;
+    --teal:#1B7B6F; --teal-light:#2DD4BF;
+    --amber:#F59E0B; --rose:#E5484D;
+    --ink:#0F1117; --gray:#4B5563; --gray-2:#6B7280; --gray-3:#9CA3AF;
+    --line:#E7E9EE; --line-2:#F0F1F5;
+    --bg:#FFFFFF; --soft:#F7F8FA; --soft-2:#F4F3FC;
+    --r:14px; --r-sm:10px;
+    --shadow:0 1px 2px rgba(16,17,23,.04),0 10px 30px -18px rgba(16,17,23,.18);
+    --shadow-pop:0 20px 50px -20px rgba(40,28,120,.35);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:#EDEEF2;line-height:1.5;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif;font-weight:600;letter-spacing:-.02em;line-height:1.15}
+  .mono{font-family:'JetBrains Mono',monospace}
+  button{font-family:inherit;cursor:pointer;border:0;background:none}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:#cdd1da;border-radius:8px}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  /* ---------- app frame ---------- */
+  .app{max-width:1340px;margin:18px auto;background:var(--bg);border-radius:18px;overflow:hidden;box-shadow:0 30px 80px -30px rgba(16,17,23,.45);min-height:calc(100vh - 36px);display:flex;flex-direction:column}
+
+  /* topbar */
+  .topbar{display:flex;align-items:center;gap:16px;padding:11px 18px;background:var(--navy);color:#fff;position:sticky;top:0;z-index:40}
+  .logo{display:flex;align-items:center;gap:9px;font-family:'Outfit';font-weight:700;font-size:15px}
+  .logo .lk{width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));display:grid;place-items:center;box-shadow:0 0 0 3px rgba(124,92,252,.16)}
+  .logo .lk svg{width:16px;height:16px}
+  .logo .by{font-size:10px;color:#7b8190;font-weight:500;margin-left:-2px}
+  .search{flex:1;max-width:440px;display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:8px 13px;color:#aab0bd;font-size:13px}
+  .search svg{width:15px;height:15px}
+  .topbar .right{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .icbtn{position:relative;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:#c4c9d4;background:rgba(255,255,255,.05)}
+  .icbtn:hover{background:rgba(255,255,255,.1);color:#fff}
+  .icbtn svg{width:18px;height:18px}
+  .icbtn .badge{position:absolute;top:5px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--teal-light);box-shadow:0 0 0 2px var(--navy)}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:13px;padding:9px 15px;border-radius:10px;transition:.15s}
+  .btn-pri{background:linear-gradient(135deg,var(--purple),var(--purple-deep));color:#fff;box-shadow:0 8px 22px -10px rgba(124,92,252,.7)}
+  .btn-pri:hover{transform:translateY(-1px)}
+  .btn-ghost{background:rgba(255,255,255,.07);color:#fff;border:1px solid rgba(255,255,255,.12)}
+  .btn-soft{background:var(--soft-2);color:var(--purple-deep)}
+  .btn-line{border:1px solid var(--line);color:var(--ink);background:#fff}
+  .me{display:flex;align-items:center;gap:8px;padding:4px 10px 4px 5px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
+  .me .av{width:28px;height:28px}
+  .me .nm{font-size:12px;color:#e7e9ee;font-weight:600}
+  .me .tier{font-size:9px;color:var(--teal-light);font-weight:700}
+
+  /* layout */
+  .shell{flex:1;display:grid;grid-template-columns:236px 1fr;min-height:0}
+  .side{border-right:1px solid var(--line);padding:16px 12px;overflow:auto;background:#fff}
+  .navlbl{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--gray-3);padding:14px 12px 7px}
+  .navitem{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;font-size:13.5px;font-weight:500;color:var(--gray);cursor:pointer;transition:.12s;position:relative}
+  .navitem svg{width:17px;height:17px;color:var(--gray-2)}
+  .navitem:hover{background:var(--soft)}
+  .navitem.active{background:var(--soft-2);color:var(--purple-deep);font-weight:600}
+  .navitem.active svg{color:var(--purple)}
+  .navitem .ct{margin-left:auto;font-size:11px;color:var(--gray-3);font-family:'JetBrains Mono'}
+  .navitem .sp{width:9px;height:9px;border-radius:3px}
+  .tierbox{margin:14px 8px 4px;padding:12px;border-radius:12px;background:linear-gradient(135deg,#16121f,#0F1117);color:#fff}
+  .tierbox .t1{font-size:11px;color:#9aa0ad;display:flex;align-items:center;justify-content:space-between}
+  .tierbox .t2{font-size:13px;font-weight:700;margin-top:5px;display:flex;align-items:center;gap:7px}
+  .tierbox .bar{height:5px;border-radius:4px;background:rgba(255,255,255,.12);margin-top:9px;overflow:hidden}
+  .tierbox .bar i{display:block;height:100%;width:62%;background:linear-gradient(90deg,var(--purple),var(--teal-light))}
+
+  .main{overflow:auto;background:var(--soft);min-height:0}
+  .view{display:none}
+  .view.active{display:block;animation:fade .35s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .wrap{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:22px;padding:24px;max-width:1100px;margin:0 auto}
+  .wrap.solo{grid-template-columns:minmax(0,1fr);max-width:980px}
+  @media(max-width:1180px){.wrap{grid-template-columns:minmax(0,1fr)}}
+
+  /* avatars / badges */
+  .av{border-radius:10px;display:grid;place-items:center;color:#fff;font-weight:700;font-family:'Outfit';font-size:13px;flex:none}
+  .vbadge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;white-space:nowrap}
+  .vb-omara{background:linear-gradient(135deg,var(--purple),var(--purple-deep));color:#fff}
+  .vb-ver{background:rgba(27,123,111,.12);color:var(--teal)}
+  .vb-anon{background:var(--soft);color:var(--gray-2)}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--gray);cursor:pointer}
+  .pill.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .pill.p{background:var(--soft-2);color:var(--purple-deep);border-color:transparent}
+  .pill.t{background:rgba(27,123,111,.1);color:var(--teal);border-color:transparent}
+  .pill.a{background:rgba(245,158,11,.12);color:#B45309;border-color:transparent}
+  .chiprow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+  /* cards */
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+  .card.pad{padding:18px}
+  .card-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:15px 18px;border-bottom:1px solid var(--line-2)}
+  .card-h h3{font-size:15px}
+  .card-h .sub{font-size:12px;color:var(--gray-2)}
+  .sig{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--gray-2);background:var(--soft);border:1px solid var(--line-2);border-radius:8px;padding:3px 9px;font-family:'JetBrains Mono'}
+  .sig b{color:var(--ink);font-weight:600}
+
+  .view-head{padding:24px 24px 0;max-width:1100px;margin:0 auto}
+  .view-head.solo{max-width:980px}
+  .view-head h1{font-size:24px}
+  .view-head .d{font-size:13.5px;color:var(--gray);margin-top:5px}
+  .view-head .row{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap}
+
+  /* feed post */
+  .post{padding:16px 18px;border-bottom:1px solid var(--line-2);cursor:pointer;transition:.12s}
+  .post:hover{background:#FCFCFE}
+  .post:last-child{border:0}
+  .post .top{display:flex;gap:11px;align-items:center}
+  .post .meta{font-size:12px;color:var(--gray-2);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .post .meta b{color:var(--ink);font-weight:600;font-size:13px}
+  .post h4{font-size:15px;margin:9px 0 5px}
+  .post p{font-size:13px;color:var(--gray)}
+  .post .acts{display:flex;gap:18px;margin-top:11px;font-size:12.5px;color:var(--gray-2)}
+  .post .acts span{display:inline-flex;align-items:center;gap:6px}
+  .post .acts svg{width:14px;height:14px}
+  .post.pinned{background:linear-gradient(180deg,#FBFAFF,#fff)}
+
+  /* timeline */
+  .tl{list-style:none;position:relative;padding:6px 0 0 6px}
+  .tl li{position:relative;padding:0 0 2px 32px;margin-bottom:18px}
+  .tl li::before{content:'';position:absolute;left:6px;top:20px;bottom:-18px;width:2px;background:var(--line)}
+  .tl li:last-child::before{display:none}
+  .tl .node{position:absolute;left:0;top:2px;width:15px;height:15px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 2px var(--line);background:#fff}
+  .tl .done .node{background:var(--teal);box-shadow:0 0 0 2px var(--teal)}
+  .tl .done .node::after{content:'';position:absolute;inset:3px;border-radius:50%}
+  .tl .now .node{background:var(--purple);box-shadow:0 0 0 4px rgba(124,92,252,.22);animation:pp 2s infinite}
+  @keyframes pp{0%,100%{box-shadow:0 0 0 4px rgba(124,92,252,.22)}50%{box-shadow:0 0 0 8px rgba(124,92,252,.06)}}
+  .tl .mt{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+  .tl .todo .mt{color:var(--gray-2);font-weight:500}
+  .tl .mm{font-size:12px;color:var(--gray-2);margin-top:2px}
+  .tl .dur{font-size:10px;font-weight:700;color:var(--purple-deep);background:var(--soft-2);padding:1px 7px;border-radius:5px}
+  .tagok{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(27,123,111,.12);color:var(--teal)}
+
+  /* gauge / stat blocks */
+  .gauge{position:relative;height:150px}
+  .gauge .lbl{position:absolute;left:0;right:0;bottom:6px;text-align:center}
+  .gauge .lbl .v{font-family:'Outfit';font-weight:700;font-size:26px;color:var(--teal)}
+  .gauge .lbl .s{font-size:11px;color:var(--gray-2)}
+  .statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .stat{background:var(--soft);border-radius:10px;padding:12px;text-align:center}
+  .stat .v{font-family:'Outfit';font-weight:700;font-size:19px}
+  .stat .l{font-size:10.5px;color:var(--gray-2);margin-top:1px}
+  .chh{position:relative;height:220px}
+
+  /* movement feed */
+  .mv{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line-2);font-size:13px}
+  .mv:last-child{border:0}
+  .mv .dot{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none}
+  .mv b{font-weight:600}
+
+  /* member chips */
+  .members{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+  .mcard{border:1px solid var(--line);border-radius:11px;padding:11px;display:flex;gap:9px;align-items:center;min-width:0}
+  .mcard>div{min-width:0}
+  .mcard .nm{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mcard .st{font-size:10.5px;color:var(--gray-2)}
+  .dotstat{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px}
+
+  /* spaces grid */
+  .spaces{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+  .spc{border:1px solid var(--line);border-radius:14px;padding:18px;background:#fff;box-shadow:var(--shadow);cursor:pointer;transition:.15s}
+  .spc:hover{transform:translateY(-3px);border-color:var(--purple-muted)}
+  .spc .ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;margin-bottom:12px}
+  .spc h4{font-size:15px}
+  .spc p{font-size:12px;color:var(--gray-2);margin-top:4px}
+  .spc .m{font-size:11.5px;color:var(--gray-3);margin-top:10px;display:flex;gap:12px}
+
+  /* grant wall */
+  .grant{border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:linear-gradient(120deg,#fff,#F6FBFA);box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .grant::before{content:'';position:absolute;top:-30px;right:-20px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.18),transparent 70%)}
+  .grant .gh{display:flex;align-items:center;gap:11px}
+  .grant .gt{font-family:'Outfit';font-weight:700;font-size:15px}
+  .grant .gj{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+  .grant .gj .seg{background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--gray)}
+  .grant .gj .seg b{color:var(--ink)}
+
+  /* agent cards */
+  .agents{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+  .agent{border:1px solid var(--line);border-radius:14px;padding:16px;background:#fff;box-shadow:var(--shadow)}
+  .agent .ah{display:flex;gap:12px;align-items:center}
+  .agent .an{font-family:'Outfit';font-weight:700;font-size:15px}
+  .agent .as{font-size:11.5px;color:var(--gray-2)}
+  .agent .ast{display:flex;gap:8px;margin-top:12px}
+  .agent .ast .b{flex:1;background:var(--soft);border-radius:9px;padding:8px;text-align:center}
+  .agent .ast .b .v{font-family:'Outfit';font-weight:700;font-size:15px}
+  .agent .ast .b .l{font-size:10px;color:var(--gray-2)}
+
+  /* stats table */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line-2)}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--gray-2);font-family:'Outfit';font-weight:600;background:var(--soft)}
+  tr:last-child td{border:0}
+
+  /* banner */
+  .banner{display:flex;gap:11px;padding:12px 15px;border-radius:11px;font-size:12.5px;align-items:flex-start}
+  .banner svg{width:17px;height:17px;flex:none;margin-top:1px}
+  .banner.info{background:#F4F3FC;color:#4A3A8C;border:1px solid var(--purple-muted)}
+  .banner.warn{background:#FFF7ED;color:#9A3412;border:1px solid #FED7AA}
+  .banner.law{background:rgba(27,123,111,.07);color:#14584F;border:1px solid rgba(27,123,111,.2)}
+
+  /* comments */
+  .cmt{display:flex;gap:11px;padding:14px 0;border-bottom:1px solid var(--line-2)}
+  .cmt.nested{margin-left:42px}
+  .cmt.omara{background:linear-gradient(120deg,#FBFAFF,#fff);border:1px solid var(--purple-muted);border-radius:12px;padding:14px;border-bottom:1px solid var(--purple-muted)}
+  .cmt .cb{font-size:13px;color:var(--gray);margin-top:4px}
+  .cmt .cmeta{font-size:11.5px;color:var(--gray-2);display:flex;align-items:center;gap:7px}
+  .cmt .cmeta b{color:var(--ink);font-size:12.5px}
+
+  /* modal */
+  .scrim{position:fixed;inset:0;background:rgba(15,17,23,.55);backdrop-filter:blur(3px);z-index:90;display:none;align-items:center;justify-content:center;padding:20px}
+  .scrim.open{display:flex}
+  .modal{background:#fff;border-radius:18px;box-shadow:var(--shadow-pop);width:100%;max-width:480px;overflow:hidden;animation:pop .25s ease}
+  .modal.lg{max-width:560px}
+  @keyframes pop{from{opacity:0;transform:scale(.96) translateY(10px)}to{opacity:1;transform:none}}
+  .modal .mh{padding:18px 20px;border-bottom:1px solid var(--line-2);display:flex;align-items:center;justify-content:space-between}
+  .modal .mh h3{font-size:17px}
+  .modal .mb{padding:20px}
+  .modal .mf{padding:15px 20px;border-top:1px solid var(--line-2);display:flex;gap:10px;justify-content:flex-end;background:var(--soft)}
+  .field{margin-bottom:14px}
+  .field label{font-size:12px;font-weight:600;color:var(--gray);display:block;margin-bottom:6px}
+  .inp{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:13.5px;font-family:inherit;background:#fff}
+  .selrow{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .selopt{border:1px solid var(--line);border-radius:10px;padding:11px;font-size:12.5px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:8px}
+  .selopt.sel{border-color:var(--purple);background:var(--soft-2);color:var(--purple-deep);font-weight:600}
+
+  /* notif dropdown */
+  .notif{position:absolute;top:52px;right:60px;width:340px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-pop);z-index:60;display:none;overflow:hidden}
+  .notif.open{display:block;animation:pop .2s ease}
+  .notif .nh{padding:13px 16px;border-bottom:1px solid var(--line-2);font-weight:600;font-size:14px;display:flex;justify-content:space-between}
+  .ni{display:flex;gap:11px;padding:12px 16px;border-bottom:1px solid var(--line-2);font-size:12.5px}
+  .ni:last-child{border:0}
+  .ni .nd{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex:none}
+  .ni b{font-weight:600}
+  .ni .tm{font-size:11px;color:var(--gray-3);margin-top:3px}
+
+  /* mobile frames */
+  .phones{display:flex;gap:28px;flex-wrap:wrap;justify-content:center;padding:10px}
+  .phone{width:280px;border:10px solid #0F1117;border-radius:38px;overflow:hidden;background:#fff;box-shadow:var(--shadow-pop)}
+  .phone .pnotch{height:26px;background:#0F1117;display:flex;align-items:center;justify-content:center}
+  .phone .pnotch i{width:90px;height:6px;border-radius:6px;background:#2a2e38;display:block}
+  .phone .pscr{height:520px;overflow:auto}
+  .phone .ptop{padding:14px 16px 10px;background:var(--navy);color:#fff}
+  .phlabel{text-align:center;font-size:12px;color:var(--gray-2);margin-top:12px;font-weight:600}
+
+  .hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;font-size:12px;padding:9px 16px;border-radius:999px;box-shadow:var(--shadow-pop);z-index:70;display:flex;align-items:center;gap:9px}
+  .hint svg{width:14px;height:14px;color:var(--teal-light)}
+  .hint b{font-weight:600}
+  .seg-tabs{display:inline-flex;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:3px}
+  .seg-tabs button{font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:8px;color:var(--gray)}
+  .seg-tabs button.on{background:#fff;color:var(--purple-deep);box-shadow:var(--shadow)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .muted{color:var(--gray-2);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ===== TOPBAR ===== -->
+  <div class="topbar">
+    <div class="logo"><span class="lk"><i data-lucide="activity"></i></span> Pulse <span class="by">by IMMI-PULSE</span></div>
+    <div class="search"><i data-lucide="search"></i> Search timelines, threads, occupations, agents…</div>
+    <div class="right">
+      <button class="btn btn-pri" onclick="openModal('milestoneModal')"><i data-lucide="plus" style="width:15px"></i> Add milestone</button>
+      <button class="icbtn" onclick="toggleNotif(event)"><i data-lucide="bell"></i><span class="badge"></span></button>
+      <div class="me"><span class="av" style="width:28px;height:28px;background:linear-gradient(135deg,#7C5CFC,#5B3ADB);font-size:11px">QW</span><div><div class="nm">QuokkaWaiting88</div><div class="tier">VERIFIED ✓ · 189</div></div></div>
+    </div>
+  </div>
+
+  <!-- notif dropdown -->
+  <div class="notif" id="notif">
+    <div class="nh">Notifications <span style="font-size:11px;color:var(--purple-deep);font-weight:600">Mark all read</span></div>
+    <div class="ni"><span class="nd" style="background:rgba(45,212,191,.14);color:var(--teal)"><i data-lucide="users" style="width:15px"></i></span><div><div><b>3 people in your March·189 Club</b> got a CO this week.</div><div class="tm">2h ago · cohort movement</div></div></div>
+    <div class="ni"><span class="nd" style="background:rgba(124,92,252,.16);color:var(--purple-deep)"><i data-lucide="party-popper" style="width:15px"></i></span><div><div><b>WallabyGranted</b> just got their 189 grant 🎉</div><div class="tm">5h ago · Grant Wall</div></div></div>
+    <div class="ni"><span class="nd" style="background:rgba(245,158,11,.14);color:#B45309"><i data-lucide="trending-down" style="width:15px"></i></span><div><div><b>189 processing dropped 13→11 months</b> (DHA, this month).</div><div class="tm">1d ago · stats update</div></div></div>
+    <div class="ni"><span class="nd" style="background:rgba(27,123,111,.12);color:var(--teal)"><i data-lucide="message-circle" style="width:15px"></i></span><div><div><b>Sarah M. (OMARA)</b> replied in "What does s56 mean?"</div><div class="tm">1d ago · thread reply</div></div></div>
+  </div>
+
+  <!-- ===== SHELL ===== -->
+  <div class="shell">
+    <!-- sidebar -->
+    <aside class="side">
+      <div class="navlbl" style="padding-top:4px">Community</div>
+      <div class="navitem active" data-view="home" onclick="go(this)"><i data-lucide="home"></i> Home feed</div>
+      <div class="navitem" data-view="journey" onclick="go(this)"><i data-lucide="route"></i> My journey</div>
+      <div class="navitem" data-view="club" onclick="go(this)"><i data-lucide="users"></i> My club <span class="ct">412</span></div>
+      <div class="navitem" data-view="grant" onclick="go(this)"><i data-lucide="party-popper"></i> Grant wall</div>
+      <div class="navitem" data-view="stats" onclick="go(this)"><i data-lucide="bar-chart-3"></i> Processing stats</div>
+      <div class="navitem" data-view="agents" onclick="go(this)"><i data-lucide="badge-check"></i> Find an agent</div>
+      <div class="navitem" data-view="mobile" onclick="go(this)"><i data-lucide="smartphone"></i> Mobile views</div>
+
+      <div class="navlbl">Spaces</div>
+      <div class="navitem" data-view="spaces" onclick="go(this)"><span class="sp" style="background:var(--purple)"></span> Skilled <span class="ct">8.2k</span></div>
+      <div class="navitem" data-view="spaces" onclick="go(this)"><span class="sp" style="background:var(--teal)"></span> Employer (482/186) <span class="ct">3.1k</span></div>
+      <div class="navitem" data-view="spaces" onclick="go(this)"><span class="sp" style="background:var(--amber)"></span> Partner <span class="ct">5.6k</span></div>
+      <div class="navitem" data-view="spaces" onclick="go(this)"><span class="sp" style="background:#EC4899"></span> Student (500) <span class="ct">9.9k</span></div>
+      <div class="navitem" data-view="spaces" onclick="go(this)"><span class="sp" style="background:#3B82F6"></span> Graduate (485) <span class="ct">2.4k</span></div>
+      <div class="navitem" data-view="spaces" onclick="go(this)"><span class="sp" style="background:var(--gray-3)"></span> Visitor & WHV <span class="ct">1.8k</span></div>
+
+      <div class="tierbox">
+        <div class="t1"><span>Your trust tier</span><span style="color:var(--teal-light)">T2</span></div>
+        <div class="t2"><i data-lucide="shield-check" style="width:15px;color:var(--teal-light)"></i> Verified case</div>
+        <div class="bar"><i></i></div>
+        <div style="font-size:10.5px;color:#9aa0ad;margin-top:7px">Help 4 more members to reach <b style="color:#fff">Mentor</b> →</div>
+      </div>
+    </aside>
+
+    <!-- ===== MAIN ===== -->
+    <main class="main">
+
+      <!-- ========== VIEW: HOME ========== -->
+      <section class="view active" id="view-home">
+        <div class="view-head"><div class="row">
+          <div><h1>Your feed</h1><div class="d">Good morning, QuokkaWaiting88 — day 94 of your 189 wait.</div></div>
+          <div class="chiprow"><span class="pill on">For you</span><span class="pill">Trending</span><span class="pill">My subclass (189)</span><span class="pill">Following</span></div>
+        </div></div>
+        <div class="wrap">
+          <!-- feed -->
+          <div>
+            <div class="card" style="margin-bottom:18px">
+              <div class="post pinned" onclick="go2('agents')">
+                <div class="top"><span class="av" style="width:40px;height:40px;background:linear-gradient(135deg,#1B7B6F,#2DD4BF)">SM</span>
+                  <div class="meta"><b>Sarah Mitchell</b> <span class="vbadge vb-omara"><i data-lucide="badge-check" style="width:10px"></i>OMARA ✓</span> · MARN 1234567 · 4h</div></div>
+                <h4>An s56 request is normal — here's what it actually means (general info)</h4>
+                <p>A quick explainer on Request for More Information under s56: why you get one, the 28-day window, and what a case officer is checking. This is general information, not advice on your application.</p>
+                <div class="acts"><span><i data-lucide="arrow-up"></i> 311</span><span><i data-lucide="message-circle"></i> 64</span><span style="color:var(--purple-deep);font-weight:600"><i data-lucide="pin"></i> Pinned by mods</span></div>
+              </div>
+              <div class="post" onclick="go2('thread')">
+                <div class="top"><span class="av" style="width:40px;height:40px;background:linear-gradient(135deg,#7C5CFC,#5B3ADB)">QW</span>
+                  <div class="meta"><b>QuokkaWaiting88</b> <span class="vbadge vb-ver"><i data-lucide="shield-check" style="width:10px"></i>Verified</span> · <span class="sig">189 · ANZSCO <b>261313</b> · 90pts · lodged <b>Mar 26</b></span> · 2h</div></div>
+                <h4>Got CO contact today — day 94. Anyone else in the March 189 club? 🎉</h4>
+                <p>Finally some movement! CO asked for an updated AFP check. Lodged 24 March, onshore. Sharing my full timeline below — hope it helps the people behind me.</p>
+                <div class="acts"><span style="color:var(--purple-deep)"><i data-lucide="arrow-up"></i> 142</span><span><i data-lucide="message-circle"></i> 38</span><span><i data-lucide="users"></i> March · 189 Club</span></div>
+              </div>
+              <div class="post" onclick="go2('thread')">
+                <div class="top"><span class="av" style="width:40px;height:40px;background:linear-gradient(135deg,#9CA3AF,#6B7280)">WP</span>
+                  <div class="meta"><b>WallabyPending</b> <span class="vbadge vb-anon">Anonymous</span> · <span class="sig">820 Partner · onshore</span> · 6h</div></div>
+                <h4>16 months in, still no CO on onshore partner. Is this normal? 😩</h4>
+                <p>Lodged 820 in early 2025, no case officer yet. Starting to spiral. Anyone with a similar timeline who got through?</p>
+                <div class="acts"><span><i data-lucide="arrow-up"></i> 57</span><span><i data-lucide="message-circle"></i> 29</span><span><i data-lucide="bookmark"></i> Save</span></div>
+              </div>
+              <div class="post" onclick="go2('thread')">
+                <div class="top"><span class="av" style="width:40px;height:40px;background:linear-gradient(135deg,#EC4899,#BE185D)">KB</span>
+                  <div class="meta"><b>KoalaBound</b> <span class="vbadge vb-ver"><i data-lucide="shield-check" style="width:10px"></i>Verified</span> · <span class="sig">482 SID · Core stream</span> · 8h</div></div>
+                <h4>Nomination approved in 9 days under Specialist Skills — sharing the bundle timeline</h4>
+                <p>For anyone tracking the new Skills in Demand streams: sponsor → nomination → visa, with dates for each object. Specialist stream is genuinely fast.</p>
+                <div class="acts"><span><i data-lucide="arrow-up"></i> 98</span><span><i data-lucide="message-circle"></i> 21</span><span><i data-lucide="users"></i> Employer Club</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- right rail -->
+          <div>
+            <div class="card" style="margin-bottom:16px">
+              <div class="card-h"><h3>Is your wait normal?</h3><span class="vbadge vb-ver">189</span></div>
+              <div class="pad" style="padding-top:8px">
+                <div class="gauge"><canvas id="homeGauge"></canvas><div class="lbl"><div class="v">38<span style="font-size:13px">th</span></div><div class="s">percentile · day 94</div></div></div>
+                <div class="banner law" style="margin-top:6px"><i data-lucide="check-circle-2"></i><div>You're <b>tracking normally</b>. Half your cohort is granted by ~month 7. Processing isn't first-in-first-out.</div></div>
+                <button class="btn btn-soft" style="width:100%;justify-content:center;margin-top:12px" onclick="go2('journey')">Open my journey →</button>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:16px">
+              <div class="card-h"><h3>Grant Wall</h3><span class="muted">live</span></div>
+              <div class="pad" style="padding:6px 14px">
+                <div class="mv"><span class="dot" style="background:rgba(45,212,191,.16)">🎉</span><div><b>EmuFree</b> · 189 granted <span class="muted">· 4m ago</span></div></div>
+                <div class="mv"><span class="dot" style="background:rgba(45,212,191,.16)">🎉</span><div><b>DingoDone</b> · 482 granted <span class="muted">· 22m ago</span></div></div>
+                <div class="mv"><span class="dot" style="background:rgba(45,212,191,.16)">🎉</span><div><b>NumbatNow</b> · 500 granted <span class="muted">· 1h ago</span></div></div>
+                <button class="btn btn-line" style="width:100%;justify-content:center;margin:8px 0" onclick="go2('grant')">See the wall →</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-h"><h3>Your club</h3></div>
+              <div class="pad">
+                <div style="font-weight:700;font-family:Outfit">March 2026 · 189 Club</div>
+                <div class="muted" style="margin:3px 0 10px">412 members · 38 granted · 22 CO this week</div>
+                <div class="chiprow"><span class="pill t">🎉 9.2% granted</span><span class="pill p">📍 you: day 94</span></div>
+                <button class="btn btn-soft" style="width:100%;justify-content:center;margin-top:12px" onclick="go2('club')">Open club →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== VIEW: MY JOURNEY ========== -->
+      <section class="view" id="view-journey">
+        <div class="view-head"><div class="row">
+          <div><h1>Your 189 journey</h1><div class="d">Subclass 189 · ANZSCO 261313 (Software Engineer) · 90 pts · onshore</div></div>
+          <div class="chiprow"><span class="vbadge vb-ver" style="padding:6px 10px"><i data-lucide="shield-check" style="width:12px"></i> Verified case</span><button class="btn btn-pri" onclick="openModal('milestoneModal')"><i data-lucide="plus" style="width:14px"></i> Add milestone</button></div>
+        </div></div>
+        <div class="wrap">
+          <!-- timeline -->
+          <div class="card pad">
+            <div class="chiprow" style="margin-bottom:16px"><span class="pill on">Timeline</span><span class="pill">Documents</span><span class="pill">Visibility</span></div>
+            <ul class="tl">
+              <li class="done"><span class="node"></span><div class="mt">Skills assessment (ACS) <span class="tagok">positive</span></div><div class="mm">12 Aug 2025</div></li>
+              <li class="done"><span class="node"></span><div class="mt">English — PTE <span class="tagok">Superior</span></div><div class="mm">2 Sep 2025 <span class="dur">+21 days</span></div></li>
+              <li class="done"><span class="node"></span><div class="mt">EOI submitted · 90 pts</div><div class="mm">3 Oct 2025</div></li>
+              <li class="done"><span class="node"></span><div class="mt">Invitation (ITA) received 🎯</div><div class="mm">4 Jan 2026 <span class="dur">93 days in pool</span></div></li>
+              <li class="done"><span class="node"></span><div class="mt">Visa lodged ⚑ <span style="font-size:10px;color:var(--gray-2);font-weight:500">cohort anchor</span></div><div class="mm">24 Mar 2026 <span class="dur">+79 days</span></div></li>
+              <li class="done"><span class="node"></span><div class="mt">Health + police cleared</div><div class="mm">2 Apr 2026 <span class="dur">+9 days</span></div></li>
+              <li class="now"><span class="node"></span><div class="mt">CO allocated · s56 (AFP check) ⚡</div><div class="mm" style="color:var(--purple-deep);font-weight:600">You are here — day 94 · responded 28-day window</div></li>
+              <li class="todo"><span class="node"></span><div class="mt">Grant decision</div><div class="mm">predicted window: months 7–13</div></li>
+            </ul>
+          </div>
+
+          <!-- side: wait engine -->
+          <div>
+            <div class="card" style="margin-bottom:16px">
+              <div class="card-h"><h3>Where you sit</h3></div>
+              <div class="pad" style="padding-top:6px">
+                <div class="gauge"><canvas id="journeyGauge"></canvas><div class="lbl"><div class="v">38<span style="font-size:13px">th</span></div><div class="s">percentile in your cohort</div></div></div>
+                <div class="statgrid" style="margin-top:6px">
+                  <div class="stat"><div class="v">94</div><div class="l">days waited</div></div>
+                  <div class="stat"><div class="v" style="color:var(--teal)">~7mo</div><div class="l">cohort median</div></div>
+                  <div class="stat"><div class="v">412</div><div class="l">in cohort</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="card pad" style="margin-bottom:16px">
+              <div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px"><i data-lucide="sparkles" style="width:16px;color:var(--purple)"></i> What usually happens next</div>
+              <p class="muted" style="margin-top:8px">After an s56 AFP-check request at this stage, <b style="color:var(--ink)">72% of your cohort</b> were granted within <b style="color:var(--ink)">8–16 weeks</b> of responding. Median: 11 weeks. <span style="color:var(--purple-deep)">Based on 168 verified 189 cases.</span></p>
+              <div class="banner info" style="margin-top:10px"><i data-lucide="bot"></i><div>AI insight grounded in cohort data — not migration advice.</div></div>
+            </div>
+            <div class="card pad">
+              <div style="display:flex;align-items:center;justify-content:space-between"><div style="font-weight:600;font-size:14px"><i data-lucide="eye" style="width:15px;color:var(--gray-2)"></i> Visibility</div><span class="vbadge vb-ver">Public · perturbed</span></div>
+              <p class="muted" style="margin-top:8px">Your timeline counts in aggregate stats. Exact dates are lightly perturbed; your handle is never linked to your email.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== VIEW: MY CLUB ========== -->
+      <section class="view" id="view-club">
+        <div class="view-head"><div class="row">
+          <div><h1>March 2026 · Subclass 189 Club</h1><div class="d">Auto-grouped by subclass + lodgement month. Your people for the whole wait.</div></div>
+          <span class="vbadge vb-ver" style="padding:7px 12px"><i data-lucide="check" style="width:13px"></i> Joined</span>
+        </div></div>
+        <div class="wrap">
+          <div>
+            <div class="card" style="margin-bottom:18px">
+              <div class="card-h"><h3>Cohort progress</h3><span class="sub">% of the club granted over time</span></div>
+              <div class="pad"><div class="chh"><canvas id="clubChart"></canvas></div>
+                <div class="statgrid" style="margin-top:10px">
+                  <div class="stat"><div class="v" style="color:var(--teal)">9.2%</div><div class="l">granted</div></div>
+                  <div class="stat"><div class="v">22</div><div class="l">CO this week</div></div>
+                  <div class="stat"><div class="v">412</div><div class="l">members</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-h"><h3>Members</h3><span class="sub">216 sharing timelines</span></div>
+              <div class="pad">
+                <div class="members">
+                  <div class="mcard"><span class="av" style="width:32px;height:32px;background:linear-gradient(135deg,#7C5CFC,#5B3ADB);font-size:11px">QW</span><div><div class="nm">QuokkaWaiting88</div><div class="st"><span class="dotstat" style="background:var(--purple)"></span>CO · day 94</div></div></div>
+                  <div class="mcard"><span class="av" style="width:32px;height:32px;background:linear-gradient(135deg,#1B7B6F,#2DD4BF);font-size:11px">EF</span><div><div class="nm">EmuFree</div><div class="st"><span class="dotstat" style="background:var(--teal)"></span>Granted 🎉</div></div></div>
+                  <div class="mcard"><span class="av" style="width:32px;height:32px;background:linear-gradient(135deg,#F59E0B,#B45309);font-size:11px">BB</span><div><div class="nm">BilbyBrisbane</div><div class="st"><span class="dotstat" style="background:var(--amber)"></span>Lodged · day 71</div></div></div>
+                  <div class="mcard"><span class="av" style="width:32px;height:32px;background:linear-gradient(135deg,#3B82F6,#1D4ED8);font-size:11px">PP</span><div><div class="nm">PossumPerth</div><div class="st"><span class="dotstat" style="background:var(--purple)"></span>CO · day 88</div></div></div>
+                  <div class="mcard"><span class="av" style="width:32px;height:32px;background:linear-gradient(135deg,#EC4899,#BE185D);font-size:11px">CG</span><div><div class="nm">CockatooGo</div><div class="st"><span class="dotstat" style="background:var(--teal)"></span>Granted 🎉</div></div></div>
+                  <div class="mcard"><span class="av" style="width:32px;height:32px;background:linear-gradient(135deg,#9CA3AF,#6B7280);font-size:11px">WW</span><div><div class="nm">WombatWait</div><div class="st"><span class="dotstat" style="background:var(--amber)"></span>Lodged · day 80</div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-h"><h3>Cohort movement</h3><span class="muted">live</span></div>
+              <div class="pad" style="padding:8px 16px">
+                <div class="mv"><span class="dot" style="background:rgba(45,212,191,.16)">🎉</span><div><b>CockatooGo</b> was granted <span class="muted">· 1h</span></div></div>
+                <div class="mv"><span class="dot" style="background:rgba(124,92,252,.14);color:var(--purple)"><i data-lucide="user-check" style="width:15px"></i></span><div><b>PossumPerth</b> got CO contact <span class="muted">· 3h</span></div></div>
+                <div class="mv"><span class="dot" style="background:rgba(124,92,252,.14);color:var(--purple)"><i data-lucide="user-check" style="width:15px"></i></span><div><b>2 members</b> got CO contact <span class="muted">· today</span></div></div>
+                <div class="mv"><span class="dot" style="background:rgba(245,158,11,.14);color:#B45309"><i data-lucide="file-plus" style="width:15px"></i></span><div><b>WombatWait</b> uploaded medicals <span class="muted">· 5h</span></div></div>
+              </div>
+            </div>
+            <div class="card pad" style="margin-top:16px">
+              <div style="font-weight:600;font-size:14px"><i data-lucide="message-square" style="width:15px;color:var(--purple)"></i> Club chat</div>
+              <p class="muted" style="margin-top:8px">A private space for the 412 of you. 18 new messages today — mostly people decoding their s56 letters together.</p>
+              <button class="btn btn-soft" style="width:100%;justify-content:center;margin-top:12px">Open club chat</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== VIEW: GRANT WALL ========== -->
+      <section class="view" id="view-grant">
+        <div class="view-head solo"><div class="row">
+          <div><h1>The Grant Wall 🎉</h1><div class="d">Every grant, celebrated. Hope and data for the people still waiting.</div></div>
+          <div class="chiprow"><span class="pill on">All</span><span class="pill">189</span><span class="pill">482</span><span class="pill">500</span><span class="pill">Partner</span></div>
+        </div></div>
+        <div class="wrap solo">
+          <div class="grid2">
+            <div class="grant"><div class="gh"><span class="av" style="width:40px;height:40px;background:linear-gradient(135deg,#1B7B6F,#2DD4BF)">EF</span><div><div class="gt">EmuFree · 189 granted</div><div class="muted">ANZSCO 261313 · onshore · just now</div></div></div>
+              <div class="gj"><span class="seg">Lodged <b>Mar 26</b></span><span class="seg">CO <b>day 94</b></span><span class="seg">Granted <b>day 210</b></span><span class="seg" style="color:var(--teal)"><b>7 months</b></span></div></div>
+            <div class="grant"><div class="gh"><span class="av" style="width:40px;height:40px;background:linear-gradient(135deg,#7C5CFC,#5B3ADB)">DD</span><div><div class="gt">DingoDone · 482 SID granted</div><div class="muted">Specialist Skills · 22m ago</div></div></div>
+              <div class="gj"><span class="seg">Nom <b>day 9</b></span><span class="seg">Lodged <b>day 14</b></span><span class="seg">Granted <b>day 21</b></span><span class="seg" style="color:var(--teal)"><b>3 weeks</b></span></div></div>
+            <div class="grant"><div class="gh"><span class="av" style="width:40px;height:40px;background:linear-gradient(135deg,#EC4899,#BE185D)">NN</span><div><div class="gt">NumbatNow · 500 granted</div><div class="muted">Higher-ed · Priority 1 provider · 1h ago</div></div></div>
+              <div class="gj"><span class="seg">Lodged <b>Apr 26</b></span><span class="seg">Granted <b>day 9</b></span><span class="seg" style="color:var(--teal)"><b>9 days</b></span></div></div>
+            <div class="grant"><div class="gh"><span class="av" style="width:40px;height:40px;background:linear-gradient(135deg,#F59E0B,#B45309)">GG</span><div><div class="gt">GalahGlad · 820→801 PR</div><div class="muted">onshore partner · 2h ago</div></div></div>
+              <div class="gj"><span class="seg">820 <b>day 480</b></span><span class="seg">801 <b>day 1,210</b></span><span class="seg" style="color:var(--teal)"><b>finally home ❤️</b></span></div></div>
+          </div>
+          <div class="banner law" style="margin-top:18px"><i data-lucide="heart"></i><div>Granted members move to <b>Alumni</b> so the waiting feed never becomes "everyone but me" — but we invite them to keep mentoring. The "<b>Granted &amp; Still Helping</b>" badge is our most-worn.</div></div>
+        </div>
+      </section>
+
+      <!-- ========== VIEW: STATS ========== -->
+      <section class="view" id="view-stats">
+        <div class="view-head solo"><div class="row">
+          <div><h1>Processing stats — Subclass 189</h1><div class="d">Community timelines fused with live DHA data. Honest percentiles, never single averages.</div></div>
+          <div class="seg-tabs"><button class="on">189</button><button>190</button><button>491</button><button>482</button><button>186</button><button>500</button><button>820</button></div>
+        </div></div>
+        <div class="wrap solo">
+          <div class="grid2" style="margin-bottom:18px">
+            <div class="card"><div class="card-h"><h3>Percentile bands</h3><span class="sub">25 / 50 / 75 / 90th — months to grant</span></div><div class="pad"><div class="chh"><canvas id="statBands"></canvas></div></div></div>
+            <div class="card"><div class="card-h"><h3>Official vs community</h3><span class="sub">DHA published vs what people actually report</span></div><div class="pad"><div class="chh"><canvas id="statVs"></canvas></div>
+              <div class="banner info" style="margin-top:10px"><i data-lucide="info"></i><div>DHA says <b>75th = 13mo</b>; verified community cases this quarter sit at <b>~11.5mo</b>. We show both.</div></div></div></div>
+          </div>
+          <div class="card" style="margin-bottom:18px"><div class="card-h"><h3>Status by lodgement month</h3><span class="sub">where each monthly cohort is right now</span></div><div class="pad"><div class="chh"><canvas id="statCohort"></canvas></div></div></div>
+          <div class="card"><div class="card-h"><h3>Recent SkillSelect invitation rounds (189)</h3><span class="sub">scraped from DHA · CC-BY · updated monthly</span></div>
+            <table>
+              <thead><tr><th>Round</th><th>Invitations</th><th>Min points</th><th>Your occupation (261313) cut-off</th></tr></thead>
+              <tbody>
+                <tr><td>4 Jun 2026</td><td>~9,500</td><td>75</td><td><span class="pill t">85 · 3 Oct 2025</span></td></tr>
+                <tr><td>7 May 2026</td><td>~6,200</td><td>80</td><td>90 · 12 Aug 2025</td></tr>
+                <tr><td>13 Nov 2025</td><td>~10,000</td><td>75</td><td>90 · 1 Jul 2025</td></tr>
+                <tr><td>21 Aug 2025</td><td>~6,887</td><td>85</td><td>95 · 4 Mar 2025</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== VIEW: AGENTS ========== -->
+      <section class="view" id="view-agents">
+        <div class="view-head solo"><div class="row">
+          <div><h1>Find a verified agent</h1><div class="d">OMARA-registered only. Reviews tied to real case outcomes. No ghost consultants.</div></div>
+          <div class="chiprow"><span class="pill on">All</span><span class="pill">Skilled</span><span class="pill">Partner</span><span class="pill">Employer</span><span class="pill"><i data-lucide="map-pin" style="width:12px"></i> Melbourne</span></div>
+        </div></div>
+        <div class="wrap solo">
+          <!-- featured profile -->
+          <div class="card pad" style="margin-bottom:18px;border-color:var(--purple-muted);background:linear-gradient(120deg,#fff,#FBFAFF)">
+            <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+              <span class="av" style="width:58px;height:58px;border-radius:16px;background:linear-gradient(135deg,#1B7B6F,#2DD4BF);font-size:19px">SM</span>
+              <div style="flex:1;min-width:200px">
+                <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap"><span class="an" style="font-size:18px">Sarah Mitchell</span><span class="vbadge vb-omara"><i data-lucide="badge-check" style="width:11px"></i>OMARA ✓ MARN 1234567</span></div>
+                <div class="as">Skilled &amp; Partner specialist · Melbourne · answers in Pulse · 1,240 community answers</div>
+              </div>
+              <button class="btn btn-pri" onclick="openModal('agentModal')"><i data-lucide="calendar" style="width:15px"></i> Book consult</button>
+            </div>
+            <div class="grid2" style="margin-top:16px;gap:12px">
+              <div class="ast" style="display:flex;gap:10px"><div class="b" style="flex:1;background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px;text-align:center"><div class="v" style="font-family:Outfit;font-weight:700;font-size:18px">4.9★</div><div class="l muted">312 verified reviews</div></div>
+                <div class="b" style="flex:1;background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px;text-align:center"><div class="v" style="font-family:Outfit;font-weight:700;font-size:18px;color:var(--teal)">94%</div><div class="l muted">grant rate</div></div>
+                <div class="b" style="flex:1;background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px;text-align:center"><div class="v" style="font-family:Outfit;font-weight:700;font-size:18px">11mo</div><div class="l muted">median to grant</div></div></div>
+              <div class="banner law"><i data-lucide="shield-check"></i><div><b>★★★★★</b> "Helped structure my 820 s56 response — granted in 14 months." <span style="color:var(--teal);font-weight:600">— verified 820 outcome</span></div></div>
+            </div>
+          </div>
+          <!-- grid -->
+          <div class="agents">
+            <div class="agent"><div class="ah"><span class="av" style="width:46px;height:46px;background:linear-gradient(135deg,#7C5CFC,#5B3ADB);font-size:16px">RK</span><div><div class="an">Raj Kumar</div><div class="as">Skilled 189/190/491 · Sydney</div></div></div><div style="margin-top:8px"><span class="vbadge vb-omara"><i data-lucide="badge-check" style="width:10px"></i>OMARA ✓</span></div><div class="ast"><div class="b"><div class="v">4.8★</div><div class="l">204</div></div><div class="b"><div class="v" style="color:var(--teal)">91%</div><div class="l">grant</div></div><div class="b"><div class="v">9mo</div><div class="l">median</div></div></div></div>
+            <div class="agent"><div class="ah"><span class="av" style="width:46px;height:46px;background:linear-gradient(135deg,#EC4899,#BE185D);font-size:16px">LN</span><div><div class="an">Linh Nguyen</div><div class="as">Partner &amp; Student · Brisbane</div></div></div><div style="margin-top:8px"><span class="vbadge vb-omara"><i data-lucide="badge-check" style="width:10px"></i>OMARA ✓</span></div><div class="ast"><div class="b"><div class="v">4.9★</div><div class="l">178</div></div><div class="b"><div class="v" style="color:var(--teal)">96%</div><div class="l">grant</div></div><div class="b"><div class="v">15mo</div><div class="l">median</div></div></div></div>
+            <div class="agent"><div class="ah"><span class="av" style="width:46px;height:46px;background:linear-gradient(135deg,#F59E0B,#B45309);font-size:16px">TO</span><div><div class="an">Tom O'Brien</div><div class="as">Employer 482/186 · Perth</div></div></div><div style="margin-top:8px"><span class="vbadge vb-omara"><i data-lucide="badge-check" style="width:10px"></i>OMARA ✓</span></div><div class="ast"><div class="b"><div class="v">4.7★</div><div class="l">142</div></div><div class="b"><div class="v" style="color:var(--teal)">89%</div><div class="l">grant</div></div><div class="b"><div class="v">5mo</div><div class="l">median</div></div></div></div>
+          </div>
+          <div class="banner info" style="margin-top:18px"><i data-lucide="git-pull-request-arrow"></i><div>"Book consult" creates a real client portal account inside the <b>IMMI-PULSE SaaS</b> — the community → directory → consultant funnel, end to end.</div></div>
+        </div>
+      </section>
+
+      <!-- ========== VIEW: THREAD DETAIL ========== -->
+      <section class="view" id="view-thread">
+        <div class="view-head solo"><div class="muted" style="display:flex;align-items:center;gap:7px;cursor:pointer" onclick="go2('home')"><i data-lucide="arrow-left" style="width:15px"></i> Back to feed</div></div>
+        <div class="wrap solo">
+          <div class="card pad" style="margin-bottom:16px">
+            <div class="top" style="display:flex;gap:11px;align-items:center"><span class="av" style="width:42px;height:42px;background:linear-gradient(135deg,#7C5CFC,#5B3ADB)">QW</span>
+              <div class="meta" style="font-size:12px;color:var(--gray-2);display:flex;gap:7px;align-items:center;flex-wrap:wrap"><b style="color:var(--ink);font-size:13.5px">QuokkaWaiting88</b> <span class="vbadge vb-ver"><i data-lucide="shield-check" style="width:10px"></i>Verified</span> <span class="sig">189 · <b>261313</b> · 90pts · lodged <b>Mar 26</b></span> · 2h · Skilled</div></div>
+            <h1 style="font-size:21px;margin:14px 0 8px">Got CO contact today — day 94. Anyone else in the March 189 club? 🎉</h1>
+            <p style="color:var(--gray);font-size:14px">Finally some movement after the silent wait! The CO asked for an updated AFP police check under s56 — I've got 28 days to respond. Lodged 24 March, onshore, single applicant. Sharing my full verified timeline so the people behind me can see what "normal" looks like. Hang in there everyone 💪</p>
+            <div class="acts" style="display:flex;gap:18px;margin-top:14px;font-size:12.5px;color:var(--gray-2)"><span style="color:var(--purple-deep);display:flex;gap:6px;align-items:center"><i data-lucide="arrow-up" style="width:15px"></i> 142</span><span style="display:flex;gap:6px;align-items:center"><i data-lucide="message-circle" style="width:15px"></i> 38 comments</span><span style="display:flex;gap:6px;align-items:center"><i data-lucide="bookmark" style="width:15px"></i> Save</span><span style="display:flex;gap:6px;align-items:center"><i data-lucide="flag" style="width:15px"></i> Report</span></div>
+          </div>
+
+          <div class="banner law" style="margin-bottom:16px"><i data-lucide="scale"></i><div><b>Community rule:</b> share your own experience &amp; official DHA info freely. Only OMARA-registered agents may advise on your specific application (Migration Act s276). Advice-shaped posts are auto-flagged.</div></div>
+
+          <div class="card pad">
+            <div style="font-weight:600;margin-bottom:6px">38 comments</div>
+            <!-- OMARA answer highlighted -->
+            <div class="cmt omara">
+              <span class="av" style="width:38px;height:38px;background:linear-gradient(135deg,#1B7B6F,#2DD4BF)">SM</span>
+              <div style="flex:1"><div class="cmeta"><b>Sarah Mitchell</b> <span class="vbadge vb-omara"><i data-lucide="badge-check" style="width:10px"></i>OMARA ✓</span> · MARN 1234567 · 1h</div>
+                <div class="cb">Congrats! For general context: an s56 AFP request at this stage is routine and not a negative signal. Make sure the check is the right type and covers the right period. If you'd like this reviewed for your specific case, that's where a consult comes in. <span style="color:var(--purple-deep);font-weight:600">(general info)</span></div>
+                <div class="acts" style="display:flex;gap:16px;margin-top:8px;font-size:12px;color:var(--gray-2)"><span><i data-lucide="arrow-up" style="width:13px"></i> 64</span><span>Reply</span></div></div>
+            </div>
+            <!-- normal comment -->
+            <div class="cmt"><span class="av" style="width:38px;height:38px;background:linear-gradient(135deg,#3B82F6,#1D4ED8)">PP</span>
+              <div style="flex:1"><div class="cmeta"><b>PossumPerth</b> <span class="vbadge vb-ver"><i data-lucide="shield-check" style="width:10px"></i>Verified</span> · <span class="sig">189 · lodged <b>Mar 26</b></span> · 2h</div>
+                <div class="cb">Same club! I got CO on day 88, also an AFP request. We're basically twins 😅 March 189 gang rise up.</div>
+                <div class="acts" style="display:flex;gap:16px;margin-top:8px;font-size:12px;color:var(--gray-2)"><span><i data-lucide="arrow-up" style="width:13px"></i> 31</span><span>Reply</span></div></div>
+            </div>
+            <!-- flagged advice example -->
+            <div class="cmt"><span class="av" style="width:38px;height:38px;background:linear-gradient(135deg,#9CA3AF,#6B7280)">AX</span>
+              <div style="flex:1"><div class="cmeta"><b>Anon_X</b> <span class="vbadge vb-anon">Anonymous</span> · new account · 40m</div>
+                <div class="banner warn" style="margin:6px 0"><i data-lucide="bot"></i><div>This reply looks like <b>migration advice</b> and has been collapsed. Only an OMARA agent can advise on your application. <span style="text-decoration:underline;cursor:pointer">Show anyway</span></div></div>
+              </div>
+            </div>
+            <!-- reply box -->
+            <div style="display:flex;gap:11px;margin-top:14px"><span class="av" style="width:38px;height:38px;background:linear-gradient(135deg,#7C5CFC,#5B3ADB)">QW</span>
+              <div style="flex:1"><div class="inp" style="color:var(--gray-3)">Share your experience or a DHA link… (not advice)</div></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== VIEW: SPACES ========== -->
+      <section class="view" id="view-spaces">
+        <div class="view-head solo"><div><h1>Spaces</h1><div class="d">Seven visa-family spaces (already seeded in the codebase). Browse, follow, post.</div></div></div>
+        <div class="wrap solo">
+          <div class="spaces">
+            <div class="spc" onclick="go2('home')"><div class="ic" style="background:rgba(124,92,252,.14);color:var(--purple-deep)"><i data-lucide="graduation-cap"></i></div><h4>Skilled migration</h4><p>189 · 190 · 491 — points, EOI, SkillSelect rounds, state nomination.</p><div class="m"><span>8.2k members</span><span>1.1k threads</span></div></div>
+            <div class="spc" onclick="go2('home')"><div class="ic" style="background:rgba(27,123,111,.12);color:var(--teal)"><i data-lucide="briefcase"></i></div><h4>Employer-sponsored</h4><p>482 SID · 186 ENS — sponsor, nomination &amp; visa bundle timelines.</p><div class="m"><span>3.1k members</span><span>540 threads</span></div></div>
+            <div class="spc" onclick="go2('home')"><div class="ic" style="background:rgba(245,158,11,.14);color:#B45309"><i data-lucide="heart"></i></div><h4>Partner</h4><p>820/801 · 309/100 — evidence, s56, the long two-stage wait.</p><div class="m"><span>5.6k members</span><span>2.0k threads</span></div></div>
+            <div class="spc" onclick="go2('home')"><div class="ic" style="background:rgba(236,72,153,.12);color:#BE185D"><i data-lucide="book-open"></i></div><h4>Student (500)</h4><p>CoE, Genuine Student, OSHC, provider-priority processing.</p><div class="m"><span>9.9k members</span><span>3.4k threads</span></div></div>
+            <div class="spc" onclick="go2('home')"><div class="ic" style="background:rgba(59,130,246,.12);color:#1D4ED8"><i data-lucide="briefcase-business"></i></div><h4>Graduate (485)</h4><p>Post-study work — eligibility, the Mar-2026 fee jump, PR pathways.</p><div class="m"><span>2.4k members</span><span>610 threads</span></div></div>
+            <div class="spc" onclick="go2('home')"><div class="ic" style="background:rgba(156,163,175,.18);color:var(--gray-2)"><i data-lucide="plane"></i></div><h4>Visitor &amp; WHV</h4><p>600 visitor · 417/462 working holiday &amp; the 88-day count.</p><div class="m"><span>1.8k members</span><span>430 threads</span></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== VIEW: MOBILE ========== -->
+      <section class="view" id="view-mobile">
+        <div class="view-head solo"><div><h1>Mobile views (PWA-first)</h1><div class="d">The wait happens on a phone. These are the three moments that matter most.</div></div></div>
+        <div class="wrap solo">
+          <div class="phones">
+            <!-- phone 1: your wait + push -->
+            <div>
+              <div class="phone">
+                <div class="pnotch"><i></i></div>
+                <div class="pscr">
+                  <div class="ptop"><div style="font-family:Outfit;font-weight:700;font-size:15px">Your wait</div><div style="font-size:11px;color:#9aa0ad">189 · day 94</div></div>
+                  <div style="padding:14px">
+                    <div style="background:#0F1117;color:#fff;border-radius:14px;padding:14px;margin-bottom:12px;display:flex;gap:10px"><span style="font-size:20px">🔔</span><div style="font-size:12.5px"><b>3 in your March·189 Club</b> just got a CO this week. You're tracking normally.</div></div>
+                    <div class="gauge" style="height:130px"><canvas id="mGauge"></canvas><div class="lbl"><div class="v" style="font-size:22px">38<span style="font-size:11px">th</span></div><div class="s">percentile</div></div></div>
+                    <div class="banner law" style="margin-top:4px;font-size:11.5px"><i data-lucide="check-circle-2"></i><div>Half your cohort granted by ~month 7.</div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="phlabel">Push + "is my wait normal?"</div>
+            </div>
+            <!-- phone 2: timeline -->
+            <div>
+              <div class="phone">
+                <div class="pnotch"><i></i></div>
+                <div class="pscr">
+                  <div class="ptop"><div style="font-family:Outfit;font-weight:700;font-size:15px">My journey</div><div style="font-size:11px;color:#9aa0ad">189 · ANZSCO 261313</div></div>
+                  <div style="padding:14px">
+                    <ul class="tl">
+                      <li class="done"><span class="node"></span><div class="mt" style="font-size:13px">EOI · 90 pts</div><div class="mm">3 Oct 2025</div></li>
+                      <li class="done"><span class="node"></span><div class="mt" style="font-size:13px">Invitation 🎯</div><div class="mm">4 Jan 2026</div></li>
+                      <li class="done"><span class="node"></span><div class="mt" style="font-size:13px">Lodged ⚑</div><div class="mm">24 Mar 2026</div></li>
+                      <li class="done"><span class="node"></span><div class="mt" style="font-size:13px">Health + police</div><div class="mm">2 Apr 2026</div></li>
+                      <li class="now"><span class="node"></span><div class="mt" style="font-size:13px;color:var(--purple-deep)">CO · s56 ⚡</div><div class="mm">day 94</div></li>
+                      <li class="todo"><span class="node"></span><div class="mt" style="font-size:13px">Grant</div><div class="mm">mo 7–13</div></li>
+                    </ul>
+                    <button class="btn btn-pri" style="width:100%;justify-content:center"><i data-lucide="plus" style="width:14px"></i> Add milestone</button>
+                  </div>
+                </div>
+              </div>
+              <div class="phlabel">Timeline · tap to add</div>
+            </div>
+            <!-- phone 3: grant wall -->
+            <div>
+              <div class="phone">
+                <div class="pnotch"><i></i></div>
+                <div class="pscr">
+                  <div class="ptop"><div style="font-family:Outfit;font-weight:700;font-size:15px">Grant Wall 🎉</div><div style="font-size:11px;color:#9aa0ad">live</div></div>
+                  <div style="padding:12px">
+                    <div class="grant" style="margin-bottom:10px;padding:12px"><div class="gh"><span class="av" style="width:32px;height:32px;background:linear-gradient(135deg,#1B7B6F,#2DD4BF);font-size:11px">EF</span><div><div class="gt" style="font-size:13px">EmuFree · 189 ✓</div><div class="muted" style="font-size:11px">7 months · just now</div></div></div></div>
+                    <div class="grant" style="margin-bottom:10px;padding:12px"><div class="gh"><span class="av" style="width:32px;height:32px;background:linear-gradient(135deg,#7C5CFC,#5B3ADB);font-size:11px">DD</span><div><div class="gt" style="font-size:13px">DingoDone · 482 ✓</div><div class="muted" style="font-size:11px">3 weeks · 22m</div></div></div></div>
+                    <div class="grant" style="padding:12px"><div class="gh"><span class="av" style="width:32px;height:32px;background:linear-gradient(135deg,#EC4899,#BE185D);font-size:11px">NN</span><div><div class="gt" style="font-size:13px">NumbatNow · 500 ✓</div><div class="muted" style="font-size:11px">9 days · 1h</div></div></div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="phlabel">Grant Wall · hope feed</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ===== MODALS ===== -->
+<div class="scrim" id="milestoneModal" onclick="if(event.target===this)closeModal('milestoneModal')">
+  <div class="modal">
+    <div class="mh"><h3>Add a milestone</h3><button class="icbtn" style="color:var(--gray-2);background:var(--soft)" onclick="closeModal('milestoneModal')"><i data-lucide="x"></i></button></div>
+    <div class="mb">
+      <div class="field"><label>Milestone</label>
+        <div class="selrow">
+          <div class="selopt sel"><i data-lucide="user-check" style="width:15px;color:var(--purple)"></i> CO contact</div>
+          <div class="selopt"><i data-lucide="mail" style="width:15px"></i> s56 request</div>
+          <div class="selopt"><i data-lucide="stethoscope" style="width:15px"></i> Health</div>
+          <div class="selopt"><i data-lucide="party-popper" style="width:15px"></i> Grant 🎉</div>
+        </div>
+      </div>
+      <div class="field"><label>Date</label><div class="inp" style="color:var(--gray-2);display:flex;align-items:center;gap:8px"><i data-lucide="calendar" style="width:15px"></i> 27 June 2026</div></div>
+      <div class="field"><label>Verify this milestone <span class="vbadge vb-ver" style="margin-left:6px"><i data-lucide="shield-check" style="width:10px"></i>recommended</span></label>
+        <div class="inp" style="border-style:dashed;text-align:center;color:var(--gray-2);padding:18px"><i data-lucide="upload-cloud" style="width:18px"></i><br/>Drop a redacted ImmiAccount / grant PDF — we extract the date with AI</div></div>
+      <div class="banner info"><i data-lucide="lock"></i><div>Your upload is never linked to your handle or email. Dates are lightly perturbed in public stats.</div></div>
+    </div>
+    <div class="mf"><button class="btn btn-line" onclick="closeModal('milestoneModal')">Cancel</button><button class="btn btn-pri" onclick="closeModal('milestoneModal')">Add to timeline</button></div>
+  </div>
+</div>
+
+<div class="scrim" id="onboardModal" onclick="if(event.target===this)closeModal('onboardModal')">
+  <div class="modal lg">
+    <div class="mh"><h3>Join the community — anonymously</h3><button class="icbtn" style="color:var(--gray-2);background:var(--soft)" onclick="closeModal('onboardModal')"><i data-lucide="x"></i></button></div>
+    <div class="mb">
+      <p class="muted" style="margin-bottom:14px">No real name needed. We mint you an anonymous handle. Verify your email any time to earn a badge — your email is decoupled &amp; encrypted, never linked to your posts.</p>
+      <div style="background:var(--soft-2);border:1px solid var(--purple-muted);border-radius:12px;padding:16px;display:flex;align-items:center;gap:13px;margin-bottom:16px">
+        <span class="av" style="width:46px;height:46px;background:linear-gradient(135deg,#7C5CFC,#5B3ADB);font-size:16px">QW</span>
+        <div><div style="font-family:Outfit;font-weight:700;font-size:16px">QuokkaWaiting88</div><div class="muted">your new handle · <span style="color:var(--purple-deep);cursor:pointer">shuffle 🎲</span></div></div>
+      </div>
+      <div style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gray-3);margin-bottom:8px">Trust tiers — earn as you go</div>
+      <div style="display:grid;gap:8px">
+        <div class="selopt sel" style="justify-content:space-between"><span><span class="vbadge vb-anon">T1 · Anonymous</span> post &amp; track now</span><i data-lucide="check" style="width:15px;color:var(--teal)"></i></div>
+        <div class="selopt" style="justify-content:space-between"><span><span class="vbadge vb-ver">T2 · Verified</span> upload a case doc → full data weight</span><i data-lucide="plus" style="width:15px"></i></div>
+        <div class="selopt" style="justify-content:space-between"><span><span class="vbadge vb-omara">T4 · OMARA</span> are you a registered agent?</span><i data-lucide="plus" style="width:15px"></i></div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn btn-line" onclick="closeModal('onboardModal')">Maybe later</button><button class="btn btn-pri" onclick="closeModal('onboardModal')">Claim handle &amp; start →</button></div>
+  </div>
+</div>
+
+<div class="scrim" id="agentModal" onclick="if(event.target===this)closeModal('agentModal')">
+  <div class="modal">
+    <div class="mh"><h3>Book a consult — Sarah Mitchell</h3><button class="icbtn" style="color:var(--gray-2);background:var(--soft)" onclick="closeModal('agentModal')"><i data-lucide="x"></i></button></div>
+    <div class="mb">
+      <div class="banner info" style="margin-bottom:14px"><i data-lucide="git-pull-request-arrow"></i><div>This creates a <b>client portal account</b> in the IMMI-PULSE SaaS and shares your (consented) Pulse timeline with the agent — the community → SaaS handoff.</div></div>
+      <div class="field"><label>What do you need help with?</label><div class="selrow"><div class="selopt sel">s56 response</div><div class="selopt">Full application</div></div></div>
+      <div class="field"><label>Share my Pulse timeline</label><div class="selopt sel" style="justify-content:space-between">189 · day 94 · verified <i data-lucide="check" style="width:15px;color:var(--teal)"></i></div></div>
+    </div>
+    <div class="mf"><button class="btn btn-line" onclick="closeModal('agentModal')">Cancel</button><button class="btn btn-pri" onclick="closeModal('agentModal')">Request consult →</button></div>
+  </div>
+</div>
+
+<div class="hint"><i data-lucide="mouse-pointer-click"></i> <span>Prototype — click the <b>left nav</b>, posts, and <b>Add milestone</b> to explore</span></div>
+
+<script>
+  lucide.createIcons();
+  const FONT="'Inter',sans-serif";
+  Chart.defaults.font.family=FONT; Chart.defaults.font.size=11; Chart.defaults.color='#6B7280';
+  const PURPLE='#7C5CFC',PURPLE_D='#5B3ADB',TEAL='#1B7B6F',TEAL_L='#2DD4BF',AMBER='#F59E0B',ROSE='#E5484D',GRAY='#9CA3AF',PLIGHT='#EDEAFB';
+
+  // ---- view routing ----
+  const inited=new Set();
+  function setActive(view){
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+view).classList.add('active');
+    document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('active'));
+    const nav=document.querySelector('.navitem[data-view="'+view+'"]'); if(nav)nav.classList.add('active');
+    document.querySelector('.main').scrollTo({top:0});
+    initCharts(view);
+  }
+  function go(el){ setActive(el.dataset.view); }
+  function go2(view){ setActive(view); }
+
+  // ---- modals ----
+  function openModal(id){document.getElementById(id).classList.add('open');lucide.createIcons();}
+  function closeModal(id){document.getElementById(id).classList.remove('open');}
+  function toggleNotif(e){e.stopPropagation();document.getElementById('notif').classList.toggle('open');}
+  document.addEventListener('click',()=>document.getElementById('notif').classList.remove('open'));
+
+  // ---- gauges helper ----
+  function gauge(id,val){
+    new Chart(document.getElementById(id),{type:'doughnut',
+      data:{datasets:[{data:[val,100-val],backgroundColor:[TEAL,PLIGHT],borderWidth:0,circumference:180,rotation:270,cutout:'74%'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}}}});
+  }
+
+  function initCharts(view){
+    if(inited.has(view))return; inited.add(view);
+    if(view==='home'){ gauge('homeGauge',38); }
+    if(view==='journey'){ gauge('journeyGauge',38); }
+    if(view==='mobile'){ gauge('mGauge',38); }
+    if(view==='club'){
+      new Chart(document.getElementById('clubChart'),{type:'line',
+        data:{labels:['M1','M2','M3','M4','M5','M6','M7','M8','M9','M10'],
+          datasets:[{data:[0,1,3,9,18,31,50,66,79,88],borderColor:TEAL_L,borderWidth:2.5,fill:true,tension:.4,pointRadius:0,
+            backgroundColor:(c)=>{const g=c.chart.ctx.createLinearGradient(0,0,0,220);g.addColorStop(0,'rgba(45,212,191,.35)');g.addColorStop(1,'rgba(45,212,191,0)');return g;}}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>' '+c.raw+'% granted'}}},
+          scales:{y:{grid:{color:'#F0F1F5'},max:100,ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}});
+    }
+    if(view==='stats'){
+      new Chart(document.getElementById('statBands'),{type:'bar',
+        data:{labels:['25th','50th','75th','90th'],datasets:[{data:[5,8,13,16],backgroundColor:['#D9D6FE','#A99BF8','#7C5CFC','#5B3ADB'],borderRadius:6,barThickness:34}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.raw+' months'}}},
+          scales:{y:{grid:{color:'#F0F1F5'},ticks:{callback:v=>v+'mo'}},x:{grid:{display:false}}}}});
+      new Chart(document.getElementById('statVs'),{type:'bar',
+        data:{labels:['50th','75th','90th'],datasets:[
+          {label:'DHA official',data:[10,13,16],backgroundColor:GRAY,borderRadius:5,barThickness:18},
+          {label:'Community (verified)',data:[8.5,11.5,15],backgroundColor:TEAL,borderRadius:5,barThickness:18}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{usePointStyle:true,boxWidth:8,font:{size:11}}}},
+          scales:{y:{grid:{color:'#F0F1F5'},ticks:{callback:v=>v+'mo'}},x:{grid:{display:false}}}}});
+      new Chart(document.getElementById('statCohort'),{type:'bar',
+        data:{labels:['Dec 25','Jan 26','Feb 26','Mar 26','Apr 26','May 26'],datasets:[
+          {label:'Granted',data:[62,48,33,9,2,0],backgroundColor:TEAL,stack:'s'},
+          {label:'CO / processing',data:[30,40,52,55,38,18],backgroundColor:PURPLE,stack:'s'},
+          {label:'Waiting',data:[8,12,15,36,60,82],backgroundColor:'#E7E5F8',stack:'s'}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{usePointStyle:true,boxWidth:8,font:{size:11}}}},
+          scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:'#F0F1F5'},ticks:{callback:v=>v+'%'},max:100}}}});
+    }
+  }
+  // init first view
+  initCharts('home');
+</script>
+</body>
+</html>
