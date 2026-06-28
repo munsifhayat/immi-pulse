@@ -236,26 +236,41 @@ export function WaitCheck() {
             </p>
 
             <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-border pt-4 text-[12px] text-gray-text">
-              <span>
-                Based on{" "}
-                <span className="font-semibold text-navy">
-                  {result.sample_size.toLocaleString()}
-                </span>{" "}
-                grants
-              </span>
-              <span>
-                <span className="font-semibold text-navy">
-                  {result.pending.toLocaleString()}
-                </span>{" "}
-                still waiting
-              </span>
-              {result.official_p50_days != null && (
+              {result.basis === "official" ? (
                 <span>
-                  Official median{" "}
+                  Based on{" "}
                   <span className="font-semibold text-navy">
-                    {formatDays(result.official_p50_days)}
-                  </span>
+                    official Home Affairs
+                  </span>{" "}
+                  figures
+                  {result.official_updated
+                    ? ` · updated ${result.official_updated}`
+                    : ""}
                 </span>
+              ) : (
+                <>
+                  <span>
+                    Based on{" "}
+                    <span className="font-semibold text-navy">
+                      {result.sample_size.toLocaleString()}
+                    </span>{" "}
+                    community {result.sample_size === 1 ? "grant" : "grants"}
+                  </span>
+                  <span>
+                    <span className="font-semibold text-navy">
+                      {result.pending.toLocaleString()}
+                    </span>{" "}
+                    still waiting
+                  </span>
+                  {result.official_p50_days != null && (
+                    <span>
+                      Official median{" "}
+                      <span className="font-semibold text-navy">
+                        {formatDays(result.official_p50_days)}
+                      </span>
+                    </span>
+                  )}
+                </>
               )}
             </div>
           </>

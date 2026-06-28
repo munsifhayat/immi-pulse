@@ -3,11 +3,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/lib/api/client";
 import { queryKeys } from "@/lib/api/hooks/query-keys";
-import {
-  MOCK_COMMUNITY_SPACES,
-  MOCK_COMMUNITY_STATS,
-  MOCK_RECENT_THREADS,
-} from "@/lib/api/mock-data";
 
 export type ThreadStatus = "active" | "hidden" | "removed";
 export type ReportTargetType = "thread" | "comment";
@@ -137,11 +132,14 @@ export interface ProcessingStatOut {
   trend: Trend;
 }
 
+export type WaitBasis = "community" | "official" | "none";
+
 export interface WaitCheckOut {
   subclass_slug: string;
   subclass_label: string;
   elapsed_days: number;
   tier: WaitTier;
+  basis: WaitBasis;
   headline: string;
   detail: string;
   share_decided_within: number | null;
@@ -185,14 +183,10 @@ export function useCommunityStats() {
   return useQuery({
     queryKey: queryKeys.community.stats(),
     queryFn: async () => {
-      try {
-        const { data } = await apiClient.get<CommunityStatsOut>(
-          "/community/public/stats"
-        );
-        return data;
-      } catch {
-        return MOCK_COMMUNITY_STATS;
-      }
+      const { data } = await apiClient.get<CommunityStatsOut>(
+        "/community/public/stats"
+      );
+      return data;
     },
   });
 }
@@ -201,15 +195,11 @@ export function useRecentThreads(limit: number = 10) {
   return useQuery({
     queryKey: queryKeys.community.recentThreads(),
     queryFn: async () => {
-      try {
-        const { data } = await apiClient.get<ThreadOut[]>(
-          "/community/public/threads/recent",
-          { params: { limit } }
-        );
-        return data;
-      } catch {
-        return MOCK_RECENT_THREADS.slice(0, limit);
-      }
+      const { data } = await apiClient.get<ThreadOut[]>(
+        "/community/public/threads/recent",
+        { params: { limit } }
+      );
+      return data;
     },
   });
 }
@@ -218,14 +208,10 @@ export function useCommunitySpaces() {
   return useQuery({
     queryKey: queryKeys.community.spaces(),
     queryFn: async () => {
-      try {
-        const { data } = await apiClient.get<CommunitySpaceOut[]>(
-          "/community/public/spaces"
-        );
-        return data;
-      } catch {
-        return MOCK_COMMUNITY_SPACES;
-      }
+      const { data } = await apiClient.get<CommunitySpaceOut[]>(
+        "/community/public/spaces"
+      );
+      return data;
     },
   });
 }

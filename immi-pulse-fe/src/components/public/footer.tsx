@@ -8,6 +8,7 @@ import apiClient from "@/lib/api/client";
 const footerLinks = {
   Product: [
     { label: "Platform", href: "/features" },
+    { label: "Community", href: "/community" },
     { label: "Pricing", href: "/pricing" },
     { label: "Support", href: "/about#contact" },
     { label: "Get Started", href: "/get-started" },

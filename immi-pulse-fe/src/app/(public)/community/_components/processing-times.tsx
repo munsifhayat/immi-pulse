@@ -27,8 +27,6 @@ type Tab = "official" | "community";
 const SOURCES = [
   { label: "home.affairs.gov.au", type: "Official" as const },
   { label: "Community timelines", type: "Community" as const },
-  { label: "r/AusVisa", type: "Community" as const },
-  { label: "Tracker apps", type: "Community" as const },
 ];
 
 function TrendBadge({ trend }: { trend: Trend }) {

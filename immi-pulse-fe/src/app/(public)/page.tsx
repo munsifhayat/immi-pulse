@@ -12,6 +12,9 @@ import {
   Cpu,
   Zap,
   ChevronDown,
+  Users,
+  Activity,
+  BarChart3,
 } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/motion";
 import { useState } from "react";
@@ -98,6 +101,24 @@ const testimonials = [
       "Finally, a platform built by people who understand immigration law. This isn\u2019t generic AI \u2014 it\u2019s purpose-built for our industry.",
     name: "Immigration Consultant",
     title: "Independent Practice, Brisbane",
+  },
+];
+
+const communityFeatures = [
+  {
+    icon: Activity,
+    title: "Is my wait normal?",
+    desc: "Check your visa wait against official Home Affairs figures and real community timelines.",
+  },
+  {
+    icon: BarChart3,
+    title: "Official vs community times",
+    desc: "Every visa subclass, side by side — the published numbers next to what applicants report.",
+  },
+  {
+    icon: Users,
+    title: "Spaces, timelines & discussions",
+    desc: "Ask questions and share your journey, anonymously. No sign-in required.",
   },
 ];
 
@@ -305,6 +326,149 @@ export default function HomePage() {
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </motion.div>
+        </div>
+      </section>
+
+      {/* ═══════════════ COMMUNITY / ECOSYSTEM ═══════════════ */}
+      <section className="relative overflow-hidden bg-navy py-28 text-white">
+        <GridBg id="community-grid" size={48} opacity={0.05} stroke="#BDB4FE" />
+        <div className="pointer-events-none absolute -left-40 top-0 h-[420px] w-[420px] rounded-full bg-purple/[0.18] blur-3xl" aria-hidden="true" />
+        <div className="pointer-events-none absolute -right-40 bottom-0 h-[360px] w-[360px] rounded-full bg-teal/[0.12] blur-3xl" aria-hidden="true" />
+
+        <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            {/* Left — copy */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-[13px] font-medium text-purple-light">
+                <Users className="h-3.5 w-3.5" aria-hidden="true" />
+                For Applicants &middot; Community
+              </span>
+              <h2 className="mt-6 font-heading text-[clamp(2rem,4vw,3.25rem)] font-normal leading-tight tracking-[-1px] text-white">
+                Not just software &mdash; a{" "}
+                <span className="bg-gradient-to-r from-purple-light to-teal-light bg-clip-text text-transparent">
+                  whole ecosystem
+                </span>
+              </h2>
+              <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-white/70">
+                IMMI-PULSE isn&rsquo;t only for consultants. Anyone on an
+                Australian visa journey can join the community &mdash;
+                anonymously and free &mdash; to see if their wait is normal,
+                compare official and real-world processing times, and share
+                their own timeline.
+              </p>
+
+              <div className="mt-8 space-y-3">
+                {communityFeatures.map((f) => (
+                  <div key={f.title} className="flex items-start gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5">
+                      <f.icon
+                        className="h-5 w-5 text-teal-light"
+                        aria-hidden="true"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-semibold text-white">
+                        {f.title}
+                      </p>
+                      <p className="mt-0.5 text-[14px] leading-snug text-white/60">
+                        {f.desc}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-10 flex flex-wrap items-center gap-4">
+                <Link
+                  href="/community"
+                  className="inline-flex items-center gap-2 rounded-lg border-2 border-purple bg-purple px-7 py-3.5 text-[16px] font-medium text-white shadow-lg shadow-purple/25 transition-all hover:border-purple-light hover:bg-purple-light hover:text-navy focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-navy focus-visible:outline-none"
+                >
+                  Explore the Community
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+                <Link
+                  href="/community"
+                  className="inline-flex items-center gap-2 rounded-lg border-2 border-white/20 bg-white/5 px-7 py-3.5 text-[16px] font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
+                >
+                  Check your wait
+                </Link>
+              </div>
+            </motion.div>
+
+            {/* Right — wait-check preview */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="relative"
+            >
+              <div className="rounded-2xl border border-white/10 bg-white p-6 shadow-2xl shadow-black/20">
+                <div className="flex items-center gap-2.5 border-b border-border pb-4">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple/10">
+                    <Activity className="h-4 w-4 text-purple" aria-hidden="true" />
+                  </div>
+                  <p className="font-heading text-[16px] font-semibold text-navy">
+                    Is my wait normal?
+                  </p>
+                </div>
+
+                <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+                  <div className="rounded-lg border border-border bg-gray-light/60 px-3 py-2 text-[13px] text-navy">
+                    189 &middot; Skilled Independent
+                  </div>
+                  <div className="rounded-lg border border-border bg-gray-light/60 px-3 py-2 text-[13px] text-gray-text">
+                    Lodged
+                  </div>
+                </div>
+
+                {/* position bar */}
+                <div className="relative mt-9 mb-8 h-3 rounded-full bg-gray-light">
+                  <div
+                    className="absolute top-0 h-3 rounded-full bg-purple/15"
+                    style={{ left: "26%", width: "36%" }}
+                  />
+                  <div
+                    className="absolute -top-1.5 h-6 w-px bg-navy/30"
+                    style={{ left: "48%" }}
+                  >
+                    <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] text-gray-text">
+                      median
+                    </span>
+                  </div>
+                  <div
+                    className="absolute -top-2 -translate-x-1/2"
+                    style={{ left: "38%" }}
+                  >
+                    <span className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-teal/10 px-2 py-0.5 text-[10px] font-semibold text-teal">
+                      you
+                    </span>
+                    <span className="block h-6 w-6 rounded-full border-2 border-white bg-teal shadow ring-4 ring-teal/20" />
+                  </div>
+                </div>
+
+                <p className="font-heading text-[16px] font-semibold text-teal">
+                  On track
+                </p>
+                <p className="mt-1 text-[13px] leading-relaxed text-gray-text">
+                  Your wait is within the typical range &mdash; there&rsquo;s no
+                  signal here that anything is wrong.
+                </p>
+                <p className="mt-4 border-t border-border pt-3 text-[12px] text-gray-text">
+                  Based on{" "}
+                  <span className="font-semibold text-navy">
+                    official Home Affairs
+                  </span>{" "}
+                  figures &amp; real community timelines
+                </p>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 
