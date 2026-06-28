@@ -22,6 +22,7 @@ ThreadSortLiteral = Literal["new", "top", "trending"]
 TimelineOutcomeLiteral = Literal["waiting", "granted", "refused"]
 TrendLiteral = Literal["faster", "slower", "steady"]
 WaitTierLiteral = Literal["on_track", "normal", "longer", "outlier", "unknown"]
+WaitBasisLiteral = Literal["community", "official", "none"]
 
 assert set(THREAD_STATUSES) == set(ThreadStatusLiteral.__args__)
 assert set(REPORT_TARGET_TYPES) == set(ReportTargetLiteral.__args__)
@@ -241,6 +242,7 @@ class WaitCheckOut(BaseModel):
     elapsed_days: int
 
     tier: WaitTierLiteral
+    basis: WaitBasisLiteral = "community"
     headline: str
     detail: str
     share_decided_within: Optional[int] = None

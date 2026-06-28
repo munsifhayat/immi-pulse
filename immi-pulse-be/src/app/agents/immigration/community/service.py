@@ -537,6 +537,16 @@ class CommunityService:
             pending=pending,
             subclass_label=label,
         )
+        # Cold start: until enough real timelines exist, fall back to the
+        # official Home Affairs bands rather than show a fabricated community
+        # picture. Never invents community data.
+        if verdict["tier"] == "unknown":
+            verdict = processing.wait_verdict_official(
+                elapsed_days,
+                official_p50=subclass.official_p50_days,
+                official_p90=subclass.official_p90_days,
+                subclass_label=label,
+            )
         verdict.update(
             {
                 "subclass_slug": subclass.slug,

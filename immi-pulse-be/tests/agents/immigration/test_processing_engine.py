@@ -114,3 +114,59 @@ def test_verdict_band_ordering_is_monotonic():
         tier = processing.wait_verdict(elapsed, decided_days=SAMPLE)["tier"]
         assert order[tier] >= last
         last = order[tier]
+
+
+def test_community_verdict_reports_community_basis():
+    out = processing.wait_verdict(40, decided_days=SAMPLE)
+    assert out["basis"] == "community"
+
+
+def test_unknown_verdict_reports_none_basis():
+    out = processing.wait_verdict(60, decided_days=[10, 20, 30])
+    assert out["tier"] == "unknown"
+    assert out["basis"] == "none"
+
+
+# --- wait_verdict_official (cold-start fallback) -----------------------------
+
+
+def test_official_on_track_below_p50():
+    out = processing.wait_verdict_official(
+        90, official_p50=180, official_p90=360, subclass_label="189"
+    )
+    assert out["tier"] == "on_track"
+    assert out["basis"] == "official"
+    assert out["sample_size"] == 0  # never implies a community sample
+    assert out["pending"] == 0
+    assert out["p50"] == 180
+    assert out["p90"] == 360
+    assert out["p25"] is None and out["p75"] is None
+
+
+def test_official_longer_between_p50_and_p90():
+    out = processing.wait_verdict_official(270, official_p50=180, official_p90=360)
+    assert out["tier"] == "longer"
+    assert out["basis"] == "official"
+
+
+def test_official_outlier_beyond_p90():
+    out = processing.wait_verdict_official(500, official_p50=180, official_p90=360)
+    assert out["tier"] == "outlier"
+    assert out["basis"] == "official"
+
+
+def test_official_unknown_when_no_p50():
+    out = processing.wait_verdict_official(100, official_p50=None, official_p90=None)
+    assert out["tier"] == "unknown"
+    assert out["basis"] == "none"
+
+
+def test_official_verdict_monotonic():
+    order = {"on_track": 0, "longer": 2, "outlier": 3}
+    last = -1
+    for elapsed in (10, 180, 300, 400):
+        tier = processing.wait_verdict_official(
+            elapsed, official_p50=180, official_p90=360
+        )["tier"]
+        assert order[tier] >= last
+        last = order[tier]

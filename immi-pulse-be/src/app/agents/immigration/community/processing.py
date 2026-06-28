@@ -105,6 +105,7 @@ def wait_verdict(
     if stats["sample_size"] < 5 or p50 is None:
         return {
             "tier": "unknown",
+            "basis": "none",
             "headline": _TIERS["unknown"],
             "detail": (
                 "We don't have enough reported timelines for this visa yet to "
@@ -151,9 +152,80 @@ def wait_verdict(
 
     return {
         "tier": tier,
+        "basis": "community",
         "headline": _TIERS[tier],
         "detail": detail,
         "elapsed_days": elapsed_days,
         "share_decided_within": share,
         **stats,
+    }
+
+
+def wait_verdict_official(
+    elapsed_days: int,
+    *,
+    official_p50: Optional[int],
+    official_p90: Optional[int],
+    subclass_label: str = "these",
+) -> dict:
+    """Verdict from the official Home Affairs processing bands.
+
+    Used when the community dataset is too thin to be meaningful. It relies only
+    on the department's published 50%/90% finalisation marks — real, attributable
+    public figures — so the check still answers honestly before real timelines
+    have accumulated. No community sample is implied (``sample_size`` stays 0).
+    """
+    base = {
+        "elapsed_days": elapsed_days,
+        "share_decided_within": None,
+        "sample_size": 0,
+        "pending": 0,
+        "p25": None,
+        "p50": official_p50,
+        "p75": None,
+        "p90": official_p90,
+        "fastest": None,
+        "slowest": None,
+    }
+
+    if official_p50 is None:
+        return {
+            "tier": "unknown",
+            "basis": "none",
+            "headline": _TIERS["unknown"],
+            "detail": (
+                "We don't have official or community figures for this visa yet. "
+                "Share your timeline to help build the picture."
+            ),
+            **base,
+        }
+
+    if elapsed_days <= official_p50:
+        tier = "on_track"
+        detail = (
+            f"Your wait is within the typical range. Officially, fewer than half of "
+            f"{subclass_label} applications are finalised by this point — there's no "
+            "signal here that anything is wrong."
+        )
+    elif official_p90 is not None and elapsed_days <= official_p90:
+        tier = "longer"
+        detail = (
+            "On the longer side, but still within the normal range — official figures "
+            f"show up to 90% of {subclass_label} applications are decided by around "
+            "this point."
+        )
+    else:
+        tier = "outlier"
+        detail = (
+            "Longer than the official guide for most recent cases. This does happen, "
+            "and a long wait isn't a verdict on your case — it may be worth a gentle "
+            "follow-up or a check-in with an OMARA-registered agent."
+        )
+
+    return {
+        "tier": tier,
+        "basis": "official",
+        "headline": _TIERS[tier],
+        "detail": detail,
+        **base,
     }
