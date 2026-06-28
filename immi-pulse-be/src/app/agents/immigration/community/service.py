@@ -4,7 +4,7 @@ import hashlib
 import logging
 import uuid
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from threading import Lock
 from typing import Optional
 from uuid import UUID
@@ -12,17 +12,21 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.immigration.community import processing
 from app.agents.immigration.community.models import (
     CommunityComment,
     CommunityReport,
     CommunitySpace,
     CommunityThread,
+    CommunityTimeline,
+    VisaSubclass,
 )
 from app.agents.immigration.community.schemas import (
     CreateCommentRequest,
     CreateCommunitySpaceRequest,
     CreateThreadRequest,
     ReportRequest,
+    SubmitTimelineRequest,
 )
 
 logger = logging.getLogger(__name__)
@@ -35,6 +39,7 @@ _RATE_LIMITS = {
     "thread": (10, timedelta(days=1)),
     "comment": (50, timedelta(days=1)),
     "report": (20, timedelta(days=1)),
+    "timeline": (20, timedelta(days=1)),
 }
 
 _rate_state: dict[tuple[str, str], list[datetime]] = defaultdict(list)
@@ -368,3 +373,177 @@ class CommunityService:
             )
         )
         return int(total or 0)
+
+    # --- Visa subclasses & processing timelines ------------------------------
+
+    @staticmethod
+    async def list_subclasses(db: AsyncSession) -> list[VisaSubclass]:
+        result = await db.execute(
+            select(VisaSubclass)
+            .where(VisaSubclass.is_active.is_(True))
+            .order_by(VisaSubclass.sort_order.asc(), VisaSubclass.code.asc())
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def get_subclass(
+        db: AsyncSession, slug: str
+    ) -> Optional[VisaSubclass]:
+        result = await db.execute(
+            select(VisaSubclass).where(VisaSubclass.slug == slug)
+        )
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def _timeline_durations(
+        db: AsyncSession, subclass_slug: str
+    ) -> tuple[list[int], int]:
+        """Return (decided processing-day durations, pending count) for a slug.
+
+        Only active, granted timelines contribute durations — refusals and
+        still-waiting rows are excluded from the percentile maths, but waiting
+        rows are tallied as the pending denominator.
+        """
+        result = await db.execute(
+            select(
+                CommunityTimeline.lodged_on,
+                CommunityTimeline.decided_on,
+                CommunityTimeline.outcome,
+            ).where(
+                CommunityTimeline.subclass_slug == subclass_slug,
+                CommunityTimeline.status == "active",
+            )
+        )
+        durations: list[int] = []
+        pending = 0
+        for lodged_on, decided_on, outcome in result.all():
+            if outcome == "granted" and decided_on is not None:
+                durations.append((decided_on - lodged_on).days)
+            elif outcome == "waiting":
+                pending += 1
+        return durations, pending
+
+    @staticmethod
+    async def _trend_for(db: AsyncSession, subclass_slug: str) -> str:
+        """Compare recent grant medians to older ones → faster / slower / steady."""
+        result = await db.execute(
+            select(
+                CommunityTimeline.lodged_on,
+                CommunityTimeline.decided_on,
+                CommunityTimeline.created_at,
+            ).where(
+                CommunityTimeline.subclass_slug == subclass_slug,
+                CommunityTimeline.status == "active",
+                CommunityTimeline.outcome == "granted",
+                CommunityTimeline.decided_on.isnot(None),
+            )
+        )
+        rows = result.all()
+        if len(rows) < 8:
+            return "steady"
+        rows = sorted(rows, key=lambda r: r[1])  # by decision date
+        mid = len(rows) // 2
+        older = [(r[1] - r[0]).days for r in rows[:mid]]
+        newer = [(r[1] - r[0]).days for r in rows[mid:]]
+        old_med = processing.percentile(older, 50) or 0
+        new_med = processing.percentile(newer, 50) or 0
+        if old_med == 0:
+            return "steady"
+        delta = (new_med - old_med) / old_med
+        if delta <= -0.1:
+            return "faster"
+        if delta >= 0.1:
+            return "slower"
+        return "steady"
+
+    @staticmethod
+    async def processing_board(db: AsyncSession) -> list[dict]:
+        """Official-vs-community board: one entry per active subclass."""
+        subclasses = await CommunityService.list_subclasses(db)
+        board: list[dict] = []
+        for sc in subclasses:
+            durations, pending = await CommunityService._timeline_durations(
+                db, sc.slug
+            )
+            stats = processing.compute_stats(durations, pending=pending)
+            trend = (
+                await CommunityService._trend_for(db, sc.slug)
+                if stats["sample_size"] >= 8
+                else "steady"
+            )
+            board.append(
+                {
+                    "slug": sc.slug,
+                    "code": sc.code,
+                    "name": sc.name,
+                    "stream": sc.stream,
+                    "category_slug": sc.category_slug,
+                    "official_p50_days": sc.official_p50_days,
+                    "official_p90_days": sc.official_p90_days,
+                    "official_updated": sc.official_updated,
+                    "community": stats,
+                    "trend": trend,
+                }
+            )
+        return board
+
+    @staticmethod
+    async def submit_timeline(
+        db: AsyncSession,
+        payload: SubmitTimelineRequest,
+        *,
+        ip_hash: str,
+    ) -> CommunityTimeline:
+        _consume_rate("timeline", ip_hash)
+
+        subclass = await CommunityService.get_subclass(db, payload.subclass_slug)
+        if subclass is None:
+            raise ValueError(f"Unknown visa subclass '{payload.subclass_slug}'")
+
+        timeline = CommunityTimeline(
+            id=uuid.uuid4(),
+            subclass_slug=payload.subclass_slug,
+            lodged_on=payload.lodged_on,
+            decided_on=payload.decided_on,
+            outcome=payload.outcome,
+            country=(payload.country or None),
+            note=(payload.note.strip() if payload.note else None),
+            author_ip_hash=ip_hash,
+        )
+        db.add(timeline)
+        await db.flush()
+        return timeline
+
+    @staticmethod
+    async def wait_check(
+        db: AsyncSession,
+        *,
+        subclass_slug: str,
+        lodged_on: date,
+    ) -> Optional[dict]:
+        """Where an in-progress wait sits in the community distribution."""
+        subclass = await CommunityService.get_subclass(db, subclass_slug)
+        if subclass is None:
+            return None
+
+        label = subclass.code + (f" {subclass.stream}" if subclass.stream else "")
+        elapsed_days = max(0, (date.today() - lodged_on).days)
+        durations, pending = await CommunityService._timeline_durations(
+            db, subclass_slug
+        )
+        verdict = processing.wait_verdict(
+            elapsed_days,
+            decided_days=durations,
+            pending=pending,
+            subclass_label=label,
+        )
+        verdict.update(
+            {
+                "subclass_slug": subclass.slug,
+                "subclass_label": label,
+                "official_p50_days": subclass.official_p50_days,
+                "official_p90_days": subclass.official_p90_days,
+                "official_updated": subclass.official_updated,
+            }
+        )
+        return verdict

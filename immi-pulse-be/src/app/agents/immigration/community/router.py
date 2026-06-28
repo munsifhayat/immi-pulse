@@ -7,13 +7,18 @@ Admin:         /community/admin/*      (X-API-Key — add admin role later)
 """
 
 import logging
+from datetime import date
 from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agents.immigration.community.models import CommunitySpace, CommunityThread
+from app.agents.immigration.community.models import (
+    CommunitySpace,
+    CommunityThread,
+    CommunityTimeline,
+)
 from app.agents.immigration.community.schemas import (
     CommentOut,
     CommunitySpaceOut,
@@ -22,10 +27,15 @@ from app.agents.immigration.community.schemas import (
     CreateCommunitySpaceRequest,
     CreateThreadRequest,
     ModerationActionRequest,
+    ProcessingStatOut,
     ReportOut,
     ReportRequest,
+    SubmitTimelineRequest,
     ThreadOut,
     ThreadWithCommentsOut,
+    TimelineOut,
+    VisaSubclassOut,
+    WaitCheckOut,
 )
 from app.agents.immigration.community.service import (
     CommunityRateLimitError,
@@ -59,6 +69,15 @@ async def _thread_out(db: AsyncSession, thread: CommunityThread) -> ThreadOut:
     return ThreadOut(**payload)
 
 
+def _timeline_out(timeline: CommunityTimeline) -> TimelineOut:
+    processing_days = None
+    if timeline.outcome == "granted" and timeline.decided_on is not None:
+        processing_days = (timeline.decided_on - timeline.lodged_on).days
+    payload = TimelineOut.model_validate(timeline).model_dump()
+    payload["processing_days"] = processing_days
+    return TimelineOut(**payload)
+
+
 # --- Public: stats ----------------------------------------------------------
 
 
@@ -77,6 +96,60 @@ async def list_recent_threads(
 ):
     threads = await CommunityService.list_recent_threads(db, limit=limit)
     return [await _thread_out(db, t) for t in threads]
+
+
+# --- Public: processing times ("is my wait normal?") ------------------------
+
+
+@router.get("/public/subclasses", response_model=list[VisaSubclassOut])
+async def list_visa_subclasses(db: AsyncSession = Depends(get_db)):
+    return await CommunityService.list_subclasses(db)
+
+
+@router.get("/public/processing", response_model=list[ProcessingStatOut])
+async def get_processing_board(db: AsyncSession = Depends(get_db)):
+    return await CommunityService.processing_board(db)
+
+
+@router.get("/public/wait-check", response_model=WaitCheckOut)
+async def wait_check(
+    subclass: str = Query(..., min_length=1),
+    lodged_on: date = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    if lodged_on > date.today():
+        raise HTTPException(
+            status_code=422, detail="Lodgement date cannot be in the future."
+        )
+    result = await CommunityService.wait_check(
+        db, subclass_slug=subclass, lodged_on=lodged_on
+    )
+    if result is None:
+        raise HTTPException(status_code=404, detail="Unknown visa subclass")
+    return WaitCheckOut(**result)
+
+
+@router.post(
+    "/timelines",
+    response_model=TimelineOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def submit_timeline(
+    payload: SubmitTimelineRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        timeline = await CommunityService.submit_timeline(
+            db, payload, ip_hash=_client_ip_hash(request)
+        )
+    except CommunityRateLimitError as err:
+        raise HTTPException(status_code=429, detail=str(err)) from err
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail=str(err)) from err
+    await db.commit()
+    await db.refresh(timeline)
+    return _timeline_out(timeline)
 
 
 # --- Public: spaces ---------------------------------------------------------

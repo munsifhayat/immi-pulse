@@ -1,9 +1,18 @@
-"""Community models — Spaces, Threads, Comments, Reports."""
+"""Community models — Spaces, Threads, Comments, Reports, Processing timelines."""
 
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.db.base import Base
@@ -12,6 +21,11 @@ THREAD_STATUSES = ("active", "hidden", "removed")
 REPORT_TARGET_TYPES = ("thread", "comment")
 REPORT_REASONS = ("spam", "harassment", "misleading_advice", "other")
 REPORT_STATUSES = ("open", "actioned", "dismissed")
+
+# Community-submitted visa timeline outcomes. "waiting" = lodged, no decision
+# yet (the survivorship-bias denominator); "granted"/"refused" are decided.
+TIMELINE_OUTCOMES = ("waiting", "granted", "refused")
+TIMELINE_STATUSES = ("active", "hidden", "removed")
 
 
 class CommunitySpace(Base):
@@ -139,3 +153,65 @@ class CommunityReport(Base):
         nullable=True,
     )
     resolution_note = Column(Text, nullable=True)
+
+
+class VisaSubclass(Base):
+    """Reference data for a visa subclass (+ stream), with official DHA bands.
+
+    Official percentile days come from the Department of Home Affairs global
+    processing-times publication (75th/90th percentile, updated monthly). They
+    are reference figures only; the community medians are computed live from
+    ``CommunityTimeline`` rows.
+    """
+
+    __tablename__ = "visa_subclasses"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # Stable identifier used in URLs/queries, e.g. "189" or "482-core-skills".
+    slug = Column(String, nullable=False, unique=True, index=True)
+    code = Column(String, nullable=False, index=True)  # e.g. "189", "482"
+    name = Column(String, nullable=False)
+    stream = Column(String, nullable=True)
+    # Links a subclass to its discussion space (community_spaces.slug).
+    category_slug = Column(String, nullable=True, index=True)
+
+    official_p50_days = Column(Integer, nullable=True)
+    official_p90_days = Column(Integer, nullable=True)
+    official_updated = Column(String, nullable=True)  # human label, e.g. "Mar 2026"
+
+    sort_order = Column(Integer, nullable=False, default=100)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class CommunityTimeline(Base):
+    """An anonymous, community-submitted visa processing timeline.
+
+    The spine of the "is my wait normal?" engine. ``granted_on``/``refused`` set
+    ``outcome`` to a decided state and yield a processing duration; a NULL
+    decision date means the applicant is still waiting (counted as the pending
+    denominator so stats don't suffer survivorship bias).
+    """
+
+    __tablename__ = "community_timelines"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    subclass_slug = Column(String, nullable=False, index=True)
+
+    lodged_on = Column(Date, nullable=False)
+    decided_on = Column(Date, nullable=True)  # grant/refusal date; NULL = waiting
+    outcome = Column(String, nullable=False, default="waiting", index=True)
+
+    country = Column(String, nullable=True)  # applicant country (optional, coarse)
+    note = Column(String, nullable=True)  # short, optional free text
+
+    author_ip_hash = Column(String, nullable=True, index=True)
+    status = Column(String, nullable=False, default="active", index=True)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
+    )

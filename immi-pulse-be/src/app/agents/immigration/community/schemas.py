@@ -1,16 +1,17 @@
 """Pydantic schemas for the Community feature."""
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.agents.immigration.community.models import (
     REPORT_REASONS,
     REPORT_STATUSES,
     REPORT_TARGET_TYPES,
     THREAD_STATUSES,
+    TIMELINE_OUTCOMES,
 )
 
 ThreadStatusLiteral = Literal["active", "hidden", "removed"]
@@ -18,11 +19,15 @@ ReportTargetLiteral = Literal["thread", "comment"]
 ReportReasonLiteral = Literal["spam", "harassment", "misleading_advice", "other"]
 ReportStatusLiteral = Literal["open", "actioned", "dismissed"]
 ThreadSortLiteral = Literal["new", "top", "trending"]
+TimelineOutcomeLiteral = Literal["waiting", "granted", "refused"]
+TrendLiteral = Literal["faster", "slower", "steady"]
+WaitTierLiteral = Literal["on_track", "normal", "longer", "outlier", "unknown"]
 
 assert set(THREAD_STATUSES) == set(ThreadStatusLiteral.__args__)
 assert set(REPORT_TARGET_TYPES) == set(ReportTargetLiteral.__args__)
 assert set(REPORT_REASONS) == set(ReportReasonLiteral.__args__)
 assert set(REPORT_STATUSES) == set(ReportStatusLiteral.__args__)
+assert set(TIMELINE_OUTCOMES) == set(TimelineOutcomeLiteral.__args__)
 
 
 # --- Spaces ------------------------------------------------------------------
@@ -141,6 +146,117 @@ class CommunityStatsOut(BaseModel):
     total_spaces: int
     total_threads: int
     total_comments: int
+
+
+# --- Processing times & timelines -------------------------------------------
+
+
+class VisaSubclassOut(BaseModel):
+    """Lightweight subclass reference for selectors."""
+
+    slug: str
+    code: str
+    name: str
+    stream: Optional[str] = None
+    category_slug: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class CommunityDurationStats(BaseModel):
+    """Percentile bands computed live from community timelines (all in days)."""
+
+    sample_size: int
+    pending: int
+    p25: Optional[int] = None
+    p50: Optional[int] = None
+    p75: Optional[int] = None
+    p90: Optional[int] = None
+    fastest: Optional[int] = None
+    slowest: Optional[int] = None
+
+
+class ProcessingStatOut(BaseModel):
+    """One row of the official-vs-community processing-times board."""
+
+    slug: str
+    code: str
+    name: str
+    stream: Optional[str] = None
+    category_slug: Optional[str] = None
+
+    official_p50_days: Optional[int] = None
+    official_p90_days: Optional[int] = None
+    official_updated: Optional[str] = None
+
+    community: CommunityDurationStats
+    trend: TrendLiteral = "steady"
+
+
+class SubmitTimelineRequest(BaseModel):
+    subclass_slug: str
+    lodged_on: date
+    outcome: TimelineOutcomeLiteral = "waiting"
+    decided_on: Optional[date] = None
+    country: Optional[str] = Field(default=None, max_length=60)
+    note: Optional[str] = Field(default=None, max_length=280)
+
+    @model_validator(mode="after")
+    def _check_dates(self) -> "SubmitTimelineRequest":
+        today = date.today()
+        if self.lodged_on > today:
+            raise ValueError("Lodgement date cannot be in the future.")
+        if self.outcome == "waiting":
+            # A still-waiting timeline never carries a decision date.
+            self.decided_on = None
+        else:
+            if self.decided_on is None:
+                raise ValueError("A decided outcome requires a decision date.")
+            if self.decided_on < self.lodged_on:
+                raise ValueError("Decision date cannot precede lodgement.")
+            if self.decided_on > today:
+                raise ValueError("Decision date cannot be in the future.")
+        return self
+
+
+class TimelineOut(BaseModel):
+    id: UUID
+    subclass_slug: str
+    lodged_on: date
+    decided_on: Optional[date] = None
+    outcome: TimelineOutcomeLiteral
+    processing_days: Optional[int] = None
+    country: Optional[str] = None
+    note: Optional[str] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class WaitCheckOut(BaseModel):
+    """Result of the "is my wait normal?" check for an in-progress application."""
+
+    subclass_slug: str
+    subclass_label: str
+    elapsed_days: int
+
+    tier: WaitTierLiteral
+    headline: str
+    detail: str
+    share_decided_within: Optional[int] = None
+
+    sample_size: int
+    pending: int
+    p25: Optional[int] = None
+    p50: Optional[int] = None
+    p75: Optional[int] = None
+    p90: Optional[int] = None
+    fastest: Optional[int] = None
+    slowest: Optional[int] = None
+
+    official_p50_days: Optional[int] = None
+    official_p90_days: Optional[int] = None
+    official_updated: Optional[str] = None
 
 
 ThreadWithCommentsOut.model_rebuild()
