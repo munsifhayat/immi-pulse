@@ -1,0 +1,3891 @@
+[
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "Points-tested",
+    "occupation": "ICT Business Analyst",
+    "state": "Offshore",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Offshore 190 applicant, 90+5 points, lodged Sep 2023; still in Received status roughly 20 months later with no case officer assigned and no commencement email.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2023-09-01"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Processing is not strictly date-ordered; the department is mostly working through earlier 2023 lodgements, so feeling skipped is common. Little to do but wait.",
+        "replies": [
+          {
+            "body": "Asked whether status can be requested or expedited once past the published 21-month timeframe."
+          }
+        ]
+      },
+      {
+        "body": "Healthcare and teaching get priority within 190, others are equal; a recent grant seen was lodged October 2023.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/aus-skilled-visa-migration-190.1551224/",
+    "source_site": "expatforum.com",
+    "confidence": 0.78
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": "Points-tested",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Earlier 190 applicant reported around 17 months to receive an S56 request, then about one month more to grant, with no other contact in between.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2022-12-01"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2024-05-01"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2024-06-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/aus-skilled-visa-migration-190.1551224/",
+    "source_site": "expatforum.com",
+    "confidence": 0.55
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "Points-tested",
+    "occupation": "Software Engineer",
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": "Claiming partner skill points for 189",
+    "note": "Applicant asks whether partner points can be claimed at EOI stage before obtaining a partner skills assessment, and which assessing authority suits a partner with finance/MBA background.",
+    "milestones": [],
+    "comments": [
+      {
+        "body": "All four partner-point conditions including a positive skills assessment and competent English must be met before claiming the points, not just at invitation.",
+        "replies": [
+          {
+            "body": "Confirmed the partner needs a positive assessment for their occupation; a degree alone is not enough."
+          }
+        ]
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/claiming-partners-point-189-all-questions.1483742/",
+    "source_site": "expatforum.com",
+    "confidence": 0.62
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": "State-nominated",
+    "occupation": "Developer Programmer",
+    "state": "SA",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "SA-nominated 491 applicant; invited and lodged late 2022, medical early 2023, received an S56 PCC renewal request, responded, and was granted after roughly 19 months.",
+    "milestones": [
+      {
+        "type": "State Nomination",
+        "date": "2022-10-14"
+      },
+      {
+        "type": "Invitation Received",
+        "date": "2022-10-14"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2022-12-02"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2023-01-26"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2024-04-03"
+      },
+      {
+        "type": "S56 Response Submitted",
+        "date": "2024-04-28"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2024-07-15"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/491-visa-grants.1534932",
+    "source_site": "expatforum.com",
+    "confidence": 0.92
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": "State-nominated",
+    "occupation": "ICT Support Engineer",
+    "state": "SA",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "SA-nominated 491 applicant lodged mid-2022, contacted by a case officer in late 2023, and granted in January 2024, roughly 19 months after lodging.",
+    "milestones": [
+      {
+        "type": "State Nomination",
+        "date": "2022-05-13"
+      },
+      {
+        "type": "Invitation Received",
+        "date": "2022-05-13"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2022-06-17"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2023-10-03"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2024-01-16"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/491-visa-grants.1534932",
+    "source_site": "expatforum.com",
+    "confidence": 0.85
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": "State-nominated",
+    "occupation": "Human Resource Adviser",
+    "state": null,
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Onshore 491 applicant, 85 points, lodged mid-2023, received a commencement email in January 2024, and was granted in February 2024 in under a year.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2023-06-14"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2024-02-02"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/491-visa-grants.1534932",
+    "source_site": "expatforum.com",
+    "confidence": 0.8
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": "State-nominated",
+    "occupation": null,
+    "state": "NSW",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "NSW-nominated 491 family applicant lodged late 2022, medical early 2023, then multiple S56 renewal requests for police checks and medicals, granted after about 22 months.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2022-11-28"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2023-01-14"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2024-02-01"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2024-10-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/491-visa-grants.1534932",
+    "source_site": "expatforum.com",
+    "confidence": 0.78
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "State-nominated",
+    "occupation": "Software Engineer",
+    "state": "NSW",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Offshore NSW-nominated 491 applicant, 95 points, lodged with medical April 2023 and police check May 2023; still in Received status a year later.",
+    "milestones": [
+      {
+        "type": "EOI Submitted",
+        "date": "2022-03-01"
+      },
+      {
+        "type": "State Nomination",
+        "date": "2023-03-01"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2023-04-01"
+      },
+      {
+        "type": "Police Checks",
+        "date": "2023-05-02"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/491-visa-grants.1534932",
+    "source_site": "expatforum.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "State-nominated",
+    "occupation": "Food Technologist",
+    "state": "SA",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "SA-nominated 491 applicant lodged late 2022; submitted an S56 response and a second medical in 2024, still under further assessment awaiting grant.",
+    "milestones": [
+      {
+        "type": "State Nomination",
+        "date": "2022-10-01"
+      },
+      {
+        "type": "Invitation Received",
+        "date": "2022-10-01"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2022-10-06"
+      },
+      {
+        "type": "S56 Response Submitted",
+        "date": "2024-03-25"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2024-05-21"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/491-visa-grants.1534932",
+    "source_site": "expatforum.com",
+    "confidence": 0.72
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "State-nominated",
+    "occupation": null,
+    "state": "NSW",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Offshore NSW-nominated 491 applicant, 70 points, lodged mid-2023; received an S56 police-check request about a year later and is still awaiting grant.",
+    "milestones": [
+      {
+        "type": "State Nomination",
+        "date": "2023-03-29"
+      },
+      {
+        "type": "Nomination Approved",
+        "date": "2023-04-20"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2023-05-30"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2023-08-08"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2024-06-23"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/491-visa-grants.1534932",
+    "source_site": "expatforum.com",
+    "confidence": 0.72
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "State-nominated",
+    "occupation": "Marketing Specialist",
+    "state": "ACT",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "ACT-nominated 491 applicant invited and lodged late 2022 with medical completed; still showing Received status with no further movement.",
+    "milestones": [
+      {
+        "type": "State Nomination",
+        "date": "2022-10-17"
+      },
+      {
+        "type": "Invitation Received",
+        "date": "2022-10-17"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2022-11-25"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2022-11-26"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/491-visa-grants.1534932",
+    "source_site": "expatforum.com",
+    "confidence": 0.72
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": "Points-tested",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Applicant lodged a complete application in March 2019 and received a direct grant in December 2019, roughly nine months later.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2019-03-09"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2019-12-01"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Congratulated the applicant and expressed hope of a grant soon.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://discussions.myimmitracker.com/t/visa-grant-delay-189/8111?page=90",
+    "source_site": "myimmitracker.com",
+    "confidence": 0.85
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "Points-tested",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Lodged early February 2019, had a case officer contact to add a newborn and provide more work evidence, uploaded requested documents in July 2019, then continued waiting.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2019-02-05"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2019-07-01"
+      },
+      {
+        "type": "S56 Response Submitted",
+        "date": "2019-07-11"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://discussions.myimmitracker.com/t/visa-grant-delay-189/8111?page=90",
+    "source_site": "myimmitracker.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "820-partner",
+    "category_slug": "partner-visas",
+    "outcome": "waiting",
+    "stream": "Onshore",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Self-lodged onshore partner application in March 2023, received an early request for a police check within about a month, then waiting and surprised at the fast review against the long published timeline.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2023-03-01"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2023-04-01"
+      }
+    ],
+    "comments": [
+      {
+        "body": "A responder suggested a thorough, easy-to-decide application gets triaged faster and noted their own case cleared in under three months.",
+        "replies": []
+      },
+      {
+        "body": "Applicant replied that the triage explanation made sense and offered to share their self-lodging experience.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/partner-visa-820-801-onshore-applied-march-2023-timelines.1533169/",
+    "source_site": "expatforum.com",
+    "confidence": 0.75
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "820-partner",
+    "category_slug": "partner-visas",
+    "outcome": "granted",
+    "stream": "Onshore",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Onshore partner application submitted June 2023, received a request for more information in August, submitted all evidence within the deadline, and was granted in September 2023.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2023-06-01"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2023-08-01"
+      },
+      {
+        "type": "S56 Response Submitted",
+        "date": "2023-09-01"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2023-09-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/partner-visa-820-801-onshore-applied-march-2023-timelines.1533169/",
+    "source_site": "expatforum.com",
+    "confidence": 0.8
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "820-partner",
+    "category_slug": "partner-visas",
+    "outcome": "granted",
+    "stream": "Onshore",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Combined onshore partner application lodged mid-May 2023, request for ID, a discharge document and a health exam in August, with the first-stage visa granted in September 2023; a later attempt to have the permanent stage processed was declined.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2023-05-18"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2023-08-08"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2023-08-08"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2023-09-08"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Another member suggested the relationship may not have reached the required duration at lodgement, which could explain why the permanent stage was not granted together.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/partner-visa-820-801-onshore-applied-march-2023-timelines.1533169/",
+    "source_site": "expatforum.com",
+    "confidence": 0.78
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "820-partner",
+    "category_slug": "partner-visas",
+    "outcome": "waiting",
+    "stream": "Offshore",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": "Does sponsoring a spouse who gained PR as a secondary applicant count as prior sponsorship?",
+    "note": "Applicant lodged an offshore partner application for their spouse and worries whether a former partner who gained residence as a secondary applicant on their skilled visa counts as a previous sponsorship on the sponsor form.",
+    "milestones": [],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/partner-visa-820-801-onshore-applied-march-2023-timelines.1533169/",
+    "source_site": "expatforum.com",
+    "confidence": 0.6
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "Points-tested",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Lodged in mid-July 2017 with medicals uploaded about ten days later, still with no case officer contact and continuing to wait.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2017-07-14"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2017-07-25"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://discussions.myimmitracker.com/t/visa-tracker-sc189/1835?page=16",
+    "source_site": "myimmitracker.com",
+    "confidence": 0.72
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "Points-tested",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Lodged at the end of May 2017 with a processing-commenced email in mid-July; after more than three months the application status was still received with no documents requested.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2017-05-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://discussions.myimmitracker.com/t/visa-tracker-sc189/1835?page=16",
+    "source_site": "myimmitracker.com",
+    "confidence": 0.62
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "Points-tested",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Lodged early April 2017 with employment verification confirmed in early September; past the standard processing time and still awaiting a grant with no useful response to status enquiries.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2017-04-04"
+      },
+      {
+        "type": "Other",
+        "date": "2017-09-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://discussions.myimmitracker.com/t/visa-tracker-sc189/1835?page=16",
+    "source_site": "myimmitracker.com",
+    "confidence": 0.68
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "Points-tested",
+    "occupation": "Engineer",
+    "state": "Offshore",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Engineering applicant with 65 points submitted an expression of interest in early September 2017, received an invitation on 20 September, lodged on 27 September with all documents front-loaded, and is waiting on a grant estimate.",
+    "milestones": [
+      {
+        "type": "EOI Submitted",
+        "date": "2017-09-06"
+      },
+      {
+        "type": "Invitation Received",
+        "date": "2017-09-20"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2017-09-27"
+      }
+    ],
+    "comments": [
+      {
+        "body": "A moderator pointed the applicant to the tracker's grant-date estimator tool.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://discussions.myimmitracker.com/t/visa-tracker-sc189/1835?page=16",
+    "source_site": "myimmitracker.com",
+    "confidence": 0.75
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "186-direct-entry",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": "Direct Entry",
+    "occupation": null,
+    "state": "Offshore",
+    "area": null,
+    "sponsor_type": null,
+    "title": "How long does offshore 186 direct-entry nomination take for critical-list occupations?",
+    "note": "Offshore applicant asks how long the employer-sponsored permanent nomination is taking for occupations on the priority shortage list.",
+    "milestones": [],
+    "comments": [
+      {
+        "body": "Responders said accredited-sponsor and healthcare cases move fastest, possibly four to six weeks if paperwork is complete, while others can face long delays.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/186-visa-nomination-timeline-for-offshore.1517014/",
+    "source_site": "expatforum.com",
+    "confidence": 0.6
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "186-direct-entry",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": "Direct Entry",
+    "occupation": "academic",
+    "state": "WA",
+    "area": null,
+    "sponsor_type": null,
+    "title": "186 DE nomination and visa processing time for offshore academic",
+    "note": "Offshore academic whose university lodged a 186 DE nomination in May 2020 asks how long nomination plus visa take and whether a dependent needs an English test.",
+    "milestones": [],
+    "comments": [
+      {
+        "body": "Nomination approval often takes one to two months but can stretch longer; offshore timelines are harder to predict.",
+        "replies": [
+          {
+            "body": "A dependent with an English-medium degree can usually prove functional English with study certificates instead of sitting a test."
+          }
+        ]
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/employer-nomination-scheme-visa-subclass-186-direct-entry-stream.1502922/",
+    "source_site": "expatforum.com",
+    "confidence": 0.8
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "186-direct-entry",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": "Direct Entry",
+    "occupation": "engineer",
+    "state": "VIC",
+    "area": "metro",
+    "sponsor_type": "accredited",
+    "title": null,
+    "note": "Onshore engineer with an accredited sponsor lodged nomination and visa together; case officer assigned within weeks, nomination approved, documents and medical completed, awaiting decision.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2020-09-21"
+      },
+      {
+        "type": "Nomination Approved",
+        "date": "2020-10-09"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2020-10-09"
+      },
+      {
+        "type": "S56 Response Submitted",
+        "date": "2020-10-10"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2020-10-10"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/employer-nomination-scheme-visa-subclass-186-direct-entry-stream.1502922/",
+    "source_site": "expatforum.com",
+    "confidence": 0.82
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "186-direct-entry",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": "Direct Entry",
+    "occupation": "university lecturer",
+    "state": "Offshore",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Offshore university lecturer had nomination lodged and approved within a week, then lodged the visa and completed health checks, but the application has stayed at received with no further update.",
+    "milestones": [
+      {
+        "type": "Nomination Lodged",
+        "date": "2020-03-06"
+      },
+      {
+        "type": "Nomination Approved",
+        "date": "2020-03-12"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2020-03-19"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2020-05-19"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/employer-nomination-scheme-visa-subclass-186-direct-entry-stream.1502922/",
+    "source_site": "expatforum.com",
+    "confidence": 0.85
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "186-direct-entry",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": "Direct Entry",
+    "occupation": null,
+    "state": "Offshore",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Offshore applicant lodged the nomination in late July and the visa about a month later, with no update on either by mid-September.",
+    "milestones": [
+      {
+        "type": "Nomination Lodged",
+        "date": "2020-07-24"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2020-08-24"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/employer-nomination-scheme-visa-subclass-186-direct-entry-stream.1502922/",
+    "source_site": "expatforum.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "482-core-skills",
+    "category_slug": "employer-sponsored",
+    "outcome": "granted",
+    "stream": "Medium Term",
+    "occupation": "software engineer",
+    "state": "Offshore",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Offshore software engineer on a medium-term 482 lodged in early December, completed health clearance days later, and received the grant about six weeks after lodgement.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2021-12-08"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-12-18"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2022-01-21"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Larger sponsoring companies tend to see faster processing; asking HR to email the department that work is suffering may help.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/482-visa-processing-time.1522456",
+    "source_site": "expatforum.com",
+    "confidence": 0.85
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "482-core-skills",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": "Medium Term",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Medium-term 482 applicant had sponsorship lodged and approved in November, lodged the visa in December, then received a case officer request for a spouse form which was answered, and is awaiting a decision.",
+    "milestones": [
+      {
+        "type": "Nomination Lodged",
+        "date": "2021-11-02"
+      },
+      {
+        "type": "Nomination Approved",
+        "date": "2021-11-29"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2021-12-02"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2021-12-16"
+      },
+      {
+        "type": "S56 Response Submitted",
+        "date": "2021-12-21"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/482-visa-processing-time.1522456",
+    "source_site": "expatforum.com",
+    "confidence": 0.78
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "482-core-skills",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": "Medium Term",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Medium-term 482 applicant lodged the visa in early December and completed medicals in mid-January, but more than two months later the status still showed received.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2021-12-09"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2022-01-18"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/482-visa-processing-time.1522456",
+    "source_site": "expatforum.com",
+    "confidence": 0.75
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "485-post-study",
+    "category_slug": "graduate-post-study",
+    "outcome": "waiting",
+    "stream": "Post-Study Work",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": "485 subsequent entrant processing time and how to lodge",
+    "note": "A 485 holder asks how to lodge a subsequent-entrant application for family overseas, whether it can be submitted from within Australia, and the usual processing time.",
+    "milestones": [],
+    "comments": [
+      {
+        "body": "Subsequent-entrant 485 applications must be lodged on paper using the relevant form; family can apply from inside or outside Australia.",
+        "replies": [
+          {
+            "body": "Reported processing for subsequent entrants tends to run roughly three to twelve weeks."
+          }
+        ]
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/485-subsequent-entrant.1490148/",
+    "source_site": "expatforum.com",
+    "confidence": 0.78
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "485-post-study",
+    "category_slug": "graduate-post-study",
+    "outcome": "granted",
+    "stream": "Post-Study Work",
+    "occupation": "chef",
+    "state": "VIC",
+    "area": "metro",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Graduate cook lodged a 485 online in February, completed a health exam in March due to a past medical condition, and received the grant about two months after lodging.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2019-02-13"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2019-03-08"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2019-04-12"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/485-subsequent-entrant.1490148/",
+    "source_site": "expatforum.com",
+    "confidence": 0.78
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": null,
+    "state": "Offshore",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Applicant got state nomination approved within a day on priority, lodged 190 in early Sep 2022, uploaded most docs and booked medicals; still in received status awaiting grant.",
+    "milestones": [
+      {
+        "type": "Nomination Approved",
+        "date": "2022-08-01"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2022-09-07"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2022-10-21"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Did you request priority processing for the nomination, and did you lodge the visa without police checks ready?",
+        "replies": [
+          {
+            "body": "Requested priority citing an expiring skills assessment; nomination approved in under 24 hours. Lodged the visa and noted in a text box that police checks from multiple countries were still being processed."
+          }
+        ]
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/190-visa-lodge-grant-fy-2022-23.1527883/",
+    "source_site": "expatforum.com",
+    "confidence": 0.85
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": null,
+    "occupation": "ICT business analyst",
+    "state": "NSW",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "NSW 190 applicant with 105 points received a straight grant about 20 days after lodging, with no case officer contact in between.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2022-10-20"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2022-11-09"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/190-visa-lodge-grant-fy-2022-23.1527883/",
+    "source_site": "expatforum.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": null,
+    "state": "VIC",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Onshore applicant lodged a Victoria 190 in 2019; after roughly three years the file was opened and a case officer requested fresh medicals, police checks and a partner police check.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2019-01-01"
+      },
+      {
+        "type": "Police Checks",
+        "date": "2022-10-16"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2022-10-16"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/190-visa-lodge-grant-fy-2022-23.1527883/",
+    "source_site": "expatforum.com",
+    "confidence": 0.65
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Applicant lodged a 190 in November 2019 and received a first case officer contact in August 2022, still waiting for a decision.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2019-11-01"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2022-08-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/190-visa-lodge-grant-fy-2022-23.1527883/",
+    "source_site": "expatforum.com",
+    "confidence": 0.6
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "state nominated",
+    "occupation": "electrical engineer",
+    "state": "SA",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Offshore applicant lodged a 491 with South Australia nomination and completed health clearance; worried that published processing times jumped sharply and asking whether to also submit a 189 EOI.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2022-11-01"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2022-12-01"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Nothing stops you submitting another EOI, but you may need to withdraw the 491 if a 189 invite comes; consult a registered agent.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/491-processing-times.1530475/",
+    "source_site": "expatforum.com",
+    "confidence": 0.75
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": "family sponsored",
+    "occupation": "biomedical engineer",
+    "state": "SA",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Family-sponsored 491 in SA: invited early October 2022, lodged end of November, case officer contact mid December, health cleared two days later, grant in February 2023.",
+    "milestones": [
+      {
+        "type": "Invitation Received",
+        "date": "2022-10-06"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2022-11-30"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2022-12-14"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2022-12-16"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2023-02-10"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/491-processing-times.1530475/",
+    "source_site": "expatforum.com",
+    "confidence": 0.85
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": "state nominated",
+    "occupation": "ICT quality assurance",
+    "state": "SA",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "State-nominated 491 in SA: invited May 2022, lodged June, medical July; grant came through in February 2023, roughly eight months after lodging.",
+    "milestones": [
+      {
+        "type": "Invitation Received",
+        "date": "2022-05-01"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2022-06-01"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2022-07-01"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2023-02-10"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/491-processing-times.1530475/",
+    "source_site": "expatforum.com",
+    "confidence": 0.8
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "family sponsored",
+    "occupation": "electronics engineer",
+    "state": "SA",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Family-sponsored 491 in SA: invited October 2022, lodged November with medicals done the same month; still pending a decision.",
+    "milestones": [
+      {
+        "type": "Invitation Received",
+        "date": "2022-10-01"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2022-11-01"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2022-11-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/491-processing-times.1530475/",
+    "source_site": "expatforum.com",
+    "confidence": 0.75
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "state nominated",
+    "occupation": "software developer",
+    "state": "SA",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "State-nominated 491 in SA: invited October 2022, lodged December, medical January 2023; status moved to further assessment.",
+    "milestones": [
+      {
+        "type": "Invitation Received",
+        "date": "2022-10-01"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2022-12-01"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2023-01-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/491-processing-times.1530475/",
+    "source_site": "expatforum.com",
+    "confidence": 0.75
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "state nominated",
+    "occupation": "geophysicist",
+    "state": "SA",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "State-nominated 491 in SA: invited 10 October 2022, lodged 15 November, medical 12 December; status still received as of May 2023.",
+    "milestones": [
+      {
+        "type": "Invitation Received",
+        "date": "2022-10-10"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2022-11-15"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2022-12-12"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/491-processing-times.1530475/",
+    "source_site": "expatforum.com",
+    "confidence": 0.8
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": null,
+    "state": null,
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "491 applicant received an information request in June 2023 for a single accredited document translation and an updated police check, asking whether further requests are likely.",
+    "milestones": [
+      {
+        "type": "S56 Request Received",
+        "date": "2023-06-02"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Multiple information requests can happen; you can never assume everything is accepted until the grant arrives.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/491-processing-times.1530475/",
+    "source_site": "expatforum.com",
+    "confidence": 0.6
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "189 applicant invited 1 March 2017, lodged 14 March, finished uploading all documents by 1 April; received an assessment-commenced email on 22 May and is still waiting.",
+    "milestones": [
+      {
+        "type": "Invitation Received",
+        "date": "2017-03-01"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2017-03-14"
+      },
+      {
+        "type": "Other",
+        "date": "2017-05-22"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://discussions.myimmitracker.com/t/visa-tracker-sc189/1835?page=13",
+    "source_site": "myimmitracker.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": null,
+    "state": "Offshore",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "189 applicant lodged 17 December 2016; case officer requested police checks and medicals in January 2017 and the applicant uploaded an overseas police check in April, then heard nothing further.",
+    "milestones": [
+      {
+        "type": "S56 Request Received",
+        "date": "2017-01-11"
+      },
+      {
+        "type": "S56 Response Submitted",
+        "date": "2017-04-21"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://discussions.myimmitracker.com/t/visa-tracker-sc189/1835?page=13",
+    "source_site": "myimmitracker.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": null,
+    "state": "NSW",
+    "area": null,
+    "sponsor_type": null,
+    "title": "Telling DHA about a pregnancy while a 190 is pending",
+    "note": "Applicant lodged a 190 NSW with spouse and child and finished medicals; asks when to notify the department about a planned pregnancy and whether it delays the grant or means redoing medicals.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2024-01-01"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2024-01-10"
+      }
+    ],
+    "comments": [
+      {
+        "body": "You must report a change in circumstances such as pregnancy; the file is then put on hold so the newborn can be added, and hiding it can cause problems later.",
+        "replies": [
+          {
+            "body": "It is usually better to have the baby before the grant, since getting a visa for a child born offshore after the grant is a long process."
+          }
+        ]
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/pregnancy-during-visa-application-process.1539337/",
+    "source_site": "expatforum.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": "state nominated",
+    "occupation": "IT professional",
+    "state": "NSW",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Family granted a 491 regional visa nominated by NSW while offshore; now planning the move and job search in IT.",
+    "milestones": [
+      {
+        "type": "State Nomination",
+        "date": "2025-11-01"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2025-11-01"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Offshore IT roles are very hard to land; local experience and networking matter more than a local SIM or address.",
+        "replies": [
+          {
+            "body": "No issue working in another regional state later; the 191 pathway is not tied to staying in the nominating state."
+          }
+        ]
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/491-visa-grant-2026-state-nominated.1553516/",
+    "source_site": "expatforum.com",
+    "confidence": 0.82
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "state nominated",
+    "occupation": "IT professional",
+    "state": "NSW",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Still awaiting a 491 NSW grant; planning to relocate to a regional NSW city and look for IT or trade work.",
+    "milestones": [
+      {
+        "type": "State Nomination",
+        "date": "2026-02-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/491-visa-grant-2026-state-nominated.1553516/",
+    "source_site": "expatforum.com",
+    "confidence": 0.55
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "state nominated",
+    "occupation": "business development manager",
+    "state": "SA",
+    "area": null,
+    "sponsor_type": null,
+    "title": "Offshore 491 invite chances for SA business development role",
+    "note": "Asking about realistic points and timing for an offshore 491 SA invitation in an ICT management occupation on the state list.",
+    "milestones": [],
+    "comments": [
+      {
+        "body": "Suggested applying broadly across 491, 189 and 190 since 491 allocations are being cut; some recent invites seen around 100 to 110 points.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/491-visa-grant-2026-state-nominated.1553516/",
+    "source_site": "expatforum.com",
+    "confidence": 0.6
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "482-core-skills",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Primary applicant lodged a company-sponsored 482, submitted requested extra documents in February, but is still under further assessment.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2024-02-01"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2024-02-01"
+      },
+      {
+        "type": "S56 Response Submitted",
+        "date": "2024-02-15"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Another applicant noted being in the same situation, lodged in February with status still showing as received.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/482-visa-processing-time.1541969/",
+    "source_site": "expatforum.com",
+    "confidence": 0.6
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "482-core-skills",
+    "category_slug": "employer-sponsored",
+    "outcome": "granted",
+    "stream": null,
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Reported the 482 was granted after about 119 days of waiting, encouraging others to stay hopeful.",
+    "milestones": [
+      {
+        "type": "Visa Granted",
+        "date": "2024-06-05"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/482-visa-processing-time.1541969/",
+    "source_site": "expatforum.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "482-core-skills",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": "medium term",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Lodged a medium-term 482 in late February, received an S56 a week later for police and medical, submitted both, and is still waiting.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2024-02-21"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2024-02-28"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2024-02-29"
+      },
+      {
+        "type": "Police Checks",
+        "date": "2024-02-29"
+      },
+      {
+        "type": "S56 Response Submitted",
+        "date": "2024-02-29"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/482-visa-processing-time.1541969/",
+    "source_site": "expatforum.com",
+    "confidence": 0.62
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "482-core-skills",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": "medium term",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Transferred from a short-term 482; lodged a medium-term 482 in March, got an S56 for medical, completed it in April, still under further assessment past the processing window.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2024-03-06"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2024-03-27"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2024-04-18"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/482-visa-processing-time.1541969/",
+    "source_site": "expatforum.com",
+    "confidence": 0.62
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "500-higher-ed",
+    "category_slug": "student-visas",
+    "outcome": "waiting",
+    "stream": "subsequent entrant",
+    "occupation": null,
+    "state": "QLD",
+    "area": null,
+    "sponsor_type": null,
+    "title": "Subclass 500 subsequent-entrant dependent processing time",
+    "note": "Master's student lodged a subclass 500 subsequent-entrant application for a spouse in late April; asking whether proposed July changes affect dependent processing.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2024-04-26"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Others reported lodging in March and May for partners and still waiting with no outcome.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/student-subsequent-entrant-subclass-500-dependent-visa-processing-time.1543018/",
+    "source_site": "expatforum.com",
+    "confidence": 0.6
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "500-higher-ed",
+    "category_slug": "student-visas",
+    "outcome": "waiting",
+    "stream": "subsequent entrant",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Spouse of a higher-education student; lodged own application in early May, completed health check and biometrics mid-May, still no decision by August.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2024-05-06"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2024-05-16"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/student-subsequent-entrant-subclass-500-dependent-visa-processing-time.1543018/",
+    "source_site": "expatforum.com",
+    "confidence": 0.58
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "500-higher-ed",
+    "category_slug": "student-visas",
+    "outcome": "granted",
+    "stream": "subsequent entrant",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Subsequent-entrant subclass 500 in the higher-education sector was granted in early October after lodging in mid-June.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2024-06-14"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2024-10-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/student-subsequent-entrant-subclass-500-dependent-visa-processing-time.1543018/",
+    "source_site": "expatforum.com",
+    "confidence": 0.65
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": "network and systems engineer",
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": "189 invitation received, next steps and document checklist",
+    "note": "Received a 189 invitation onshore with 90 points; asking about the lodgement process, whether to do medicals upfront, and what documents to upload.",
+    "milestones": [
+      {
+        "type": "Skills Assessment Approved",
+        "date": "2022-01-01"
+      },
+      {
+        "type": "English Test Completed",
+        "date": "2022-01-01"
+      },
+      {
+        "type": "Invitation Received",
+        "date": "2022-12-07"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Advised generating a HAP ID, completing medicals, and uploading Form 80, 1221 and supporting documents upfront to aim for a direct grant.",
+        "replies": [
+          {
+            "body": "Noted that waiting for case-officer contact can push the grant back by weeks or months."
+          }
+        ]
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/189-invitation-received-next-steps.1530129/",
+    "source_site": "expatforum.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "186-direct-entry",
+    "category_slug": "employer-sponsored",
+    "outcome": "granted",
+    "stream": "Direct Entry",
+    "occupation": "Professional Engineer",
+    "state": "VIC",
+    "area": "metro",
+    "sponsor_type": "accredited",
+    "title": null,
+    "note": "Onshore engineer; full DE journey from skills assessment to grant in about four months, with an info request after nomination approval.",
+    "milestones": [
+      {
+        "type": "Skills Assessment Lodged",
+        "date": "2020-07-16"
+      },
+      {
+        "type": "Police Checks",
+        "date": "2020-07-25"
+      },
+      {
+        "type": "English Test Completed",
+        "date": "2020-07-28"
+      },
+      {
+        "type": "Skills Assessment Approved",
+        "date": "2020-08-15"
+      },
+      {
+        "type": "Nomination Lodged",
+        "date": "2020-09-04"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2020-09-21"
+      },
+      {
+        "type": "Nomination Approved",
+        "date": "2020-10-09"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2020-10-09"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2020-10-10"
+      },
+      {
+        "type": "S56 Response Submitted",
+        "date": "2020-10-12"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2020-11-10"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Another member asked what the case officer requested in the s56.",
+        "replies": [
+          {
+            "body": "Applicant replied the officer wanted licensing/registration evidence and work history proof such as payslips and tax documents."
+          }
+        ]
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/186-ens-timelines.1507558",
+    "source_site": "expatforum.com",
+    "confidence": 0.95
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "186-direct-entry",
+    "category_slug": "employer-sponsored",
+    "outcome": "granted",
+    "stream": "Direct Entry",
+    "occupation": "Business Analyst",
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Primary applicant onshore with offshore dependents; nomination and visa lodged together, granted in about two months.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2020-09-18"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2020-09-25"
+      },
+      {
+        "type": "Nomination Approved",
+        "date": "2020-11-16"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2020-11-17"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/186-ens-timelines.1507558",
+    "source_site": "expatforum.com",
+    "confidence": 0.9
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "186-direct-entry",
+    "category_slug": "employer-sponsored",
+    "outcome": "granted",
+    "stream": "Temporary Residence Transition",
+    "occupation": "Software Engineer",
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Offshore applicant with two dependents; nomination and visa lodged together, both approved in roughly two months.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2020-07-16"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2020-07-17"
+      },
+      {
+        "type": "Nomination Approved",
+        "date": "2020-09-15"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2020-09-15"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/186-ens-timelines.1507558",
+    "source_site": "expatforum.com",
+    "confidence": 0.78
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "186-direct-entry",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": "Direct Entry",
+    "occupation": "Business Analyst",
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Onshore applicant lodged nomination and visa together with health check done a week later; no department updates yet.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2020-09-25"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2020-10-02"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/186-ens-timelines.1507558",
+    "source_site": "expatforum.com",
+    "confidence": 0.72
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "186-direct-entry",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": "Direct Entry",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Nomination lodged in late July and visa lodged in late August with police and medicals included; awaiting any update.",
+    "milestones": [
+      {
+        "type": "Nomination Lodged",
+        "date": "2020-07-24"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2020-08-24"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/186-ens-timelines.1507558",
+    "source_site": "expatforum.com",
+    "confidence": 0.6
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": "State Nominated",
+    "occupation": "Healthcare Professional",
+    "state": "NSW",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": "Secondary applicant relocating and 191 eligibility timing on a joint 491",
+    "note": "Couple granted a NSW-nominated 491; asks whether the secondary applicant can move regionally first, live outside the nominating state, and how staggered residence affects 191 eligibility.",
+    "milestones": [
+      {
+        "type": "Visa Granted",
+        "date": "2025-09-01"
+      }
+    ],
+    "comments": [
+      {
+        "body": "A responder said re-entry is fine once entry conditions are met and that living/working in any designated regional area satisfies the conditions; the nominating-state commitment is moral rather than legal.",
+        "replies": [
+          {
+            "body": "Original poster thanked them and said it was helpful."
+          }
+        ]
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/491-visa-conditions.1553395/",
+    "source_site": "expatforum.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": "State Nominated",
+    "occupation": "Service Manager",
+    "state": "NSW",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Offshore family of five; visa granted after about 28 months with four separate document requests, the last answered in mid-2025.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2023-05-30"
+      },
+      {
+        "type": "S56 Response Submitted",
+        "date": "2025-07-20"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2025-10-03"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Another waiting applicant congratulated them and asked whether the document requests came in different months and what each was for.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/visa-subclass-491-waiting-period.1542959/",
+    "source_site": "expatforum.com",
+    "confidence": 0.85
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "State Nominated",
+    "occupation": "ICT Professional",
+    "state": "NSW",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Received NSW invitation late 2023 and lodged early 2024; still waiting many months later despite NSW nomination steps completing quickly.",
+    "milestones": [
+      {
+        "type": "Invitation Received",
+        "date": "2023-12-01"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2024-01-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/visa-subclass-491-waiting-period.1542959/",
+    "source_site": "expatforum.com",
+    "confidence": 0.72
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "State Nominated",
+    "occupation": null,
+    "state": "NT",
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "NT-nominated applicant lodged mid-2023 with medicals done same month and police checks refreshed late 2024; still awaiting an outcome.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2023-07-07"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2023-07-07"
+      },
+      {
+        "type": "Police Checks",
+        "date": "2024-12-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/visa-subclass-491-waiting-period.1542959/",
+    "source_site": "expatforum.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "State Nominated",
+    "occupation": null,
+    "state": null,
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Lodged mid-2023; a case officer asked for Form 80 and a redone police check about 16 months later, with documents submitted in mid-2025.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2023-12-01"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2025-04-23"
+      },
+      {
+        "type": "S56 Response Submitted",
+        "date": "2025-05-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/visa-subclass-491-waiting-period.1542959/",
+    "source_site": "expatforum.com",
+    "confidence": 0.6
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "491-regional",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": "State Nominated",
+    "occupation": null,
+    "state": null,
+    "area": "regional",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Lodged mid-2023; received a document request in Aug 2025 for partner's English plus a re-medical, all cleared and submitted within days; no further update.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2023-07-07"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2025-08-11"
+      },
+      {
+        "type": "S56 Response Submitted",
+        "date": "2025-08-15"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2025-08-18"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/visa-subclass-491-waiting-period.1542959/",
+    "source_site": "expatforum.com",
+    "confidence": 0.62
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": "Mechanical Engineer",
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Lodged in late 2018 and self-submitted an English score in early 2019 without a case officer request; over five months on still no grant.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2018-10-19"
+      },
+      {
+        "type": "English Test Completed",
+        "date": "2019-01-30"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://discussions.myimmitracker.com/t/visa-grant-delay-189/8111",
+    "source_site": "myimmitracker.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": "ICT Security Specialist",
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Lodged in late February 2019 with 70 points; no case update reported.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2019-02-27"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://discussions.myimmitracker.com/t/visa-grant-delay-189/8111",
+    "source_site": "myimmitracker.com",
+    "confidence": 0.62
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": "Electronics Engineer",
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Lodged mid-January 2019 with 75 points; a case officer requested documents in April and they were submitted within a week, then silence.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2019-01-17"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2019-04-17"
+      },
+      {
+        "type": "S56 Response Submitted",
+        "date": "2019-04-24"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://discussions.myimmitracker.com/t/visa-grant-delay-189/8111",
+    "source_site": "myimmitracker.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": "Developer Programmer",
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Lodged late February 2019 with 80 points; no case officer contact and no grant yet.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2019-02-28"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://discussions.myimmitracker.com/t/visa-grant-delay-189/8111",
+    "source_site": "myimmitracker.com",
+    "confidence": 0.62
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Lodged in late March 2019 with all documents in by month-end and medicals done within three weeks; still no case officer assigned.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2019-03-21"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2019-04-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://discussions.myimmitracker.com/t/visa-grant-delay-189/8111",
+    "source_site": "myimmitracker.com",
+    "confidence": 0.6
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "485-post-study",
+    "category_slug": "graduate-post-study",
+    "outcome": "waiting",
+    "stream": "post-study work",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Onshore graduate; lodged Oct 2020, completed medical Jan 2021, still in Received status after roughly six months as processing estimates fluctuated.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2020-10-01"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-01-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/485-visa-processing-time.1515277",
+    "source_site": "expatforum.com",
+    "confidence": 0.6
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "485-post-study",
+    "category_slug": "graduate-post-study",
+    "outcome": "waiting",
+    "stream": "post-study work",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Onshore graduate; lodged March 2021, completed medical early April 2021, application still in Received status.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2021-03-01"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-04-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/485-visa-processing-time.1515277",
+    "source_site": "expatforum.com",
+    "confidence": 0.55
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "485-post-study",
+    "category_slug": "graduate-post-study",
+    "outcome": "granted",
+    "stream": "post-study work",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Graduate; lodged February 2021 and received the grant in early September 2021, about seven months later.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2021-02-01"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2021-09-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/485-visa-processing-time.1515277",
+    "source_site": "expatforum.com",
+    "confidence": 0.55
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "485-post-study",
+    "category_slug": "graduate-post-study",
+    "outcome": "waiting",
+    "stream": "post-study work",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Graduate; lodged mid-March 2021, requested medical completed September 2021, no further update since.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2021-03-14"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-09-01"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/485-visa-processing-time.1515277",
+    "source_site": "expatforum.com",
+    "confidence": 0.55
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "485-post-study",
+    "category_slug": "graduate-post-study",
+    "outcome": "waiting",
+    "stream": "post-study work",
+    "occupation": null,
+    "state": "NSW",
+    "area": "metro",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Sydney graduate; lodged early May 2021, medical delayed by lockdown to October 2021, still in further assessment status.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2021-05-05"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-10-20"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/485-visa-processing-time.1515277",
+    "source_site": "expatforum.com",
+    "confidence": 0.6
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "485-post-study",
+    "category_slug": "graduate-post-study",
+    "outcome": "waiting",
+    "stream": "post-study work",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Graduate; lodged mid-May 2021, still waiting more than eight months later with no decision.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2021-05-19"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/485-visa-processing-time.1515277",
+    "source_site": "expatforum.com",
+    "confidence": 0.55
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "485-post-study",
+    "category_slug": "graduate-post-study",
+    "outcome": "waiting",
+    "stream": "post-study work",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Graduate; lodged late November 2021, completed medical early December 2021, still waiting around six months later.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2021-11-26"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-12-03"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/485-visa-processing-time.1515277",
+    "source_site": "expatforum.com",
+    "confidence": 0.55
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "485-post-study",
+    "category_slug": "graduate-post-study",
+    "outcome": "granted",
+    "stream": "post-study work",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Combined application with partner; lodged early November 2021 with medical the same month, granted early June 2022.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2021-11-08"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-11-08"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2022-06-02"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/485-visa-processing-time.1515277",
+    "source_site": "expatforum.com",
+    "confidence": 0.55
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "485-post-study",
+    "category_slug": "graduate-post-study",
+    "outcome": "waiting",
+    "stream": "post-study work",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Graduate; lodged 1 January 2022 with medical completed late March 2022, awaiting a decision.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2022-01-01"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2022-03-29"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/485-visa-processing-time.1515277",
+    "source_site": "expatforum.com",
+    "confidence": 0.55
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "485-post-study",
+    "category_slug": "graduate-post-study",
+    "outcome": "waiting",
+    "stream": "post-study work",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Offshore partner on a combined post-study application led by onshore primary; lodged late June 2022, medical completed end of August 2022.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2022-06-20"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2022-08-30"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/485-visa-processing-time.1515277",
+    "source_site": "expatforum.com",
+    "confidence": 0.5
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "500-higher-ed",
+    "category_slug": "student-visas",
+    "outcome": "refused",
+    "stream": "spouse-included student",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Student applicant for a masters in professional accounting, with a spouse included; visa refused, with a multi-year study gap cited as a likely factor.",
+    "milestones": [
+      {
+        "type": "Other",
+        "date": "2020-02-28"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Consider engaging a registered migration agent who specialises in education visas.",
+        "replies": []
+      },
+      {
+        "body": "A large gap since prior study and tightened student-visa risk settings can make approval harder.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/refusal-case.1497388",
+    "source_site": "expatforum.com",
+    "confidence": 0.55
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": "software engineer",
+    "state": "NSW",
+    "area": "metro",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Skilled nominated applicant lodged in April 2019, received a case officer request for an employment reference, responded next day, still awaiting grant nine months on.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2019-04-14"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2019-11-18"
+      },
+      {
+        "type": "S56 Response Submitted",
+        "date": "2019-11-19"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Another applicant noted similar timing, with grants seemingly only reaching March to April lodgements.",
+        "replies": [
+          {
+            "body": "Asked to be kept posted on any movement."
+          }
+        ]
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/190-visa-grant-lodge-2020.1493088",
+    "source_site": "expatforum.com",
+    "confidence": 0.9
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": "software engineer",
+    "state": "NSW",
+    "area": "metro",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Skilled nominated applicant with only Australian work experience lodged in early April 2019 and reports nine months of waiting with no case officer contact.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2019-04-06"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/190-visa-grant-lodge-2020.1493088",
+    "source_site": "expatforum.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": null,
+    "occupation": "construction project manager",
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Skilled nominated applicant with a family of five lodged in early February 2019 and received the grant about eleven months later.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2019-02-05"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2020-01-14"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/190-visa-grant-lodge-2020.1493088",
+    "source_site": "expatforum.com",
+    "confidence": 0.85
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": null,
+    "occupation": "accountant",
+    "state": "QLD",
+    "area": "metro",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Skilled nominated accountant received state nomination in mid-September 2019, lodged shortly after, and was granted about four months later.",
+    "milestones": [
+      {
+        "type": "State Nomination",
+        "date": "2019-09-17"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2019-09-25"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2020-01-14"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/190-visa-grant-lodge-2020.1493088",
+    "source_site": "expatforum.com",
+    "confidence": 0.9
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": null,
+    "occupation": "mining engineer",
+    "state": "NSW",
+    "area": "metro",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Skilled nominated engineer received state nomination in early September 2019, lodged late September, had a brief case officer query, and was granted in mid-January 2020.",
+    "milestones": [
+      {
+        "type": "State Nomination",
+        "date": "2019-09-04"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2019-09-24"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2019-10-21"
+      },
+      {
+        "type": "S56 Response Submitted",
+        "date": "2019-10-21"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2020-01-14"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/190-visa-grant-lodge-2020.1493088",
+    "source_site": "expatforum.com",
+    "confidence": 0.92
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": null,
+    "occupation": "developer programmer",
+    "state": "VIC",
+    "area": "metro",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Skilled nominated developer lodged in early August 2019, had a case officer request for an overseas police report in November, and was granted in mid-January 2020.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2019-08-01"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2019-11-01"
+      },
+      {
+        "type": "Police Checks",
+        "date": "2019-11-01"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2020-01-14"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/190-visa-grant-lodge-2020.1493088",
+    "source_site": "expatforum.com",
+    "confidence": 0.8
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "482-core-skills",
+    "category_slug": "employer-sponsored",
+    "outcome": "granted",
+    "stream": null,
+    "occupation": "business analyst",
+    "state": null,
+    "area": null,
+    "sponsor_type": "non_accredited",
+    "title": null,
+    "note": "Employer-sponsored medium-term applicant (family of three) lodged visa and nomination together in early May 2018 and was granted within about eight weeks, no priority processing.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2018-05-04"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2018-06-28"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Another member asked whether the nomination and visa can be lodged at the same time.",
+        "replies": [
+          {
+            "body": "Confirmed they were lodged together in this case."
+          }
+        ]
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/482-tss-processing-time.1437290",
+    "source_site": "expatforum.com",
+    "confidence": 0.9
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "482-core-skills",
+    "category_slug": "employer-sponsored",
+    "outcome": "granted",
+    "stream": null,
+    "occupation": "accountant",
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Employer-sponsored applicant lodged in April 2020, completed medicals in late October, had nomination approved in late February 2021, responded to a further request, and was granted in April 2021.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2020-04-11"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2020-10-30"
+      },
+      {
+        "type": "Nomination Approved",
+        "date": "2021-02-26"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2021-04-15"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2021-04-23"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/482-tss-processing-time.1437290",
+    "source_site": "expatforum.com",
+    "confidence": 0.9
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "482-core-skills",
+    "category_slug": "employer-sponsored",
+    "outcome": "granted",
+    "stream": null,
+    "occupation": "software engineer",
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Employer-sponsored applicant lodged nomination and visa in late February 2021, had a quick case officer document request, nomination approved within days, medicals completed in April, and was granted end of April 2021.",
+    "milestones": [
+      {
+        "type": "Nomination Lodged",
+        "date": "2021-02-19"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2021-02-22"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2021-02-24"
+      },
+      {
+        "type": "Nomination Approved",
+        "date": "2021-03-02"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-04-10"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2021-04-30"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/482-tss-processing-time.1437290",
+    "source_site": "expatforum.com",
+    "confidence": 0.9
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "186-direct-entry",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": "Subclass 186 stuck in external security checks for over a year",
+    "note": "Employer-sponsored applicant lodged in February 2015, had a case officer information request in June 2015, and after a year is still waiting on external security checks with no timeline.",
+    "milestones": [],
+    "comments": [
+      {
+        "body": "A reply noted external security checks are typically lengthy, often adding around a year, with no way to speed them up.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/subclass-186-ens-time-line-for-external-checks.993330",
+    "source_site": "expatforum.com",
+    "confidence": 0.75
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": null,
+    "category_slug": "partner-visas",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": "When does the partner-visa bridging visa activate after an onshore 820 lodgement?",
+    "note": "Sponsor asks when a bridging visa activates after lodging an onshore partner application for a spouse who entered on a visitor visa; later confirms the bridging visa became active and work rights applied.",
+    "milestones": [],
+    "comments": [
+      {
+        "body": "A reply cautioned that marrying onshore after entering on a tourist visa may draw extra scrutiny and risk refusal.",
+        "replies": [
+          {
+            "body": "Original poster said an agent advised the bridging visa should activate after about three months."
+          }
+        ]
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/partner-visa-820-801-query.1525094",
+    "source_site": "expatforum.com",
+    "confidence": 0.6
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": "ICT/network systems engineer",
+    "state": "Offshore",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "189 applicant with 75 points; case officer assigned about six weeks after lodging, still awaiting a decision.",
+    "milestones": [
+      {
+        "type": "English Test Completed",
+        "date": "2017-06-09"
+      },
+      {
+        "type": "Skills Assessment Approved",
+        "date": "2017-08-21"
+      },
+      {
+        "type": "EOI Submitted",
+        "date": "2017-08-23"
+      },
+      {
+        "type": "Invitation Received",
+        "date": "2017-09-06"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2017-09-29"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2017-11-13"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/189-visa-lodge-grant-gang-2018.1370194",
+    "source_site": "expatforum.com",
+    "confidence": 0.82
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": null,
+    "occupation": "software engineer",
+    "state": "Offshore",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "189 applicant invited at 70 points; case officer requested relationship, character and partner English evidence, granted after response.",
+    "milestones": [
+      {
+        "type": "Invitation Received",
+        "date": "2017-07-26"
+      },
+      {
+        "type": "Police Checks",
+        "date": "2017-07-31"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2017-08-01"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2017-08-22"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2017-09-14"
+      },
+      {
+        "type": "S56 Response Submitted",
+        "date": "2017-10-11"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2017-12-28"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Another member asked whether the partner had to retake the English test in response to the case officer request.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/189-visa-lodge-grant-gang-2018.1370194",
+    "source_site": "expatforum.com",
+    "confidence": 0.8
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "189-independent",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": null,
+    "state": "Offshore",
+    "area": null,
+    "sponsor_type": null,
+    "title": "Can lodging a second work visa affect a pending 189 application?",
+    "note": "Applicant with a lodged 189 asks whether also applying for a separate temporary work visa would delay or jeopardise the pending PR case.",
+    "milestones": [],
+    "comments": [
+      {
+        "body": "One reply suggested the two applications are independent and can be processed separately.",
+        "replies": []
+      },
+      {
+        "body": "Another warned that holding a later work visa could invalidate the earlier PR application.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/189-visa-lodge-grant-gang-2018.1370194",
+    "source_site": "expatforum.com",
+    "confidence": 0.6
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "485-post-study",
+    "category_slug": "graduate-post-study",
+    "outcome": "waiting",
+    "stream": "post-study work",
+    "occupation": null,
+    "state": "Offshore",
+    "area": null,
+    "sponsor_type": null,
+    "title": "How to handle health insurance when lodging a 485 from offshore",
+    "note": "Recent graduate applying for a 485 from outside Australia with student visa just expired asks how to meet health cover requirements while borders are closed.",
+    "milestones": [],
+    "comments": [
+      {
+        "body": "A reply explained offshore applicants can buy a policy with a future start date and submit a cover letter showing genuine intent, extending the date if processing runs long.",
+        "replies": []
+      },
+      {
+        "body": "Another noted the post-study work stream had a 6 to 12 month processing time and required having held a student visa within the past 12 months.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/applying-for-graduate-visa-485-offshore.1515421",
+    "source_site": "expatforum.com",
+    "confidence": 0.66
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "485-post-study",
+    "category_slug": "graduate-post-study",
+    "outcome": "waiting",
+    "stream": "graduate work",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": "Can the 485 stream be changed after lodging?",
+    "note": "Graduate who lodged a 485 under the graduate work stream but wanted the post-study work stream asks whether the stream can be switched.",
+    "milestones": [],
+    "comments": [
+      {
+        "body": "Replies said the stream cannot be changed after applying.",
+        "replies": []
+      },
+      {
+        "body": "One suggested withdrawing the current application, applying again under the correct stream, and managing the resulting bridging visa transition.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/485-stream.1515903",
+    "source_site": "expatforum.com",
+    "confidence": 0.66
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "485-post-study",
+    "category_slug": "graduate-post-study",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": null,
+    "state": "NSW",
+    "area": "metro",
+    "sponsor_type": null,
+    "title": "Including an offshore spouse as a dependent on a 485 application",
+    "note": "Applicant asks about adding an offshore spouse as a dependent to a partner's upcoming 485 application lodged from onshore.",
+    "milestones": [],
+    "comments": [
+      {
+        "body": "A reply confirmed the spouse can be added as a dependent with proof of relationship and would receive the same visa, but offshore travel depends on border status.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/485-visa.1513957",
+    "source_site": "expatforum.com",
+    "confidence": 0.6
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "186-direct-entry",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": "Direct Entry",
+    "occupation": "ICT Business Analyst",
+    "state": "NSW",
+    "area": "metro",
+    "sponsor_type": null,
+    "title": null,
+    "note": "Onshore Direct Entry applicant waiting on nomination approval roughly six months after lodging; second applicant added and health completed.",
+    "milestones": [
+      {
+        "type": "Nomination Lodged",
+        "date": "2021-03-01"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2021-03-10"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-03-16"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Asked whether the applicant is onshore or offshore and whether the sponsoring employer holds accredited status.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/186-de-business-analyst.1519333",
+    "source_site": "expatforum.com",
+    "confidence": 0.8
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "186-direct-entry",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": "Direct Entry",
+    "occupation": "Management Consultant",
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Direct Entry applicant with health cleared shortly after lodging; status still shown as received months later.",
+    "milestones": [
+      {
+        "type": "Nomination Lodged",
+        "date": "2021-11-11"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2021-11-11"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-11-16"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/186-de-business-analyst.1519333",
+    "source_site": "expatforum.com",
+    "confidence": 0.75
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "186-direct-entry",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": "Direct Entry",
+    "occupation": "ICT Business Analyst",
+    "state": null,
+    "area": null,
+    "sponsor_type": "non_accredited",
+    "title": null,
+    "note": "Onshore Direct Entry applicant with a non-accredited sponsor still waiting more than ten months after lodging; status remains received.",
+    "milestones": [
+      {
+        "type": "Nomination Lodged",
+        "date": "2021-04-12"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2021-04-23"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/186-de-business-analyst.1519333",
+    "source_site": "expatforum.com",
+    "confidence": 0.78
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "186-direct-entry",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": "Direct Entry",
+    "occupation": "ICT Business Analyst",
+    "state": null,
+    "area": null,
+    "sponsor_type": "accredited",
+    "title": null,
+    "note": "Onshore Direct Entry applicant with an accredited sponsor, health cleared a week after lodging; status still received.",
+    "milestones": [
+      {
+        "type": "Nomination Lodged",
+        "date": "2021-12-16"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2021-12-16"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-12-23"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/186-de-business-analyst.1519333",
+    "source_site": "expatforum.com",
+    "confidence": 0.78
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "186-direct-entry",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": "Direct Entry",
+    "occupation": "ICT Business Analyst",
+    "state": "VIC",
+    "area": "metro",
+    "sponsor_type": "accredited",
+    "title": null,
+    "note": "Onshore Melbourne Direct Entry applicant with an accredited sponsor and three dependents; health done, status received with no further movement.",
+    "milestones": [
+      {
+        "type": "Nomination Lodged",
+        "date": "2022-02-18"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2022-02-18"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2022-04-03"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/186-de-business-analyst.1519333",
+    "source_site": "expatforum.com",
+    "confidence": 0.78
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "186-direct-entry",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": "Direct Entry",
+    "occupation": "ICT Business Analyst",
+    "state": "VIC",
+    "area": "metro",
+    "sponsor_type": "accredited",
+    "title": null,
+    "note": "Onshore Melbourne Direct Entry applicant with an accredited sponsor and dependents; health completed early, application silent on status received.",
+    "milestones": [
+      {
+        "type": "Nomination Lodged",
+        "date": "2021-12-22"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2021-12-22"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2022-02-06"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/186-de-business-analyst.1519333",
+    "source_site": "expatforum.com",
+    "confidence": 0.78
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "482-core-skills",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": "IT Solution Architect",
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": "How does a sponsoring employer being acquired affect a 482 visa and the path to 186 PR?",
+    "note": "Sponsored worker asks whether an employer takeover requires a fresh nomination and whether the two-year work requirement for PR transition must be with the same employer.",
+    "milestones": [],
+    "comments": [
+      {
+        "body": "A new nomination from the acquiring company is likely needed; consult a registered migration agent.",
+        "replies": [
+          {
+            "body": "With over three years of experience the Direct Entry stream is an option if skills assessment and English results are positive."
+          }
+        ]
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/subclass-482-to-subclass-186-pr-transition.1548625",
+    "source_site": "expatforum.com",
+    "confidence": 0.8
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "500-higher-ed",
+    "category_slug": "student-visas",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": null,
+    "state": "Offshore",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Offshore student visa applicant for a commercial cookery course; contacted with questions a week after lodging, still waiting about seven weeks later.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2018-05-26"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Asked what questions the department raised during the call.",
+        "replies": [
+          {
+            "body": "The applicant said they were asked about course choice given their age and about source of funds."
+          }
+        ]
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/delay-student-visa-subclass-500.1459146",
+    "source_site": "expatforum.com",
+    "confidence": 0.75
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": null,
+    "occupation": "Software Engineer",
+    "state": "QLD",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Onshore 190 applicant; nominated, lodged late March, medicals in April, direct grant about one month after lodgement.",
+    "milestones": [
+      {
+        "type": "State Nomination",
+        "date": "2021-03-09"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2021-03-24"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-04-09"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2021-04-27"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/190-visa-lodge-grant-2021.1516020",
+    "source_site": "expatforum.com",
+    "confidence": 0.9
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": null,
+    "occupation": "Geotechnical Engineer",
+    "state": "NSW",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Onshore 190; state pre-invite April, nomination and lodgement May, medicals soon after, grant in early June.",
+    "milestones": [
+      {
+        "type": "Invitation Received",
+        "date": "2021-04-09"
+      },
+      {
+        "type": "State Nomination",
+        "date": "2021-05-03"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2021-05-11"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-05-15"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2021-06-05"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/190-visa-lodge-grant-2021.1516020",
+    "source_site": "expatforum.com",
+    "confidence": 0.9
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": "Software Engineer",
+    "state": "QLD",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Lodged early June, police checks done June and July, medicals booked; no case officer contact, still in received status.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2021-06-03"
+      },
+      {
+        "type": "Police Checks",
+        "date": "2021-06-21"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/190-visa-lodge-grant-2021.1516020",
+    "source_site": "expatforum.com",
+    "confidence": 0.8
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": "Software Engineer",
+    "state": "WA",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Lodged late June with medicals and police checks completed; no case officer contact yet.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2021-06-21"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-06-24"
+      },
+      {
+        "type": "Police Checks",
+        "date": "2021-06-25"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/190-visa-lodge-grant-2021.1516020",
+    "source_site": "expatforum.com",
+    "confidence": 0.75
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": null,
+    "occupation": "Project Manager",
+    "state": "WA",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Lodged early May, case officer contact in June, grant in early July.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2021-05-05"
+      },
+      {
+        "type": "S56 Request Received",
+        "date": "2021-06-08"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2021-07-05"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/190-visa-lodge-grant-2021.1516020",
+    "source_site": "expatforum.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": "Hotel or Motel Manager",
+    "state": "WA",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Lodged mid June with all documents including police checks and medicals submitted; no case officer contact yet.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2021-06-10"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/190-visa-lodge-grant-2021.1516020",
+    "source_site": "expatforum.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": "Software Engineer",
+    "state": "ACT",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Lodged early June with medicals next day and all documents including foreign police checks included.",
+    "milestones": [
+      {
+        "type": "Visa Lodged",
+        "date": "2021-06-09"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-06-10"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/190-visa-lodge-grant-2021.1516020",
+    "source_site": "expatforum.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": null,
+    "occupation": "Software Engineer",
+    "state": "QLD",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "EOI February, state invitation and nomination approval May, lodged June, medicals July, direct grant in August.",
+    "milestones": [
+      {
+        "type": "EOI Submitted",
+        "date": "2021-02-01"
+      },
+      {
+        "type": "Invitation Received",
+        "date": "2021-05-06"
+      },
+      {
+        "type": "State Nomination",
+        "date": "2021-05-19"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2021-06-03"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-07-21"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2021-08-16"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Reports grants appear to be processed in order of visa lodgement date.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/190-visa-lodge-grant-2021.1516020",
+    "source_site": "expatforum.com",
+    "confidence": 0.9
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": null,
+    "occupation": "Network Engineer",
+    "state": "NSW",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Onshore; state pre-invite mid May, lodged early June, medicals cleared days later, grant late August with no case officer contact.",
+    "milestones": [
+      {
+        "type": "Invitation Received",
+        "date": "2021-05-14"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2021-06-06"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-06-10"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2021-08-24"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/190-visa-lodge-grant-2021.1516020",
+    "source_site": "expatforum.com",
+    "confidence": 0.9
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "granted",
+    "stream": null,
+    "occupation": "Software Engineer",
+    "state": "ACT",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Onshore; state pre-invite early May, lodged early June, medicals cleared next day, direct grant mid September after about three months.",
+    "milestones": [
+      {
+        "type": "Invitation Received",
+        "date": "2021-05-05"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2021-06-09"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-06-10"
+      },
+      {
+        "type": "Visa Granted",
+        "date": "2021-09-15"
+      }
+    ],
+    "comments": [],
+    "source_url": "https://www.expatforum.com/threads/190-visa-lodge-grant-2021.1516020",
+    "source_site": "expatforum.com",
+    "confidence": 0.9
+  },
+  {
+    "post_type": "timeline",
+    "subclass_slug": "190-nominated",
+    "category_slug": "skilled-migration",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": "Business Analyst",
+    "state": "SA",
+    "area": null,
+    "sponsor_type": null,
+    "title": null,
+    "note": "Onshore; state pre-invite early March, nomination and lodgement May, medicals cleared mid June; awaiting case officer.",
+    "milestones": [
+      {
+        "type": "Invitation Received",
+        "date": "2021-03-02"
+      },
+      {
+        "type": "State Nomination",
+        "date": "2021-05-03"
+      },
+      {
+        "type": "Visa Lodged",
+        "date": "2021-05-09"
+      },
+      {
+        "type": "Medical Examination",
+        "date": "2021-06-13"
+      }
+    ],
+    "comments": [
+      {
+        "body": "Asks whether a passport-size photo is mandatory after an agent left it off the application.",
+        "replies": [
+          {
+            "body": "Others confirm the photo is required and suggest checking the application in the immigration account directly."
+          }
+        ]
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/190-visa-lodge-grant-2021.1516020",
+    "source_site": "expatforum.com",
+    "confidence": 0.85
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": null,
+    "category_slug": "partner-visas",
+    "outcome": "refused",
+    "stream": "Sponsored Family",
+    "occupation": null,
+    "state": "Offshore",
+    "area": null,
+    "sponsor_type": null,
+    "title": "Sponsored visitor visa refused while offshore partner application pending",
+    "note": "A sponsored family visitor visa was refused on genuine-temporary-stay grounds while a partner application was pending; asks what other options exist.",
+    "milestones": [],
+    "comments": [
+      {
+        "body": "Notes the refusal turned on doubts the applicant would return home, and suggests a tribunal review or a more precise reapplication with strong evidence of intent to depart.",
+        "replies": [
+          {
+            "body": "Explains that applying for a partner visa signals intent to settle, which undermines a visitor application and is a common reason for such refusals."
+          }
+        ]
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/the-applicant-did-not-satisfy-the-provisions-of-the-migration-regulations-1994.1466122",
+    "source_site": "expatforum.com",
+    "confidence": 0.85
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "500-higher-ed",
+    "category_slug": "student-visas",
+    "outcome": "refused",
+    "stream": null,
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": "Student visa extension refused; considering a partner visa application",
+    "note": "An applicant whose student visa extension was refused after marrying asks whether switching to a partner visa is viable or could be harmful.",
+    "milestones": [],
+    "comments": [
+      {
+        "body": "Responder asks about the immigration status of the partner before advising.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/the-applicant-did-not-satisfy-the-provisions-of-the-migration-regulations-1994.1466122",
+    "source_site": "expatforum.com",
+    "confidence": 0.7
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "482-core-skills",
+    "category_slug": "employer-sponsored",
+    "outcome": "waiting",
+    "stream": null,
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": "Received natural justice notice that sponsor has no approved nomination on 482 application",
+    "note": "On a bridging visa, applicant received a natural-justice notice stating the sponsor lacks an approved nomination; asks about causes, timing to fix, and fallback visa options.",
+    "milestones": [],
+    "comments": [
+      {
+        "body": "Suggests employer-sponsored applications are usually handled by a registered agent and recommends contacting them.",
+        "replies": [
+          {
+            "body": "Explains employers must be approved sponsors first; lack of detail from the employer is a warning sign, and advises consulting a registered agent on pathways."
+          }
+        ]
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/s57-natural-justice-tss-subclass-482-visa.1455228",
+    "source_site": "expatforum.com",
+    "confidence": 0.85
+  },
+  {
+    "post_type": "question",
+    "subclass_slug": "485-post-study",
+    "category_slug": "graduate-post-study",
+    "outcome": "waiting",
+    "stream": "Post-Study Work",
+    "occupation": null,
+    "state": null,
+    "area": null,
+    "sponsor_type": null,
+    "title": "Can a 485 applicant leave Australia and wait offshore for the grant",
+    "note": "Onshore applicant asks whether they can lodge a 485 then return home to wait, or if they must remain onshore for the decision.",
+    "milestones": [],
+    "comments": [
+      {
+        "body": "Responder notes applicants must be in Australia when the decision is made and cautions that leaving may prevent return, so staying onshore is advised.",
+        "replies": []
+      }
+    ],
+    "source_url": "https://www.expatforum.com/threads/485-post-study-work-stream-grant-outside-australia.1514448",
+    "source_site": "expatforum.com",
+    "confidence": 0.8
+  }
+]

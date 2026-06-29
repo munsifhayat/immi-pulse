@@ -151,6 +151,14 @@ class Journey(Base):
     decided_on = Column(Date, nullable=True)
     processing_days = Column(Integer, nullable=True)
 
+    # Provenance for aggregated/seeded posts. INTERNAL ONLY — never surfaced in
+    # the public API. Set when a sample journey was aggregated from a public
+    # community discussion (anonymised + paraphrased): lets us honour takedown
+    # requests, audit sourcing, and distinguish aggregated rows from hand-seeded
+    # ones. Always NULL for genuine first-party member submissions.
+    source_url = Column(String, nullable=True)
+    source_site = Column(String, nullable=True)
+
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
