@@ -18,9 +18,85 @@ function awaitingLabel(journey: JourneyOut): string | null {
   return "in progress";
 }
 
-/* ── Horizontal strip for feed cards (compact, up to 4 steps) ───────────── */
+/* ── Feed-card strip: horizontal on ≥sm, vertical on mobile ─────────────── */
 
 export function MilestoneStrip({ journey }: { journey: JourneyOut }) {
+  return (
+    <>
+      {/* Mobile: a clean vertical timeline (horizontal gets cramped < 640px) */}
+      <VerticalStripCompact journey={journey} />
+      {/* ≥sm: the original horizontal strip */}
+      <HorizontalStrip journey={journey} />
+    </>
+  );
+}
+
+/* ── Compact vertical timeline for mobile feed cards ────────────────────── */
+
+function VerticalStripCompact({ journey }: { journey: JourneyOut }) {
+  const ms = journey.milestones;
+  const awaiting = awaitingLabel(journey);
+
+  return (
+    <div className="mt-4 flex flex-col sm:hidden">
+      {ms.map((m, i) => {
+        const { Icon, color } = milestoneMeta(m.milestone_type);
+        const next = ms[i + 1];
+        const gap = next ? dayGap(m.occurred_on, next.occurred_on) : null;
+        const isLast = i === ms.length - 1 && !awaiting;
+        return (
+          <div key={m.id} className="flex gap-3">
+            <div className="flex flex-col items-center">
+              <span
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white shadow-sm"
+                style={{ backgroundColor: color }}
+              >
+                <Icon className="h-4 w-4" />
+              </span>
+              {!isLast && (
+                <span className="my-1 w-[2.5px] flex-1 rounded bg-gradient-to-b from-purple-light to-purple-muted" />
+              )}
+            </div>
+            <div className="pb-3 pt-1">
+              <div className="text-[12.5px] font-semibold leading-tight text-navy">
+                {m.milestone_type.replace("…", "")}
+              </div>
+              <div className="mt-0.5 text-[11px] text-gray-text">
+                {shortDate(m.occurred_on)}
+              </div>
+              {gap != null && gap > 0 && (
+                <span className="mt-1 inline-block rounded bg-purple/10 px-1.5 py-px text-[10px] font-bold text-purple">
+                  {gapLabel(gap)}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      {awaiting && (
+        <div className="flex gap-3">
+          <span
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white shadow-sm"
+            style={{ backgroundColor: AWAITING_META.color }}
+          >
+            <AWAITING_META.Icon className="h-4 w-4" />
+          </span>
+          <div className="pt-1">
+            <div className="text-[12.5px] font-semibold leading-tight text-amber-600">
+              Awaiting
+            </div>
+            <div className="mt-0.5 text-[11px] text-gray-text">{awaiting}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Horizontal strip for feed cards (compact, up to 4 steps) ───────────── */
+
+function HorizontalStrip({ journey }: { journey: JourneyOut }) {
   const all = journey.milestones;
   const awaiting = awaitingLabel(journey);
   const MAX = 4;
@@ -28,7 +104,7 @@ export function MilestoneStrip({ journey }: { journey: JourneyOut }) {
   const hidden = all.length - shown.length;
 
   return (
-    <div className="mt-4 flex items-start overflow-hidden">
+    <div className="mt-4 hidden items-start overflow-hidden sm:flex">
       {shown.map((m, i) => {
         const { Icon, color } = milestoneMeta(m.milestone_type);
         const next = shown[i + 1];
