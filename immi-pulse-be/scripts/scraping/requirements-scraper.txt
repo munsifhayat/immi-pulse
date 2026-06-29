@@ -1,0 +1,14 @@
+# Quarantined dependencies for the offline community-data harvester ONLY.
+#
+# ScraperAI is GPL-3.0 and pins legacy deps (langchain 0.1.16, selenium 4.9.1,
+# numpy 1.26.4) that are INCOMPATIBLE with the backend's modern stack. It lives
+# in its own virtualenv (scripts/scraping/.venv-scraper, Python 3.12) and is
+# NEVER imported by app code nor added to immi-pulse-be/requirements/*. Only the
+# anonymised JSON it ultimately produces is consumed by the product.
+#
+# Build:  python3.12 -m venv scripts/scraping/.venv-scraper
+#         scripts/scraping/.venv-scraper/bin/pip install -r requirements-scraper.txt
+#
+# NOTE: PyPI only publishes up to 0.0.2; the repo HEAD (0.0.3) carries the API we
+# target (Scraper/ParserAI/SeleniumCrawler/JsonOpenAI), so we pin to the commit.
+scraperai @ git+https://github.com/scraperai/scraperai.git@main

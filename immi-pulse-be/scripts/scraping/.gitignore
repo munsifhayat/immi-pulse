@@ -1,0 +1,10 @@
+# Isolated, quarantined ScraperAI virtualenv (GPL-3.0 + legacy pinned deps —
+# NEVER part of the deployed backend). Recreate with: make-venv in run_harvest.sh
+.venv-scraper/
+
+# Run artifacts + local progress state (raw harvest, seen-set, skip-list) and
+# rotating logs are machine-local. The seen-set is re-derived from the committed
+# scraped_journeys.json on a fresh checkout, so nothing here needs tracking.
+logs/
+data/
+__pycache__/

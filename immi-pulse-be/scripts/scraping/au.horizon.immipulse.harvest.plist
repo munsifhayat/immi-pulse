@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  macOS LaunchAgent — daily community-data harvest at 07:00.
+  Runs Stage A+B (harvest + normalise) and commits the grown data file on main;
+  does NOT write to any DB (SEED=0) and does NOT push (deploy when ready).
+
+  Install:
+    cp scripts/scraping/au.horizon.immipulse.harvest.plist ~/Library/LaunchAgents/
+    launchctl unload ~/Library/LaunchAgents/au.horizon.immipulse.harvest.plist 2>/dev/null
+    launchctl load   ~/Library/LaunchAgents/au.horizon.immipulse.harvest.plist
+  Run once now:   launchctl start au.horizon.immipulse.harvest
+  Disable:        launchctl unload ~/Library/LaunchAgents/au.horizon.immipulse.harvest.plist
+
+  To auto-seed a DB instead, set SEED=1 and add a DATABASE_URL key (prod write —
+  do this deliberately).
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>au.horizon.immipulse.harvest</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/home/Documents/BeingMunsif/BeingFounder/TheAppsCompany/Projects/Internal/immi-pulse/immi-pulse-be/scripts/scraping/run_harvest.sh</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>SEED</key><string>0</string>
+        <key>COMMIT</key><string>1</string>
+        <key>MAX_TOPICS</key><string>40</string>
+        <key>MAX_POSTS</key><string>12</string>
+        <key>MIN_CONFIDENCE</key><string>0.55</string>
+    </dict>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/home/Documents/BeingMunsif/BeingFounder/TheAppsCompany/Projects/Internal/immi-pulse/immi-pulse-be</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key><integer>7</integer>
+        <key>Minute</key><integer>0</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/home/Documents/BeingMunsif/BeingFounder/TheAppsCompany/Projects/Internal/immi-pulse/immi-pulse-be/scripts/scraping/logs/launchd.out</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/home/Documents/BeingMunsif/BeingFounder/TheAppsCompany/Projects/Internal/immi-pulse/immi-pulse-be/scripts/scraping/logs/launchd.err</string>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>
