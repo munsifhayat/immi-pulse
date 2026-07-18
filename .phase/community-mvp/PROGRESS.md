@@ -35,9 +35,13 @@ the next phase needs — not the conversation.
 
 ## Open decisions (resolve when the phase reaches them)
 
-1. **Do the 141 scraped `is_sample` timelines feed public numbers?** (blocks p4)
-   Stats-isolated today. Excluded, most cohorts have no publishable median at launch and the dual-source table shows a dash beside every official figure. Included, the numbers work immediately but rest partly on forum-scraped data.
-   *Recommendation:* include them with provenance stated in the open — "based on 141 reported timelines, 66 collected from public forums". Transparency about a number's origin is more defensible than a dash.
+1. ~~**Do the 141 scraped `is_sample` timelines feed public numbers?**~~ — **RESOLVED 2026-07-18: INCLUDE, with provenance always visible.**
+   The founder delegated the call; the recommendation stands. Sample timelines now feed public stats, but **every figure they contribute to must state its composition in the open** — e.g. "based on 141 reported timelines, 66 collected from public forums". Being visibly honest about where a number comes from is more defensible than an empty column, and it matches the show-your-working tone of the whole product.
+   **Binding requirements for p4:**
+   - The stats payload carries a provenance breakdown (`member_reported` vs `forum_collected` counts), not just a total `sample_size`
+   - The UI renders that breakdown wherever a Room figure appears — never a bare number
+   - `is_sample` rows remain individually flagged and stay excluded from the *feed*; this decision changes **stats only**
+   - Reversible by one flag if it ever reads as inflating the numbers
 
 2. **Real per-IP ceiling.** (p2 set the starting value — **still open for p6 to tune**)
    Accounts are free to create, so per-account caps alone do not bind — the per-IP ceiling and new-account probation are the controls that do.
