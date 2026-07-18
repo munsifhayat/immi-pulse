@@ -70,6 +70,7 @@ from app.agents.immigration.community.schemas import (
 from app.agents.immigration.community.service import (
     CommunityRateLimitError,
     CommunityService,
+    ContentGateError,
     JourneyCapError,
     hash_ip,
     remaining_allowance,
@@ -232,6 +233,10 @@ async def save_wait_check(
         raise HTTPException(status_code=409, detail=str(err)) from err
     except CommunityRateLimitError as err:
         raise HTTPException(status_code=429, detail=str(err)) from err
+    except ContentGateError as err:
+        # 400, and the message is shown verbatim: this is the one refusal the
+        # member can fix themselves, so telling them how is the whole point.
+        raise HTTPException(status_code=400, detail=str(err)) from err
     except ValueError as err:
         raise HTTPException(status_code=400, detail=str(err)) from err
     await db.commit()
@@ -318,6 +323,8 @@ async def submit_timeline(
         )
     except CommunityRateLimitError as err:
         raise HTTPException(status_code=429, detail=str(err)) from err
+    except ContentGateError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err)) from err
     await db.commit()
@@ -520,6 +527,7 @@ async def list_journeys(
         sort=sort,
         limit=limit,
         offset=offset,
+        viewer=identity,
     )
     outs = await CommunityService.build_journey_outs(db, journeys, identity=identity)
     return [JourneyOut(**o) for o in outs]
@@ -565,6 +573,10 @@ async def create_journey(
         raise HTTPException(status_code=409, detail=str(err)) from err
     except CommunityRateLimitError as err:
         raise HTTPException(status_code=429, detail=str(err)) from err
+    except ContentGateError as err:
+        # 400, and the message is shown verbatim: this is the one refusal the
+        # member can fix themselves, so telling them how is the whole point.
+        raise HTTPException(status_code=400, detail=str(err)) from err
     except ValueError as err:
         raise HTTPException(status_code=400, detail=str(err)) from err
     await db.commit()
@@ -611,6 +623,8 @@ async def create_journey_comment(
         )
     except CommunityRateLimitError as err:
         raise HTTPException(status_code=429, detail=str(err)) from err
+    except ContentGateError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err)) from err
     await db.commit()
@@ -660,8 +674,12 @@ async def report_journey(
     journey_id: UUID,
     payload: ReportRequest,
     request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
     db: AsyncSession = Depends(get_db),
 ):
+    # Reporting stays open to signed-out readers — the person best placed to
+    # notice a tout is often someone who has not signed up yet — but resolving
+    # who reported lets the report be weighted by their standing.
     try:
         report = await CommunityService.report_target(
             db,
@@ -669,6 +687,7 @@ async def report_journey(
             target_id=journey_id,
             payload=payload,
             ip_hash=_client_ip_hash(request),
+            reporter=await _viewer_identity(request, db, account),
         )
     except CommunityRateLimitError as err:
         raise HTTPException(status_code=429, detail=str(err)) from err
@@ -826,6 +845,7 @@ async def report_comment(
     comment_id: UUID,
     payload: ReportRequest,
     request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
     db: AsyncSession = Depends(get_db),
 ):
     """Report a live-feed journey comment. target_type ``journey_comment`` is
@@ -837,6 +857,7 @@ async def report_comment(
             target_id=comment_id,
             payload=payload,
             ip_hash=_client_ip_hash(request),
+            reporter=await _viewer_identity(request, db, account),
         )
     except CommunityRateLimitError as err:
         raise HTTPException(status_code=429, detail=str(err)) from err

@@ -17,6 +17,10 @@ export default function robots(): MetadataRoute.Robots {
           // little if a handle accumulates a crawlable dossier.
           "/inbox",
           "/you",
+          // Password recovery. The URL carries a single-use token, so it must
+          // never be crawled, cached or retained anywhere — the page is
+          // noindex too, and this is the belt to that pair of braces.
+          "/community/recover",
           // Retired surfaces. They redirect, so a crawler would not reach the
           // page anyway — this keeps the old URLs from lingering in an index
           // while the redirect propagates. Reversible with the redirects.

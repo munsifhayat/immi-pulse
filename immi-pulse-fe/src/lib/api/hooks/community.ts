@@ -429,6 +429,13 @@ export interface JourneyOut {
   is_sample: boolean;
   /** False = a private draft. Only its owner ever receives one. */
   is_published: boolean;
+  /**
+   * True while an automatic check has parked this post for review. Only ever
+   * arrives on the author's own rows — every other reader's feed filters held
+   * content out server-side — so it exists purely so their own view can say
+   * honestly that it is waiting rather than pretending it is live.
+   */
+  is_held?: boolean;
   is_mine: boolean;
   viewer_voted: boolean;
   processing_days?: number | null;
@@ -832,6 +839,57 @@ export function useCommunityLogin() {
       qc.setQueryData(queryKeys.community.account(), session.account);
       // Ownership cues (is_mine, viewer_voted) and the inbox all change the
       // moment the viewer does, so everything community-scoped is now stale.
+      qc.invalidateQueries({ queryKey: queryKeys.community.all });
+    },
+  });
+}
+
+/**
+ * Ask for a recovery link.
+ *
+ * The backend answers identically whether or not the address is known, so this
+ * hook must not try to be more helpful than that. Reporting "no account with
+ * that email" would turn the endpoint into an oracle for which addresses belong
+ * to members of an immigration forum, which for this audience is a real safety
+ * problem rather than a theoretical one.
+ */
+export function useCommunityRecover() {
+  return useMutation({
+    mutationFn: async (payload: { email: string }) => {
+      const { data } = await apiClient.post<{ detail: string }>(
+        "/community/public/auth/recover",
+        payload
+      );
+      return data;
+    },
+  });
+}
+
+/**
+ * Consume a recovery token and set a new password.
+ *
+ * Succeeds straight into a session — the member came here because they were
+ * locked out, so making them type the password again on a login screen would
+ * be one more chance to lose the account.
+ */
+export function useCommunityResetPassword() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { token: string; password: string }) => {
+      try {
+        const { data } = await apiClient.post<CommunitySessionOut>(
+          "/community/public/auth/reset",
+          payload
+        );
+        return data;
+      } catch (err) {
+        throw accountError(err, "That recovery link didn't work.");
+      }
+    },
+    onSuccess: (session) => {
+      setCommunityToken(session.token);
+      setDeviceToken(session.device_token);
+      qc.setQueryData(queryKeys.community.account(), session.account);
       qc.invalidateQueries({ queryKey: queryKeys.community.all });
     },
   });
