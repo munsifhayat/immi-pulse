@@ -40,8 +40,10 @@ the next phase needs — not the conversation.
    **Binding requirements for p4:**
    - The stats payload carries a provenance breakdown (`member_reported` vs `forum_collected` counts), not just a total `sample_size`
    - The UI renders that breakdown wherever a Room figure appears — never a bare number
-   - `is_sample` rows remain individually flagged and stay excluded from the *feed*; this decision changes **stats only**
+   - `is_sample` rows remain individually flagged; this decision changes **stats only**
    - Reversible by one flag if it ever reads as inflating the numbers
+
+   **Correction (2026-07-18, caught by p4):** the original wording above said sample rows "stay excluded from the *feed*". That was **factually wrong** — it describes the opposite of the code. Samples have always *populated* the feed (they are most of its current content) and were excluded from *stats*. p4 correctly changed stats only and left feed behaviour untouched rather than "fixing" the feed to match a mistaken premise, which would have emptied it. **Whether samples should also leave the feed is a separate, unmade decision**, and it cannot be made until enough member-reported content exists to fill the gap.
 
 2. **Real per-IP ceiling.** (p2 set the starting value — **still open for p6 to tune**)
    Accounts are free to create, so per-account caps alone do not bind — the per-IP ceiling and new-account probation are the controls that do.
