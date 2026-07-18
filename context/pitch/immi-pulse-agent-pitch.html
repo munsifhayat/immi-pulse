@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IMMI-PULSE — Agent Pitch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --navy:#101928;
+    --purple:#7A5AF8;
+    --purple-deep:#3E1C96;
+    --purple-light:#BDB4FE;
+    --purple-muted:#D9D6FE;
+    --gray-text:#475367;
+    --gray-light:#F0F2F5;
+    --teal:#1B7B6F;
+    --teal-light:#2DD4BF;
+    --white:#FFFFFF;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    font-family:'Inter',sans-serif;
+    background:var(--navy);
+    color:var(--navy);
+    overflow:hidden;
+  }
+  h1,h2,h3,h4,.font-heading{font-family:'Outfit',sans-serif}
+
+  .deck{height:100vh;width:100vw;position:relative}
+
+  .slide{
+    position:absolute;inset:0;
+    display:none;
+    padding:6vh 8vw;
+    flex-direction:column;
+    justify-content:center;
+    background:var(--white);
+    opacity:0;
+    transition:opacity .35s ease;
+  }
+  .slide.active{display:flex;opacity:1}
+
+  /* dark slides */
+  .slide.dark{background:var(--navy);color:var(--white)}
+  .slide.dark h1,.slide.dark h2,.slide.dark h3{color:var(--white)}
+  .slide.dark .lead{color:var(--purple-muted)}
+
+  .kicker{
+    font-family:'Outfit',sans-serif;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.18em;
+    font-size:.82rem;
+    color:var(--purple);
+    margin-bottom:1.2rem;
+  }
+  .slide.dark .kicker{color:var(--purple-light)}
+
+  h1{font-size:4.4rem;line-height:1.04;font-weight:800;letter-spacing:-.02em}
+  h2{font-size:3rem;line-height:1.08;font-weight:700;letter-spacing:-.02em}
+  h3{font-size:1.5rem;font-weight:600}
+  .lead{font-size:1.5rem;line-height:1.5;color:var(--gray-text);font-weight:400;max-width:62ch;margin-top:1.6rem}
+  .small{font-size:1.05rem;color:var(--gray-text);line-height:1.6}
+
+  .brand-row{display:flex;align-items:center;gap:.9rem;margin-bottom:2.2rem}
+  .logo-dot{
+    width:42px;height:42px;border-radius:12px;
+    background:linear-gradient(135deg,var(--purple),var(--purple-deep));
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-family:'Outfit';font-weight:800;font-size:1.25rem;
+  }
+  .logo-word{font-family:'Outfit';font-weight:700;font-size:1.25rem;letter-spacing:-.01em}
+  .slide.dark .logo-word{color:#fff}
+
+  .pill{
+    display:inline-flex;align-items:center;gap:.5rem;
+    background:var(--purple-muted);color:var(--purple-deep);
+    font-family:'Outfit';font-weight:600;font-size:.9rem;
+    padding:.5rem 1rem;border-radius:999px;width:fit-content;
+  }
+  .slide.dark .pill{background:rgba(122,90,248,.22);color:var(--purple-light)}
+
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.4rem;margin-top:2.6rem}
+  .grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:1.6rem;margin-top:2.4rem}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:1.2rem;margin-top:2.4rem}
+
+  .card{
+    background:var(--white);
+    border:1px solid var(--gray-light);
+    border-radius:18px;
+    padding:1.7rem 1.6rem;
+    box-shadow:0 1px 2px rgba(16,25,40,.04);
+  }
+  .card .num{
+    font-family:'Outfit';font-weight:700;color:var(--purple);
+    font-size:.95rem;margin-bottom:.9rem;display:block;
+  }
+  .card h3{margin-bottom:.55rem;color:var(--navy)}
+  .card p{font-size:1rem;color:var(--gray-text);line-height:1.55}
+
+  .slide.dark .card{background:#18233a;border-color:#243150}
+  .slide.dark .card h3{color:#fff}
+  .slide.dark .card p{color:var(--purple-muted)}
+
+  .pillar{
+    border-left:4px solid var(--purple);
+    padding:.2rem 0 .2rem 1.5rem;
+    margin-bottom:1.4rem;
+  }
+  .pillar h3{font-size:1.35rem;color:var(--navy);margin-bottom:.3rem}
+  .pillar p{color:var(--gray-text);font-size:1.05rem;line-height:1.5}
+
+  .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;margin-top:2.8rem}
+  .stat .big{font-family:'Outfit';font-weight:800;font-size:3.4rem;line-height:1;color:var(--purple)}
+  .slide.dark .stat .big{color:var(--purple-light)}
+  .stat .lbl{margin-top:.7rem;font-size:1.02rem;color:var(--gray-text)}
+  .slide.dark .stat .lbl{color:var(--purple-muted)}
+
+  ul.clean{margin-top:2rem;list-style:none}
+  ul.clean li{
+    position:relative;padding-left:2rem;margin-bottom:1.15rem;
+    font-size:1.25rem;color:var(--gray-text);line-height:1.5;max-width:64ch;
+  }
+  ul.clean li::before{
+    content:"";position:absolute;left:0;top:.55rem;
+    width:11px;height:11px;border-radius:3px;
+    background:var(--purple);
+  }
+  .slide.dark ul.clean li{color:var(--purple-muted)}
+
+  .timeline{display:flex;gap:0;margin-top:3rem;align-items:stretch}
+  .tl-step{flex:1;position:relative;padding-right:1.5rem}
+  .tl-step .dot{width:16px;height:16px;border-radius:50%;background:var(--purple-light)}
+  .tl-step.now .dot{background:var(--purple)}
+  .tl-step.launch .dot{background:var(--teal)}
+  .tl-line{height:3px;background:var(--gray-light);margin:7px 0 1.2rem;position:relative}
+  .tl-step .when{font-family:'Outfit';font-weight:700;font-size:1.1rem;color:var(--navy);margin-bottom:.4rem}
+  .tl-step .what{font-size:.98rem;color:var(--gray-text);line-height:1.5}
+  .slide.dark .tl-line{background:#243150}
+  .slide.dark .tl-step .when{color:#fff}
+  .slide.dark .tl-step .what{color:var(--purple-muted)}
+
+  .two-col{display:grid;grid-template-columns:1.05fr .95fr;gap:3.5rem;align-items:center}
+
+  .footer{
+    position:absolute;bottom:3vh;left:8vw;right:8vw;
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:.8rem;color:#98A2B3;font-family:'Outfit';letter-spacing:.04em;
+  }
+  .slide.dark .footer{color:#5b6b8a}
+
+  .progress{position:fixed;top:0;left:0;height:4px;background:var(--purple);z-index:50;transition:width .35s ease}
+
+  .nav{
+    position:fixed;bottom:18px;right:22px;z-index:50;
+    display:flex;gap:8px;align-items:center;
+  }
+  .nav button{
+    border:none;cursor:pointer;width:40px;height:40px;border-radius:10px;
+    background:var(--gray-light);color:var(--navy);font-size:1.1rem;
+    font-family:'Outfit';font-weight:700;transition:.15s;
+  }
+  .nav button:hover{background:var(--purple-muted)}
+  .counter{font-family:'Outfit';font-weight:600;font-size:.85rem;color:#98A2B3;min-width:48px;text-align:center}
+
+  .accent-text{color:var(--purple)}
+  .slide.dark .accent-text{color:var(--purple-light)}
+  .teal-text{color:var(--teal)}
+
+  .big-quote{font-family:'Outfit';font-weight:700;font-size:2.6rem;line-height:1.25;letter-spacing:-.01em;max-width:20ch}
+
+  .label-chip{font-family:'Outfit';font-weight:600;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--purple);margin-bottom:.8rem;display:block}
+  .slide.dark .label-chip{color:var(--purple-light)}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. COVER -->
+  <section class="slide dark active">
+    <div class="brand-row">
+      <div class="logo-dot">IP</div>
+      <div class="logo-word">IMMI&#8202;PULSE</div>
+    </div>
+    <div class="pill">AI for Australian Immigration Practice</div>
+    <h1 style="margin-top:1.6rem">The operating system<br/>for modern migration agents.</h1>
+    <p class="lead">One platform to win clients, run cases end to end, and grow your practice. Built with agents, launching January 2027.</p>
+    <div class="footer">
+      <span>IMMI&#8202;PULSE</span>
+      <span>Confidential &#183; Partner Preview</span>
+    </div>
+  </section>
+
+  <!-- 2. PROBLEM -->
+  <section class="slide">
+    <span class="kicker">The reality today</span>
+    <h2>Great agents are stuck doing low value work.</h2>
+    <ul class="clean">
+      <li>Hours lost to manual intake, re&#8209;keying client data, and chasing documents.</li>
+      <li>Leads arrive cold and unqualified, with no trusted place for applicants to find a registered agent.</li>
+      <li>Case status lives across email, spreadsheets, and memory, not one system.</li>
+      <li>Applicants are anxious and uninformed, which means more questions and more churn.</li>
+    </ul>
+    <div class="footer"><span>IMMI&#8202;PULSE</span><span>The Problem</span></div>
+  </section>
+
+  <!-- 3. OPPORTUNITY -->
+  <section class="slide dark">
+    <span class="kicker">Why now</span>
+    <h2>A large market, ready for a modern tool.</h2>
+    <div class="stat-row">
+      <div class="stat"><div class="big">8,000+</div><div class="lbl">OMARA registered agents across Australia</div></div>
+      <div class="stat"><div class="big">500k+</div><div class="lbl">visa applications lodged every year</div></div>
+      <div class="stat"><div class="big">0</div><div class="lbl">end to end AI platforms built for this workflow</div></div>
+    </div>
+    <p class="lead" style="margin-top:3rem">Agents are paying for generic CRMs and PDFs. Nobody has built the intelligent, immigration native layer. We are.</p>
+    <div class="footer"><span>IMMI&#8202;PULSE</span><span>The Opportunity</span></div>
+  </section>
+
+  <!-- 4. SOLUTION OVERVIEW -->
+  <section class="slide">
+    <span class="kicker">The platform</span>
+    <h2>Three pillars, one platform.</h2>
+    <div class="grid3">
+      <div class="card">
+        <span class="num">01</span>
+        <h3>Community</h3>
+        <p>An anonymous applicant community answering the question every client asks. Is my wait normal? It builds trust and a warm top of funnel.</p>
+      </div>
+      <div class="card">
+        <span class="num">02</span>
+        <h3>Agent Marketplace</h3>
+        <p>A trusted directory where qualified applicants are matched to registered agents. Demand finds you, not the other way around.</p>
+      </div>
+      <div class="card">
+        <span class="num">03</span>
+        <h3>Intelligent SaaS</h3>
+        <p>End to end case management with AI. Intake, classification, document checks, checklists, and DHA form filling in one flow.</p>
+      </div>
+    </div>
+    <div class="footer"><span>IMMI&#8202;PULSE</span><span>The Solution</span></div>
+  </section>
+
+  <!-- 5. PILLAR 1 COMMUNITY -->
+  <section class="slide">
+    <div class="two-col">
+      <div>
+        <span class="label-chip">Pillar 01</span>
+        <h2>Community</h2>
+        <p class="lead" style="margin-top:1.2rem">A safe, anonymous space where applicants share visa timelines and ask the one thing that keeps them up at night.</p>
+        <ul class="clean" style="margin-top:1.6rem">
+          <li>Real, anonymized visa timelines grouped into cohorts, not leaderboards.</li>
+          <li>A wait check engine that tells applicants if their wait is normal.</li>
+          <li>Compliant by design, with section 276 safe moderation built in.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:1.2rem">
+          <h3 class="accent-text" style="font-size:1.15rem">For the applicant</h3>
+          <p style="margin-top:.5rem">Reassurance and clarity, for free. They arrive informed, calm, and ready.</p>
+        </div>
+        <div class="card">
+          <h3 class="teal-text" style="font-size:1.15rem">For the agent</h3>
+          <p style="margin-top:.5rem">A warm, trusting audience that already knows the brand before the first call.</p>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>IMMI&#8202;PULSE</span><span>Community</span></div>
+  </section>
+
+  <!-- 6. PILLAR 2 MARKETPLACE -->
+  <section class="slide dark">
+    <div class="two-col">
+      <div>
+        <span class="label-chip">Pillar 02</span>
+        <h2>Agent Marketplace</h2>
+        <p class="lead" style="margin-top:1.2rem">The community becomes a pipeline. Qualified applicants are matched to the right registered agent for their visa type and situation.</p>
+        <ul class="clean" style="margin-top:1.6rem">
+          <li>Verified OMARA agent profiles with specialties and track record.</li>
+          <li>Pre&#8209;qualified, intent rich leads, not cold form fills.</li>
+          <li>Transparent, agent friendly model. You own the client relationship.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="card">
+          <h3 style="font-size:1.2rem">From audience to clients</h3>
+          <p style="margin-top:.8rem;line-height:1.7">Community trust &#8594; applicant qualifies &#8594; matched to your practice &#8594; converts inside IMMI&#8202;PULSE.</p>
+          <p style="margin-top:1.2rem;color:var(--purple-light);font-family:'Outfit';font-weight:600">One funnel. From first question to signed client.</p>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>IMMI&#8202;PULSE</span><span>Marketplace</span></div>
+  </section>
+
+  <!-- 7. PILLAR 3 SAAS -->
+  <section class="slide">
+    <span class="label-chip">Pillar 03</span>
+    <h2>End to end intelligent SaaS.</h2>
+    <p class="lead">Collect a client&#8217;s details once. The platform does the rest, with a manual override at every step.</p>
+    <div class="grid4">
+      <div class="card"><span class="num">Step 1</span><h3 style="font-size:1.15rem">Intake</h3><p>Email and form intake captures the enquiry automatically.</p></div>
+      <div class="card"><span class="num">Step 2</span><h3 style="font-size:1.15rem">Classify</h3><p>AI suggests the right visa pathway and flags eligibility.</p></div>
+      <div class="card"><span class="num">Step 3</span><h3 style="font-size:1.15rem">Documents</h3><p>Smart checklists and document validation, no chasing.</p></div>
+      <div class="card"><span class="num">Step 4</span><h3 style="font-size:1.15rem">Lodge</h3><p>Auto filled DHA forms, e&#8209;sign, and case tracking.</p></div>
+    </div>
+    <p class="small" style="margin-top:2.4rem;font-family:'Outfit';font-weight:600;color:var(--navy)">Query &#8594; Pre&#8209;case &#8594; Case. Every automated step has a manual fallback. You stay in control.</p>
+    <div class="footer"><span>IMMI&#8202;PULSE</span><span>Intelligent SaaS</span></div>
+  </section>
+
+  <!-- 8. THE FLYWHEEL -->
+  <section class="slide dark">
+    <span class="kicker">Why the three fit together</span>
+    <h2>One flywheel, not three products.</h2>
+    <div class="grid3" style="margin-top:2.8rem">
+      <div class="card"><h3 style="color:var(--purple-light)">Community brings reach</h3><p>Anxious applicants arrive for answers and stay for trust.</p></div>
+      <div class="card"><h3 style="color:var(--purple-light)">Marketplace converts</h3><p>That trust routes qualified clients straight to your practice.</p></div>
+      <div class="card"><h3 style="color:var(--purple-light)">SaaS retains</h3><p>You run the whole case in one place, so clients and data stay.</p></div>
+    </div>
+    <p class="lead" style="margin-top:3rem">More clients served means more data, better community, stronger matching. The loop compounds.</p>
+    <div class="footer"><span>IMMI&#8202;PULSE</span><span>The Flywheel</span></div>
+  </section>
+
+  <!-- 9. TRACTION -->
+  <section class="slide">
+    <span class="kicker">Traction</span>
+    <h2>Building in the open, with agents.</h2>
+    <div class="stat-row">
+      <div class="stat"><div class="big">Live</div><div class="lbl">Community and wait check engine deployed in production</div></div>
+      <div class="stat"><div class="big">140+</div><div class="lbl">real anonymized visa timelines seeded and growing daily</div></div>
+      <div class="stat"><div class="big">E2E</div><div class="lbl">working case flow prototype, from enquiry to lodge</div></div>
+    </div>
+    <ul class="clean" style="margin-top:2.6rem">
+      <li>Daily automated data harvester keeps the community fresh and credible.</li>
+      <li>End to end demo and pilot prototypes ready for partner agents.</li>
+      <li>Now collecting structured feedback from founding agents like you.</li>
+    </ul>
+    <div class="footer"><span>IMMI&#8202;PULSE</span><span>Traction</span></div>
+  </section>
+
+  <!-- 10. BUSINESS MODEL -->
+  <section class="slide dark">
+    <span class="kicker">How we make money</span>
+    <h2>Simple, agent aligned revenue.</h2>
+    <div class="grid3" style="margin-top:2.6rem">
+      <div class="card"><span class="num">SaaS</span><h3 style="color:#fff">Subscription</h3><p>Per seat monthly plan for the case management platform.</p></div>
+      <div class="card"><span class="num">Marketplace</span><h3 style="color:#fff">Qualified leads</h3><p>Pay for pre&#8209;qualified, matched applicants. No win, no cost.</p></div>
+      <div class="card"><span class="num">Community</span><h3 style="color:#fff">Top of funnel</h3><p>Free and trust building. It feeds the other two engines.</p></div>
+    </div>
+    <p class="lead" style="margin-top:3rem">We grow when you grow. The model rewards clients served, not lock in.</p>
+    <div class="footer"><span>IMMI&#8202;PULSE</span><span>Business Model</span></div>
+  </section>
+
+  <!-- 11. ROADMAP -->
+  <section class="slide">
+    <span class="kicker">Roadmap</span>
+    <h2>Launching January 2027.</h2>
+    <div class="timeline">
+      <div class="tl-step now">
+        <div class="dot"></div><div class="tl-line"></div>
+        <div class="when">Now</div>
+        <div class="what">Community live. Building the platform and collecting agent feedback.</div>
+      </div>
+      <div class="tl-step">
+        <div class="dot"></div><div class="tl-line"></div>
+        <div class="when">2026 H2</div>
+        <div class="what">Pilot the end to end SaaS with founding agents. Refine with real cases.</div>
+      </div>
+      <div class="tl-step">
+        <div class="dot"></div><div class="tl-line"></div>
+        <div class="when">Late 2026</div>
+        <div class="what">Marketplace matching goes live for pilot cohort.</div>
+      </div>
+      <div class="tl-step launch">
+        <div class="dot"></div><div class="tl-line"></div>
+        <div class="when">Jan 2027</div>
+        <div class="what">Public launch across Australia, all three pillars.</div>
+      </div>
+    </div>
+    <p class="lead" style="margin-top:3rem">Founding agents shape the product and launch with an advantage.</p>
+    <div class="footer"><span>IMMI&#8202;PULSE</span><span>Roadmap</span></div>
+  </section>
+
+  <!-- 12. THE ASK -->
+  <section class="slide dark">
+    <span class="kicker">The invitation</span>
+    <div class="big-quote">Become a founding agent.</div>
+    <p class="lead" style="margin-top:1.8rem">We are choosing a small group of agents to build this with us before launch.</p>
+    <ul class="clean" style="margin-top:1.6rem">
+      <li>Shape the platform around how you actually work.</li>
+      <li>Early access to the marketplace and priority matching.</li>
+      <li>Founding partner pricing, locked in at launch.</li>
+    </ul>
+    <p style="margin-top:2.6rem;font-family:'Outfit';font-weight:700;font-size:1.7rem;color:#fff">Let&#8217;s build the future of migration practice together.</p>
+    <div class="footer"><span>IMMI&#8202;PULSE</span><span>munsif@horizondigital.au</span></div>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button id="prev" aria-label="Previous">&#8249;</button>
+  <span class="counter" id="counter">1 / 12</span>
+  <button id="next" aria-label="Next">&#8250;</button>
+</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  let i=0;
+  const counter=document.getElementById('counter');
+  const progress=document.getElementById('progress');
+  function show(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    counter.textContent=(i+1)+' / '+slides.length;
+    progress.style.width=((i+1)/slides.length*100)+'%';
+  }
+  document.getElementById('next').onclick=()=>show(i+1);
+  document.getElementById('prev').onclick=()=>show(i-1);
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();show(i+1)}
+    if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();show(i-1)}
+    if(e.key==='Home')show(0);
+    if(e.key==='End')show(slides.length-1);
+    if(e.key==='f'||e.key==='F'){
+      if(!document.fullscreenElement)document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+  show(0);
+</script>
+</body>
+</html>

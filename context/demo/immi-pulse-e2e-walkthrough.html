@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMMI-PULSE — End-to-End Walkthrough</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#101928; --navy-2:#1a2436;
+  --purple:#7A5AF8; --purple-deep:#3E1C96; --purple-light:#BDB4FE; --purple-muted:#D9D6FE;
+  --teal:#1B7B6F; --teal-light:#2DD4BF;
+  --gray-text:#475367; --gray-light:#F0F2F5; --line:#E4E7EC;
+  --amber:#B54708; --amber-bg:#FFFAEB; --amber-line:#FEDF89;
+  --ok:#067647; --ok-bg:#ECFDF3; --ok-line:#ABEFC6;
+  --ink:#0c1320;
+  --r:18px;
+  --shadow:0 24px 60px -20px rgba(8,12,28,.55);
+  --shadow-sm:0 10px 30px -12px rgba(8,12,28,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  color:#E8ECF5;
+  background:#0a0f1c;
+  overflow:hidden;
+}
+h1,h2,h3,h4,.font-h{font-family:'Outfit',system-ui,sans-serif;letter-spacing:-.02em}
+
+/* ===== Stage / backdrop ===== */
+.app{position:fixed;inset:0;display:flex;flex-direction:column}
+.backdrop{position:absolute;inset:0;z-index:0;overflow:hidden;
+  background:
+   radial-gradient(1200px 700px at 78% -10%, rgba(122,90,248,.28), transparent 60%),
+   radial-gradient(900px 600px at 8% 110%, rgba(27,123,111,.22), transparent 60%),
+   linear-gradient(160deg,#0c1326 0%, #0a0f1c 55%, #0b1020 100%);
+}
+.backdrop::after{content:"";position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
+   linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:46px 46px;mask:radial-gradient(circle at 50% 40%,black,transparent 78%);}
+.orb{position:absolute;border-radius:50%;filter:blur(40px);opacity:.5;animation:float 16s ease-in-out infinite}
+.orb.a{width:380px;height:380px;background:rgba(122,90,248,.4);top:-90px;right:6%}
+.orb.b{width:320px;height:320px;background:rgba(45,212,191,.28);bottom:-110px;left:4%;animation-delay:-6s}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(26px)}}
+
+/* ===== Top bar ===== */
+.topbar{position:relative;z-index:3;display:flex;align-items:center;justify-content:space-between;
+  padding:16px 30px;}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--purple),var(--purple-deep));
+  box-shadow:0 8px 22px -6px rgba(122,90,248,.7);position:relative}
+.logo span{width:11px;height:11px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.25)}
+.logo i{position:absolute;width:22px;height:22px;border:2px solid rgba(255,255,255,.55);border-radius:50%;animation:ping 2.4s ease-out infinite}
+@keyframes ping{0%{transform:scale(.5);opacity:.9}100%{transform:scale(1.4);opacity:0}}
+.brand b{font-family:'Outfit';font-weight:700;font-size:17px;letter-spacing:.5px}
+.brand b s{color:var(--purple-light);text-decoration:none}
+.brand .tag{font-size:11px;color:#8ea0c0;letter-spacing:.5px}
+.top-actions{display:flex;align-items:center;gap:10px}
+.kbd{font-size:11px;color:#7d8eb0;border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:4px 8px;background:rgba(255,255,255,.03)}
+.toggle{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#b9c6e0;cursor:pointer;
+  border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);padding:7px 12px;border-radius:999px;user-select:none}
+.toggle .dot{width:9px;height:9px;border-radius:50%;background:#56607a;transition:.3s}
+.toggle.on .dot{background:var(--teal-light);box-shadow:0 0 10px var(--teal-light)}
+
+/* ===== Step rail ===== */
+.rail{position:relative;z-index:3;display:flex;align-items:center;gap:0;padding:6px 30px 14px;overflow-x:auto}
+.rail::-webkit-scrollbar{display:none}
+.step{display:flex;align-items:center;gap:9px;cursor:pointer;flex:0 0 auto;opacity:.5;transition:.35s}
+.step .num{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#cdd7ec;transition:.35s}
+.step .lab{font-size:12.5px;font-weight:500;color:#c8d2e8;white-space:nowrap}
+.step.done{opacity:.85}
+.step.done .num{background:rgba(45,212,191,.16);border-color:rgba(45,212,191,.4);color:var(--teal-light)}
+.step.active{opacity:1}
+.step.active .num{background:linear-gradient(135deg,var(--purple),var(--purple-deep));border-color:transparent;color:#fff;box-shadow:0 6px 16px -4px rgba(122,90,248,.8)}
+.step .bar{width:26px;height:2px;background:rgba(255,255,255,.12);margin:0 2px;border-radius:2px}
+.step.done .bar{background:rgba(45,212,191,.5)}
+
+/* ===== Stage ===== */
+.stage{position:relative;z-index:2;flex:1;min-height:0;display:grid;place-items:center;padding:4px 30px}
+.scene{position:absolute;inset:0;display:none;padding:6px 30px;grid-template-columns:340px 1fr;gap:34px;align-items:center}
+.scene.active{display:grid;animation:sceneIn .55s cubic-bezier(.2,.7,.2,1)}
+.scene.center{grid-template-columns:1fr;place-items:center;text-align:center}
+@keyframes sceneIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* narration */
+.narr{align-self:center}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:var(--purple-light);margin-bottom:14px}
+.eyebrow .pip{width:7px;height:7px;border-radius:50%;background:var(--teal-light);box-shadow:0 0 9px var(--teal-light)}
+.narr h2{font-size:30px;line-height:1.12;font-weight:600;margin-bottom:14px}
+.narr h2 em{font-style:normal;color:var(--purple-light)}
+.narr p{font-size:15px;line-height:1.6;color:#aab8d4;max-width:380px}
+.why{margin-top:20px;border-left:2px solid var(--teal);padding:10px 0 10px 16px;background:linear-gradient(90deg,rgba(45,212,191,.07),transparent);border-radius:0 8px 8px 0}
+.why b{color:var(--teal-light);font-size:11px;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px}
+.why span{font-size:13.5px;color:#c7d2e8;line-height:1.5}
+.cue{margin-top:18px;display:inline-flex;align-items:center;gap:9px;font-size:12.5px;color:#8aa;}
+.cue .ring{width:20px;height:20px;border:2px solid var(--purple-light);border-radius:50%;display:grid;place-items:center;animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(189,180,254,.5)}50%{box-shadow:0 0 0 6px rgba(189,180,254,0)}}
+
+/* device viewport */
+.view{justify-self:center;width:100%;max-width:760px;position:relative}
+.viewtag{position:absolute;top:-13px;left:22px;z-index:5;display:inline-flex;align-items:center;gap:7px;
+  font-size:11px;font-weight:600;letter-spacing:.4px;padding:5px 12px;border-radius:999px;color:#fff;
+  box-shadow:var(--shadow-sm)}
+.viewtag.agent{background:linear-gradient(135deg,#2b3550,#1b2236);border:1px solid rgba(255,255,255,.14)}
+.viewtag.client{background:linear-gradient(135deg,var(--teal),#0f5a50)}
+.viewtag i{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.9}
+
+/* desktop browser frame */
+.browser{background:#fff;border-radius:16px;overflow:hidden;box-shadow:var(--shadow);border:1px solid rgba(255,255,255,.5)}
+.bbar{display:flex;align-items:center;gap:8px;padding:11px 16px;background:#f3f4f7;border-bottom:1px solid var(--line)}
+.bbar .dots{display:flex;gap:6px}.bbar .dots i{width:11px;height:11px;border-radius:50%}
+.bbar .dots i:nth-child(1){background:#FF5F57}.bbar .dots i:nth-child(2){background:#FEBC2E}.bbar .dots i:nth-child(3){background:#28C840}
+.urlpill{flex:1;background:#fff;border:1px solid var(--line);border-radius:8px;font-size:12px;color:#667;padding:6px 12px;display:flex;align-items:center;gap:7px}
+.urlpill svg{flex:0 0 auto}
+.bbody{background:#fff;color:var(--navy);max-height:66vh;overflow:auto}
+.bbody::-webkit-scrollbar{width:8px}.bbody::-webkit-scrollbar-thumb{background:#d8dce5;border-radius:8px}
+
+/* phone frame */
+.phone{width:300px;margin:0 auto;background:#0c1320;border-radius:42px;padding:11px;box-shadow:var(--shadow);position:relative}
+.phone::before{content:"";position:absolute;top:20px;left:50%;transform:translateX(-50%);width:96px;height:24px;background:#0c1320;border-radius:0 0 16px 16px;z-index:6}
+.pscreen{background:#fff;border-radius:32px;overflow:hidden;color:var(--navy);height:560px;max-height:60vh;display:flex;flex-direction:column}
+.pstatus{display:flex;justify-content:space-between;align-items:center;padding:13px 22px 6px;font-size:12px;font-weight:600;color:var(--navy)}
+
+/* ===== generic product UI ===== */
+.appbar{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--line)}
+.appbar .av{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px}
+.appbar b{font-family:'Outfit';font-size:14px}
+.appbar small{color:var(--gray-text);font-size:11.5px}
+.appbar .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--gray-light);color:var(--gray-text)}
+.chip.p{background:var(--purple-muted);color:var(--purple-deep)}
+.chip.t{background:var(--ok-bg);color:var(--ok)}
+.chip.a{background:var(--amber-bg);color:var(--amber)}
+.btn{font-family:'Inter';font-weight:600;font-size:13.5px;border:none;border-radius:10px;padding:10px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:.2s;white-space:nowrap}
+.btn.primary{background:linear-gradient(135deg,var(--purple),var(--purple-deep));color:#fff;box-shadow:0 8px 20px -8px rgba(122,90,248,.8)}
+.btn.primary:hover{transform:translateY(-1px);box-shadow:0 12px 26px -8px rgba(122,90,248,.9)}
+.btn.ghost{background:#fff;border:1px solid var(--line);color:var(--navy)}
+.btn.ghost:hover{border-color:var(--purple-light);color:var(--purple-deep)}
+.btn.full{width:100%;justify-content:center}
+.btn:disabled{opacity:.45;cursor:default;transform:none!important;box-shadow:none}
+
+/* nav controls */
+.controls{position:relative;z-index:3;display:flex;align-items:center;gap:16px;padding:12px 30px 18px}
+.nav-btn{font-family:'Outfit';font-weight:600;font-size:14px;color:#fff;border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.05);border-radius:12px;padding:11px 18px;cursor:pointer;display:flex;align-items:center;gap:9px;transition:.2s}
+.nav-btn:hover{background:rgba(255,255,255,.1)}
+.nav-btn.next{background:linear-gradient(135deg,var(--purple),var(--purple-deep));border-color:transparent;box-shadow:0 8px 22px -8px rgba(122,90,248,.8)}
+.nav-btn.next:hover{transform:translateY(-1px)}
+.nav-btn:disabled{opacity:.35;cursor:default;transform:none}
+
+/* value ledger */
+.ledger{margin-left:auto;display:flex;align-items:stretch;gap:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;overflow:hidden}
+.lstat{padding:9px 18px;text-align:center;border-right:1px solid rgba(255,255,255,.08);min-width:118px}
+.lstat:last-child{border-right:none}
+.lstat .v{font-family:'Outfit';font-weight:700;font-size:22px;line-height:1;display:flex;align-items:baseline;justify-content:center;gap:3px}
+.lstat .v u{font-size:12px;font-weight:600;text-decoration:none;color:#8ea0c0}
+.lstat.you .v{color:#fff}
+.lstat.auto .v{color:var(--teal-light)}
+.lstat.mail .v{color:var(--purple-light)}
+.lstat .k{font-size:10.5px;color:#8ea0c0;margin-top:5px;letter-spacing:.3px}
+
+/* ====== SCENE 0 ====== */
+.hero{max-width:880px}
+.hero .badge{display:inline-flex;gap:8px;align-items:center;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--purple-light);border:1px solid rgba(189,180,254,.3);padding:7px 15px;border-radius:999px;margin-bottom:22px}
+.hero h1{font-size:48px;line-height:1.08;font-weight:700;margin-bottom:18px}
+.hero h1 em{font-style:normal;background:linear-gradient(120deg,var(--purple-light),var(--teal-light));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{font-size:17px;color:#aab8d4;line-height:1.6;max-width:620px;margin:0 auto 30px}
+.split{display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:center;max-width:720px;margin:0 auto 32px}
+.sc{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;text-align:left}
+.sc h4{font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:9px}
+.sc h4 .d{width:30px;height:30px;border-radius:9px;display:grid;place-items:center}
+.sc.you h4 .d{background:rgba(255,255,255,.1)}
+.sc.bot h4 .d{background:rgba(45,212,191,.16)}
+.sc ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+.sc li{font-size:13px;color:#bcc8e2;display:flex;gap:8px;align-items:flex-start}
+.sc li svg{flex:0 0 auto;margin-top:2px}
+.sc.you{opacity:.9}
+.vs{width:42px;height:42px;border-radius:50%;background:rgba(122,90,248,.18);border:1px solid rgba(189,180,254,.3);display:grid;place-items:center;font-family:'Outfit';font-weight:700;font-size:13px;color:var(--purple-light)}
+.startrow{display:flex;gap:14px;justify-content:center;align-items:center}
+.metoo{font-size:12.5px;color:#7d8eb0;display:flex;gap:14px}
+.metoo b{color:#cdd7ec}
+
+/* ====== SCENE 1 inbox ====== */
+.inbox{display:grid;grid-template-columns:200px 1fr}
+.ibx-list{border-right:1px solid var(--line);background:#fafbfc;padding:8px}
+.ibx-list .h{font-size:11px;font-weight:700;color:var(--gray-text);letter-spacing:.5px;padding:8px 10px}
+.mail{padding:10px 11px;border-radius:9px;cursor:default;margin-bottom:3px}
+.mail.new{background:#fff;border:1px solid var(--purple-muted);box-shadow:var(--shadow-sm);animation:slideMail .6s cubic-bezier(.2,.8,.2,1)}
+@keyframes slideMail{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+.mail .from{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px}
+.mail .from .nd{width:7px;height:7px;border-radius:50%;background:var(--purple)}
+.mail .subj{font-size:11.5px;color:var(--gray-text);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mail.read{opacity:.6}
+.mail.read .from{font-weight:500}
+.ibx-read{padding:18px 22px;position:relative}
+.mhead{display:flex;align-items:center;gap:11px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.mhead .av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#FDB022,#DC6803);color:#fff;display:grid;place-items:center;font-weight:700}
+.mhead b{font-size:14px}.mhead small{color:var(--gray-text);font-size:12px;display:block}
+.mbody{font-size:13.5px;line-height:1.65;color:#37425a;padding:16px 0}
+.mbody p{margin-bottom:10px}
+/* AI panel */
+.aip{margin-top:6px;border:1px solid var(--purple-muted);background:linear-gradient(180deg,#FBFAFF,#fff);border-radius:14px;overflow:hidden}
+.aip .ah{display:flex;align-items:center;gap:9px;padding:11px 14px;background:linear-gradient(90deg,rgba(122,90,248,.1),transparent);border-bottom:1px solid var(--purple-muted)}
+.aip .ah .spark{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));display:grid;place-items:center}
+.aip .ah b{font-size:13px;font-family:'Outfit'}
+.aip .ah .conf{margin-left:auto;font-size:11px;font-weight:600;color:var(--ok);background:var(--ok-bg);padding:3px 9px;border-radius:999px}
+.aip .acont{padding:14px}
+.thinking-row{display:none;align-items:center;gap:10px;color:var(--purple-deep);font-size:13px;font-weight:500;padding:6px 0}
+.aip.thinking .thinking-row{display:flex}
+.aip.thinking .aresults{display:none}
+.tdots{display:flex;gap:5px}.tdots i{width:7px;height:7px;border-radius:50%;background:var(--purple);animation:td 1s infinite}
+.tdots i:nth-child(2){animation-delay:.15s}.tdots i:nth-child(3){animation-delay:.3s}
+@keyframes td{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
+.aresults{display:none}
+.aip.analyzed .aresults{display:block}
+.aip.analyzed .pre-cta{display:none}
+.pre-cta{padding:14px}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+.fact{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 11px;opacity:0;transform:translateY(6px);animation:popIn .5s forwards}
+.fact:nth-child(1){animation-delay:.05s}.fact:nth-child(2){animation-delay:.13s}.fact:nth-child(3){animation-delay:.21s}.fact:nth-child(4){animation-delay:.29s}
+@keyframes popIn{to{opacity:1;transform:none}}
+.fact .k{font-size:10px;color:var(--gray-text);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.fact .vv{font-size:13px;font-weight:600;margin-top:3px;display:flex;align-items:center;gap:6px}
+.match{background:var(--purple-muted);border-color:transparent}
+.match .vv{color:var(--purple-deep)}
+.toast{position:absolute;left:50%;bottom:16px;transform:translateX(-50%) translateY(20px);opacity:0;
+  background:var(--navy);color:#fff;font-size:13px;font-weight:500;padding:11px 18px;border-radius:11px;
+  display:flex;align-items:center;gap:10px;box-shadow:var(--shadow);transition:.45s;z-index:9;max-width:90%}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast .ic{width:24px;height:24px;border-radius:50%;background:var(--teal);display:grid;place-items:center;flex:0 0 auto}
+.toast small{display:block;color:#9fb0cf;font-size:11px;font-weight:400;margin-top:1px}
+
+/* ====== SCENE 2 form ====== */
+.formhdr{padding:14px 18px;background:linear-gradient(135deg,var(--navy),var(--purple-deep));color:#fff}
+.formhdr small{font-size:11px;color:var(--purple-light);letter-spacing:.5px;text-transform:uppercase;font-weight:600}
+.formhdr b{font-family:'Outfit';font-size:16px;display:block;margin-top:3px}
+.fprog{height:5px;background:rgba(255,255,255,.18);border-radius:3px;margin-top:11px;overflow:hidden}
+.fprog i{display:block;height:100%;width:0;background:var(--teal-light);border-radius:3px;transition:width .4s}
+.fbody{flex:1;overflow-y:auto;padding:16px 18px}
+.fld{margin-bottom:13px;opacity:0;transform:translateY(8px)}
+.scene.active .pscreen .fld{animation:fldIn .5s forwards}
+.fld:nth-child(1){animation-delay:.2s}.fld:nth-child(2){animation-delay:.5s}.fld:nth-child(3){animation-delay:.8s}
+.fld:nth-child(4){animation-delay:1.1s}.fld:nth-child(5){animation-delay:1.5s}.fld:nth-child(6){animation-delay:1.9s}
+@keyframes fldIn{to{opacity:1;transform:none}}
+.fld label{font-size:11.5px;font-weight:600;color:var(--gray-text);display:block;margin-bottom:5px}
+.input{border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:13px;color:var(--navy);background:#fff;min-height:40px;display:flex;align-items:center;position:relative}
+.input.typed{border-color:var(--purple-light)}
+.input.typed::after{content:"";width:2px;height:15px;background:var(--purple);margin-left:1px;animation:caret .8s steps(1) infinite}
+@keyframes caret{50%{opacity:0}}
+.input.done::after{display:none}
+.input.sel{justify-content:space-between}
+.input .pillsel{background:var(--purple-muted);color:var(--purple-deep);font-size:12px;font-weight:600;padding:3px 9px;border-radius:7px}
+.adapt{background:var(--purple-muted);border-radius:10px;padding:11px 12px;display:flex;gap:9px;align-items:flex-start;
+  opacity:0;transform:translateY(8px);animation:fldIn .5s 1.7s forwards}
+.adapt svg{flex:0 0 auto;margin-top:1px}
+.adapt p{font-size:12px;color:var(--purple-deep);line-height:1.45}
+.adapt p b{font-weight:700}
+.fdone{position:absolute;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;opacity:0;pointer-events:none;transition:.5s}
+.fdone.show{opacity:1}
+.fdone .ck{width:64px;height:64px;border-radius:50%;background:var(--ok-bg);display:grid;place-items:center;margin-bottom:16px;animation:popb .5s}
+@keyframes popb{0%{transform:scale(.4)}60%{transform:scale(1.1)}100%{transform:scale(1)}}
+.fdone h3{font-size:18px;margin-bottom:8px}
+.fdone p{font-size:13px;color:var(--gray-text);line-height:1.5}
+
+/* ====== SCENE 3 pipeline ====== */
+.pipe{padding:16px}
+.pipe-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.pipe-head b{font-family:'Outfit';font-size:15px}
+.cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.col{background:#f7f8fa;border-radius:12px;padding:10px;min-height:200px}
+.col .ch{font-size:11px;font-weight:700;color:var(--gray-text);text-transform:uppercase;letter-spacing:.5px;display:flex;justify-content:space-between;margin-bottom:9px;padding:0 3px}
+.col .ch .ct{background:#fff;border:1px solid var(--line);border-radius:6px;padding:1px 7px;font-size:10px}
+.pcard{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px;margin-bottom:8px;box-shadow:var(--shadow-sm)}
+.pcard .pn{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
+.pcard .pn .av{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#FDB022,#DC6803);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700}
+.pcard .pm{font-size:11.5px;color:var(--gray-text);margin-top:6px}
+.pcard.fresh{border-color:var(--purple-light);box-shadow:0 0 0 3px rgba(189,180,254,.4),var(--shadow-sm);animation:slideMail .6s}
+.pcard .tagrow{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+.muted{opacity:.55}
+/* pre-case detail overlay */
+.pcdetail{margin-top:14px;border:1px solid var(--purple-muted);border-radius:14px;overflow:hidden;
+  opacity:0;max-height:0;transition:.5s}
+.pcdetail.show{opacity:1;max-height:340px}
+.pcd-head{display:flex;align-items:center;gap:11px;padding:12px 16px;background:linear-gradient(90deg,rgba(122,90,248,.08),transparent);border-bottom:1px solid var(--purple-muted)}
+.pcd-head .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#FDB022,#DC6803);color:#fff;display:grid;place-items:center;font-weight:700}
+.pcd-head b{font-size:14px}.pcd-head small{font-size:11.5px;color:var(--gray-text);display:block}
+.pcd-head .pts{margin-left:auto;text-align:center;background:var(--ok-bg);border-radius:10px;padding:6px 14px}
+.pcd-head .pts u{display:block;font-family:'Outfit';font-weight:700;font-size:20px;color:var(--ok);text-decoration:none}
+.pcd-head .pts s{font-size:9px;text-decoration:none;color:var(--ok);letter-spacing:.5px}
+.pcd-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px}
+.pcd-cell{background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:10px}
+.pcd-cell .k{font-size:10px;color:var(--gray-text);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:5px}
+.pcd-cell .vv{font-size:13px;font-weight:600}
+.pcd-cell.flag{background:var(--amber-bg);border-color:var(--amber-line)}
+.pcd-cell.flag .vv{color:var(--amber);display:flex;gap:6px;align-items:center}
+.pcd-foot{display:flex;gap:9px;padding:0 16px 14px;align-items:center}
+.pcd-foot .ovr{font-size:11.5px;color:var(--gray-text);display:flex;align-items:center;gap:6px;margin-left:auto}
+
+/* ====== SCENE 4 checklist build ====== */
+.clbuild{padding:18px}
+.clbuild .bh{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.clbuild .bh .spark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));display:grid;place-items:center}
+.clbuild .bh b{font-family:'Outfit';font-size:16px}
+.clbuild .bh small{color:var(--gray-text);font-size:12px}
+.clbuild .sub{font-size:12.5px;color:var(--gray-text);margin:2px 0 14px 40px}
+.cl-list{display:flex;flex-direction:column;gap:8px}
+.cli{display:flex;align-items:center;gap:11px;background:#fafbfc;border:1px solid var(--line);border-radius:11px;padding:11px 14px;
+  opacity:0;transform:translateX(-12px)}
+.scene.active .cli{animation:cliIn .45s forwards}
+.cli:nth-child(1){animation-delay:.15s}.cli:nth-child(2){animation-delay:.35s}.cli:nth-child(3){animation-delay:.55s}
+.cli:nth-child(4){animation-delay:.75s}.cli:nth-child(5){animation-delay:.95s}.cli:nth-child(6){animation-delay:1.15s}.cli:nth-child(7){animation-delay:1.35s}
+@keyframes cliIn{to{opacity:1;transform:none}}
+.cli .ci{width:34px;height:34px;border-radius:9px;background:var(--purple-muted);display:grid;place-items:center;flex:0 0 auto}
+.cli .ct{flex:1}
+.cli .ct b{font-size:13.5px;font-weight:600;display:block}
+.cli .ct small{font-size:11.5px;color:var(--gray-text)}
+.cli .sub-tag{font-size:10px;font-weight:600;color:var(--purple-deep);background:var(--purple-muted);padding:3px 8px;border-radius:6px}
+.cl-foot{margin-top:14px;display:flex;align-items:center;gap:10px;background:var(--ok-bg);border:1px solid var(--ok-line);border-radius:11px;padding:12px 14px;
+  opacity:0;animation:fldIn .5s 1.6s forwards}
+.cl-foot svg{flex:0 0 auto}
+.cl-foot b{font-size:13px;color:var(--ok)}
+.cl-foot small{font-size:11.5px;color:#3a6b52;display:block}
+
+/* ====== SCENE 5 uploads ====== */
+.up-head{padding:14px 18px;background:linear-gradient(135deg,var(--teal),#0f5a50);color:#fff}
+.up-head small{font-size:11px;opacity:.85;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.up-head b{font-family:'Outfit';font-size:15px;display:block;margin-top:3px}
+.up-head .ringwrap{display:flex;align-items:center;gap:12px;margin-top:10px}
+.ring{position:relative;width:46px;height:46px;flex:0 0 auto}
+.ring svg{transform:rotate(-90deg)}
+.ring .pct{position:absolute;inset:0;display:grid;place-items:center;font-size:12px;font-weight:700}
+.up-head .rt b{font-size:12px;display:block}.up-head .rt small{opacity:.8}
+.up-body{flex:1;overflow-y:auto;padding:14px}
+.uslot{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:9px;cursor:pointer;transition:.2s;background:#fff}
+.uslot:hover{border-color:var(--purple-light)}
+.uslot .ur{display:flex;align-items:center;gap:11px}
+.uslot .ci{width:36px;height:36px;border-radius:9px;background:var(--gray-light);display:grid;place-items:center;flex:0 0 auto;transition:.3s}
+.uslot .ut{flex:1}
+.uslot .ut b{font-size:13px;display:block}
+.uslot .ut small{font-size:11px;color:var(--gray-text)}
+.uslot .ua{font-size:11.5px;font-weight:600;color:var(--purple-deep);display:flex;align-items:center;gap:5px}
+.uslot.uploading{border-color:var(--purple-light);cursor:default}
+.uslot.uploading .ci{background:var(--purple-muted)}
+.uslot.uploading .ua{color:var(--purple-deep)}
+.uspin{width:16px;height:16px;border:2px solid var(--purple-muted);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.uslot.checked{cursor:default}
+.uslot.checked .ci{background:var(--ok-bg)}
+.uslot.warn .ci{background:var(--amber-bg)}
+.uresult{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:none;gap:8px;align-items:flex-start}
+.uslot.checked .uresult,.uslot.warn .uresult{display:flex;animation:fldIn .4s}
+.uresult svg{flex:0 0 auto;margin-top:1px}
+.uresult .rt{font-size:12px;line-height:1.45}
+.uslot.checked .uresult .rt b{color:var(--ok)}
+.uslot.warn .uresult .rt b{color:var(--amber)}
+.uresult .rt span{color:var(--gray-text);display:block;margin-top:1px}
+.uhint{text-align:center;font-size:11.5px;color:var(--gray-text);padding:6px 0 2px;display:flex;align-items:center;justify-content:center;gap:6px}
+
+/* ====== SCENE 6 case ready ====== */
+.case{padding:16px}
+.case-top{display:flex;align-items:center;gap:11px;padding-bottom:13px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.case-top .av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#FDB022,#DC6803);color:#fff;display:grid;place-items:center;font-weight:700}
+.case-top b{font-size:15px}.case-top small{font-size:12px;color:var(--gray-text);display:block}
+.case-top .badge-ready{margin-left:auto;background:var(--ok-bg);color:var(--ok);font-weight:700;font-size:12px;padding:7px 14px;border-radius:999px;display:flex;gap:7px;align-items:center}
+.case-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:14px}
+.panel{border:1px solid var(--line);border-radius:13px;padding:13px;background:#fff}
+.panel .ph{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-text);margin-bottom:11px;display:flex;align-items:center;gap:7px}
+/* autofill forms */
+.formfill{display:flex;flex-direction:column;gap:8px}
+.ffrow{display:flex;align-items:center;gap:10px;background:#fafbfc;border:1px solid var(--line);border-radius:9px;padding:9px 11px}
+.ffrow .fdoc{width:30px;height:30px;border-radius:8px;background:var(--purple-muted);display:grid;place-items:center;flex:0 0 auto}
+.ffrow b{font-size:12.5px;flex:1}
+.ffrow .fstat{font-size:11px;font-weight:600;color:var(--ok);display:flex;align-items:center;gap:5px}
+.autofill-note{margin-top:10px;font-size:11.5px;color:var(--purple-deep);background:var(--purple-muted);border-radius:9px;padding:9px 11px;display:flex;gap:8px;align-items:flex-start}
+.autofill-note svg{flex:0 0 auto;margin-top:1px}
+/* task list */
+.tasks{display:flex;flex-direction:column;gap:8px}
+.task{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:9px;padding:10px 11px}
+.task .tb{width:20px;height:20px;border-radius:6px;border:2px solid var(--line);flex:0 0 auto}
+.task.flag{border-color:var(--amber-line);background:var(--amber-bg)}
+.task.flag .tb{border-color:var(--amber);background:var(--amber);display:grid;place-items:center}
+.task.flag .tt b{color:var(--amber)}
+.task .tt b{font-size:12.5px;display:block}
+.task .tt small{font-size:11px;color:var(--gray-text)}
+.task .arr{margin-left:auto;color:var(--gray-text)}
+.before-after{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ba{border-radius:12px;padding:13px}
+.ba.before{background:#fff5f5;border:1px solid #fecdca}
+.ba.after{background:var(--ok-bg);border:1px solid var(--ok-line)}
+.ba .bt{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+.ba.before .bt{color:#B42318}.ba.after .bt{color:var(--ok)}
+.ba .bv{font-family:'Outfit';font-weight:700;font-size:24px}
+.ba.before .bv{color:#B42318}.ba.after .bv{color:var(--ok)}
+.ba .bk{font-size:11.5px;color:var(--gray-text);margin-top:3px}
+
+/* ====== SCENE 7 recap ====== */
+.recap{max-width:920px}
+.recap .journey{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:30px;flex-wrap:wrap}
+.jn{display:flex;flex-direction:column;align-items:center;gap:7px;opacity:0;transform:translateY(10px)}
+.scene.active .jn{animation:fldIn .5s forwards}
+.jn:nth-child(1){animation-delay:.1s}.jn:nth-child(3){animation-delay:.25s}.jn:nth-child(5){animation-delay:.4s}
+.jn:nth-child(7){animation-delay:.55s}.jn:nth-child(9){animation-delay:.7s}.jn:nth-child(11){animation-delay:.85s}
+.jn .jd{width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);display:grid;place-items:center}
+.jn.auto .jd{background:rgba(45,212,191,.14);border-color:rgba(45,212,191,.35)}
+.jn span{font-size:11px;color:#aab8d4;max-width:80px;text-align:center;line-height:1.3}
+.jarrow{color:#56607a;opacity:0;animation:fldIn .4s forwards;animation-delay:.5s}
+.thesis{font-size:34px;line-height:1.18;font-weight:600;margin-bottom:14px}
+.thesis em{font-style:normal}
+.thesis .b1{color:var(--teal-light)}.thesis .b2{color:var(--purple-light)}.thesis .b3{color:#fff}
+.recap p.lead{font-size:15px;color:#aab8d4;max-width:560px;margin:0 auto 26px;line-height:1.6}
+.rstats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:660px;margin:0 auto 24px}
+.rstat{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px}
+.rstat .rv{font-family:'Outfit';font-weight:700;font-size:34px;background:linear-gradient(120deg,var(--purple-light),var(--teal-light));-webkit-background-clip:text;background-clip:text;color:transparent}
+.rstat .rk{font-size:12.5px;color:#aab8d4;margin-top:5px}
+.override-note{display:inline-flex;align-items:center;gap:10px;font-size:13px;color:#cdd7ec;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:10px 18px}
+.override-note svg{flex:0 0 auto}
+
+@media (max-width:1080px){
+  .scene{grid-template-columns:1fr;gap:14px;overflow-y:auto}
+  .narr{order:2} .view{order:1}
+  .narr h2{font-size:22px}
+  .ledger{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="backdrop"><div class="orb a"></div><div class="orb b"></div></div>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo"><i></i><span></span></div>
+      <div>
+        <b>IMMI<s>·</s>PULSE</b>
+        <div class="tag">End-to-end walkthrough · one enquiry, start to lodgement-ready</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span class="kbd">← → to move</span>
+      <div class="toggle" id="autoToggle"><span class="dot"></span> Auto-play</div>
+    </div>
+  </div>
+
+  <!-- STEP RAIL -->
+  <div class="rail" id="rail"></div>
+
+  <!-- STAGE -->
+  <div class="stage" id="stage">
+
+    <!-- ===== SCENE 0 : TITLE ===== -->
+    <section class="scene center active" data-title="Overview">
+      <div class="hero">
+        <div class="badge"><span class="pip" style="width:7px;height:7px;border-radius:50%;background:var(--teal-light);box-shadow:0 0 9px var(--teal-light)"></span> Guided product walkthrough</div>
+        <h1>From a cold email to a case that's<br><em>lodgement-ready</em> — minus the busywork.</h1>
+        <p>Follow one real enquiry through the platform. Watch the applicant and the AI do the heavy lifting at every step — while you keep the judgement and the final call.</p>
+
+        <div class="split">
+          <div class="sc you">
+            <h4><span class="d">👤</span> You — the agent</h4>
+            <ul>
+              <li>✓ Review &amp; decide</li>
+              <li>✓ Approve, hold or decline</li>
+              <li>✓ Lodge with confidence</li>
+            </ul>
+          </div>
+          <div class="vs">vs</div>
+          <div class="sc bot">
+            <h4><span class="d">⚡</span> Pulse + the applicant</h4>
+            <ul>
+              <li>↳ Capture every detail (once)</li>
+              <li>↳ Build &amp; send the right checklist</li>
+              <li>↳ Validate every document</li>
+              <li>↳ Pre-fill the DHA forms</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="startrow">
+          <button class="nav-btn next" onclick="go(1)" style="font-size:15px;padding:13px 24px">Begin the walkthrough →</button>
+          <div class="metoo"><span><b>8</b> steps</span><span><b>~3</b> min</span><span><b>Click</b> the highlighted buttons</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SCENE 1 : ENQUIRY ARRIVES ===== -->
+    <section class="scene" data-title="Enquiry">
+      <div class="narr">
+        <div class="eyebrow"><span class="pip"></span> Step 1 — The enquiry lands</div>
+        <h2>A cold email becomes a <em>structured lead</em>.</h2>
+        <p>Priya emails out of the blue. Instead of you reading, triaging and typing a reply — Pulse reads it for you.</p>
+        <div class="why"><b>Why it matters</b><span>One unknown email turns into a classified lead with the visa already matched — in seconds, with zero typing.</span></div>
+        <div class="cue"><span class="ring">→</span> Click <b style="color:#cdd7ec">“Let Pulse read it”</b> on the email</div>
+      </div>
+      <div class="view">
+        <span class="viewtag agent"><i></i> Agent · Inbox</span>
+        <div class="browser">
+          <div class="bbar"><span class="dots"><i></i><i></i><i></i></span>
+            <span class="urlpill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9aa" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> app.immipulse.com/inbox</span>
+          </div>
+          <div class="bbody">
+            <div class="inbox">
+              <div class="ibx-list">
+                <div class="h">INBOX · 3</div>
+                <div class="mail new" id="s1mail"><div class="from"><span class="nd"></span>Priya Sharma</div><div class="subj">Skilled visa enquiry</div></div>
+                <div class="mail read"><div class="from">DHA Updates</div><div class="subj">Processing time changes</div></div>
+                <div class="mail read"><div class="from">Marcus Lee</div><div class="subj">Re: document upload</div></div>
+              </div>
+              <div class="ibx-read">
+                <div class="mhead">
+                  <div class="av">PS</div>
+                  <div><b>Priya Sharma</b><small>priya.sharma@gmail.com · just now</small></div>
+                  <span class="chip" style="margin-left:auto">Skilled visa enquiry</span>
+                </div>
+                <div class="mbody">
+                  <p>Hi, I'm a software engineer currently working in Sydney on a 482 visa. I'm 29 and would love to apply for permanent residency. A friend said I might qualify for a skilled visa?</p>
+                  <p>Could you let me know what's possible and how to get started? Thanks — Priya</p>
+                </div>
+                <div class="aip" id="s1aip">
+                  <div class="ah"><span class="spark">✨</span><b>Pulse AI</b><span class="conf">94% confident</span></div>
+                  <div class="pre-cta">
+                    <button class="btn primary full" id="s1read">✨ Let Pulse read it</button>
+                  </div>
+                  <div class="acont">
+                    <div class="thinking-row"><span class="tdots"><i></i><i></i><i></i></span> Reading the email &amp; matching pathways…</div>
+                    <div class="aresults">
+                      <div class="facts">
+                        <div class="fact"><div class="k">Intent</div><div class="vv">New enquiry</div></div>
+                        <div class="fact match"><div class="k">Visa match</div><div class="vv">Skilled · 189 / 190</div></div>
+                        <div class="fact"><div class="k">Occupation</div><div class="vv">Software Engineer</div></div>
+                        <div class="fact"><div class="k">Profile</div><div class="vv">Onshore · age 29</div></div>
+                      </div>
+                      <button class="btn primary full" id="s1send">Send smart intake form →</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="toast" id="s1toast">
+              <span class="ic">✓</span>
+              <div>Smart intake form sent to Priya<small>Pre-case created automatically · no typing required</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SCENE 2 : APPLICANT FILLS FORM ===== -->
+    <section class="scene" data-title="Smart form">
+      <div class="narr">
+        <div class="eyebrow"><span class="pip"></span> Step 2 — The applicant fills it in</div>
+        <h2>They do the data entry — <em>once</em>.</h2>
+        <p>Priya gets a clean, branded form on her phone. It adapts to her answers, so she only ever sees what's relevant to her.</p>
+        <div class="why"><b>Why it matters</b><span>This is the work that normally lands on you in calls and email threads. Now it's captured cleanly, by the applicant, in one sitting.</span></div>
+        <div class="cue"><span class="ring">▸</span> Watch it fill itself — this is Priya's screen</div>
+      </div>
+      <div class="view">
+        <span class="viewtag client"><i></i> Applicant · Mobile</span>
+        <div class="phone">
+          <div class="pscreen">
+            <div class="formhdr">
+              <small>Horizon Migration</small>
+              <b>Let's see what you qualify for</b>
+              <div class="fprog"><i id="s2prog"></i></div>
+            </div>
+            <div class="fbody">
+              <div class="fld"><label>Full name</label><div class="input" data-type="Priya Sharma">Priya Sharma</div></div>
+              <div class="fld"><label>Current visa in Australia</label><div class="input sel">Subclass 482 (TSS) <span class="pillsel">selected</span></div></div>
+              <div class="fld"><label>Your occupation</label><div class="input sel">Software Engineer <span class="pillsel">261313</span></div></div>
+              <div class="fld"><label>Highest qualification</label><div class="input" data-type="Bachelor of Computer Science">Bachelor of Computer Science</div></div>
+              <div class="fld"><label>Years of skilled work experience</label><div class="input sel">5–8 years <span class="pillsel">selected</span></div></div>
+              <div class="adapt">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3E1C96" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/></svg>
+                <p>Because you chose <b>Software Engineer</b>, we'll line up an <b>ACS skills assessment</b> for ANZSCO 261313. A few extra questions added just for you.</p>
+              </div>
+            </div>
+            <div class="fdone" id="s2done">
+              <div class="ck"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#067647" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+              <h3>All done, Priya!</h3>
+              <p>Daniel at Horizon Migration will review your details and be in touch shortly.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SCENE 3 : PRE-CASE ===== -->
+    <section class="scene" data-title="Pre-case">
+      <div class="narr">
+        <div class="eyebrow"><span class="pip"></span> Step 3 — A pre-case builds itself</div>
+        <h2>Everything arrives <em>organised</em>.</h2>
+        <p>A new pre-case appears in your pipeline. Pulse has already structured the profile, estimated points and flagged the risks — from Priya's answers.</p>
+        <div class="why"><b>Why it matters</b><span>No data re-entry, no assembly. You glance, you decide. And every step has a manual override — you're always in control.</span></div>
+        <div class="cue"><span class="ring">→</span> Click <b style="color:#cdd7ec">“Open”</b> on Priya's pre-case</div>
+      </div>
+      <div class="view">
+        <span class="viewtag agent"><i></i> Agent · Pipeline</span>
+        <div class="browser">
+          <div class="bbar"><span class="dots"><i></i><i></i><i></i></span>
+            <span class="urlpill">app.immipulse.com/pipeline</span>
+          </div>
+          <div class="bbody">
+            <div class="pipe">
+              <div class="pipe-head"><b>Your pipeline</b><span class="chip p">Pulse keeps this sorted</span></div>
+              <div class="cols">
+                <div class="col"><div class="ch">Enquiries <span class="ct">2</span></div>
+                  <div class="pcard muted"><div class="pn"><span class="av" style="background:linear-gradient(135deg,#7A5AF8,#3E1C96)">RK</span> Raj Kumar</div><div class="pm">Student → PR pathway</div></div>
+                  <div class="pcard muted"><div class="pn"><span class="av" style="background:linear-gradient(135deg,#12B76A,#067647)">AM</span> Aisha M.</div><div class="pm">Partner visa</div></div>
+                </div>
+                <div class="col"><div class="ch">Pre-cases <span class="ct" id="s3count">1</span></div>
+                  <div class="pcard fresh" id="s3card">
+                    <div class="pn"><span class="av">PS</span> Priya Sharma <span class="chip p" style="font-size:9px;padding:2px 7px;margin-left:auto">NEW</span></div>
+                    <div class="pm">Skilled · 189/190 · auto-built from intake</div>
+                    <div class="tagrow"><span class="chip t" style="font-size:9px;padding:2px 7px">70 pts</span><span class="chip a" style="font-size:9px;padding:2px 7px">1 flag</span></div>
+                    <button class="btn ghost" id="s3open" style="width:100%;margin-top:9px;justify-content:center;padding:7px">Open →</button>
+                  </div>
+                </div>
+                <div class="col"><div class="ch">Cases <span class="ct">4</span></div>
+                  <div class="pcard muted"><div class="pn"><span class="av" style="background:linear-gradient(135deg,#F79009,#B54708)">TL</span> Tom L.</div><div class="pm">189 · docs in review</div></div>
+                  <div class="pcard muted"><div class="pn"><span class="av" style="background:linear-gradient(135deg,#7A5AF8,#3E1C96)">JD</span> Jia D.</div><div class="pm">190 · ready to lodge</div></div>
+                </div>
+              </div>
+              <div class="pcdetail" id="s3detail">
+                <div class="pcd-head">
+                  <div class="av">PS</div>
+                  <div><b>Priya Sharma</b><small>Software Engineer · onshore · 482 → PR</small></div>
+                  <div class="pts"><u>70</u><s>EST. POINTS</s></div>
+                </div>
+                <div class="pcd-grid">
+                  <div class="pcd-cell"><div class="k">Recommended pathway</div><div class="vv">Subclass 189 (primary) · 190 backup</div></div>
+                  <div class="pcd-cell"><div class="k">Skills assessment</div><div class="vv">ACS · ANZSCO 261313</div></div>
+                  <div class="pcd-cell"><div class="k">English</div><div class="vv">PTE required — not yet sat</div></div>
+                  <div class="pcd-cell flag"><div class="k">Risk flag</div><div class="vv">⚠ Age points drop at 33</div></div>
+                </div>
+                <div class="pcd-foot">
+                  <button class="btn primary" id="s3convert">Convert to case →</button>
+                  <button class="btn ghost">Hold</button>
+                  <span class="ovr"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#475367" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M22 2 12 12"/></svg> You decide — convert, hold or decline</span>
+                </div>
+              </div>
+            </div>
+            <div class="toast" id="s3toast"><span class="ic">✓</span><div>Converted to a live case<small>Pulse is now generating the document checklist…</small></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SCENE 4 : CHECKLIST ===== -->
+    <section class="scene" data-title="Checklist">
+      <div class="narr">
+        <div class="eyebrow"><span class="pip"></span> Step 4 — The checklist sends itself</div>
+        <h2>The <em>exact</em> checklist for this visa — auto-built.</h2>
+        <p>The moment it's a case, Pulse generates a document checklist tailored to subclass 189 and Priya's profile, then delivers it straight to her portal.</p>
+        <div class="why"><b>Why it matters</b><span>No template hunting, no “did I forget anything?”. The right list, every time — and it's already on its way to the applicant.</span></div>
+        <div class="cue"><span class="ring">▸</span> Watch the checklist assemble itself</div>
+      </div>
+      <div class="view">
+        <span class="viewtag agent"><i></i> Agent · Auto-generated</span>
+        <div class="browser">
+          <div class="bbar"><span class="dots"><i></i><i></i><i></i></span><span class="urlpill">app.immipulse.com/cases/priya-sharma/checklist</span></div>
+          <div class="bbody">
+            <div class="clbuild">
+              <div class="bh"><span class="spark">✨</span><div><b>Document checklist</b> <small>· for Priya Sharma</small></div></div>
+              <div class="sub">Tailored to Subclass 189 · Skilled Independent · generated from the pre-case</div>
+              <div class="cl-list">
+                <div class="cli"><span class="ci">🛂</span><div class="ct"><b>Passport</b><small>Bio page + any prior passports</small></div><span class="sub-tag">189</span></div>
+                <div class="cli"><span class="ci">📊</span><div class="ct"><b>ACS skills assessment</b><small>ANZSCO 261313 · Software Engineer</small></div><span class="sub-tag">189</span></div>
+                <div class="cli"><span class="ci">🗣️</span><div class="ct"><b>English test (PTE / IELTS)</b><small>Proof of competent+ English</small></div><span class="sub-tag">189</span></div>
+                <div class="cli"><span class="ci">💼</span><div class="ct"><b>Employment references</b><small>Last 5 years · on letterhead</small></div><span class="sub-tag">points</span></div>
+                <div class="cli"><span class="ci">🎓</span><div class="ct"><b>Degree certificate &amp; transcript</b><small>Bachelor of Computer Science</small></div><span class="sub-tag">points</span></div>
+                <div class="cli"><span class="ci">💳</span><div class="ct"><b>Payslips &amp; tax records</b><small>Evidence of skilled employment</small></div><span class="sub-tag">189</span></div>
+                <div class="cli"><span class="ci">📷</span><div class="ct"><b>Passport-style photo</b><small>Recent, plain background</small></div><span class="sub-tag">189</span></div>
+              </div>
+              <div class="cl-foot">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#067647" stroke-width="2"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+                <div><b>Sent to Priya's portal automatically</b><small>She gets a notification with upload slots — you built nothing</small></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SCENE 5 : UPLOADS + AI CHECK ===== -->
+    <section class="scene" data-title="Documents">
+      <div class="narr">
+        <div class="eyebrow"><span class="pip"></span> Step 5 — Documents check themselves</div>
+        <h2>Every file is <em>checked the moment it lands</em>.</h2>
+        <p>Priya uploads from her phone. Pulse reads each document and gives her plain-language feedback — so problems get fixed before they reach you.</p>
+        <div class="why"><b>Why it matters</b><span>No chasing, no re-checking expiry dates and name spellings. The applicant fixes their own issues, guided by the AI.</span></div>
+        <div class="cue"><span class="ring">→</span> Tap each <b style="color:#cdd7ec">document</b> to upload it</div>
+      </div>
+      <div class="view">
+        <span class="viewtag client"><i></i> Applicant · Portal</span>
+        <div class="phone">
+          <div class="pscreen">
+            <div class="up-head">
+              <small>Your documents</small>
+              <b>Upload checklist · 189</b>
+              <div class="ringwrap">
+                <div class="ring">
+                  <svg width="46" height="46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="5"/><circle id="s5ring" cx="23" cy="23" r="19" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-dasharray="119" stroke-dashoffset="119"/></svg>
+                  <span class="pct" id="s5pct">0%</span>
+                </div>
+                <div class="rt"><b id="s5count">0 of 4 checked</b><small>Pulse reviews each as you go</small></div>
+              </div>
+            </div>
+            <div class="up-body">
+              <div class="uslot" data-doc="passport" data-ok="1" data-title="Passport ✓ Verified" data-msg="Expires Aug 2030, name matches your profile.">
+                <div class="ur"><span class="ci">🛂</span><div class="ut"><b>Passport</b><small>Bio page</small></div><span class="ua">Tap to upload <span class="aico">↑</span></span></div>
+                <div class="uresult"><svg class="rs-ok" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#067647" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg><div class="rt"><b class="rb"></b><span class="rm"></span></div></div>
+              </div>
+              <div class="uslot" data-doc="acs" data-ok="1" data-title="ACS assessment ✓ Positive" data-msg="Occupation 261313 matches — outcome is positive.">
+                <div class="ur"><span class="ci">📊</span><div class="ut"><b>ACS skills assessment</b><small>261313</small></div><span class="ua">Tap to upload <span class="aico">↑</span></span></div>
+                <div class="uresult"><svg class="rs-ok" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#067647" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg><div class="rt"><b class="rb"></b><span class="rm"></span></div></div>
+              </div>
+              <div class="uslot" data-doc="payslip" data-ok="0" data-title="Payslip ⚠ Needs a newer one" data-msg="This one is 4 months old — please add your latest payslip.">
+                <div class="ur"><span class="ci">💳</span><div class="ut"><b>Payslips</b><small>Recent</small></div><span class="ua">Tap to upload <span class="aico">↑</span></span></div>
+                <div class="uresult"><svg class="rs-warn" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B54708" stroke-width="2.5"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><div class="rt"><b class="rb"></b><span class="rm"></span></div></div>
+              </div>
+              <div class="uslot" data-doc="photo" data-ok="1" data-title="Photo ✓ Accepted" data-msg="Meets size &amp; background requirements.">
+                <div class="ur"><span class="ci">📷</span><div class="ut"><b>Passport photo</b><small>Recent</small></div><span class="ua">Tap to upload <span class="aico">↑</span></span></div>
+                <div class="uresult"><svg class="rs-ok" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#067647" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg><div class="rt"><b class="rb"></b><span class="rm"></span></div></div>
+              </div>
+              <div class="uhint"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#475367" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg> Priya fixes the flagged item herself — before it ever reaches you</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SCENE 6 : CASE READY ===== -->
+    <section class="scene" data-title="Lodge-ready">
+      <div class="narr">
+        <div class="eyebrow"><span class="pip"></span> Step 6 — Your case, lodgement-ready</div>
+        <h2>Collect once, <em>auto-fill everywhere</em>.</h2>
+        <p>Back on your side, everything's assembled: validated documents and the DHA forms already pre-filled from Priya's data. Your to-do list is tiny.</p>
+        <div class="why"><b>Why it matters</b><span>This is the payoff — your job shrinks to judgement. Review the two flags, approve, lodge. The typing is done.</span></div>
+        <div class="cue"><span class="ring">→</span> This is what reaches your desk</div>
+      </div>
+      <div class="view">
+        <span class="viewtag agent"><i></i> Agent · Case workspace</span>
+        <div class="browser">
+          <div class="bbar"><span class="dots"><i></i><i></i><i></i></span><span class="urlpill">app.immipulse.com/cases/priya-sharma</span></div>
+          <div class="bbody">
+            <div class="case">
+              <div class="case-top">
+                <div class="av">PS</div>
+                <div><b>Priya Sharma · Subclass 189</b><small>All documents validated · forms pre-filled</small></div>
+                <span class="badge-ready">✓ Lodgement-ready</span>
+              </div>
+              <div class="case-grid">
+                <div class="panel">
+                  <div class="ph"><span class="spark" style="width:18px;height:18px;border-radius:5px;background:linear-gradient(135deg,#7A5AF8,#3E1C96);display:inline-grid;place-items:center;font-size:9px">✨</span> DHA forms — auto-filled from collected data</div>
+                  <div class="formfill">
+                    <div class="ffrow"><span class="fdoc">📄</span><b>Form 1221 — Additional personal particulars</b><span class="fstat">✓ pre-filled</span></div>
+                    <div class="ffrow"><span class="fdoc">📄</span><b>SkillSelect EOI draft</b><span class="fstat">✓ pre-filled</span></div>
+                    <div class="ffrow"><span class="fdoc">📄</span><b>Online 189 application</b><span class="fstat">✓ pre-filled</span></div>
+                  </div>
+                  <div class="autofill-note">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3E1C96" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
+                    <span>Every field came from the data Priya entered once — no re-keying, no copy-paste between systems.</span>
+                  </div>
+                </div>
+                <div class="panel">
+                  <div class="ph">Your to-do · only what needs a human</div>
+                  <div class="tasks">
+                    <div class="task flag"><span class="tb"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M12 9v4M12 17h.01"/></svg></span><div class="tt"><b>Review newer payslip</b><small>Priya re-uploaded — quick sign-off</small></div><span class="arr">›</span></div>
+                    <div class="task flag"><span class="tb"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M12 9v4M12 17h.01"/></svg></span><div class="tt"><b>Confirm PTE booking date</b><small>Before age-points deadline</small></div><span class="arr">›</span></div>
+                    <div class="task"><span class="tb"></span><div class="tt"><b>Approve &amp; lodge</b><small>Everything else is ready</small></div><span class="arr">›</span></div>
+                  </div>
+                  <div class="before-after">
+                    <div class="ba before"><div class="bt">The old way</div><div class="bv">~3.5 hrs</div><div class="bk">manual intake, chasing, form-filling per case</div></div>
+                    <div class="ba after"><div class="bt">With Pulse</div><div class="bv">~25 min</div><div class="bk">review &amp; decisions only</div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SCENE 7 : RECAP ===== -->
+    <section class="scene center" data-title="The big idea">
+      <div class="recap">
+        <div class="journey">
+          <div class="jn auto"><span class="jd">📧</span><span>Enquiry read</span></div>
+          <span class="jarrow">→</span>
+          <div class="jn auto"><span class="jd">📝</span><span>Form filled</span></div>
+          <span class="jarrow">→</span>
+          <div class="jn auto"><span class="jd">🗂️</span><span>Pre-case built</span></div>
+          <span class="jarrow">→</span>
+          <div class="jn auto"><span class="jd">✅</span><span>Checklist sent</span></div>
+          <span class="jarrow">→</span>
+          <div class="jn auto"><span class="jd">🔍</span><span>Docs checked</span></div>
+          <span class="jarrow">→</span>
+          <div class="jn"><span class="jd">⚖️</span><span>You lodge</span></div>
+        </div>
+        <h2 class="thesis"><em class="b2">The applicant</em> captured the data. <em class="b1">The AI</em> checked the work.<br><em class="b3">You</em> made the decisions.</h2>
+        <p class="lead">That's the whole idea of IMMI-PULSE: push the busywork to where it belongs — the applicant and the AI — so your time goes to judgement, advice and lodging more cases.</p>
+        <div class="rstats">
+          <div class="rstat"><div class="rv">~3 hrs</div><div class="rk">saved per case</div></div>
+          <div class="rstat"><div class="rv">7+</div><div class="rk">back-and-forth emails avoided</div></div>
+          <div class="rstat"><div class="rv">1×</div><div class="rk">data entered, used everywhere</div></div>
+        </div>
+        <div class="override-note">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Every automated step has a manual override — you are always in control.
+        </div>
+        <div style="margin-top:26px"><button class="nav-btn next" onclick="go(0)" style="padding:12px 22px">↻ Restart walkthrough</button></div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <button class="nav-btn" id="prevBtn" onclick="go(cur-1)"><span style="font-size:17px">←</span> Back</button>
+    <button class="nav-btn next" id="nextBtn" onclick="go(cur+1)">Next <span style="font-size:17px">→</span></button>
+    <div class="ledger">
+      <div class="lstat you"><div class="v" id="lYou">0<u>min</u></div><div class="k">Your touch-time</div></div>
+      <div class="lstat auto"><div class="v" id="lAuto">0</div><div class="k">Steps auto-handled</div></div>
+      <div class="lstat mail"><div class="v" id="lMail">0</div><div class="k">Emails you didn't send</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const scenes = Array.from(document.querySelectorAll('.scene'));
+const titles = scenes.map(s=>s.dataset.title);
+let cur = 0, autoplay=false, autoTimer=null;
+
+/* ledger values per scene: [yourMinutes, autoSteps, emails] */
+const ledger = [
+  [0,0,0],   // 0 overview
+  [1,2,1],   // 1 enquiry read + routed + pre-case
+  [1,2,1],   // 2 applicant working
+  [2,3,2],   // 3 review + convert
+  [2,5,3],   // 4 checklist build + send
+  [2,9,5],   // 5 each doc checked, no chasing
+  [4,12,6],  // 6 forms auto-filled, review flags
+  [5,12,7]   // 7 totals
+];
+
+/* build rail */
+const rail = document.getElementById('rail');
+scenes.forEach((s,i)=>{
+  if(i>0){const b=document.createElement('div');b.className='bar';b.dataset.bar=i;rail.appendChild(b);}
+  const el=document.createElement('div');
+  el.className='step';el.dataset.idx=i;
+  el.innerHTML=`<span class="num">${i}</span><span class="lab">${titles[i]}</span>`;
+  el.onclick=()=>go(i);
+  rail.appendChild(el);
+});
+
+function animateLedger(target){
+  const ids=['lYou','lAuto','lMail'];
+  ids.forEach((id,j)=>{
+    const elv=document.getElementById(id);
+    const cur=parseInt(elv.dataset.v||'0',10);
+    const to=target[j];
+    const start=performance.now();const dur=600;
+    function step(t){
+      const p=Math.min(1,(t-start)/dur);
+      const val=Math.round(cur+(to-cur)*(p*(2-p)));
+      elv.childNodes[0].nodeValue = (id==='lYou'? val : val);
+      if(p<1)requestAnimationFrame(step); else elv.dataset.v=to;
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+function resetScene(i){
+  const s=scenes[i];
+  // scene 1
+  if(i===1){const a=s.querySelector('#s1aip');a.classList.remove('thinking','analyzed');s.querySelector('#s1toast').classList.remove('show');}
+  // scene 2
+  if(i===2){s.querySelector('#s2prog').style.width='0';s.querySelector('#s2done').classList.remove('show');runForm(s);}
+  // scene 3
+  if(i===3){s.querySelector('#s3detail').classList.remove('show');s.querySelector('#s3toast').classList.remove('show');}
+  // scene 5
+  if(i===5){s.querySelectorAll('.uslot').forEach(u=>u.classList.remove('uploading','checked','warn'));updateRing(s);}
+}
+
+function go(i){
+  if(i<0||i>=scenes.length)return;
+  scenes[cur].classList.remove('active');
+  cur=i;
+  const s=scenes[i];
+  // force restart of CSS animations
+  s.classList.remove('active');void s.offsetWidth;s.classList.add('active');
+  resetScene(i);
+  // rail
+  rail.querySelectorAll('.step').forEach(st=>{const idx=+st.dataset.idx;st.classList.toggle('active',idx===i);st.classList.toggle('done',idx<i);});
+  rail.querySelectorAll('.bar').forEach(b=>b.classList.toggle('done',+b.dataset.bar<=i));
+  // controls
+  document.getElementById('prevBtn').disabled=(i===0);
+  const nb=document.getElementById('nextBtn');nb.style.visibility=(i===scenes.length-1)?'hidden':'visible';
+  animateLedger(ledger[i]);
+  if(autoplay)scheduleAuto();
+}
+
+/* ===== Scene 1 interactions ===== */
+document.getElementById('s1read').onclick=function(){
+  const a=document.getElementById('s1aip');
+  a.classList.add('thinking');
+  setTimeout(()=>{a.classList.remove('thinking');a.classList.add('analyzed');},1100);
+};
+document.getElementById('s1send').onclick=function(){
+  document.getElementById('s1mail').classList.add('read');
+  document.getElementById('s1toast').classList.add('show');
+};
+
+/* ===== Scene 2 form auto-fill ===== */
+function runForm(s){
+  const prog=s.querySelector('#s2prog');
+  let pct=0;const tot=100;
+  // animate progress as fields "fill"
+  const steps=[18,40,58,76,100];let k=0;
+  clearInterval(s._formInt);
+  s._formInt=setInterval(()=>{
+    if(k<steps.length){prog.style.width=steps[k]+'%';k++;}
+    else{clearInterval(s._formInt);setTimeout(()=>s.querySelector('#s2done').classList.add('show'),700);}
+  },650);
+  // typing caret toggle
+  s.querySelectorAll('.input[data-type]').forEach((inp)=>{inp.classList.remove('typed','done');});
+}
+
+/* ===== Scene 3 ===== */
+document.getElementById('s3open').onclick=function(){document.getElementById('s3detail').classList.add('show');};
+document.getElementById('s3convert').onclick=function(){
+  document.getElementById('s3toast').classList.add('show');
+  document.getElementById('s3card').style.opacity='.5';
+};
+
+/* ===== Scene 5 uploads ===== */
+function updateRing(s){
+  const total=s.querySelectorAll('.uslot').length;
+  const done=s.querySelectorAll('.uslot.checked, .uslot.warn').length;
+  const ring=s.querySelector('#s5ring');const C=119;
+  ring.style.strokeDashoffset = C*(1-done/total);
+  s.querySelector('#s5pct').textContent=Math.round(done/total*100)+'%';
+  s.querySelector('#s5count').textContent=`${done} of ${total} checked`;
+}
+scenes[5].querySelectorAll('.uslot').forEach(slot=>{
+  slot.addEventListener('click',function(){
+    if(slot.classList.contains('checked')||slot.classList.contains('warn')||slot.classList.contains('uploading'))return;
+    slot.classList.add('uploading');
+    const ua=slot.querySelector('.ua');const orig=ua.innerHTML;
+    ua.innerHTML='<span class="uspin"></span> checking…';
+    setTimeout(()=>{
+      slot.classList.remove('uploading');
+      const ok=slot.dataset.ok==='1';
+      slot.classList.add(ok?'checked':'warn');
+      ua.innerHTML = ok? '<span style="color:#067647">✓ verified</span>' : '<span style="color:#B54708">⚠ action needed</span>';
+      slot.querySelector('.rb').textContent=slot.dataset.title;
+      slot.querySelector('.rm').textContent=slot.dataset.msg;
+      updateRing(scenes[5]);
+    },1200);
+  });
+});
+
+/* ===== autoplay ===== */
+function scheduleAuto(){clearTimeout(autoTimer);autoTimer=setTimeout(()=>{if(cur<scenes.length-1)go(cur+1);else{autoplay=false;document.getElementById('autoToggle').classList.remove('on');}},5200);}
+document.getElementById('autoToggle').onclick=function(){
+  autoplay=!autoplay;this.classList.toggle('on',autoplay);
+  if(autoplay)scheduleAuto();else clearTimeout(autoTimer);
+};
+
+/* keyboard */
+window.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight')go(cur+1);
+  if(e.key==='ArrowLeft')go(cur-1);
+});
+
+/* init */
+go(0);
+</script>
+</body>
+</html>

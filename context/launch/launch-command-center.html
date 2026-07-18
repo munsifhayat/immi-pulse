@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IMMI-PULSE · Launch Command Center — MVP scope, gaps & roadmap for Community, Marketplace & SaaS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root{
+    --navy:#0F1117; --navy-2:#161A23;
+    --purple:#7C5CFC; --purple-deep:#5B3ADB; --purple-light:#BDB4FE; --purple-muted:#D9D6FE;
+    --teal:#1B7B6F; --teal-light:#2DD4BF; --amber:#F59E0B; --rose:#E5484D; --green:#16A34A;
+    --ink:#0F1117; --gray:#4B5563; --gray-2:#6B7280; --gray-3:#9CA3AF;
+    --line:#E7E9EE; --line-2:#F0F1F5; --soft:#F7F8FA; --soft-2:#F4F3FC;
+    --shadow:0 1px 2px rgba(16,17,23,.04),0 12px 32px -16px rgba(16,17,23,.16);
+    --shadow-lg:0 40px 90px -40px rgba(16,17,23,.5);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:#EDEEF2;line-height:1.6;-webkit-font-smoothing:antialiased;padding:0 16px 60px}
+  h1,h2,h3,h4{font-family:'Outfit',sans-serif;font-weight:700;letter-spacing:-.02em;line-height:1.14}
+  .mono{font-family:'JetBrains Mono',monospace}
+  a{color:inherit;text-decoration:none}
+  .sheet{max-width:1120px;margin:0 auto;background:#fff;border-radius:24px;overflow:hidden;box-shadow:var(--shadow-lg)}
+
+  /* ============ NAV ============ */
+  .nav{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;padding:11px 22px;max-width:1120px;margin:0 auto;border-radius:0}
+  .nav .brand{display:flex;align-items:center;gap:9px;font-family:'Outfit';font-weight:700;font-size:14.5px;margin-right:auto}
+  .nav .lk{width:27px;height:27px;border-radius:8px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));display:grid;place-items:center;box-shadow:0 0 0 3px rgba(124,92,252,.14)}
+  .nav .lk svg{width:15px;height:15px;color:#fff}
+  .nav a.pill{font-size:12.5px;font-weight:600;color:var(--gray);padding:7px 12px;border-radius:9px;transition:.15s;white-space:nowrap}
+  .nav a.pill:hover{background:var(--soft-2);color:var(--purple-deep)}
+  @media(max-width:820px){.nav .pill.hide-sm{display:none}}
+
+  /* ============ HERO ============ */
+  .hero{position:relative;background:radial-gradient(1000px 460px at 82% -20%,rgba(124,92,252,.5),transparent 60%),radial-gradient(760px 380px at -8% 8%,rgba(45,212,191,.18),transparent 55%),linear-gradient(180deg,var(--navy),#0B0D13);color:#fff;padding:46px 46px 42px;overflow:hidden}
+  .hero .grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(620px 320px at 68% 0%,#000,transparent 76%)}
+  .hero>*{position:relative}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--purple-light);background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.3);padding:6px 13px;border-radius:999px}
+  .hero h1{font-size:clamp(30px,5vw,46px);font-weight:800;margin-top:16px;max-width:17ch;line-height:1.06}
+  .hero h1 .g{background:linear-gradient(110deg,var(--purple-light),var(--teal-light));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero .sub{color:#c4c9d4;font-size:16px;margin-top:16px;max-width:64ch}
+  .hero .thesis{margin-top:22px;padding:15px 18px;border-left:3px solid var(--teal-light);background:rgba(255,255,255,.05);border-radius:0 12px 12px 0;font-size:14.5px;color:#dfe3ea;max-width:70ch}
+  .hero .thesis b{color:#fff}
+  .seq{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
+  .seq .s{flex:1;min-width:190px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:15px 16px;position:relative;overflow:hidden}
+  .seq .s.now{border-color:rgba(45,212,191,.5);background:linear-gradient(180deg,rgba(45,212,191,.12),rgba(255,255,255,.03))}
+  .seq .s .tag{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gray-3)}
+  .seq .s.now .tag{color:var(--teal-light)}
+  .seq .s .nm{font-family:'Outfit';font-weight:700;font-size:19px;color:#fff;margin-top:4px;display:flex;align-items:center;gap:8px}
+  .seq .s .ds{font-size:12.5px;color:#b7bcc7;margin-top:5px}
+  .seq .s .num{position:absolute;top:-8px;right:8px;font-family:'Outfit';font-weight:800;font-size:56px;color:rgba(255,255,255,.06)}
+  .seq .arrow{align-self:center;color:rgba(255,255,255,.3)}
+  @media(max-width:720px){.seq{flex-direction:column}.seq .arrow{display:none}}
+
+  /* ============ BODY ============ */
+  .body{padding:8px 46px 46px}
+  @media(max-width:640px){.hero{padding:34px 22px}.body{padding:8px 22px 34px}}
+  section{padding-top:52px;scroll-margin-top:64px}
+  .kick{font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--purple-deep)}
+  .h-sec{font-size:26px;margin-top:7px}
+  .lead{font-size:16px;color:var(--gray);margin-top:9px;max-width:74ch}
+
+  /* discipline band */
+  .band{margin-top:30px;background:linear-gradient(180deg,var(--soft-2),#fff);border:1px solid var(--line);border-radius:18px;padding:26px 28px;position:relative;overflow:hidden}
+  .band::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,var(--purple),var(--teal))}
+  .band h3{font-size:20px}
+  .band .rule{margin-top:14px;background:var(--navy);color:#fff;border-radius:13px;padding:16px 20px;font-size:15px}
+  .band .rule b{color:var(--teal-light)}
+  .band .two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  @media(max-width:680px){.band .two{grid-template-columns:1fr}}
+  .band .two .c{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px 16px}
+  .band .two .c .t{font-family:'Outfit';font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:8px}
+  .band .two .c.bad .t{color:var(--rose)} .band .two .c.good .t{color:var(--teal)}
+  .band .two .c p{font-size:13px;color:var(--gray);margin-top:6px}
+
+  /* scorecard */
+  .cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px}
+  @media(max-width:820px){.cards3{grid-template-columns:1fr}}
+  .scard{border:1px solid var(--line);border-radius:16px;padding:20px;background:#fff;box-shadow:var(--shadow);position:relative}
+  .scard .top{display:flex;align-items:center;justify-content:space-between}
+  .scard .mname{font-family:'Outfit';font-weight:700;font-size:17px;display:flex;align-items:center;gap:9px}
+  .scard .mname .ic{width:32px;height:32px;border-radius:9px;display:grid;place-items:center}
+  .scard .pct{font-family:'Outfit';font-weight:800;font-size:15px}
+  .bar{height:9px;border-radius:99px;background:var(--line-2);margin-top:15px;overflow:hidden}
+  .bar > i{display:block;height:100%;border-radius:99px}
+  .scard .stat{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gray-3);margin-top:13px}
+  .scard .verdict{font-size:13.5px;color:var(--gray);margin-top:6px}
+  .ic.c{background:rgba(45,212,191,.14);color:var(--teal)} .fill.c{background:linear-gradient(90deg,var(--teal),var(--teal-light))}
+  .ic.m{background:rgba(124,92,252,.14);color:var(--purple-deep)} .fill.m{background:linear-gradient(90deg,var(--purple-deep),var(--purple))}
+  .ic.s{background:rgba(245,158,11,.14);color:#B45309} .fill.s{background:linear-gradient(90deg,#B45309,var(--amber))}
+
+  /* module section */
+  .modhead{display:flex;align-items:flex-start;gap:16px;margin-top:8px}
+  .modhead .badge{flex:none;width:52px;height:52px;border-radius:14px;display:grid;place-items:center;color:#fff;font-family:'Outfit';font-weight:800;font-size:22px}
+  .modhead .meta .ord{font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
+  .modhead .meta h2{font-size:27px;margin-top:2px}
+  .modhead .meta .one{font-size:14.5px;color:var(--gray);margin-top:5px;max-width:70ch}
+  .mod-c .badge{background:linear-gradient(135deg,var(--teal),var(--teal-light))} .mod-c .ord{color:var(--teal)}
+  .mod-m .badge{background:linear-gradient(135deg,var(--purple-deep),var(--purple))} .mod-m .ord{color:var(--purple-deep)}
+  .mod-s .badge{background:linear-gradient(135deg,#B45309,var(--amber))} .mod-s .ord{color:#B45309}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:24px;align-items:start}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+
+  .block{border:1px solid var(--line);border-radius:14px;padding:17px 18px;background:#fff;box-shadow:var(--shadow)}
+  .block + .block{margin-top:14px}
+  .block .bt{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--gray-3);display:flex;align-items:center;gap:7px}
+  .block .bt svg{width:14px;height:14px}
+  .mvp{background:linear-gradient(180deg,var(--soft-2),#fff);border-color:var(--purple-muted)}
+  .mvp .txt{font-size:15px;color:var(--ink);margin-top:9px;font-weight:500}
+  .mvp .txt b{color:var(--purple-deep)}
+
+  .wins{list-style:none;margin-top:10px;display:flex;flex-direction:column;gap:9px}
+  .wins li{display:flex;gap:10px;font-size:13.5px;color:var(--gray)}
+  .wins li b{color:var(--ink);font-weight:600}
+  .wins li .dot{flex:none;width:20px;height:20px;border-radius:6px;background:var(--teal);color:#fff;display:grid;place-items:center;margin-top:1px}
+  .wins li .dot svg{width:12px;height:12px}
+
+  .gaps{display:flex;flex-direction:column;gap:8px;margin-top:11px}
+  .gap{display:flex;align-items:center;gap:10px;font-size:13px;padding:8px 10px;border-radius:10px;background:var(--soft);border:1px solid var(--line-2)}
+  .gap .sev{flex:none;width:9px;height:9px;border-radius:50%}
+  .gap .sev.r{background:var(--rose)} .gap .sev.o{background:var(--amber)} .gap .sev.y{background:#EAB308}
+  .gap .g-t{color:var(--ink);font-weight:500;flex:1}
+  .gap .eff{flex:none;font-family:'JetBrains Mono';font-size:10.5px;font-weight:600;color:var(--gray-2);background:#fff;border:1px solid var(--line);padding:2px 7px;border-radius:6px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:11px;font-size:11.5px;color:var(--gray-2)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:8px;height:8px;border-radius:50%;display:inline-block}
+
+  .plan{counter-reset:step;margin-top:11px;display:flex;flex-direction:column;gap:10px}
+  .pstep{display:flex;gap:12px;align-items:flex-start}
+  .pstep .n{counter-increment:step;flex:none;width:24px;height:24px;border-radius:8px;background:var(--navy);color:#fff;font-family:'Outfit';font-weight:700;font-size:12px;display:grid;place-items:center}
+  .pstep .n::before{content:counter(step)}
+  .pstep .pt{font-size:13.5px;color:var(--gray)}
+  .pstep .pt b{color:var(--ink);font-weight:600;font-family:'Outfit'}
+  .pstep .pt .dd{display:block;font-size:12px;color:var(--gray-2);margin-top:1px}
+
+  /* ===== MOCKUP FRAMES ===== */
+  .mock{border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);background:#fff;position:sticky;top:70px}
+  @media(max-width:900px){.mock{position:static}}
+  .mock .chrome{background:#F4F5F8;border-bottom:1px solid var(--line);padding:9px 13px;display:flex;align-items:center;gap:8px}
+  .mock .chrome .dots{display:flex;gap:5px}.mock .chrome .dots i{width:9px;height:9px;border-radius:50%;background:#D6D9E0;display:inline-block}
+  .mock .chrome .url{margin-left:6px;font-family:'JetBrains Mono';font-size:11px;color:var(--gray-2);background:#fff;border:1px solid var(--line);border-radius:7px;padding:4px 10px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mock .cap{font-size:11.5px;color:var(--gray-2);text-align:center;padding:9px 12px;border-top:1px solid var(--line-2);background:var(--soft)}
+  .mock .cap b{color:var(--gray);font-weight:600}
+  .screen{padding:16px}
+
+  /* community mockup pieces */
+  .wc{border:1px solid var(--purple-muted);border-radius:14px;overflow:hidden;background:linear-gradient(180deg,#fff,var(--soft-2))}
+  .wc .wc-h{background:var(--navy);color:#fff;padding:12px 15px;font-family:'Outfit';font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:8px}
+  .wc .wc-h .q{margin-left:auto;font-size:11px;color:var(--purple-light);font-weight:500}
+  .wc .wc-b{padding:15px}
+  .wc .verdict-lg{font-family:'Outfit';font-weight:800;font-size:22px;color:var(--teal)}
+  .wc .verdict-lg small{display:block;font-family:'Inter';font-weight:500;font-size:12.5px;color:var(--gray-2);margin-top:2px}
+  .distro{margin-top:14px}
+  .distro .scale{height:34px;border-radius:9px;background:linear-gradient(90deg,#D1FAE5,#FEF3C7 55%,#FEE2E2);position:relative;border:1px solid var(--line)}
+  .distro .you{position:absolute;top:-5px;bottom:-5px;width:3px;background:var(--navy);left:64%;border-radius:3px}
+  .distro .you::after{content:"YOU · day 94";position:absolute;top:-19px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono';font-size:9.5px;font-weight:600;color:#fff;background:var(--navy);padding:2px 6px;border-radius:5px;white-space:nowrap}
+  .distro .ticks{display:flex;justify-content:space-between;margin-top:7px;font-family:'JetBrains Mono';font-size:9.5px;color:var(--gray-3)}
+  .distro .basis{font-size:10.5px;color:var(--gray-2);margin-top:9px;display:flex;align-items:center;gap:6px}
+
+  .fpost{border:1px solid var(--line);border-radius:13px;padding:14px;margin-top:14px;background:#fff}
+  .fpost .ph{display:flex;align-items:center;gap:9px}
+  .fpost .av{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--purple),var(--teal));display:grid;place-items:center;color:#fff;font-family:'Outfit';font-weight:700;font-size:12px}
+  .fpost .who{font-family:'Outfit';font-weight:600;font-size:13px}
+  .fpost .who small{display:block;font-family:'Inter';font-weight:500;color:var(--gray-3);font-size:10.5px}
+  .fpost .sc{margin-left:auto;font-size:10.5px;font-weight:600;color:var(--purple-deep);background:var(--soft-2);border:1px solid var(--purple-muted);padding:3px 9px;border-radius:99px}
+  .mstrip{display:flex;gap:0;margin-top:13px;align-items:center}
+  .mstrip .m{flex:1;text-align:center;position:relative}
+  .mstrip .m .d{width:15px;height:15px;border-radius:50%;margin:0 auto;border:3px solid #fff;box-shadow:0 0 0 1.5px currentColor}
+  .mstrip .m.done .d{background:currentColor}
+  .mstrip .m .lab{font-size:8.5px;color:var(--gray-2);margin-top:5px;font-weight:600}
+  .mstrip .m .dt{font-family:'JetBrains Mono';font-size:8px;color:var(--gray-3)}
+  .mstrip .ln{flex:none;width:100%;height:3px;background:var(--line);position:absolute;top:6px;left:50%;z-index:-1}
+  .mstrip .seg{height:3px;flex:1;background:var(--teal-light);margin-top:-9px}
+  .fpost .fbar{display:flex;gap:16px;margin-top:14px;padding-top:11px;border-top:1px solid var(--line-2);font-size:11.5px;color:var(--gray-2);font-weight:500}
+  .fpost .fbar span{display:flex;align-items:center;gap:5px}
+  .fpost .fbar span.flag{margin-left:auto;color:var(--rose)}
+
+  /* marketplace mockup */
+  .dir-filter{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:13px}
+  .dir-filter .f{font-size:11px;font-weight:600;padding:6px 11px;border-radius:99px;border:1px solid var(--line);color:var(--gray);background:#fff}
+  .dir-filter .f.on{background:var(--purple-deep);color:#fff;border-color:var(--purple-deep)}
+  .acard{border:1px solid var(--line);border-radius:13px;padding:14px;background:#fff}
+  .acard + .acard{margin-top:11px}
+  .acard.unclaimed{border-style:dashed;background:var(--soft)}
+  .acard .ah{display:flex;align-items:center;gap:11px}
+  .acard .aav{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;color:#fff;font-family:'Outfit';font-weight:700;font-size:15px}
+  .acard .an{font-family:'Outfit';font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:7px}
+  .acard .marn{font-family:'JetBrains Mono';font-size:10.5px;color:var(--gray-2);margin-top:1px}
+  .badge-v{font-size:9.5px;font-weight:700;letter-spacing:.03em;padding:3px 8px;border-radius:99px;display:inline-flex;align-items:center;gap:4px}
+  .badge-v.ok{background:rgba(22,163,74,.12);color:var(--green)}
+  .badge-v.un{background:rgba(107,114,128,.12);color:var(--gray-2)}
+  .acard .meta-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+  .acard .chip{font-size:10.5px;color:var(--gray);background:var(--soft-2);border:1px solid var(--line);padding:3px 9px;border-radius:7px}
+  .acard .act{margin-top:12px;display:flex;gap:8px}
+  .acard .btn-sm{font-size:11.5px;font-weight:600;padding:7px 13px;border-radius:9px;flex:1;text-align:center}
+  .btn-fill{background:var(--purple-deep);color:#fff} .btn-line{border:1px solid var(--line);color:var(--gray)}
+  .acard .src{font-size:9.5px;color:var(--gray-3);margin-top:9px;display:flex;align-items:center;gap:5px}
+  .disclaim{font-size:10px;color:var(--gray-3);text-align:center;margin-top:13px;padding-top:11px;border-top:1px dashed var(--line);line-height:1.5}
+
+  /* saas mockup */
+  .case-top{display:flex;align-items:center;gap:10px;padding-bottom:13px;border-bottom:1px solid var(--line-2);margin-bottom:13px}
+  .case-top .cav{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--purple-deep),var(--purple));display:grid;place-items:center;color:#fff;font-family:'Outfit';font-weight:700;font-size:13px}
+  .case-top .cn{font-family:'Outfit';font-weight:700;font-size:14.5px}
+  .case-top .cn small{display:block;font-family:'Inter';font-weight:500;color:var(--gray-3);font-size:10.5px}
+  .case-top .stg{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--purple-deep);background:var(--soft-2);border:1px solid var(--purple-muted);padding:4px 10px;border-radius:99px}
+  .stagerow{display:flex;gap:3px;margin-bottom:14px}
+  .stagerow .st{flex:1;height:5px;border-radius:99px;background:var(--line)}
+  .stagerow .st.done{background:var(--teal-light)} .stagerow .st.cur{background:var(--purple)}
+  .aiflag{display:flex;gap:10px;padding:11px 12px;border-radius:11px;margin-bottom:9px;border:1px solid}
+  .aiflag.warn{background:#FEF9EC;border-color:#FCE7B5} .aiflag.err{background:#FEF2F2;border-color:#FBD5D5} .aiflag.ok{background:#F0FDF4;border-color:#CBEFD5}
+  .aiflag .fi{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center}
+  .aiflag.warn .fi{background:#FCE7B5;color:#B45309} .aiflag.err .fi{background:#FBD5D5;color:#B91C1C} .aiflag.ok .fi{background:#CBEFD5;color:#15803D}
+  .aiflag .fx .ft{font-family:'Outfit';font-weight:600;font-size:12.5px}
+  .aiflag .fx .fd{font-size:11px;color:var(--gray);margin-top:1px}
+  .aiflag .badge-ai{margin-left:auto;flex:none;font-size:8.5px;font-weight:700;letter-spacing:.04em;color:var(--purple-deep);background:#fff;border:1px solid var(--purple-muted);padding:3px 7px;border-radius:6px;height:fit-content}
+  .checkl{margin-top:6px}
+  .checkl .ci{display:flex;align-items:center;gap:9px;font-size:12px;padding:6px 0;border-bottom:1px solid var(--line-2)}
+  .checkl .ci .cb{width:16px;height:16px;border-radius:5px;border:1.5px solid var(--line);flex:none;display:grid;place-items:center}
+  .checkl .ci.on .cb{background:var(--teal);border-color:var(--teal)} .checkl .ci.on .cb svg{width:10px;height:10px;color:#fff}
+  .checkl .ci.on span{color:var(--gray-2)}
+
+  /* funnel */
+  .funnel{margin-top:24px;display:flex;flex-direction:column;gap:0}
+  .fn{display:flex;align-items:center;gap:15px;padding:15px 18px;border:1px solid var(--line);border-radius:13px;background:#fff;box-shadow:var(--shadow);position:relative}
+  .fn + .fn{margin-top:26px}
+  .fn::after{content:"";position:absolute;bottom:-22px;left:34px;width:2px;height:18px;background:var(--purple-muted)}
+  .fn:last-child::after{display:none}
+  .fn .fnum{flex:none;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;color:#fff;font-family:'Outfit';font-weight:700}
+  .fn .fx .ft{font-family:'Outfit';font-weight:700;font-size:14.5px}
+  .fn .fx .fd{font-size:12.5px;color:var(--gray);margin-top:2px}
+  .fn .stagetag{margin-left:auto;flex:none;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:4px 10px;border-radius:99px}
+
+  /* roadmap */
+  .rm{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px}
+  @media(max-width:820px){.rm{grid-template-columns:1fr}}
+  .hz{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff;box-shadow:var(--shadow)}
+  .hz .hh{padding:16px 18px;color:#fff}
+  .hz.h1 .hh{background:linear-gradient(135deg,var(--teal),var(--teal-light))}
+  .hz.h2 .hh{background:linear-gradient(135deg,var(--purple-deep),var(--purple))}
+  .hz.h3 .hh{background:linear-gradient(135deg,#B45309,var(--amber))}
+  .hz .hh .when{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.9}
+  .hz .hh h3{font-size:19px;margin-top:3px}
+  .hz .hh .dur{font-size:12px;opacity:.92;margin-top:3px}
+  .hz .hb{padding:16px 18px}
+  .hz .hb .mission{font-size:12.5px;color:var(--gray);font-style:italic;padding-bottom:11px;border-bottom:1px solid var(--line-2);margin-bottom:11px}
+  .hz .hb ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .hz .hb li{display:flex;gap:8px;font-size:12.5px;color:var(--gray)}
+  .hz .hb li svg{width:14px;height:14px;flex:none;margin-top:2px;color:var(--gray-3)}
+  .hz .milestone{margin-top:13px;font-size:12px;font-weight:700;font-family:'Outfit';display:flex;align-items:center;gap:7px;padding:9px 11px;border-radius:10px;background:var(--soft-2);color:var(--navy)}
+  .hz .milestone svg{width:15px;height:15px;color:var(--purple-deep)}
+
+  .footer{margin-top:54px;padding-top:26px;border-top:1px solid var(--line);text-align:center;color:var(--gray-2);font-size:13px}
+  .footer .big{font-family:'Outfit';font-weight:700;font-size:17px;color:var(--ink)}
+  .footer .files{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+  .footer .files a{font-family:'JetBrains Mono';font-size:11px;color:var(--gray);background:var(--soft);border:1px solid var(--line);padding:6px 11px;border-radius:8px}
+  .footer .files a:hover{color:var(--purple-deep);border-color:var(--purple-muted)}
+  .disc-note{margin-top:14px;font-size:11px;color:var(--gray-3);max-width:70ch;margin-left:auto;margin-right:auto}
+</style>
+</head>
+<body>
+
+<div class="sheet">
+
+  <!-- NAV -->
+  <div class="nav">
+    <div class="brand"><span class="lk"><i data-lucide="activity"></i></span> IMMI-PULSE</div>
+    <a class="pill" href="#discipline">Discipline</a>
+    <a class="pill" href="#scorecard">Scorecard</a>
+    <a class="pill" href="#community">Community</a>
+    <a class="pill" href="#marketplace">Marketplace</a>
+    <a class="pill hide-sm" href="#saas">SaaS</a>
+    <a class="pill hide-sm" href="#funnel">Funnel</a>
+    <a class="pill" href="#roadmap">Roadmap</a>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="grid"></div>
+    <span class="eyebrow"><i data-lucide="compass" style="width:14px;height:14px"></i> Product Owner's Launch Plan · 2026</span>
+    <h1>Three ideas. <span class="g">One launch.</span> Finished in order.</h1>
+    <p class="sub">You've built ~70% of three products and finished none. This isn't a build problem — it's a <b style="color:#fff">sequencing</b> problem. Here's the whole path: what each module's MVP is, what wins it, what's missing, and the exact order to ship — starting with your strongest, most-finished asset.</p>
+    <div class="thesis">The thesis, unchanged: <b>be "Lawfully for Australia."</b> The wedge is a verified, structured, anonymous community answering one anxious question — <b>"is my wait normal?"</b> — that then feeds a verified-agent marketplace and an AI consultant SaaS. Nail the front door; everything behind it gets easier to sell.</div>
+    <div class="seq">
+      <div class="s now">
+        <span class="num">1</span>
+        <div class="tag">Now · in build</div>
+        <div class="nm"><i data-lucide="users" style="width:18px;height:18px;color:var(--teal-light)"></i> Community</div>
+        <div class="ds">Finish it, make it safe & discoverable, launch publicly.</div>
+      </div>
+      <i data-lucide="chevron-right" class="arrow"></i>
+      <div class="s">
+        <span class="num">2</span>
+        <div class="tag">Next · parked</div>
+        <div class="nm"><i data-lucide="store" style="width:18px;height:18px;color:var(--purple-light)"></i> Marketplace</div>
+        <div class="ds">Un-hide it, seed it the legal way, turn on with traffic.</div>
+      </div>
+      <i data-lucide="chevron-right" class="arrow"></i>
+      <div class="s">
+        <span class="num">3</span>
+        <div class="tag">Later · pilot</div>
+        <div class="nm"><i data-lucide="briefcase" style="width:18px;height:18px;color:var(--amber)"></i> SaaS</div>
+        <div class="ds">Add revenue + polish once the funnel feeds it.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <!-- DISCIPLINE -->
+    <section id="discipline">
+      <div class="kick">The one thing that makes this work</div>
+      <h2 class="h-sec">Beating the start-then-drift loop</h2>
+      <p class="lead">You start things, they excite you, they fade, you jump. That's the novelty-over-completion loop — the dopamine is in <em>starting</em>, the value is only in <em>finishing</em>. You don't beat it with motivation. You beat it with a constraint.</p>
+      <div class="band">
+        <h3>The Rule of One</h3>
+        <div class="rule">One module is <b>in build</b> at a time. The other two are <b>parked</b> — not dead, just shelved with a written note on when to resume. You may not open a parked module until the in-build one hits its <b>Definition of Done</b>.</div>
+        <div class="two">
+          <div class="c bad"><div class="t"><i data-lucide="x-circle" style="width:15px;height:15px"></i> What kills products</div><p>Three things each 70% done, none finished. New idea Friday → new branch Monday → old thing abandoned. The boring last 30% (moderation, payments, SEO) never gets done because it's not novel.</p></div>
+          <div class="c good"><div class="t"><i data-lucide="check-circle-2" style="width:15px;height:15px"></i> What ships products</div><p>The boring 30% is the <em>only</em> thing on the list. One module, one finish line, one launch. New ideas go to the Parking Lot and wait their horizon. Finishing is a skill — this is the reps.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCORECARD -->
+    <section id="scorecard">
+      <div class="kick">Ground truth, no flattery</div>
+      <h2 class="h-sec">Where you actually are</h2>
+      <p class="lead">"% built" = distance to a launchable MVP, not lines of code. The pattern is identical across all three: the hard 70% is done; the unglamorous last mile is what's left.</p>
+      <div class="cards3">
+        <div class="scard">
+          <div class="top"><div class="mname"><span class="ic c"><i data-lucide="users" style="width:17px;height:17px"></i></span> Community</div><span class="pct" style="color:var(--teal)">~75%</span></div>
+          <div class="bar"><i class="fill c" style="width:75%"></i></div>
+          <div class="stat">Closest to launch</div>
+          <div class="verdict">Wait-check, timelines, votes, comments all work & are live. Blocked by broken moderation, no accounts, no SEO.</div>
+        </div>
+        <div class="scard">
+          <div class="top"><div class="mname"><span class="ic m"><i data-lucide="store" style="width:17px;height:17px"></i></span> Marketplace</div><span class="pct" style="color:var(--purple-deep)">~65%</span></div>
+          <div class="bar"><i class="fill m" style="width:65%"></i></div>
+          <div class="stat">Built · hidden behind a redirect</div>
+          <div class="verdict">Full directory + apply + admin approval exist, switched off. Blocked by how to fill it legally, no claim/verify, no leads.</div>
+        </div>
+        <div class="scard">
+          <div class="top"><div class="mname"><span class="ic s"><i data-lucide="briefcase" style="width:17px;height:17px"></i></span> SaaS</div><span class="pct" style="color:#B45309">~70%</span></div>
+          <div class="bar"><i class="fill s" style="width:70%"></i></div>
+          <div class="stat">Strongest engineering · no revenue</div>
+          <div class="verdict">Real AI enquiry→case→docs pipeline. Blocked by: no real money moves, 2 fake screens, no lodgement automation.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ COMMUNITY ============ -->
+    <section id="community" class="mod-c">
+      <div class="modhead mod-c">
+        <div class="badge">1</div>
+        <div class="meta"><div class="ord">Horizon 1 · Now · The focus module</div>
+        <h2>Community — the front door</h2>
+        <p class="one">Live today at <span class="mono" style="font-size:13px">/community</span>. Your most-finished asset and your growth engine. Finish this, launch it, before touching anything else.</p></div>
+      </div>
+      <div class="grid2">
+        <div>
+          <div class="block mvp">
+            <div class="bt"><i data-lucide="target"></i> The MVP — the finish line</div>
+            <div class="txt">A <b>publicly launchable, safe, discoverable</b> community a stranger finds on Google, uses anonymously to answer "is my wait normal?", contributes a timeline to, and interacts on — with zero legal or abuse risk. Three tests: <b>Safe</b> · <b>Sticky</b> · <b>Discoverable</b>.</div>
+          </div>
+          <div class="block">
+            <div class="bt"><i data-lucide="trophy"></i> What wins the scope — your unfair edge</div>
+            <ul class="wins">
+              <li><span class="dot"><i data-lucide="check"></i></span><span><b>Structured timelines + live percentile bands.</b> "Day 94; median for 482 is 71; you're in the slower third." Reddit can't do this.</span></li>
+              <li><span class="dot"><i data-lucide="check"></i></span><span><b>Honest data isolation.</b> Seeded samples never touch live stats — integrity as a feature.</span></li>
+              <li><span class="dot"><i data-lucide="check"></i></span><span><b>The s276 trust layer.</b> Structurally stays legal; OMARA-verified agents are the only tier allowed to advise. Turns the scam risk into a trust signal.</span></li>
+              <li><span class="dot"><i data-lucide="check"></i></span><span><b>Cohorts, not leaderboards.</b> An anxious audience needs "you're normal," not "you're losing."</span></li>
+            </ul>
+          </div>
+          <div class="block">
+            <div class="bt"><i data-lucide="alert-triangle"></i> The gaps — what's between you and launch</div>
+            <div class="gaps">
+              <div class="gap"><span class="sev r"></span><span class="g-t">Report→remove is a silent no-op on the live feed <em>(legal/safety)</em></span><span class="eff">M</span></div>
+              <div class="gap"><span class="sev r"></span><span class="g-t">No real accounts (anon→account never wired)</span><span class="eff">M</span></div>
+              <div class="gap"><span class="sev r"></span><span class="g-t">No SEO / metadata / sitemap — the growth engine</span><span class="eff">M</span></div>
+              <div class="gap"><span class="sev o"></span><span class="g-t">No reply notifications (promised, don't exist)</span><span class="eff">M</span></div>
+              <div class="gap"><span class="sev o"></span><span class="g-t">Spoofable identity · legacy thread surface · weak admin gate · deploy lag</span><span class="eff">S–M</span></div>
+              <div class="gap"><span class="sev y"></span><span class="g-t">Cold-start plan · search · mobile pass</span><span class="eff">S–M</span></div>
+            </div>
+            <div class="legend"><span><i style="background:var(--rose)"></i> Blocker</span><span><i style="background:var(--amber)"></i> Launch-week</span><span><i style="background:#EAB308"></i> Fast-follow</span><span class="mono" style="color:var(--gray-3)">S/M/L = effort</span></div>
+          </div>
+          <div class="block">
+            <div class="bt"><i data-lucide="route"></i> The plan — 3 sprints, in order (~3–3.5 wks)</div>
+            <div class="plan">
+              <div class="pstep"><span class="n"></span><div class="pt"><b>Safe to open the doors</b><span class="dd">Fix report→remove · delete legacy surface · real admin gate · deploy harvester</span></div></div>
+              <div class="pstep"><span class="n"></span><div class="pt"><b>Reasons to come back</b><span class="dd">Anon→account · reply notifications · SEO + sitemap · harden identity</span></div></div>
+              <div class="pstep"><span class="n"></span><div class="pt"><b>Feels alive</b><span class="dd">Cold-start plan · search · mobile pass → 🚀 PUBLIC LAUNCH</span></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COMMUNITY MOCKUP -->
+        <div>
+          <div class="mock">
+            <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="url">immi-pulse.app/community</span></div>
+            <div class="screen">
+              <div class="wc">
+                <div class="wc-h"><i data-lucide="gauge" style="width:16px;height:16px"></i> Is my wait normal? <span class="q">Subclass 482 · Onshore</span></div>
+                <div class="wc-b">
+                  <div class="verdict-lg">You're right on track ✓<small>Day 94 of your wait — median grant is day 71, and 1 in 3 applicants wait longer than you.</small></div>
+                  <div class="distro">
+                    <div class="scale"><span class="you"></span></div>
+                    <div class="ticks"><span>Fast · p10 · 34d</span><span>Median · 71d</span><span>Slow · p90 · 140d</span></div>
+                    <div class="basis"><i data-lucide="shield-check" style="width:13px;height:13px;color:var(--teal)"></i> Based on 128 verified community timelines · updated live</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="fpost">
+                <div class="ph">
+                  <div class="av">TF</div>
+                  <div class="who">TealFox · anon<small>482 · Sydney · sponsor: standard</small></div>
+                  <span class="sc">Granted in 68 days</span>
+                </div>
+                <div class="mstrip">
+                  <div class="m done" style="color:var(--teal)"><div class="d"></div><div class="lab">Lodged</div><div class="dt">02 Mar</div></div>
+                  <div class="seg" style="color:var(--teal-light)"></div>
+                  <div class="m done" style="color:var(--teal)"><div class="d"></div><div class="lab">CO contact</div><div class="dt">18 Apr</div></div>
+                  <div class="seg" style="color:var(--teal-light)"></div>
+                  <div class="m done" style="color:var(--teal)"><div class="d"></div><div class="lab">Granted</div><div class="dt">09 May</div></div>
+                </div>
+                <div class="fbar">
+                  <span><i data-lucide="arrow-big-up" style="width:14px;height:14px"></i> 42</span>
+                  <span><i data-lucide="message-circle" style="width:14px;height:14px"></i> 11 replies</span>
+                  <span class="flag"><i data-lucide="flag" style="width:13px;height:13px"></i> Report</span>
+                </div>
+              </div>
+            </div>
+            <div class="cap"><b>How it looks:</b> the wait-check verdict + a shareable milestone timeline, with the report control now present on every post.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MARKETPLACE ============ -->
+    <section id="marketplace" class="mod-m">
+      <div class="modhead mod-m">
+        <div class="badge">2</div>
+        <div class="meta"><div class="ord">Horizon 2 · Next · Parked (paperwork starts now)</div>
+        <h2>Marketplace — the verified-agent directory</h2>
+        <p class="one">Fully built, hidden behind a redirect. The bridge from "should I use an agent?" (community) to a paying agent (SaaS). The hard part isn't code — it's filling it <em>legally</em>.</p></div>
+      </div>
+      <div class="grid2">
+        <div>
+          <div class="block mvp" style="border-color:var(--purple-muted)">
+            <div class="bt"><i data-lucide="target"></i> The MVP — the finish line</div>
+            <div class="txt">A directory of migration agents, seeded from the <b>OMARA public register</b> as clearly-labelled <b>unclaimed factual listings</b>, that agents can <b>claim & verify</b>, with a tracked lead when an applicant makes contact — legally clean and reachable from the community.</div>
+          </div>
+          <div class="block" style="background:linear-gradient(180deg,#FBFAFF,#fff);border-color:var(--purple-muted)">
+            <div class="bt" style="color:var(--purple-deep)"><i data-lucide="scale"></i> The legal way to list agents "from Google"</div>
+            <ul class="wins">
+              <li><span class="dot" style="background:var(--purple-deep)"><i data-lucide="check"></i></span><span><b>Source from the OMARA register, not Google.</b> Facts (name, MARN, status, suburb) aren't copyrightable. That's your safe base layer.</span></li>
+              <li><span class="dot" style="background:var(--purple-deep)"><i data-lucide="check"></i></span><span><b>Seed "unclaimed" → agent claims → verify.</b> The pattern every defensible directory uses. Bio/photo only with the agent's opt-in.</span></li>
+              <li><span class="dot" style="background:var(--rose)"><i data-lucide="x"></i></span><span><b>Never scrape agent sites/Google</b> for bios/photos, never cross-match sources, never imply government endorsement.</span></li>
+              <li><span class="dot" style="background:var(--purple-deep)"><i data-lucide="check"></i></span><span><b>Monetise by listing/lead — never % of case fee.</b> Featured ~$35/mo or lead ~$20–60. Email OMARA in writing + lawyer sign-off <em>before</em> bulk seeding.</span></li>
+            </ul>
+          </div>
+          <div class="block">
+            <div class="bt"><i data-lucide="alert-triangle"></i> The gaps</div>
+            <div class="gaps">
+              <div class="gap"><span class="sev r"></span><span class="g-t">Legal sign-off + OMARA written OK <em>(external lead time)</em></span><span class="eff">—</span></div>
+              <div class="gap"><span class="sev r"></span><span class="g-t">Register-only seeder + claim-to-verify flow</span><span class="eff">L</span></div>
+              <div class="gap"><span class="sev r"></span><span class="g-t">Ownership auth (any key can edit any profile today)</span><span class="eff">M</span></div>
+              <div class="gap"><span class="sev o"></span><span class="g-t">Lead capture · disclaimers · apply/approve emails</span><span class="eff">S–M</span></div>
+              <div class="gap"><span class="sev y"></span><span class="g-t">Reviews + 7-day takedown · OMARA uniqueness · un-hide</span><span class="eff">S–L</span></div>
+            </div>
+          </div>
+          <div class="block">
+            <div class="bt"><i data-lucide="route"></i> The plan — gated on community shipping first</div>
+            <div class="plan">
+              <div class="pstep"><span class="n"></span><div class="pt"><b>Paperwork — start NOW in background</b><span class="dd">Brief a lawyer · email OMARA re: the register (long lead time)</span></div></div>
+              <div class="pstep"><span class="n"></span><div class="pt"><b>Make it fillable & legitimate</b><span class="dd">Register seeder · claim-to-verify · ownership auth · disclaimers</span></div></div>
+              <div class="pstep"><span class="n"></span><div class="pt"><b>Make it useful & turn it on</b><span class="dd">Lead capture · notifications · remove redirect → 🚀 soft-launch</span></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MARKETPLACE MOCKUP -->
+        <div>
+          <div class="mock">
+            <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="url">immi-pulse.app/find-consultants</span></div>
+            <div class="screen">
+              <div class="dir-filter">
+                <span class="f on">Sydney</span><span class="f">482 visa</span><span class="f">Hindi</span><span class="f">Verified only</span>
+              </div>
+              <div class="acard">
+                <div class="ah">
+                  <div class="aav" style="background:linear-gradient(135deg,#B45309,var(--amber))">PS</div>
+                  <div style="flex:1">
+                    <div class="an">Priya Sharma <span class="badge-v ok"><i data-lucide="badge-check" style="width:11px;height:11px"></i> Verified</span></div>
+                    <div class="marn">MARN 1683xxx · Sydney NSW · Active</div>
+                  </div>
+                </div>
+                <div class="meta-row"><span class="chip">482 · 186 · 189</span><span class="chip">English · Hindi</span><span class="chip">Replies &lt; 24h</span></div>
+                <div class="act"><a class="btn-sm btn-fill">Contact agent</a><a class="btn-sm btn-line">View profile</a></div>
+              </div>
+              <div class="acard unclaimed">
+                <div class="ah">
+                  <div class="aav" style="background:#9CA3AF">MC</div>
+                  <div style="flex:1">
+                    <div class="an" style="color:var(--gray)">Michael Chen <span class="badge-v un"><i data-lucide="user-x" style="width:11px;height:11px"></i> Unclaimed</span></div>
+                    <div class="marn">MARN 0954xxx · Melbourne VIC · Active</div>
+                  </div>
+                </div>
+                <div class="src"><i data-lucide="landmark" style="width:12px;height:12px"></i> Sourced from the OMARA public register · verify at mara.gov.au</div>
+                <div class="act"><a class="btn-sm btn-line" style="flex:none;padding:7px 13px">Is this you? Claim listing →</a></div>
+              </div>
+              <div class="disclaim">Independent directory. Not affiliated with or endorsed by OMARA or the Department of Home Affairs. Verify any agent's registration at mara.gov.au.</div>
+            </div>
+            <div class="cap"><b>How it looks:</b> a claimed <b>Verified</b> listing beside an <b>Unclaimed</b> register-sourced one — the legal seeding model, made visible.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SAAS ============ -->
+    <section id="saas" class="mod-s">
+      <div class="modhead mod-s">
+        <div class="badge">3</div>
+        <div class="meta"><div class="ord">Horizon 3 · Later · Keep the pilot warm</div>
+        <h2>SaaS — the AI consultant console</h2>
+        <p class="one">Your hardest engineering, and it's real: AI-powered enquiry → pre-case → case → document validation. Blocked on revenue. The full push comes after the community funnel feeds it.</p></div>
+      </div>
+      <div class="grid2">
+        <div>
+          <div class="block mvp" style="border-color:#FCE7B5;background:linear-gradient(180deg,#FEFCF5,#fff)">
+            <div class="bt"><i data-lucide="target"></i> The MVP — the finish line</div>
+            <div class="txt"><b>One migration agent runs one real client end-to-end, gets paid, and never needs you to hand-hold.</b> Not feature-parity with Docketwise. Not auto-filing with DHA. One agent, one client, money collected, zero founder intervention.</div>
+          </div>
+          <div class="block">
+            <div class="bt"><i data-lucide="trophy"></i> What wins the scope</div>
+            <ul class="wins">
+              <li><span class="dot" style="background:var(--amber)"><i data-lucide="check"></i></span><span><b>AI does the boring triage.</b> Email → classified to a subclass → pre-case drafted → outcome suggested. Real today.</span></li>
+              <li><span class="dot" style="background:var(--amber)"><i data-lucide="check"></i></span><span><b>AI document validation.</b> Flags expiring passport, low IELTS, name mismatch before the agent does.</span></li>
+              <li><span class="dot" style="background:var(--amber)"><i data-lucide="check"></i></span><span><b>Human-in-the-loop always.</b> AI suggests; the agent confirms. Right posture for a life-changing field — and a selling point.</span></li>
+              <li><span class="dot" style="background:var(--amber)"><i data-lucide="check"></i></span><span><b>A client portal that isn't terrible.</b> Every incumbent's is. The bar is on the floor.</span></li>
+            </ul>
+          </div>
+          <div class="block" style="background:#FEF9EC;border-color:#FCE7B5">
+            <div class="bt" style="color:#B45309"><i data-lucide="alert-octagon"></i> The honesty call you must make</div>
+            <div class="txt" style="font-size:13.5px;font-weight:400;color:var(--gray)">"Collect once → auto-fill DHA forms" <b style="color:#B45309">does not exist</b> — it's a static demo. Lodgement is a manual date field. <b>Recommendation:</b> scope auto-fill OUT of v1, position as "everything up to a lodgement-ready case," and make it the marquee v2 feature once paying pilots ask. Ship truth.</div>
+          </div>
+          <div class="block">
+            <div class="bt"><i data-lucide="alert-triangle"></i> The gaps</div>
+            <div class="gaps">
+              <div class="gap"><span class="sev r"></span><span class="g-t">No real money moves — wire a payment gateway</span><span class="eff">L</span></div>
+              <div class="gap"><span class="sev o"></span><span class="g-t">2 mock screens whose real backend already exists <em>(cheapest win)</em></span><span class="eff">S</span></div>
+              <div class="gap"><span class="sev o"></span><span class="g-t">Fake "email sent" · two un-unified portals · no self-serve email connect</span><span class="eff">S–M</span></div>
+              <div class="gap"><span class="sev y"></span><span class="g-t">No signed-PDF · dead wizard · doc drift (Bedrock→OpenAI)</span><span class="eff">S–M</span></div>
+            </div>
+          </div>
+          <div class="block">
+            <div class="bt"><i data-lucide="route"></i> The plan</div>
+            <div class="plan">
+              <div class="pstep"><span class="n"></span><div class="pt"><b>Kill the fake steps (do soon, small)</b><span class="dd">Wire the 2 mock screens · kill fake email · delete dead surfaces</span></div></div>
+              <div class="pstep"><span class="n"></span><div class="pt"><b>Make it paid & complete (after community)</b><span class="dd">Payment gateway · unify portal · self-serve email · signed PDF</span></div></div>
+              <div class="pstep"><span class="n"></span><div class="pt"><b>Sell it</b><span class="dd">Pilot → 3–5 paying agents @ $99–199/mo → 🚀 first paying agent</span></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SAAS MOCKUP -->
+        <div>
+          <div class="mock">
+            <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="url">immi-pulse.app/dashboard/cases/8842</span></div>
+            <div class="screen">
+              <div class="case-top">
+                <div class="cav">AR</div>
+                <div class="cn">Amir Rahman — 482 TSS<small>Case #8842 · Sydney · opened 12 days ago</small></div>
+                <span class="stg">Document review</span>
+              </div>
+              <div class="stagerow">
+                <div class="st done"></div><div class="st done"></div><div class="st done"></div><div class="st done"></div><div class="st cur"></div><div class="st"></div><div class="st"></div>
+              </div>
+              <div class="bt" style="font-size:10.5px;color:var(--gray-3);margin-bottom:9px"><i data-lucide="sparkles" style="width:13px;height:13px;color:var(--purple-deep)"></i> AI DOCUMENT FLAGS</div>
+              <div class="aiflag err">
+                <div class="fi"><i data-lucide="alert-triangle" style="width:15px;height:15px"></i></div>
+                <div class="fx"><div class="ft">Passport expires in 4 months</div><div class="fd">Below the 6-month validity DHA expects — request renewal.</div></div>
+                <span class="badge-ai">AI</span>
+              </div>
+              <div class="aiflag warn">
+                <div class="fi"><i data-lucide="alert-circle" style="width:15px;height:15px"></i></div>
+                <div class="fx"><div class="ft">IELTS 5.5 — below 482 threshold</div><div class="fd">Competent English (6.0) usually required. Confirm exemption.</div></div>
+                <span class="badge-ai">AI</span>
+              </div>
+              <div class="aiflag ok">
+                <div class="fi"><i data-lucide="check" style="width:15px;height:15px"></i></div>
+                <div class="fx"><div class="ft">Skills assessment — valid</div><div class="fd">TRA certificate matches nominated occupation.</div></div>
+                <span class="badge-ai">AI</span>
+              </div>
+              <div class="bt" style="font-size:10.5px;color:var(--gray-3);margin:14px 0 4px"><i data-lucide="list-checks" style="width:13px;height:13px"></i> CHECKLIST · 4 of 7 collected</div>
+              <div class="checkl">
+                <div class="ci on"><span class="cb"><i data-lucide="check"></i></span><span>Passport bio page</span></div>
+                <div class="ci on"><span class="cb"><i data-lucide="check"></i></span><span>Skills assessment (TRA)</span></div>
+                <div class="ci"><span class="cb"></span><span>English test — <b>action needed</b></span></div>
+                <div class="ci"><span class="cb"></span><span>Employment references</span></div>
+              </div>
+            </div>
+            <div class="cap"><b>How it looks:</b> the case workspace where AI flags document issues up front — the agent reviews instead of hunts.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FUNNEL -->
+    <section id="funnel">
+      <div class="kick">Why the sequence pays off</div>
+      <h2 class="h-sec">The funnel this builds</h2>
+      <p class="lead">Each horizon feeds the next. That's why you build in sequence, not in parallel — each module's traffic de-risks the one behind it.</p>
+      <div class="funnel">
+        <div class="fn"><div class="fnum" style="background:linear-gradient(135deg,var(--teal),var(--teal-light))">1</div><div class="fx"><div class="ft">Anxious applicant Googles "is 482 processing normal?"</div><div class="fd">Lands on a community timeline page (SEO). Checks their wait, posts their own.</div></div><span class="stagetag" style="background:rgba(45,212,191,.14);color:var(--teal)">Community</span></div>
+        <div class="fn"><div class="fnum" style="background:linear-gradient(135deg,var(--teal),var(--teal-light))">2</div><div class="fx"><div class="ft">Comes back weekly to track milestones & replies</div><div class="fd">Retention loop. Becomes a returning weekly active tracker — the north-star metric.</div></div><span class="stagetag" style="background:rgba(45,212,191,.14);color:var(--teal)">Community</span></div>
+        <div class="fn"><div class="fnum" style="background:linear-gradient(135deg,var(--purple-deep),var(--purple))">3</div><div class="fx"><div class="ft">Reads "should I use an agent?" → browses verified directory</div><div class="fd">Contacts a verified agent — a tracked lead you can eventually charge for.</div></div><span class="stagetag" style="background:rgba(124,92,252,.14);color:var(--purple-deep)">Marketplace</span></div>
+        <div class="fn"><div class="fnum" style="background:linear-gradient(135deg,#B45309,var(--amber))">4</div><div class="fx"><div class="ft">Agent runs the case in the SaaS → gets paid → pays you</div><div class="fd">Software subscription + the lead. The loop closes and compounds.</div></div><span class="stagetag" style="background:rgba(245,158,11,.14);color:#B45309">SaaS</span></div>
+      </div>
+    </section>
+
+    <!-- ROADMAP -->
+    <section id="roadmap">
+      <div class="kick">The whole plan on one page</div>
+      <h2 class="h-sec">Three horizons, in order</h2>
+      <p class="lead">Work the top horizon only, until its Definition of Done is 100% ticked. Then read the next one — not before.</p>
+      <div class="rm">
+        <div class="hz h1">
+          <div class="hh"><div class="when">Horizon 1 · Now</div><h3>Community</h3><div class="dur">~3–3.5 weeks</div></div>
+          <div class="hb">
+            <div class="mission">Make it safe, sticky & discoverable, then launch publicly.</div>
+            <ul>
+              <li><i data-lucide="shield"></i> Sprint 1 · Safe — working moderation, clean surface, real admin gate</li>
+              <li><i data-lucide="repeat"></i> Sprint 2 · Sticky + Found — accounts, notifications, SEO</li>
+              <li><i data-lucide="sparkles"></i> Sprint 3 · Alive — cold-start, search, mobile</li>
+            </ul>
+            <div class="milestone"><i data-lucide="rocket"></i> 🚀 Public launch of the community</div>
+          </div>
+        </div>
+        <div class="hz h2">
+          <div class="hh"><div class="when">Horizon 2 · Next</div><h3>Marketplace</h3><div class="dur">~3–4 weeks</div></div>
+          <div class="hb">
+            <div class="mission">Fill the built directory the legal way; turn it on for community traffic.</div>
+            <ul>
+              <li><i data-lucide="scale"></i> Stage 0 · Paperwork — lawyer + OMARA (start NOW, background)</li>
+              <li><i data-lucide="badge-check"></i> Stage 1 · Legitimate — seeder, claim-verify, ownership auth</li>
+              <li><i data-lucide="zap"></i> Stage 2 · Useful & on — lead capture, remove redirect</li>
+            </ul>
+            <div class="milestone"><i data-lucide="rocket"></i> 🚀 Directory live, seeded & claimable</div>
+          </div>
+        </div>
+        <div class="hz h3">
+          <div class="hh"><div class="when">Horizon 3 · Later</div><h3>SaaS</h3><div class="dur">Ongoing</div></div>
+          <div class="hb">
+            <div class="mission">Turn the working pipeline into a paid product, one pilot at a time.</div>
+            <ul>
+              <li><i data-lucide="eraser"></i> Phase A · Honesty — wire mock screens, kill fake steps</li>
+              <li><i data-lucide="credit-card"></i> Phase B · Paid & complete — gateway, portal, e-sign PDF</li>
+              <li><i data-lucide="trending-up"></i> Phase C · Sell — pilot → 3–5 paying agents</li>
+            </ul>
+            <div class="milestone"><i data-lucide="rocket"></i> 🚀 First paying agent, unassisted</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      <div class="big">Finish Horizon 1. Then read Horizon 2. Not before.</div>
+      <p style="margin-top:8px">Finishing is a skill. This is your reps. The written scope in this folder is the only backlog — new ideas go to the Parking Lot and wait their horizon.</p>
+      <div class="files">
+        <a href="00-START-HERE.md">00 · start-here</a>
+        <a href="01-where-we-are.md">01 · where-we-are</a>
+        <a href="02-community-mvp.md">02 · community</a>
+        <a href="03-marketplace-mvp.md">03 · marketplace</a>
+        <a href="04-saas-mvp.md">04 · saas</a>
+        <a href="05-roadmap.md">05 · roadmap</a>
+      </div>
+      <p class="disc-note">Marketplace legal notes are a founder-readable research summary, not legal advice. Confirm with an Australian lawyer (privacy · defamation · consumer law) and contact OMARA in writing before any bulk register use or paid lead-gen. IMMI-PULSE · Launch Command Center · 2026-07-18.</p>
+    </div>
+
+  </div>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

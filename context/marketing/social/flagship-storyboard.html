@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>IMMI-PULSE · Flagship Reel Storyboard — "How long is the 189 actually taking?"</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#101928; --navy-2:#1a2433; --purple:#7A5AF8; --purple-deep:#3E1C96;
+    --purple-light:#BDB4FE; --purple-muted:#D9D6FE; --teal:#1B7B6F; --teal-light:#2DD4BF;
+    --gray:#475367; --gray-light:#F0F2F5; --white:#fff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:
+      radial-gradient(1200px 600px at 80% -10%, #20143f 0%, transparent 60%),
+      radial-gradient(900px 500px at -10% 20%, #14233a 0%, transparent 55%),
+      #0a0f18;color:#e7eaf0;line-height:1.5;padding:48px 24px 80px}
+  .wrap{max-width:1180px;margin:0 auto}
+  .kicker{font-family:'Outfit';font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+    font-size:12px;color:var(--purple-light)}
+  h1{font-family:'Outfit';font-weight:800;font-size:clamp(28px,4vw,46px);line-height:1.05;margin:10px 0 14px;
+    background:linear-gradient(90deg,#fff 0%,var(--purple-light) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:#aab4c4;max-width:760px;font-size:16px}
+  .meta{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 6px}
+  .chip{font-family:'Outfit';font-weight:600;font-size:12.5px;padding:7px 13px;border-radius:999px;
+    background:rgba(122,90,248,.14);border:1px solid rgba(122,90,248,.35);color:var(--purple-light)}
+  .chip.teal{background:rgba(27,123,111,.16);border-color:rgba(45,212,191,.4);color:var(--teal-light)}
+  .frames{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:26px;margin-top:34px}
+
+  /* phone frame 9:16 */
+  .frame{display:flex;flex-direction:column}
+  .phone{position:relative;aspect-ratio:9/16;border-radius:26px;overflow:hidden;
+    background:var(--navy);box-shadow:0 18px 50px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.06) inset;
+    display:flex;flex-direction:column;justify-content:center;align-items:center;padding:22px 18px;text-align:center}
+  .tc{position:absolute;top:12px;left:12px;font-family:'Outfit';font-weight:700;font-size:11px;
+    background:rgba(0,0,0,.45);padding:4px 9px;border-radius:7px;color:#fff;letter-spacing:.04em;z-index:5}
+  .safe{position:absolute;inset:8px;border:1px dashed rgba(255,255,255,.10);border-radius:20px;pointer-events:none}
+  /* burned-in caption look */
+  .cap{position:absolute;left:14px;right:14px;bottom:46px;font-family:'Outfit';font-weight:800;
+    font-size:15px;line-height:1.18;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6);z-index:4}
+  .cap .hl{background:var(--purple);padding:1px 6px;border-radius:5px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+  .cap .hl.teal{background:var(--teal)}
+  .logo{position:absolute;bottom:14px;left:0;right:0;text-align:center;font-family:'Outfit';font-weight:800;
+    font-size:12px;letter-spacing:.04em;color:rgba(255,255,255,.78);z-index:4}
+  .logo b{color:var(--purple-light)}
+
+  /* scene art */
+  .big-num{font-family:'Outfit';font-weight:900;font-size:62px;line-height:.9;color:#fff}
+  .big-num small{display:block;font-size:14px;font-weight:600;color:var(--purple-light);letter-spacing:.06em;margin-top:8px}
+  .cursor{display:inline-block;width:4px;height:54px;background:var(--purple);margin-left:6px;border-radius:2px;
+    animation:blink 1s steps(1) infinite;vertical-align:middle}
+  @keyframes blink{50%{opacity:0}}
+  .doc{background:var(--gray-light);color:var(--navy);border-radius:12px;padding:16px 14px;width:88%}
+  .doc .p75{font-family:'Outfit';font-weight:900;font-size:30px;color:var(--purple-deep)}
+  .doc .lbl{font-size:11px;font-weight:700;color:var(--gray);letter-spacing:.08em;text-transform:uppercase}
+  /* percentile band */
+  .band{width:90%}
+  .bar{height:18px;border-radius:9px;background:linear-gradient(90deg,#2b3a52,#3a4d6e);position:relative;overflow:hidden}
+  .bar .fill{position:absolute;inset:0;width:100%;
+    background:linear-gradient(90deg,var(--purple-deep),var(--purple) 55%,var(--teal-light));}
+  .ticks{display:flex;justify-content:space-between;font-family:'Outfit';font-weight:700;font-size:10px;
+    color:var(--purple-light);margin-top:7px;letter-spacing:.04em}
+  .marker{position:absolute;top:-7px;width:3px;height:32px;background:#fff;border-radius:2px;box-shadow:0 0 14px var(--teal-light)}
+  .youhere{font-family:'Outfit';font-weight:800;font-size:13px;color:var(--teal-light);margin-top:14px}
+  .bands4{width:92%;display:flex;flex-direction:column;gap:8px}
+  .b4row{display:flex;align-items:center;gap:8px}
+  .b4row span{font-family:'Outfit';font-weight:700;font-size:10px;color:var(--purple-light);width:30px;text-align:right}
+  .b4bar{height:13px;border-radius:7px;flex:1;background:linear-gradient(90deg,var(--purple-deep),var(--purple))}
+  .appcard{background:#fff;color:var(--navy);border-radius:14px;padding:16px 14px;width:90%;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .appcard .t{font-family:'Outfit';font-weight:800;font-size:15px}
+  .appcard .s{font-size:11px;color:var(--gray);margin-top:3px}
+  .appcard .btn{margin-top:11px;background:var(--purple);color:#fff;font-family:'Outfit';font-weight:700;
+    font-size:12px;padding:9px;border-radius:9px}
+
+  /* under-frame notes */
+  .note{margin-top:12px}
+  .note .role{font-family:'Outfit';font-weight:700;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--purple-light)}
+  .note .vo{font-size:13px;color:#c7cedb;margin-top:3px}
+  .note .vis{font-size:12px;color:#8c96a8;margin-top:6px}
+
+  .foot{margin-top:46px;border-top:1px solid rgba(255,255,255,.08);padding-top:22px;color:#8c96a8;font-size:13px}
+  .foot b{color:#c7cedb}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:#8c96a8}
+  .legend i{font-style:normal;color:var(--purple-light);font-weight:600}
+  a{color:var(--purple-light)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">IMMI-PULSE · Social Reels · Flagship</div>
+  <h1>How long is the 189 <em style="font-style:italic">actually</em> taking?</h1>
+  <p class="sub">Storyboard for Reel 01 — the data-drop that answers the #1 job ("is my wait normal?") in the
+  first three seconds. 9:16, ~22s, captions burned in. Each frame below is one beat; build it as a screen-record
+  of the real Pulse charts or render it in Remotion from the brand kit.</p>
+
+  <div class="meta">
+    <span class="chip">Pillar · Data drop</span>
+    <span class="chip">TikTok · IG Reels · YT Short</span>
+    <span class="chip">~22 seconds</span>
+    <span class="chip teal">CTA · free tool</span>
+    <span class="chip">Audio · building beat, no lyrics</span>
+  </div>
+
+  <div class="frames">
+
+    <!-- FRAME 1 -->
+    <div class="frame">
+      <div class="phone">
+        <div class="tc">0:00–0:03</div><div class="safe"></div>
+        <div class="big-num">189<span class="cursor"></span><small>SUBCLASS</small></div>
+        <div class="cap">How long is the 189 <span class="hl">actually</span> taking?</div>
+        <div class="logo">PULSE · <b>is my wait normal?</b></div>
+      </div>
+      <div class="note">
+        <div class="role">VO</div>
+        <div class="vo">"Everyone asks me this. So I pulled the real numbers."</div>
+        <div class="vis">Hard cut · navy screen · purple cursor blinking on "189". The hook is frame 0 — no intro.</div>
+      </div>
+    </div>
+
+    <!-- FRAME 2 -->
+    <div class="frame">
+      <div class="phone">
+        <div class="tc">0:03–0:07</div><div class="safe"></div>
+        <div class="doc">
+          <div class="lbl">What Home Affairs publishes</div>
+          <div class="p75">75th</div>
+          <div class="lbl">percentile</div>
+        </div>
+        <div class="cap">What they <span class="hl">publish</span>: the 75th percentile</div>
+        <div class="logo">PULSE</div>
+      </div>
+      <div class="note">
+        <div class="role">VO</div>
+        <div class="vo">"Home Affairs publishes the 75th percentile. That's not the typical wait."</div>
+        <div class="vis">A DHA-style doc; the big "75th" stamps in. Source caption pinned small.</div>
+      </div>
+    </div>
+
+    <!-- FRAME 3 -->
+    <div class="frame">
+      <div class="phone">
+        <div class="tc">0:07–0:12</div><div class="safe"></div>
+        <div class="band">
+          <div class="bar"><div class="fill"></div><div class="marker" style="left:50%"></div></div>
+          <div class="ticks"><span>fast</span><span>median ~X mo</span><span>slow</span></div>
+          <div class="youhere">↑ the actual middle</div>
+        </div>
+        <div class="cap">The <span class="hl teal">median</span> is ~X months</div>
+        <div class="logo">PULSE</div>
+      </div>
+      <div class="note">
+        <div class="role">VO</div>
+        <div class="vo">"The median — the actual middle — is about X months."</div>
+        <div class="vis">Bar fills L→R; teal marker slides to centre. The reveal beat.</div>
+      </div>
+    </div>
+
+    <!-- FRAME 4 -->
+    <div class="frame">
+      <div class="phone">
+        <div class="tc">0:12–0:16</div><div class="safe"></div>
+        <div class="bands4">
+          <div class="b4row"><span>25th</span><div class="b4bar" style="max-width:42%"></div></div>
+          <div class="b4row"><span>50th</span><div class="b4bar" style="max-width:60%"></div></div>
+          <div class="b4row"><span>75th</span><div class="b4bar" style="max-width:80%"></div></div>
+          <div class="b4row"><span>90th</span><div class="b4bar"></div></div>
+        </div>
+        <div class="cap">25th · 50th · 75th · <span class="hl">90th</span></div>
+        <div class="logo">PULSE</div>
+      </div>
+      <div class="note">
+        <div class="role">VO</div>
+        <div class="vo">"Here's the full picture. 25th here, 90th way out here."</div>
+        <div class="vis">Four bands fill in sequence — the honest spread the incumbents hide.</div>
+      </div>
+    </div>
+
+    <!-- FRAME 5 -->
+    <div class="frame">
+      <div class="phone">
+        <div class="tc">0:16–0:19</div><div class="safe"></div>
+        <div class="band">
+          <div class="bar"><div class="fill"></div><div class="marker" style="left:46%"></div></div>
+          <div class="ticks"><span>25</span><span>50</span><span>75</span><span>90</span></div>
+          <div class="youhere">YOU ARE HERE — <span style="color:#fff">normal</span> ✓</div>
+        </div>
+        <div class="cap">If you're in here → <span class="hl teal">you're normal</span></div>
+        <div class="logo">PULSE</div>
+      </div>
+      <div class="note">
+        <div class="role">VO · the payoff</div>
+        <div class="vo">"So if your wait lands in this range — you're not stuck. You're normal."</div>
+        <div class="vis">Marker drops onto the band and glows teal. Reassurance = the emotional turn.</div>
+      </div>
+    </div>
+
+    <!-- FRAME 6 -->
+    <div class="frame">
+      <div class="phone">
+        <div class="tc">0:19–0:22</div><div class="safe"></div>
+        <div class="appcard">
+          <div class="t">Is my wait normal?</div>
+          <div class="s">Pick your subclass + lodge month · free, no login</div>
+          <div class="btn">Check the 189 →</div>
+        </div>
+        <div class="cap">Free · <span class="hl">every subclass</span> · link below</div>
+        <div class="logo">PULSE · <b>tap the link in comments</b></div>
+      </div>
+      <div class="note">
+        <div class="role">VO · CTA</div>
+        <div class="vo">"Check yours free on Pulse. Link in the comments."</div>
+        <div class="vis">Real Pulse app card slides up. Soft CTA — utility, not a hard sell.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="foot">
+    <b>Caption to post:</b> The number Home Affairs publishes (75th percentile) isn't the typical 189 wait — the
+    <i>median</i> is. Here's the full band so you can see if you're actually normal. 📊 Check your subclass free 👇
+    <em style="color:#6f7a8c">Source: Dept. of Home Affairs (illustrative). Not immigration advice.</em>
+    <div class="legend">
+      <span><i>Hashtags:</i> #189visa #AusVisa #skillselect #PRaustralia #visaprocessingtimes #australianpr #migratetoaustralia #immiaccount</span>
+    </div>
+    <div class="legend">
+      <span><i>Brand:</i> Outfit headlines · Inter body · Navy #101928 · Purple #7A5AF8 · Teal #1B7B6F</span>
+      <span><i>Build:</i> screen-record the real <a href="../../community/pulse-app-mockups.html">pulse-app-mockups.html</a> charts, or render in Remotion.</span>
+    </div>
+    <div class="legend"><span style="color:#5b6577">Dashed boxes = text safe-zone. Swap X / placeholder numbers for live DHA + Pulse figures before publishing.</span></div>
+  </div>
+</div>
+</body>
+</html>
