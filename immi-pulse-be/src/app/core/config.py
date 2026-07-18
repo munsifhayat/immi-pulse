@@ -90,6 +90,29 @@ class Settings(BaseSettings):
     breach_check_enabled: bool = True
     breach_check_timeout_seconds: float = 2.5
 
+    # --- Community statistics ---
+    # Whether timelines collected from public immigration forums (anonymised and
+    # normalised) count toward the published community figures alongside
+    # first-party member reports.
+    #
+    # ON by design, and defensible only because of what travels with it: every
+    # figure they feed also publishes its composition ("N reported by members,
+    # M collected from public forums"), so a reader is never handed a bare number
+    # whose sourcing they cannot judge. This is the single switch that reverses
+    # that decision — flip it to false and the figures fall back to first-party
+    # reports alone, with the provenance line and the n-floor still doing their
+    # jobs. No other code needs touching.
+    community_stats_include_forum: bool = True
+    # Decided cases below which we refuse to publish a community median and say
+    # so instead. Twenty is not statistically magic; it is the point at which a
+    # median stops swinging wildly on one more grant, which is the property that
+    # matters when a person is reading it to decide whether to worry.
+    community_stats_min_sample: int = 20
+    # Only lodgements this recent feed an estimate. Processing regimes shift with
+    # policy and caseload, so a five-year-old grant is not evidence about a wait
+    # starting today — it is just data we happen to have.
+    community_stats_window_months: int = 12
+
     # --- Resend (transactional email) ---
     resend_api_key: str | None = None
     resend_from_email: str = "IMMI-PULSE <onboarding@resend.dev>"

@@ -43,12 +43,18 @@ export function OfficialTimes() {
           ) : (
             <>
               {stats.map((v) => {
-                const delta = deltaVsOfficial(v.community.p50, v.official_p50_days);
+                const room = v.room ?? v.community;
+                // The comparison is only shown when the room's figure is one we
+                // are willing to publish. A "12 days faster" built on four
+                // timelines is not a finding, it is noise wearing a badge.
+                const delta = room.sufficient
+                  ? deltaVsOfficial(room.p50, v.official.p50_days)
+                  : null;
                 const faster = delta?.includes("faster");
                 return (
                   <div
                     key={v.slug}
-                    className="grid grid-cols-[52px_1fr_auto] items-center gap-4 border-b border-hair px-5 py-3.5 last:border-b-0"
+                    className="grid grid-cols-[52px_1fr_auto] items-start gap-4 border-b border-hair px-5 py-3.5 last:border-b-0"
                   >
                     <span className="c-mono text-[17px] font-semibold text-ink">
                       {v.code}
@@ -58,12 +64,22 @@ export function OfficialTimes() {
                         {v.name}
                       </div>
                       <div className="c-mono mt-0.5 text-[10.5px] text-ink-soft">
-                        50% · <span className="text-ink">{formatDays(v.official_p50_days)}</span>
-                        {"   "}90% · <span className="text-ink">{formatDays(v.official_p90_days)}</span>
-                        {v.official_updated ? `   ${v.official_updated}` : ""}
+                        50% · <span className="text-ink">{formatDays(v.official.p50_days)}</span>
+                        {"   "}90% · <span className="text-ink">{formatDays(v.official.p90_days)}</span>
+                        {v.official.as_at ? `   as at ${v.official.as_at}` : ""}
                       </div>
+                      {/*
+                        Provenance travels with the room's figure wherever it
+                        appears — including here, where the number is only a
+                        delta. A comparison is still a published figure.
+                      */}
+                      {room.provenance_note && (
+                        <div className="mt-1 text-[10.5px] leading-relaxed text-ink-soft/80">
+                          {room.provenance_note}
+                        </div>
+                      )}
                     </div>
-                    {v.community.sample_size > 0 && delta ? (
+                    {delta ? (
                       <span
                         className={`c-mono whitespace-nowrap text-[11px] font-semibold ${
                           faster ? "text-teal" : "text-[#B4700F]"
@@ -73,17 +89,23 @@ export function OfficialTimes() {
                       </span>
                     ) : (
                       <span className="c-mono whitespace-nowrap text-[10.5px] text-ink-soft/60">
-                        no community data
+                        {room.provenance.total > 0
+                          ? `${room.provenance.total} so far · need ${room.min_sample}`
+                          : "no community data"}
                       </span>
                     )}
                   </div>
                 );
               })}
               <p className="px-5 py-3.5 text-[11px] leading-relaxed text-ink-soft">
-                Official figures show the range for 50% and 90% of applications
-                finalised recently. Community figures are crowdsourced — a sanity
-                check, not a guarantee. Always corroborate with an OMARA-registered
-                agent.
+                Official figures are published by the Department of Home Affairs
+                and show the range for 50% and 90% of applications finalised
+                recently. We record them by hand, so the date beside each one is
+                the date it was last checked — not today. Community figures come
+                from shared timelines lodged in the last 12 months, and we only
+                publish a median once at least 20 cases have been decided.
+                They&apos;re a sanity check, not a guarantee — always corroborate
+                with an OMARA-registered agent.
               </p>
             </>
           )}

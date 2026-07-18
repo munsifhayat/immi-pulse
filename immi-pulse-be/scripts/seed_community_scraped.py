@@ -33,6 +33,8 @@ from sqlalchemy import delete, func, select
 from app.agents.immigration.community import processing
 from app.agents.immigration.community.identity import ADJECTIVES, COLORS, NOUNS
 from app.agents.immigration.community.models import (
+    TIMELINE_SOURCE_FORUM,
+    CommunityTimeline,
     Journey,
     JourneyComment,
     JourneyMilestone,
@@ -136,7 +138,7 @@ async def seed(force: bool = False) -> None:
                     note=r.get("note"),
                     handle=handle,
                     color=color,
-                    is_sample=True,  # keeps it OUT of the wait-check stats
+                    is_sample=True,  # flagged forever; feeds stats, not silently
                     status="active",
                     lodged_on=lodged,
                     decided_on=decided,
@@ -146,6 +148,33 @@ async def seed(force: bool = False) -> None:
                     created_at=created_at,
             )
             db.add(journey)
+
+            # Mirror into the stats spine as *forum-collected*. Since Phase 4
+            # these timelines do feed the public figures — on the condition that
+            # every figure they feed publishes its composition. The source label
+            # is what makes that sentence derivable from the data rather than
+            # asserted; without this row the journey would be invisible to the
+            # stats engine entirely.
+            if (
+                journey.post_type == "timeline"
+                and journey.subclass_slug
+                and lodged is not None
+                and (outcome != "granted" or decided is not None)
+            ):
+                db.add(
+                    CommunityTimeline(
+                        id=uuid.uuid4(),
+                        subclass_slug=journey.subclass_slug,
+                        journey_id=jid,
+                        lodged_on=lodged,
+                        decided_on=decided,
+                        outcome=outcome,
+                        source=TIMELINE_SOURCE_FORUM,
+                        note=(journey.note[:280] if journey.note else None),
+                        created_at=created_at,
+                    )
+                )
+
             for i, (mtype, mdate) in enumerate(ms_tuples):
                 db.add(
                     JourneyMilestone(

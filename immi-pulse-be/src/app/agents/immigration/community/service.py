@@ -5,17 +5,19 @@ import logging
 import secrets
 import uuid
 from collections import defaultdict
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import and_, delete, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.immigration.community import identity as identity_gen
 from app.agents.immigration.community import notifications, processing, tiers
 from app.agents.immigration.community.models import (
+    TIMELINE_SOURCE_FORUM,
+    TIMELINE_SOURCE_MEMBER,
     AnonIdentity,
     CommunityComment,
     CommunityReport,
@@ -35,9 +37,11 @@ from app.agents.immigration.community.schemas import (
     CreateJourneyCommentRequest,
     CreateJourneyRequest,
     CreateThreadRequest,
+    MilestoneIn,
     ReportRequest,
     SubmitTimelineRequest,
 )
+from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -708,33 +712,103 @@ class CommunityService:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def _timeline_durations(
-        db: AsyncSession, subclass_slug: str
-    ) -> tuple[list[int], int]:
-        """Return (decided processing-day durations, pending count) for a slug.
+    async def _cohort_sample(db: AsyncSession, subclass_slug: str) -> dict:
+        """The publishable cohort for one visa: durations, pending, provenance.
 
-        Only active, granted timelines contribute durations — refusals and
-        still-waiting rows are excluded from the percentile maths, but waiting
-        rows are tallied as the pending denominator.
+        Four filters decide what counts, and each one exists because leaving it
+        out would publish something untrue:
+
+        1. **Active only.** Moderated-away rows stop counting the moment they
+           are hidden.
+        2. **Published only.** A saved-but-unpublished wait check is its owner's
+           private note. It has not been offered to the room and must not move
+           the room's numbers — that is the whole meaning of the second consent.
+           Timeline rows with no journey behind them are legacy direct
+           submissions and are always in scope.
+        3. **Last N months of lodgements.** Processing regimes move with policy
+           and caseload; a grant from three years ago is not evidence about a
+           wait starting today.
+        4. **Provenance flag.** Forum-collected rows count only while
+           ``community_stats_include_forum`` is on — the one switch that
+           reverses that decision.
+
+        Returns the counts split by provenance so every figure built from this
+        can state what it is made of.
         """
-        result = await db.execute(
+        settings = get_settings()
+        window_start = date.today() - timedelta(
+            days=int(settings.community_stats_window_months * 30.44)
+        )
+
+        q = (
             select(
                 CommunityTimeline.lodged_on,
                 CommunityTimeline.decided_on,
                 CommunityTimeline.outcome,
-            ).where(
+                CommunityTimeline.source,
+            )
+            .outerjoin(Journey, Journey.id == CommunityTimeline.journey_id)
+            .where(
                 CommunityTimeline.subclass_slug == subclass_slug,
                 CommunityTimeline.status == "active",
+                CommunityTimeline.lodged_on >= window_start,
+                # NULL journey_id = a legacy direct submission with no feed post
+                # behind it; those have no publication state to respect.
+                or_(
+                    CommunityTimeline.journey_id.is_(None),
+                    and_(
+                        Journey.is_published.is_(True),
+                        Journey.status == "active",
+                    ),
+                ),
             )
         )
+        if not settings.community_stats_include_forum:
+            q = q.where(CommunityTimeline.source == TIMELINE_SOURCE_MEMBER)
+
+        result = await db.execute(q)
+
         durations: list[int] = []
         pending = 0
-        for lodged_on, decided_on, outcome in result.all():
+        member_reported = 0
+        forum_collected = 0
+        for lodged_on, decided_on, outcome, source in result.all():
+            if source == TIMELINE_SOURCE_FORUM:
+                forum_collected += 1
+            else:
+                member_reported += 1
             if outcome == "granted" and decided_on is not None:
                 durations.append((decided_on - lodged_on).days)
             elif outcome == "waiting":
                 pending += 1
-        return durations, pending
+
+        return {
+            "decided_days": durations,
+            "pending": pending,
+            "member_reported": member_reported,
+            "forum_collected": forum_collected,
+        }
+
+    @staticmethod
+    async def _timeline_durations(
+        db: AsyncSession, subclass_slug: str
+    ) -> tuple[list[int], int]:
+        """Back-compat shim: (durations, pending) without the provenance split."""
+        cohort = await CommunityService._cohort_sample(db, subclass_slug)
+        return cohort["decided_days"], cohort["pending"]
+
+    @staticmethod
+    def _stats_from_cohort(cohort: dict) -> dict:
+        """Percentile bands + provenance for one cohort, settings applied."""
+        settings = get_settings()
+        return processing.compute_stats(
+            cohort["decided_days"],
+            pending=cohort["pending"],
+            member_reported=cohort["member_reported"],
+            forum_collected=cohort["forum_collected"],
+            min_sample=settings.community_stats_min_sample,
+            window_months=settings.community_stats_window_months,
+        )
 
     @staticmethod
     async def _trend_for(db: AsyncSession, subclass_slug: str) -> str:
@@ -770,15 +844,30 @@ class CommunityService:
         return "steady"
 
     @staticmethod
+    def _official_block(sc: VisaSubclass) -> dict:
+        """The department's published bands, always with their as-at date.
+
+        ``as_at`` is hand-seeded (``VisaSubclass.official_updated``) — nothing in
+        this product ingests Home Affairs figures on a schedule, so nothing in it
+        may imply it does. Shipping the date beside the number is what keeps the
+        claim honest: a reader can see for themselves how stale it is.
+        """
+        return {
+            "p50_days": sc.official_p50_days,
+            "p90_days": sc.official_p90_days,
+            "as_at": sc.official_updated,
+            "source": "Department of Home Affairs",
+            "is_live": False,
+        }
+
+    @staticmethod
     async def processing_board(db: AsyncSession) -> list[dict]:
         """Official-vs-community board: one entry per active subclass."""
         subclasses = await CommunityService.list_subclasses(db)
         board: list[dict] = []
         for sc in subclasses:
-            durations, pending = await CommunityService._timeline_durations(
-                db, sc.slug
-            )
-            stats = processing.compute_stats(durations, pending=pending)
+            cohort = await CommunityService._cohort_sample(db, sc.slug)
+            stats = CommunityService._stats_from_cohort(cohort)
             trend = (
                 await CommunityService._trend_for(db, sc.slug)
                 if stats["sample_size"] >= 8
@@ -791,9 +880,13 @@ class CommunityService:
                     "name": sc.name,
                     "stream": sc.stream,
                     "category_slug": sc.category_slug,
+                    # Flat legacy fields — kept so existing clients keep working.
                     "official_p50_days": sc.official_p50_days,
                     "official_p90_days": sc.official_p90_days,
                     "official_updated": sc.official_updated,
+                    # The two blocks the UI is required to render together.
+                    "official": CommunityService._official_block(sc),
+                    "room": stats,
                     "community": stats,
                     "trend": trend,
                 }
@@ -839,34 +932,50 @@ class CommunityService:
         if subclass is None:
             return None
 
+        settings = get_settings()
         label = subclass.code + (f" {subclass.stream}" if subclass.stream else "")
         elapsed_days = max(0, (date.today() - lodged_on).days)
-        durations, pending = await CommunityService._timeline_durations(
-            db, subclass_slug
-        )
+        cohort = await CommunityService._cohort_sample(db, subclass_slug)
+        room = CommunityService._stats_from_cohort(cohort)
+
         verdict = processing.wait_verdict(
             elapsed_days,
-            decided_days=durations,
-            pending=pending,
+            decided_days=cohort["decided_days"],
+            pending=cohort["pending"],
             subclass_label=label,
+            member_reported=cohort["member_reported"],
+            forum_collected=cohort["forum_collected"],
+            min_sample=settings.community_stats_min_sample,
+            window_months=settings.community_stats_window_months,
         )
-        # Cold start: until enough real timelines exist, fall back to the
-        # official Home Affairs bands rather than show a fabricated community
-        # picture. Never invents community data.
+        # Cohort fallback: below the sample floor we do not publish a community
+        # median at all — we answer from the official Home Affairs bands, which
+        # are thin but real and attributable. The room's own counts still travel
+        # in the ``room`` block, so the answer can say "and here is how close we
+        # are to being able to tell you ourselves" without pretending it already
+        # can. Never invents community data.
         if verdict["tier"] == "unknown":
             verdict = processing.wait_verdict_official(
                 elapsed_days,
                 official_p50=subclass.official_p50_days,
                 official_p90=subclass.official_p90_days,
                 subclass_label=label,
+                member_reported=cohort["member_reported"],
+                forum_collected=cohort["forum_collected"],
+                min_sample=settings.community_stats_min_sample,
+                window_months=settings.community_stats_window_months,
             )
         verdict.update(
             {
                 "subclass_slug": subclass.slug,
                 "subclass_label": label,
+                # Flat legacy fields — unchanged contract for existing clients.
                 "official_p50_days": subclass.official_p50_days,
                 "official_p90_days": subclass.official_p90_days,
                 "official_updated": subclass.official_updated,
+                # The two blocks that must be rendered together.
+                "official": CommunityService._official_block(subclass),
+                "room": room,
             }
         )
         return verdict
@@ -992,7 +1101,17 @@ class CommunityService:
         *,
         identity: AnonIdentity,
         ip_hash: str,
+        publish: bool = True,
     ) -> Journey:
+        """Create a feed post.
+
+        ``publish=False`` mints a **draft**: a real, owned timeline row that the
+        feed and the statistics both ignore until its owner explicitly publishes
+        it. That is the shape a saved wait check takes. Allowance is consumed
+        here, at row creation, rather than at publication — so drafting cannot be
+        used to hoard free writes, and publishing something already paid for
+        costs nothing extra.
+        """
         is_timeline = payload.post_type == "timeline"
         await consume_rate(
             db,
@@ -1049,6 +1168,8 @@ class CommunityService:
             note=(payload.note.strip() if payload.note else None),
             handle=identity.handle,
             color=identity.color,
+            is_published=publish,
+            published_at=datetime.now(timezone.utc) if publish else None,
         )
         db.add(journey)
         await db.flush()  # assign journey.id for FK rows
@@ -1074,25 +1195,227 @@ class CommunityService:
             journey.decided_on = decided
             journey.processing_days = days
 
-            # Mirror real shares into the stats table so the wait-check reflects
-            # them immediately. Sample posts never feed the stats.
-            if not journey.is_sample and lodged is not None and payload.subclass_slug:
-                db.add(
-                    CommunityTimeline(
-                        id=uuid.uuid4(),
-                        subclass_slug=payload.subclass_slug,
-                        journey_id=journey.id,
-                        lodged_on=lodged,
-                        decided_on=decided,
-                        outcome=payload.outcome,
-                        note=(journey.note[:280] if journey.note else None),
-                        author_ip_hash=ip_hash,
-                    )
-                )
+            # Mirror published shares into the stats table so the wait-check
+            # reflects them immediately. A draft gets no mirror row at all —
+            # the cleanest possible guarantee that an unpublished timeline
+            # cannot move a public number, because the number's source table
+            # has never heard of it.
+            await CommunityService._sync_timeline_mirror(
+                db, journey, ip_hash=ip_hash
+            )
 
             identity.journeys_posted = (identity.journeys_posted or 0) + 1
 
         await db.flush()
+        return journey
+
+    # --- Draft ↔ published, and the stats mirror -----------------------------
+
+    @staticmethod
+    async def _sync_timeline_mirror(
+        db: AsyncSession, journey: Journey, *, ip_hash: Optional[str] = None
+    ) -> Optional[CommunityTimeline]:
+        """Make ``community_timelines`` agree with this journey. Idempotent.
+
+        One function owns the whole relationship between a feed post and its
+        contribution to the public numbers, so "does this count?" has exactly
+        one answer in the codebase instead of one per call site. It creates the
+        mirror row, updates it when milestones arrive later, and deletes it the
+        moment the journey stops qualifying.
+
+        A journey qualifies when it is a published, active timeline with a visa
+        and a lodgement date. Drafts do not qualify — which is what makes the
+        publish step a real consent rather than a label.
+        """
+        existing = (
+            await db.execute(
+                select(CommunityTimeline).where(
+                    CommunityTimeline.journey_id == journey.id
+                )
+            )
+        ).scalar_one_or_none()
+
+        qualifies = (
+            journey.post_type == "timeline"
+            and bool(journey.is_published)
+            and journey.status == "active"
+            and journey.lodged_on is not None
+            and bool(journey.subclass_slug)
+        )
+
+        if not qualifies:
+            if existing is not None:
+                await db.delete(existing)
+                await db.flush()
+            return None
+
+        source = TIMELINE_SOURCE_FORUM if journey.is_sample else TIMELINE_SOURCE_MEMBER
+        if existing is None:
+            existing = CommunityTimeline(
+                id=uuid.uuid4(),
+                subclass_slug=journey.subclass_slug,
+                journey_id=journey.id,
+                lodged_on=journey.lodged_on,
+                decided_on=journey.decided_on,
+                outcome=journey.outcome,
+                source=source,
+                note=(journey.note[:280] if journey.note else None),
+                author_ip_hash=ip_hash,
+            )
+            db.add(existing)
+        else:
+            existing.subclass_slug = journey.subclass_slug
+            existing.lodged_on = journey.lodged_on
+            existing.decided_on = journey.decided_on
+            existing.outcome = journey.outcome
+            existing.source = source
+            existing.status = "active"
+        await db.flush()
+        return existing
+
+    @staticmethod
+    async def save_wait_check(
+        db: AsyncSession,
+        *,
+        identity: AnonIdentity,
+        ip_hash: str,
+        subclass_slug: str,
+        lodged_on: date,
+        milestones: Optional[list] = None,
+        note: Optional[str] = None,
+    ) -> Journey:
+        """Turn a wait check into the member's own (unpublished) timeline.
+
+        This is the unification the phase is named for. Checking a wait and
+        sharing a timeline need the same two facts — which visa, and when you
+        lodged — so the check *is* the first draft of the timeline, and saving is
+        one tap rather than a second form nobody fills in. It is also why data
+        can now arrive from the highest-traffic page instead of the rarest
+        action.
+
+        What it deliberately does **not** do is publish. The result is private
+        until its owner says otherwise, and nothing here touches the feed or the
+        numbers.
+        """
+        payload = CreateJourneyRequest(
+            post_type="timeline",
+            subclass_slug=subclass_slug,
+            outcome="waiting",
+            note=note,
+            milestones=milestones
+            or [MilestoneIn(milestone_type="Visa Lodged", occurred_on=lodged_on)],
+        )
+        return await CommunityService.create_journey(
+            db, payload, identity=identity, ip_hash=ip_hash, publish=False
+        )
+
+    @staticmethod
+    async def get_owned_journey(
+        db: AsyncSession, journey_id: UUID, identity: Optional[AnonIdentity]
+    ) -> Optional[Journey]:
+        """A journey the caller owns — drafts included. ``None`` otherwise.
+
+        Ownership is checked before existence is revealed: a stranger probing
+        ids gets the same 404 for "not yours" as for "no such post", so this
+        cannot be used to discover that a given draft exists.
+        """
+        if identity is None:
+            return None
+        journey = await db.get(Journey, journey_id)
+        if journey is None or journey.status != "active":
+            return None
+        if journey.identity_id != identity.id:
+            return None
+        return journey
+
+    @staticmethod
+    async def publish_journey(
+        db: AsyncSession, journey: Journey, *, ip_hash: Optional[str] = None
+    ) -> Journey:
+        """Publish a draft to the feed — the second, explicit consent.
+
+        Idempotent: publishing an already-public post is a no-op rather than an
+        error, so a double-tapped button cannot produce a confusing failure.
+        """
+        if journey.is_published:
+            return journey
+        journey.is_published = True
+        journey.published_at = datetime.now(timezone.utc)
+        await db.flush()
+        await CommunityService._sync_timeline_mirror(db, journey, ip_hash=ip_hash)
+        return journey
+
+    @staticmethod
+    async def append_milestones(
+        db: AsyncSession,
+        journey: Journey,
+        milestones: list,
+        *,
+        outcome: Optional[str] = None,
+        ip_hash: Optional[str] = None,
+    ) -> Journey:
+        """Add later milestones (medical, s56, grant) to an owned timeline.
+
+        A visa wait is a fourteen-month story, not a single submission. Without
+        this the saved timeline is a snapshot that silently rots — and, worse,
+        the grant that would correct the community median never arrives, so the
+        published numbers stay biased toward whatever people happened to report
+        on day one.
+
+        Re-derives the whole span from the merged milestone set and re-syncs the
+        stats mirror, so a draft that gains a grant date is still a draft, and a
+        published one updates the public number the moment it does.
+        """
+        if journey.post_type != "timeline":
+            raise ValueError("Only a timeline can take milestones.")
+
+        existing = await db.execute(
+            select(JourneyMilestone).where(
+                JourneyMilestone.journey_id == journey.id
+            )
+        )
+        merged: dict[tuple[str, date], Optional[str]] = {}
+        for m in existing.scalars().all():
+            merged[(m.milestone_type, m.occurred_on)] = m.label
+        for m in milestones:
+            merged[(m.milestone_type, m.occurred_on)] = (
+                m.label.strip() if getattr(m, "label", None) else None
+            )
+
+        # Rebuild the ordered set rather than appending, so a re-sent milestone
+        # cannot duplicate itself and ordinals stay contiguous.
+        await db.execute(
+            delete(JourneyMilestone).where(
+                JourneyMilestone.journey_id == journey.id
+            )
+        )
+        ordered = sorted(merged.items(), key=lambda kv: kv[0][1])
+        ms_tuples: list[tuple[str, date]] = []
+        for i, ((mtype, occurred_on), label) in enumerate(ordered):
+            db.add(
+                JourneyMilestone(
+                    id=uuid.uuid4(),
+                    journey_id=journey.id,
+                    milestone_type=mtype,
+                    occurred_on=occurred_on,
+                    ordinal=i,
+                    label=label,
+                )
+            )
+            ms_tuples.append((mtype, occurred_on))
+
+        if outcome:
+            journey.outcome = outcome
+        elif any(t == processing.GRANTED_MILESTONE for t, _ in ms_tuples):
+            journey.outcome = "granted"
+
+        lodged, decided, days = processing.derive_span(ms_tuples, journey.outcome)
+        journey.lodged_on = lodged
+        journey.decided_on = decided
+        journey.processing_days = days
+        await db.flush()
+
+        await CommunityService._sync_timeline_mirror(db, journey, ip_hash=ip_hash)
         return journey
 
     @staticmethod
@@ -1107,7 +1430,11 @@ class CommunityService:
         limit: int = 30,
         offset: int = 0,
     ) -> list[Journey]:
-        q = select(Journey).where(Journey.status == "active")
+        # Drafts are excluded here and nowhere else is needed for the feed:
+        # every feed read funnels through this one query.
+        q = select(Journey).where(
+            Journey.status == "active", Journey.is_published.is_(True)
+        )
         if post_type:
             q = q.where(Journey.post_type == post_type)
         if category:
@@ -1138,11 +1465,23 @@ class CommunityService:
 
     @staticmethod
     async def get_journey(
-        db: AsyncSession, journey_id: UUID
+        db: AsyncSession,
+        journey_id: UUID,
+        *,
+        viewer: Optional[AnonIdentity] = None,
     ) -> Optional[Journey]:
+        """A publicly readable journey — or the caller's own draft.
+
+        Passing ``viewer`` is what lets someone open the timeline they just
+        saved. Everyone else gets ``None`` (→ 404) for a draft, indistinguishable
+        from a post that does not exist.
+        """
         journey = await db.get(Journey, journey_id)
         if journey is None or journey.status != "active":
             return None
+        if not journey.is_published:
+            if viewer is None or journey.identity_id != viewer.id:
+                return None
         return journey
 
     @staticmethod
@@ -1214,6 +1553,7 @@ class CommunityService:
             "upvotes": j.upvotes or 0,
             "comment_count": j.comment_count or 0,
             "is_sample": j.is_sample,
+            "is_published": bool(j.is_published),
             "is_mine": bool(identity and j.identity_id == identity.id),
             "viewer_voted": j.id in voted_ids,
             "processing_days": j.processing_days,
@@ -1418,7 +1758,9 @@ class CommunityService:
 
     @staticmethod
     async def feed_summary(db: AsyncSession) -> dict:
-        active = Journey.status == "active"
+        # Counts describe the feed, so they count what the feed shows: drafts
+        # are excluded, or the filter rail would promise posts that aren't there.
+        active = and_(Journey.status == "active", Journey.is_published.is_(True))
         total = await db.scalar(
             select(func.count()).select_from(Journey).where(active)
         )

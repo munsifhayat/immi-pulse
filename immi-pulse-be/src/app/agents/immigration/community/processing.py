@@ -9,6 +9,20 @@ Design rules baked in (from the community product plan):
   * Honest denominators — pending (still-waiting) counts travel with every stat
     so we never imply survivorship-biased speed.
   * No "fastest grant" leaderboard — ``fastest`` is shown only as a range edge.
+  * **No bare numbers.** Every median carries its sample size, its pending
+    count, its provenance split and whether we consider it sufficient. A figure
+    that cannot say what it is made of does not get published.
+
+A note on the survivorship bias this file only half-fixes. Community percentiles
+are computed from *decided* cases, which understates real waits: fast grants
+leave the queue and land in the sample, while the slow cases that would drag the
+median up are still sitting in it. That is textbook right-censoring. The proper
+correction is Kaplan–Meier, treating still-waiting cases as censored
+observations. It is **deliberately deferred** (Phase 4 decision, recorded in
+.phase/community-mvp/PROGRESS.md). What ships instead is the honest disclosure
+of the denominator — ``pending`` beside every ``sample_size`` — so the number is
+never presented as more than it is. ``pending`` is therefore not decoration; it
+is the standing admission that the median is optimistic.
 """
 
 from __future__ import annotations
@@ -20,6 +34,11 @@ from typing import Optional, Sequence
 # The visa lodgement is the truest "clock start"; fall back progressively.
 LODGED_MILESTONES = ("Visa Lodged", "Nomination Lodged", "Skills Assessment Lodged")
 GRANTED_MILESTONE = "Visa Granted"
+
+# Defaults mirroring app.core.config; passed in explicitly by the service so this
+# module keeps its "no framework imports" property and stays unit-testable.
+DEFAULT_MIN_SAMPLE = 20
+DEFAULT_WINDOW_MONTHS = 12
 
 
 def derive_span(
@@ -81,18 +100,91 @@ def _round_or_none(value: Optional[float]) -> Optional[int]:
     return None if value is None else int(round(value))
 
 
-def compute_stats(decided_days: Sequence[int], pending: int = 0) -> dict:
+def provenance_block(
+    *, member_reported: int = 0, forum_collected: int = 0
+) -> dict:
+    """The composition of a sample, as a payload the UI can render verbatim.
+
+    Every Room figure travels with one of these. Publishing the split is the
+    condition under which forum-collected timelines were allowed to count at
+    all: a reader who thinks "collected from a forum" is weaker evidence than
+    "reported by a member" can see exactly how much of the number is which, and
+    discount it themselves. A total alone would hide that choice from them.
+    """
+    return {
+        "member_reported": int(member_reported),
+        "forum_collected": int(forum_collected),
+        "total": int(member_reported) + int(forum_collected),
+    }
+
+
+def provenance_note(
+    *, member_reported: int = 0, forum_collected: int = 0
+) -> Optional[str]:
+    """One plain sentence describing where a figure came from.
+
+    Rendered beside the number. Returns ``None`` when there is nothing to
+    describe, so a caller can never accidentally print "based on 0 timelines".
+    """
+    member = int(member_reported)
+    forum = int(forum_collected)
+    total = member + forum
+    if total <= 0:
+        return None
+
+    def _tl(n: int) -> str:
+        return f"{n:,} timeline" + ("" if n == 1 else "s")
+
+    if forum == 0:
+        return f"Based on {_tl(member)} reported by members."
+    if member == 0:
+        return f"Based on {_tl(forum)} collected from public immigration forums."
+    return (
+        f"Based on {_tl(total)} — {member:,} reported by members, "
+        f"{forum:,} collected from public immigration forums."
+    )
+
+
+def compute_stats(
+    decided_days: Sequence[int],
+    pending: int = 0,
+    *,
+    member_reported: int = 0,
+    forum_collected: int = 0,
+    min_sample: int = DEFAULT_MIN_SAMPLE,
+    window_months: int = DEFAULT_WINDOW_MONTHS,
+) -> dict:
     """Aggregate community processing durations into percentile bands.
 
     ``decided_days`` are processing durations (in days) for *decided* cases;
     ``pending`` is the count of still-waiting applications for the same cohort.
+    ``member_reported`` / ``forum_collected`` describe where the whole cohort
+    (decided **and** pending) came from — they are the composition of the thing
+    the reader is being shown, not of the percentile maths alone.
+
+    ``sufficient`` is the gate the UI reads: below ``min_sample`` decided cases
+    the percentiles are still returned (they are honest, just thin) but the
+    caller is told not to present them as an answer.
     """
     decided = [d for d in decided_days if d is not None and d >= 0]
     sample = len(decided)
+    provenance = provenance_block(
+        member_reported=member_reported, forum_collected=forum_collected
+    )
+    base = {
+        "sample_size": sample,
+        "pending": pending,
+        "sufficient": sample >= min_sample,
+        "min_sample": min_sample,
+        "window_months": window_months,
+        "provenance": provenance,
+        "provenance_note": provenance_note(
+            member_reported=member_reported, forum_collected=forum_collected
+        ),
+    }
     if sample == 0:
         return {
-            "sample_size": 0,
-            "pending": pending,
+            **base,
             "p25": None,
             "p50": None,
             "p75": None,
@@ -101,8 +193,7 @@ def compute_stats(decided_days: Sequence[int], pending: int = 0) -> dict:
             "slowest": None,
         }
     return {
-        "sample_size": sample,
-        "pending": pending,
+        **base,
         "p25": _round_or_none(percentile(decided, 25)),
         "p50": _round_or_none(percentile(decided, 50)),
         "p75": _round_or_none(percentile(decided, 75)),
@@ -138,17 +229,34 @@ def wait_verdict(
     decided_days: Sequence[int],
     pending: int = 0,
     subclass_label: str = "these",
+    member_reported: int = 0,
+    forum_collected: int = 0,
+    min_sample: int = DEFAULT_MIN_SAMPLE,
+    window_months: int = DEFAULT_WINDOW_MONTHS,
 ) -> dict:
     """Classify an in-progress wait against the community distribution.
 
     Returns a tier + reassurance copy, the share of decided cases finalised by
     now, and the band thresholds the UI needs to draw the position bar.
+
+    Below ``min_sample`` decided cases this returns the ``unknown`` tier rather
+    than a thin median. The caller (``CommunityService.wait_check``) reads that
+    as "fall back to the official bands" — so a person asking about a quiet visa
+    gets a real, attributable answer instead of a number computed from four
+    strangers.
     """
-    stats = compute_stats(decided_days, pending=pending)
+    stats = compute_stats(
+        decided_days,
+        pending=pending,
+        member_reported=member_reported,
+        forum_collected=forum_collected,
+        min_sample=min_sample,
+        window_months=window_months,
+    )
     p50, p75, p90 = stats["p50"], stats["p75"], stats["p90"]
     share = share_decided_within(decided_days, elapsed_days)
 
-    if stats["sample_size"] < 5 or p50 is None:
+    if not stats["sufficient"] or p50 is None:
         return {
             "tier": "unknown",
             "basis": "none",
@@ -213,19 +321,47 @@ def wait_verdict_official(
     official_p50: Optional[int],
     official_p90: Optional[int],
     subclass_label: str = "these",
+    member_reported: int = 0,
+    forum_collected: int = 0,
+    min_sample: int = DEFAULT_MIN_SAMPLE,
+    window_months: int = DEFAULT_WINDOW_MONTHS,
 ) -> dict:
     """Verdict from the official Home Affairs processing bands.
 
-    Used when the community dataset is too thin to be meaningful. It relies only
-    on the department's published 50%/90% finalisation marks — real, attributable
-    public figures — so the check still answers honestly before real timelines
-    have accumulated. No community sample is implied (``sample_size`` stays 0).
+    Used when the community cohort is too thin to publish (``sufficient`` is
+    false). It relies only on the department's published 50%/90% finalisation
+    marks — real, attributable public figures — so the check still answers
+    honestly before enough timelines have accumulated.
+
+    The percentile fields carry the *official* bands, and ``basis`` says so. The
+    community counts are still reported truthfully alongside: telling someone
+    "official figures, and we have 7 community timelines which isn't enough yet"
+    is more honest than reporting a zero we know to be wrong, and it is what
+    invites them to add the eighth.
+
+    Two fields that look contradictory and are not:
+      * ``sample_size`` is **0** here on purpose — it counts the decided cases
+        *behind the percentiles being shown*, and these percentiles are the
+        department's, not the room's. Reporting anything else would credit
+        community data for a number it did not produce.
+      * ``provenance`` describes the community cohort that *exists* for this
+        visa, used or not. That is what makes "we have 7, not enough yet"
+        sayable.
     """
     base = {
         "elapsed_days": elapsed_days,
         "share_decided_within": None,
         "sample_size": 0,
         "pending": 0,
+        "sufficient": False,
+        "min_sample": min_sample,
+        "window_months": window_months,
+        "provenance": provenance_block(
+            member_reported=member_reported, forum_collected=forum_collected
+        ),
+        "provenance_note": provenance_note(
+            member_reported=member_reported, forum_collected=forum_collected
+        ),
         "p25": None,
         "p50": official_p50,
         "p75": None,

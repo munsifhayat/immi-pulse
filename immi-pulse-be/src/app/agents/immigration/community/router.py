@@ -28,6 +28,7 @@ from app.agents.immigration.community import notifications
 from app.agents.immigration.community.identity import initials_of
 from app.agents.immigration.community.models import AnonIdentity, CommunityTimeline
 from app.agents.immigration.community.schemas import (
+    AddMilestonesRequest,
     CommunityAccountOut,
     CommunityLoginRequest,
     CommunityRecoverAcceptedOut,
@@ -54,8 +55,10 @@ from app.agents.immigration.community.schemas import (
     NotificationPreferencesOut,
     NotificationPreferencesRequest,
     ProcessingStatOut,
+    PublishJourneyRequest,
     ReportOut,
     ReportRequest,
+    SaveWaitCheckRequest,
     SubmitTimelineRequest,
     TimelineOut,
     VisaSubclassOut,
@@ -171,6 +174,14 @@ async def wait_check(
     lodged_on: date = Query(...),
     db: AsyncSession = Depends(get_db),
 ):
+    """"Is my wait normal?" — open to everyone, always.
+
+    No account, no session, no device token, no API key. This is the acquisition
+    hook and the SEO surface, and gating it would cost far more than the data it
+    would collect. Its contract is deliberately frozen: Phase 4 only *added*
+    fields (``sufficient``, ``provenance``, ``official``, ``room``). Nothing was
+    removed or renamed.
+    """
     if lodged_on > date.today():
         raise HTTPException(
             status_code=422, detail="Lodgement date cannot be in the future."
@@ -181,6 +192,111 @@ async def wait_check(
     if result is None:
         raise HTTPException(status_code=404, detail="Unknown visa subclass")
     return WaitCheckOut(**result)
+
+
+@router.post(
+    "/public/wait-check/save",
+    response_model=JourneyDetailOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def save_wait_check(
+    payload: SaveWaitCheckRequest,
+    request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """Keep this wait check as your own timeline — **privately**.
+
+    Creates an unpublished journey owned by the caller (their account, or the
+    device identity standing in for one). It is absent from the feed, absent
+    from every public statistic, and unreadable by anyone else until they
+    publish it — which is a different call, ``POST /journeys/{id}/publish``,
+    carrying its own explicit consent.
+    """
+    ip_hash = _client_ip_hash(request)
+    identity = await _writer_identity(request, db, account, ip_hash=ip_hash)
+    try:
+        journey = await CommunityService.save_wait_check(
+            db,
+            identity=identity,
+            ip_hash=ip_hash,
+            subclass_slug=payload.subclass_slug,
+            lodged_on=payload.lodged_on,
+            milestones=payload.milestones or None,
+            note=payload.note,
+        )
+    except JourneyCapError as err:
+        raise HTTPException(status_code=409, detail=str(err)) from err
+    except CommunityRateLimitError as err:
+        raise HTTPException(status_code=429, detail=str(err)) from err
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
+    await db.commit()
+    detail = await CommunityService.get_journey_detail(db, journey, identity=identity)
+    return JourneyDetailOut(**detail)
+
+
+@router.post("/public/journeys/{journey_id}/publish", response_model=JourneyDetailOut)
+async def publish_journey(
+    journey_id: UUID,
+    payload: PublishJourneyRequest,
+    request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """Share a saved timeline with the room — the second, explicit consent.
+
+    Separate endpoint, separate payload, separate decision. Saving privately and
+    publishing publicly are not two settings of one action; conflating them is
+    how people end up having shared something they thought they were only
+    keeping.
+    """
+    ip_hash = _client_ip_hash(request)
+    identity = await _writer_identity(request, db, account, ip_hash=ip_hash)
+    journey = await CommunityService.get_owned_journey(db, journey_id, identity)
+    if journey is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    await CommunityService.publish_journey(db, journey, ip_hash=ip_hash)
+    await db.commit()
+    detail = await CommunityService.get_journey_detail(db, journey, identity=identity)
+    return JourneyDetailOut(**detail)
+
+
+@router.post(
+    "/public/journeys/{journey_id}/milestones", response_model=JourneyDetailOut
+)
+async def add_journey_milestones(
+    journey_id: UUID,
+    payload: AddMilestonesRequest,
+    request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """Add later steps to a timeline you own — medical, s56, the grant.
+
+    Works on drafts and on published timelines alike. A published one updates
+    its contribution to the public numbers immediately, which is the mechanism
+    that stops the community median drifting toward whatever people reported on
+    the day they signed up.
+    """
+    ip_hash = _client_ip_hash(request)
+    identity = await _writer_identity(request, db, account, ip_hash=ip_hash)
+    journey = await CommunityService.get_owned_journey(db, journey_id, identity)
+    if journey is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    try:
+        await CommunityService.append_milestones(
+            db,
+            journey,
+            payload.milestones,
+            outcome=payload.outcome,
+            ip_hash=ip_hash,
+        )
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
+    await db.commit()
+    detail = await CommunityService.get_journey_detail(db, journey, identity=identity)
+    return JourneyDetailOut(**detail)
 
 
 @router.post(
@@ -413,10 +529,12 @@ async def get_journey_detail(
     account: Optional[AnonIdentity] = Depends(optional_community_account),
     db: AsyncSession = Depends(get_db),
 ):
-    journey = await CommunityService.get_journey(db, journey_id)
+    identity = await _viewer_identity(request, db, account)
+    # Viewer first: a draft is readable by its owner and by nobody else, and
+    # "nobody else" must include "cannot tell it exists" — hence the same 404.
+    journey = await CommunityService.get_journey(db, journey_id, viewer=identity)
     if journey is None:
         raise HTTPException(status_code=404, detail="Post not found")
-    identity = await _viewer_identity(request, db, account)
     detail = await CommunityService.get_journey_detail(db, journey, identity=identity)
     return JourneyDetailOut(**detail)
 

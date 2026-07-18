@@ -178,6 +178,13 @@ def _inbox_query(account: AnonIdentity):
     hidden by any path — the moderation queue, a future bulk action, a hand-run
     SQL fix — disappears from inboxes without that path having to know inboxes
     exist.
+
+    ``is_published`` is checked here for the same reason and is *not* covered by
+    the status check: a draft is a healthy ``active`` row, so filtering on status
+    alone would let an unpublished timeline generate visible reply notifications
+    — a post nobody can see, sending its owner mail about replies that are not
+    reachable. Publication state and moderation state are independent axes and
+    both have to be asked about.
     """
     return (
         select(CommunityNotification, JourneyComment, Journey)
@@ -188,6 +195,7 @@ def _inbox_query(account: AnonIdentity):
             CommunityNotification.status == "active",
             JourneyComment.status == "active",
             Journey.status == "active",
+            Journey.is_published.is_(True),
         )
     )
 
@@ -285,6 +293,11 @@ async def list_my_posts(
     to its author is a p6 decision (shadow limiting), not this phase's — and
     showing a removed post here with no explanation would be worse than omitting
     it.
+
+    Unpublished drafts **are** included, deliberately. This is the member's own
+    profile, and a saved wait check that were invisible even to its owner would
+    be unreachable — there would be nowhere to go to publish it. Each row carries
+    ``is_published`` so the UI can mark it as private.
     """
     result = await db.execute(
         select(Journey)
@@ -312,6 +325,7 @@ async def list_my_comments(
             JourneyComment.identity_id == account.id,
             JourneyComment.status == "active",
             Journey.status == "active",
+            Journey.is_published.is_(True),
         )
         .order_by(JourneyComment.created_at.desc())
         .limit(limit)

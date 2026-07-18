@@ -70,6 +70,16 @@ NOTIFICATION_TYPES = ("reply_to_post", "reply_to_comment")
 # never sees it again and it stops counting toward unread.
 NOTIFICATION_STATUSES = ("active", "hidden")
 
+# Where a stats-bearing timeline row came from. This is a *provenance* label, not
+# a quality label: "member" is first-party — someone told us about their own
+# application; "forum" was collected from public immigration forums, anonymised
+# and normalised (see scripts/seed_community_scraped.py). Both feed the public
+# numbers, and every figure they feed states its composition in the open. The
+# label exists so that sentence can be written truthfully.
+TIMELINE_SOURCES = ("member", "forum")
+TIMELINE_SOURCE_MEMBER = "member"
+TIMELINE_SOURCE_FORUM = "forum"
+
 
 class AnonIdentity(Base):
     """A pseudonymous community member — device identity AND account, one row.
@@ -315,8 +325,15 @@ class Journey(Base):
     a coarse profile (stream/occupation/state/sponsor). Question posts carry a
     title + body. The lodged/decided span is *derived* from the milestones and
     mirrored into ``community_timelines`` so the existing percentile engine
-    keeps working untouched. Seeded sample posts (``is_sample``) populate the
-    feed but never feed the stats — keeping the wait-check honest.
+    keeps working untouched.
+
+    Seeded sample posts (``is_sample``) populate the feed and, since Phase 4,
+    also feed the public statistics — but only under the condition that made
+    including them defensible: every figure they contribute to states its
+    composition in the open ("N reported by members, M collected from public
+    forums"). Their mirror rows carry ``source="forum"`` so that sentence can be
+    written from the data rather than asserted. Reversible with one setting —
+    ``settings.community_stats_include_forum``.
     """
 
     __tablename__ = "community_journeys"
@@ -356,6 +373,18 @@ class Journey(Base):
     comment_count = Column(Integer, nullable=False, default=0)
     is_sample = Column(Boolean, nullable=False, default=False, index=True)
     status = Column(String, nullable=False, default="active", index=True)
+
+    # Draft vs public. ``status`` is moderation's axis (active/hidden/removed);
+    # this is the *author's* axis and the two are independent — a saved wait
+    # check is a perfectly healthy row that its owner has simply not published.
+    #
+    # Defaults to True so every pre-existing row, and every post made through
+    # the composer, behaves exactly as it did before drafts existed. Only the
+    # wait-check save path mints an unpublished row. Publishing is a separate,
+    # explicit act (``CommunityService.publish_journey``) — saving privately and
+    # sharing publicly are different decisions and must stay different calls.
+    is_published = Column(Boolean, nullable=False, default=True, index=True)
+    published_at = Column(DateTime(timezone=True), nullable=True)
 
     # Derived span for the stats engine (recomputed from milestones)
     lodged_on = Column(Date, nullable=True)
@@ -653,6 +682,13 @@ class CommunityTimeline(Base):
     lodged_on = Column(Date, nullable=False)
     decided_on = Column(Date, nullable=True)  # grant/refusal date; NULL = waiting
     outcome = Column(String, nullable=False, default="waiting", index=True)
+
+    # Provenance — "member" (first-party) or "forum" (collected from public
+    # forums, anonymised). Both feed the public numbers; the API always reports
+    # the split alongside the number so a reader can judge it for themselves.
+    source = Column(
+        String, nullable=False, default="member", server_default="member", index=True
+    )
 
     country = Column(String, nullable=True)  # applicant country (optional, coarse)
     note = Column(String, nullable=True)  # short, optional free text
