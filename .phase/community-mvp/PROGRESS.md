@@ -3,7 +3,7 @@
 Epic: Turn immi360 into a community platform — pseudonymous Reddit-style accounts with an inbox, app-shell homepage, unified wait-check/timeline flow, dual-source (Official vs Room) wait data, and a self-running trust ladder.
 Integration branch: feat/community-mvp
 Base: main
-Phase status: [done] p1 · [done] p2 · [pending] p3 · [pending] p4 · [pending] p5 · [pending] p6
+Phase status: [done] p1 · [done] p2 · [done] p3 · [pending] p4 · [pending] p5 · [pending] p6
 
 <!--
 Legend: pending → in_progress → done  (or blocked)
@@ -16,7 +16,8 @@ the next phase needs — not the conversation.
 - **Do not deploy.** No Heroku push, no Vercel deploy, no merge to `main`. The final `feat/community-mvp` → `main` PR is left for the human.
 - Backend: `source .venv/bin/activate` + `PYTHONPATH=src` for every command. Run locally on `PORT=8001` (the frontend's `.env.local` expects it).
 - Frontend: **bun only** — never npm/yarn/pnpm.
-- Alembic must stay on a **single head** (`e5f7a9c1b3d5` before p1; `b3d5f7a9c1e4` after p2).
+- Alembic must stay on a **single head** (`e5f7a9c1b3d5` before p1; `b3d5f7a9c1e4` after p2;
+  `c5e7a9b1d3f6` after p3).
 - New no-API-key routes must live under `/api/v1/community/public/...`.
 - Backend testing convention: pure-logic tests in `tests/agents/...`; flow coverage in standalone `tests/e2e_*.py` scripts driven by `httpx.ASGITransport`. There is no router-level pytest.
 - Frontend has **no test runner**. `bun run lint && bunx tsc --noEmit && bun run build` are the only gates — drive the real flow before calling a phase done.
@@ -286,5 +287,156 @@ job, link gating, touting patterns, velocity/similarity detection, shadow-limit
   bootstrap a device → 2 posts land → the 3rd returns
   `429 {"detail":"You've posted a lot today. Try again tomorrow."}` — T0 caps enforced
   end-to-end through the real server.
+
+---
+
+## Handoff — p3 Inbox & profile · done · 2026-07-18
+
+Branch `feat/community-mvp-p3-inbox` → PR into `feat/community-mvp`. **Backend only** —
+the inbox UI is p5's, exactly as planned.
+
+### Shipped vs planned
+
+Every Phase-3 acceptance criterion is met. Three things go past the written scope,
+each because the phase could not honestly be called done without it:
+
+1. **`notify_replies_email` + a preferences endpoint.** Shipping an email people cannot
+   turn off is not something to leave for later, and an unsubscribe link needs a column
+   to write to. Defaults to **true**: supplying an email at signup is itself the opt-in,
+   since p1's copy offers the field with "so we can tell you when someone replies"
+   attached — a second consent step would contradict what the member was just told. With
+   no address on file the column is inert.
+2. **Notifications are banked for passwordless device identities too.** Free, because
+   `anon_identities` is both device and account: a reply to a visitor waits on the row
+   they already are and is there the moment they claim it. No backfill, no stitching.
+   Asserted in section 12 of the e2e.
+3. **Fan-out lives in a new `community/notifications.py`**, not in `service.py` as the
+   plan's file list suggested. `service.py` was already 1442 lines and none of this needs
+   `CommunityService`. `service.create_journey_comment` calls into it; the module imports
+   nothing from `service`, so there is no cycle.
+
+Deliberately NOT built (out of scope, as planned): push notifications, DMs, digests
+beyond the reply case, vote/mention notifications, the frontend inbox UI (p5).
+
+### Key decisions
+
+- **One notification per reply, to the person who was answered** — a top-level reply
+  notifies the post's author, a reply to a comment notifies that commenter, and never
+  both. Notifying the OP about every reply anywhere under their post is how a popular
+  thread makes its own author the most-spammed person in the room. Asserted both ways.
+- **Votes are not notified.** A room where a number going up pings you trains people to
+  post for the number. `NOTIFICATION_TYPES` has exactly two members on purpose.
+- **The email says nothing.** Not just a neutral subject — the preheader (which inbox
+  lists render *beside* the subject, so it leaks identically) and the body are neutral
+  too. No subclass, no question title, no reply text anywhere. The member opens the room
+  to find out what it was: one click, and an entire category of harm removed. The e2e
+  sweeps subject + preheader + headline + eyebrow + body for eight topic terms, and then
+  **runs the same sweep function over the subject line we refuse to ship** so an
+  all-green result cannot mean the sweep was looking at nothing.
+- **Batching is a query, not a scheduler.** One send per (recipient, journey, UTC day),
+  decided by looking for a sibling notification with `email_sent_at >= day_window_start()`.
+  Same day boundary as the rate counters, so the product has one notion of "a day". Two
+  simultaneous replies could both read "no" and both send; accepted — the failure mode is
+  one duplicate email, and the fix would cost every reply a lock.
+- **Email sends after the commit, fan-out inside it.** A notification must never point at
+  a reply that failed to save; an email must never describe one. Those pull in opposite
+  directions, so they sit on opposite sides of the commit
+  (`router.create_journey_comment`).
+- **Moderation is handled twice, on purpose.** `hide_for_target` flips rows to `hidden`
+  from the moderation path (keeps the unread badge honest with no join on every count),
+  **and** every inbox read joins `JourneyComment`/`Journey` and requires both `active`.
+  The explicit one is fast; the join is the one that cannot be forgotten by a future
+  moderation path that has never heard of inboxes.
+- **`mark_read` scopes by recipient in the WHERE clause** rather than checking ownership
+  and erroring. Marking someone else's notification returns `marked: 0`, not a 403 — an
+  endpoint that distinguishes "not yours" from "already read" is an oracle for which
+  notification ids exist.
+- **`unread_count` is always the total**, never "unread on this page". A badge that
+  changes when you paginate is a badge nobody believes.
+- **`/community/me/*`, not `/community/public/me/*`.** These carry the X-API-Key like
+  every other non-public route *and* require a session. There is nothing public about
+  someone's notifications. p5's client already sends the key on every request.
+
+### Interfaces produced
+
+- `community/notifications.py` (new, no imports from `service` — no cycle):
+  - `:77` `fan_out_reply(db, *, journey, comment, author) -> list[CommunityNotification]`
+  - `:143` `hide_for_target(db, *, target_type, target_id) -> int` (`journey` |
+    `journey_comment`)
+  - `:173` `_inbox_query(account)` — the status join that makes moderation automatic
+  - `:195` `unread_count(db, *, account) -> int`
+  - `:205` `list_inbox(db, *, account, limit, offset, unread_only) -> dict`
+  - `:253` `mark_read(db, *, account, ids=None) -> int` (`ids=None` → mark all)
+  - `:279` `list_my_posts(db, *, account, limit, offset) -> list[Journey]`
+  - `:299` `list_my_comments(db, *, account, limit, offset) -> list[dict]`
+  - `:367` `send_reply_notification_email(*, to)` — the neutral email
+  - `:398` `deliver_reply_emails(db, *, comment_id) -> int` — post-commit, best-effort
+  - `:55-56` `REPLY_TO_POST` / `REPLY_TO_COMMENT`, `:60` `PREVIEW_CHARS = 160`
+- `community/models.py`:
+  - `:220` `CommunityNotification` — table `community_notifications`
+  - `:67`/`:71` `NOTIFICATION_TYPES`, `NOTIFICATION_STATUSES`
+  - `:146` `AnonIdentity.notify_replies_email` (default `true`)
+- `community/service.py`:
+  - `create_journey_comment` now calls `notifications.fan_out_reply` after flush
+  - `resolve_report` now calls `notifications.hide_for_target` on hide/remove
+- Routes (`community/router.py:565-649`), all behind `require_community_account`:
+  - `GET /community/me/inbox` → `InboxOut {items, unread_count}`
+  - `POST /community/me/inbox/read` → `MarkReadOut {marked, unread_count}`
+  - `GET /community/me/posts` → `list[JourneyOut]`
+  - `GET /community/me/comments` → `list[MyCommentOut]`
+  - `GET|POST /community/me/notification-preferences` → `NotificationPreferencesOut`
+- Schemas: `NotificationOut`, `InboxOut`, `MarkReadRequest/Out`, `MyCommentOut`,
+  `NotificationPreferencesRequest/Out` (`community/schemas.py:523-598`)
+- Migration `c5e7a9b1d3f6` (down_revision `b3d5f7a9c1e4`)
+- `tests/e2e_community_inbox.py` — 80 checks
+
+### Gotchas for the next phase
+
+1. **`tests/e2e_community_inbox.py` writes, so it resets the IP scope at startup** like
+   its siblings (p2 gotcha 1 still applies verbatim). p4's new e2e must do the same.
+2. **The e2e forces `settings.resend_api_key` on** for its email section, because with no
+   key `deliver_reply_emails` correctly does nothing and the whole section would pass by
+   testing nothing. It mutates the cached settings object in-process only — nothing is
+   actually sent, `send_generic` is monkeypatched. If p4/p5 add an email path, copy the
+   pattern rather than assuming a key exists.
+3. **`create_journey_comment`'s contract changed in effect, not in signature** — it now
+   writes a notification row inside the caller's transaction. Any *new* call site must
+   commit for the notification to land, and should call
+   `notifications.deliver_reply_emails(db, comment_id=…)` after that commit or replies
+   through that path will silently never email.
+4. **p4 hides/unpublishes journeys.** Unpublished (draft) timelines must not generate or
+   surface notifications. `_inbox_query` filters on `Journey.status == "active"`, which
+   covers moderation but **not** a new `published` flag — if p4 adds one, add it to that
+   query too, and consider whether `hide_for_target` needs a draft branch.
+5. **Notification FKs cascade from `community_journeys` and
+   `community_journey_comments`.** Deleting a journey silently deletes its inbox entries.
+   That is intended, but a p4 migration that rebuilds either table must preserve it.
+6. **`CommunityNotification` is declared before `Journey`/`JourneyComment` in
+   `models.py`** and references them by string FK. Fine for SQLAlchemy, surprising to
+   read — do not "fix" it by reordering without running the suite.
+7. `email_sent_at` is the batching key. Backfilling or clearing it changes who gets mail;
+   it is not a cosmetic audit column.
+8. The p1 leak sweep does not know about the new endpoints. They are all
+   `require_community_account`-scoped so they only ever return the caller's own data, and
+   no new serializer carries `email` or `trust_tier` (p2 gotcha 6) — but if p5 adds a
+   public profile page, that is where this stops being true by construction.
+
+### Verify → result
+
+- `PYTHONPATH=src pytest tests/ -v` → **101 passed** (unchanged; this phase's coverage is
+  flow-shaped, so it lands in the e2e per the project's testing convention)
+- `PYTHONPATH=src python tests/e2e_community_inbox.py` → **80 checks, all passed**;
+  re-run twice more in the same UTC day, still green
+- `PYTHONPATH=src alembic upgrade head && PYTHONPATH=src alembic heads` →
+  **`c5e7a9b1d3f6`, exactly one head**
+- Regression: `e2e_community_accounts.py`, `e2e_community_ratelimit.py`,
+  `e2e_community_moderation.py`, `e2e_portal_flow.py` all still pass
+- `ruff check` clean on every file this phase touched
+- **Driven live over real HTTP** (uvicorn on :8001, real socket, not ASGI in-process):
+  two accounts → A posts → B replies (201) → A's inbox shows 1 unread with B's handle,
+  preview and context title → B's own inbox stays 0 → `/me/inbox` with a valid API key
+  but no session returns **401** → `/me/posts` shows A's post with `is_mine: true` →
+  `/me/comments` shows B's reply carrying its post title → mark-read returns
+  `{"marked":1,"unread_count":0}`, and again `{"marked":0,"unread_count":0}`
 
 ---

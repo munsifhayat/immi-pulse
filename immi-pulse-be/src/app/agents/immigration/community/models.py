@@ -61,6 +61,15 @@ VOTE_TARGET_TYPES = ("journey", "comment")
 # backstop that keeps free account creation from defeating the account cap.
 RATE_SCOPE_TYPES = ("account", "ip")
 
+# What put a notification in someone's inbox. Deliberately only two kinds: this
+# is a reply inbox, not an activity firehose. Votes are not notified — a room
+# where a number going up pings you trains people to post for the number.
+NOTIFICATION_TYPES = ("reply_to_post", "reply_to_comment")
+
+# "hidden" is what moderation leaves behind: the row stays for audit, the member
+# never sees it again and it stops counting toward unread.
+NOTIFICATION_STATUSES = ("active", "hidden")
+
 
 class AnonIdentity(Base):
     """A pseudonymous community member — device identity AND account, one row.
@@ -125,6 +134,17 @@ class AnonIdentity(Base):
     # to write its conclusion.
     shadow_limited = Column(
         Boolean, nullable=False, default=False, server_default="false"
+    )
+
+    # --- Notification preference ---------------------------------------------
+    # Whether reply notifications may also go out by email. Defaults to true
+    # because supplying an email at signup is *itself* the opt-in — the field is
+    # offered with "so we can tell you when someone replies" attached, so a
+    # second consent step would contradict what the member was just told. With
+    # no email this column is inert: the send path requires an address first.
+    # It exists so there is a real off-switch to hang an unsubscribe on.
+    notify_replies_email = Column(
+        Boolean, nullable=False, default=True, server_default="true"
     )
 
     # Set when the device is claimed by a real (portal) account → uncaps posting
@@ -194,6 +214,97 @@ class RateCounter(Base):
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class CommunityNotification(Base):
+    """One "someone answered you" entry in a member's inbox.
+
+    This is the loop the room lives or dies on: without it a person asks
+    something, gets no signal that anyone replied, and never comes back. The
+    in-app inbox is the *primary* channel — that is precisely what makes an
+    optional email address workable, because there is always somewhere to see
+    your replies even if we can never mail you.
+
+    Recipient is an ``anon_identities`` row rather than an account specifically,
+    because that table is both. A reply to a visitor who has not set a password
+    yet still banks a notification against the row they already are, and it is
+    waiting for them the moment they claim it — no backfill, no stitching.
+
+    ``actor_handle``/``actor_color`` are snapshots, mirroring what ``Journey``
+    and ``JourneyComment`` already do: the inbox must render without joining
+    back to a row that may since have been deleted.
+
+    Moderation: when the source comment or post is hidden or removed, the
+    notification is hidden too (:func:`notifications.hide_for_target`). Reads
+    *also* re-check the source rows' status, so content moderated by a path that
+    forgets to call it still cannot be read out of an inbox. Two mechanisms on
+    purpose — the explicit one keeps unread counts honest, the join is the one
+    that cannot be forgotten.
+    """
+
+    __tablename__ = "community_notifications"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    recipient_identity_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("anon_identities.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    # reply_to_post | reply_to_comment
+    type = Column(String, nullable=False)
+
+    # Source content. Both cascade: a deleted post takes its inbox entries with
+    # it, since an inbox row pointing at nothing is worse than no row at all.
+    journey_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("community_journeys.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    comment_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("community_journey_comments.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    # The comment that was replied to, for ``reply_to_comment``. NULL when the
+    # reply landed on the post itself.
+    parent_comment_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("community_journey_comments.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    actor_identity_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("anon_identities.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    actor_handle = Column(String, nullable=False)
+    actor_color = Column(String, nullable=False)
+
+    # Short snippet of the reply + the post's title, so the inbox renders in one
+    # query. Never the whole body — an inbox is a pointer, not a mirror.
+    preview = Column(String, nullable=True)
+    context_title = Column(String, nullable=True)
+
+    status = Column(String, nullable=False, default="active", index=True)
+    read_at = Column(DateTime(timezone=True), nullable=True)
+
+    # When an email went out for this notification. The batching key: at most one
+    # send per (recipient, journey, UTC day), so a question that catches fire
+    # sends one email, not twenty. NULL means no email was sent for this row —
+    # either it was batched away, the member has no address, or sending is off.
+    email_sent_at = Column(DateTime(timezone=True), nullable=True)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
     )
 
 
