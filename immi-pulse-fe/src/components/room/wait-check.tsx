@@ -12,7 +12,7 @@ import {
   type OfficialFigures,
   type WaitTier,
 } from "@/lib/api/hooks/community";
-import { formatDays } from "../_lib/format";
+import { formatDays } from "@/lib/room/format";
 
 /* Tier → the one accent colour that the "you" marker + headline borrow. */
 const TIER_COLOR: Record<WaitTier, string> = {

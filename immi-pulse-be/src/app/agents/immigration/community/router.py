@@ -29,6 +29,8 @@ from app.agents.immigration.community.identity import initials_of
 from app.agents.immigration.community.models import AnonIdentity, CommunityTimeline
 from app.agents.immigration.community.schemas import (
     AddMilestonesRequest,
+    AllowanceActionOut,
+    AllowanceOut,
     CommunityAccountOut,
     CommunityLoginRequest,
     CommunityRecoverAcceptedOut,
@@ -70,6 +72,7 @@ from app.agents.immigration.community.service import (
     CommunityService,
     JourneyCapError,
     hash_ip,
+    remaining_allowance,
 )
 from app.core.jwt_auth import get_current_owner_or_admin
 from app.db.session import get_db
@@ -742,6 +745,31 @@ async def get_my_comments(
         db, account=account, limit=limit, offset=offset
     )
     return [MyCommentOut(**r) for r in rows]
+
+
+@router.get("/me/allowance", response_model=AllowanceOut)
+async def get_my_allowance(
+    request: Request,
+    account: AnonIdentity = Depends(require_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """What this member can still write today, without spending any of it.
+
+    The composer reads this so it can say "you've written a lot today" *before*
+    the member types a reply, rather than throwing a 429 at them after. p2 built
+    the read-only service function for exactly this and left the route to p5.
+    """
+    allowance = await remaining_allowance(
+        db, ip_hash=_client_ip_hash(request), identity=account
+    )
+    return AllowanceOut(
+        tier=allowance["tier"],
+        tier_name=allowance["tier_name"],
+        actions={
+            family: AllowanceActionOut(**vals)
+            for family, vals in allowance["actions"].items()
+        },
+    )
 
 
 @router.get("/me/notification-preferences", response_model=NotificationPreferencesOut)

@@ -13,30 +13,34 @@ import {
   useJourney,
   usePostJourneyComment,
   useToggleJourneyVote,
-  type CommunityIdentity,
 } from "@/lib/api/hooks/community";
-import { timeAgo } from "../_lib/format";
+import { timeAgo } from "@/lib/room/format";
 import { JourneyBox } from "./milestone-strip";
 import { Conversation } from "./conversation";
 import { ReportControl } from "./report-dialog";
+import { useRoom } from "./room-context";
 
 export function PostDetailDrawer({
   journeyId,
-  identity,
   onClose,
 }: {
   journeyId: string | null;
-  identity?: CommunityIdentity;
   onClose: () => void;
 }) {
   const { data: journey, isLoading } = useJourney(journeyId ?? undefined);
+  const { account, identity, canWrite, writeBlock, openAccount } = useRoom();
   const vote = useToggleJourneyVote();
   const post = usePostJourneyComment(journeyId ?? "");
   const [draft, setDraft] = useState("");
 
+  const replyBlock = writeBlock("reply");
+  const replyingAs = account?.handle ?? identity?.handle;
+
   async function sendMessage() {
     const body = draft.trim();
-    if (!body || post.isPending) return;
+    // Gate before the request, not after: a member who needs a handle is told
+    // so now rather than losing what they typed to a 401.
+    if (!body || post.isPending || !canWrite("reply")) return;
     await post.mutateAsync({ body });
     setDraft("");
   }
@@ -164,34 +168,49 @@ export function PostDetailDrawer({
 
             {/* composer */}
             <div className="border-t border-hair bg-white p-4">
-              <div className="c-mono mb-2 flex items-center gap-1.5 text-[10.5px] text-ink-soft">
-                replying as{" "}
-                <b className="font-semibold text-purple-deep">
-                  {identity?.handle ?? journey.handle}
-                </b>{" "}
-                · anonymous
-              </div>
-              <div className="flex items-end gap-2.5">
-                <textarea
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  placeholder="Add a message to the conversation…"
-                  rows={2}
-                  className="max-h-[120px] min-h-[42px] flex-1 resize-y rounded-xl border border-hair bg-white px-3.5 py-2.5 text-[13.5px] text-ink outline-none transition-all focus:border-purple/50 focus:ring-4 focus:ring-purple/10"
-                />
+              {replyBlock === "no-account" ? (
                 <button
-                  onClick={sendMessage}
-                  disabled={post.isPending || !draft.trim()}
-                  className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-xl bg-ink text-white transition-colors hover:bg-ink/90 disabled:opacity-40"
-                  aria-label="Send message"
+                  onClick={() => openAccount("signup")}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-4 py-3 text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90"
                 >
-                  {post.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} />
-                  ) : (
-                    <Send className="h-4 w-4" strokeWidth={1.75} />
-                  )}
+                  Get a handle to reply
                 </button>
-              </div>
+              ) : replyBlock === "spent" ? (
+                <p className="c-mono rounded-xl border border-[#C77D18]/35 bg-[#C77D18]/[0.06] px-4 py-3 text-center text-[11px] text-[#B4700F]">
+                  You&apos;ve written a lot today. Back tomorrow.
+                </p>
+              ) : (
+                <>
+                  <div className="c-mono mb-2 flex items-center gap-1.5 text-[10.5px] text-ink-soft">
+                    replying as{" "}
+                    <b className="font-semibold text-purple-deep">
+                      {replyingAs ?? journey.handle}
+                    </b>{" "}
+                    · anonymous
+                  </div>
+                  <div className="flex items-end gap-2.5">
+                    <textarea
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      placeholder="Add a message to the conversation…"
+                      rows={2}
+                      className="max-h-[120px] min-h-[42px] flex-1 resize-y rounded-xl border border-hair bg-white px-3.5 py-2.5 text-[13.5px] text-ink outline-none transition-all focus:border-purple/50 focus:ring-4 focus:ring-purple/10"
+                    />
+                    <button
+                      onClick={sendMessage}
+                      disabled={post.isPending || !draft.trim()}
+                      className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-xl bg-ink text-white transition-colors hover:bg-ink/90 disabled:opacity-40"
+                      aria-label="Send message"
+                    >
+                      {post.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} />
+                      ) : (
+                        <Send className="h-4 w-4" strokeWidth={1.75} />
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </>
         )}

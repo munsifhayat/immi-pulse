@@ -8,8 +8,9 @@ import {
   type JourneyMessage,
   type JourneyReply,
 } from "@/lib/api/hooks/community";
-import { timeAgo } from "../_lib/format";
+import { timeAgo } from "@/lib/room/format";
 import { ReportControl } from "./report-dialog";
+import { useRoom } from "./room-context";
 
 function Avatar({
   color,
@@ -101,10 +102,11 @@ function MessageBlock({
   const [draft, setDraft] = useState("");
   const vote = useToggleCommentVote(journeyId);
   const post = usePostJourneyComment(journeyId);
+  const { canWrite } = useRoom();
 
   async function sendReply() {
     const body = draft.trim();
-    if (!body || post.isPending) return;
+    if (!body || post.isPending || !canWrite("reply")) return;
     await post.mutateAsync({ body, parent_comment_id: message.id });
     setDraft("");
     setReplyOpen(false);
@@ -141,8 +143,10 @@ function MessageBlock({
               />
               <span className="c-mono">{message.upvotes}</span>
             </button>
+            {/* One level of nesting and no more — a reply to a reply is where
+                a phone-sized thread stops being readable. */}
             <button
-              onClick={() => setReplyOpen((o) => !o)}
+              onClick={() => canWrite("reply") && setReplyOpen((o) => !o)}
               className="inline-flex items-center gap-1 text-[12px] font-semibold text-ink-soft hover:text-purple"
             >
               <Reply className="h-3.5 w-3.5" strokeWidth={1.75} /> Reply

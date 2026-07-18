@@ -32,7 +32,7 @@ import {
   type PostType,
   type TimelineOutcome,
 } from "@/lib/api/hooks/community";
-import { shortDate } from "../_lib/format";
+import { shortDate } from "@/lib/room/format";
 import { milestoneMeta } from "./milestone-meta";
 
 const fieldCls =

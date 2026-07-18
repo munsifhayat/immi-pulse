@@ -1,6 +1,9 @@
 import axios from "axios";
 
 const TOKEN_KEY = "ip_token";
+// The room's pseudonymous member session. Separate from the console's token on
+// purpose — see src/lib/room/session.ts.
+const COMMUNITY_TOKEN_KEY = "ip_community_token";
 // Per-device anonymous community identity (the "temporary user"). Lives only in
 // the browser; the server issues it at bootstrap and resolves every community
 // write back to it. See src/lib/community-identity.ts.
@@ -12,12 +15,22 @@ const apiClient = axios.create({
     "X-API-Key": process.env.NEXT_PUBLIC_API_KEY || "",
     "Content-Type": "application/json",
   },
+  // The device token also travels as a server-set HttpOnly cookie, which is
+  // what survives Safari's seven-day eviction of script-writable storage. It
+  // only reaches a cross-origin backend when credentials are included.
+  withCredentials: true,
 });
 
-// Attach JWT (if signed in) + the anonymous device token on every request.
+// Attach the right bearer token + the anonymous device token on every request.
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem(TOKEN_KEY);
+    // Community routes take the community session; everything else takes the
+    // console's. Both can exist at once on a shared machine, and sending the
+    // console's JWT to /community/me/* would 401 against a different audience.
+    const isCommunity = (config.url ?? "").startsWith("/community");
+    const token = localStorage.getItem(
+      isCommunity ? COMMUNITY_TOKEN_KEY : TOKEN_KEY
+    );
     if (token) {
       config.headers = config.headers ?? {};
       (config.headers as Record<string, string>)[

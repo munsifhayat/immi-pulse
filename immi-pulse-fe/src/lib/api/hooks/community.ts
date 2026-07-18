@@ -8,6 +8,11 @@ import {
   setDeviceToken,
   type CommunityIdentity,
 } from "@/lib/community-identity";
+import {
+  clearCommunityToken,
+  getCommunityToken,
+  setCommunityToken,
+} from "@/lib/room/session";
 
 export type ContentStatus = "active" | "hidden" | "removed";
 // The live feed's two reportable surfaces. Legacy forum threads/comments are
@@ -663,6 +668,274 @@ export function usePostJourneyComment(journeyId: string) {
       qc.invalidateQueries({ queryKey: queryKeys.community.journey(journeyId) });
       qc.invalidateQueries({ queryKey: queryKeys.community.journeys() });
     },
+  });
+}
+
+// --- The room's pseudonymous account: signup, login, inbox, profile ---------
+
+/**
+ * The member's own view of their account.
+ *
+ * `has_email` rather than the address: the backend serializer never carries the
+ * value, which is a stronger guarantee than remembering to strip it. Nothing
+ * here is ever shown to another member or to a consultant.
+ */
+export interface CommunityAccount {
+  handle: string;
+  color: string;
+  has_email: boolean;
+  email_verified: boolean;
+  /** False when no email was given — losing the password loses the account. */
+  can_recover: boolean;
+  created_at: string;
+  last_login_at?: string | null;
+}
+
+export interface CommunitySessionOut {
+  token: string;
+  expires_at: string;
+  account: CommunityAccount;
+  device_token?: string | null;
+}
+
+export interface SignupPayload {
+  password: string;
+  email?: string;
+  /** Required when no email is given. The "this cannot be recovered" tick. */
+  accepted_no_recovery?: boolean;
+}
+
+export type NotificationType = "reply_to_post" | "reply_to_comment";
+
+export interface NotificationOut {
+  id: string;
+  type: NotificationType;
+  journey_id: string;
+  comment_id?: string | null;
+  actor_handle: string;
+  actor_color: string;
+  actor_initials: string;
+  preview: string;
+  context_title?: string | null;
+  read_at?: string | null;
+  created_at: string;
+}
+
+export interface InboxOut {
+  items: NotificationOut[];
+  unread_count: number;
+}
+
+export interface MyCommentOut {
+  id: string;
+  journey_id: string;
+  journey_title?: string | null;
+  body: string;
+  upvotes: number;
+  created_at: string;
+}
+
+export interface AllowanceAction {
+  remaining: number;
+  limited_by: "ip" | "account";
+}
+
+export interface AllowanceOut {
+  tier: number;
+  tier_name: string;
+  actions: Record<string, AllowanceAction>;
+}
+
+function accountError(err: unknown, fallback: string): Error {
+  return new Error(extractDetail(err, fallback));
+}
+
+/**
+ * The signed-in member, or null.
+ *
+ * Returns null rather than throwing when there is no token, so every surface
+ * can treat "signed out" as data instead of as an error state. A stale or
+ * expired token is cleared here — the alternative is a member stuck looking at
+ * a broken inbox with no way to understand why.
+ */
+export function useCommunityAccount() {
+  return useQuery({
+    queryKey: queryKeys.community.account(),
+    queryFn: async (): Promise<CommunityAccount | null> => {
+      if (!getCommunityToken()) return null;
+      try {
+        const { data } = await apiClient.get<CommunityAccount>(
+          "/community/public/auth/me"
+        );
+        return data;
+      } catch (err) {
+        const status = (err as { response?: { status?: number } })?.response
+          ?.status;
+        if (status === 401) {
+          clearCommunityToken();
+          return null;
+        }
+        throw err;
+      }
+    },
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+  });
+}
+
+/**
+ * Claim this device's existing identity as an account.
+ *
+ * Claiming, not creating: the handle and every post already made on this device
+ * carry straight over, which is why the signup form never asks for a username.
+ */
+export function useCommunitySignup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: SignupPayload) => {
+      try {
+        const { data } = await apiClient.post<CommunitySessionOut>(
+          "/community/public/auth/signup",
+          payload
+        );
+        return data;
+      } catch (err) {
+        throw accountError(err, "We couldn't create that account.");
+      }
+    },
+    onSuccess: (session) => {
+      setCommunityToken(session.token);
+      setDeviceToken(session.device_token);
+      qc.setQueryData(queryKeys.community.account(), session.account);
+      qc.invalidateQueries({ queryKey: queryKeys.community.all });
+    },
+  });
+}
+
+export function useCommunityLogin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { handle: string; password: string }) => {
+      try {
+        const { data } = await apiClient.post<CommunitySessionOut>(
+          "/community/public/auth/login",
+          payload
+        );
+        return data;
+      } catch (err) {
+        throw accountError(err, "That handle and password don't match.");
+      }
+    },
+    onSuccess: (session) => {
+      setCommunityToken(session.token);
+      setDeviceToken(session.device_token);
+      qc.setQueryData(queryKeys.community.account(), session.account);
+      // Ownership cues (is_mine, viewer_voted) and the inbox all change the
+      // moment the viewer does, so everything community-scoped is now stale.
+      qc.invalidateQueries({ queryKey: queryKeys.community.all });
+    },
+  });
+}
+
+/**
+ * Sign out of the room.
+ *
+ * Clears the session but deliberately leaves the device token alone: the
+ * browser is still the same browser, and wiping it would strand any drafts
+ * held against it.
+ */
+export function useCommunityLogout() {
+  const qc = useQueryClient();
+  return () => {
+    clearCommunityToken();
+    qc.setQueryData(queryKeys.community.account(), null);
+    qc.invalidateQueries({ queryKey: queryKeys.community.all });
+  };
+}
+
+/** Replies to your posts and comments, plus the unread badge count. */
+export function useInbox(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.community.inbox(),
+    enabled,
+    queryFn: async () => {
+      const { data } = await apiClient.get<InboxOut>("/community/me/inbox");
+      return data;
+    },
+    // The badge is the whole reason someone comes back. Keep it warm.
+    refetchInterval: 1000 * 60,
+    retry: false,
+  });
+}
+
+export function useMarkInboxRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids?: string[]) => {
+      const { data } = await apiClient.post<{
+        marked: number;
+        unread_count: number;
+      }>("/community/me/inbox/read", { ids: ids ?? null });
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.community.inbox() });
+    },
+  });
+}
+
+/**
+ * The Posts tab of "You".
+ *
+ * Includes unpublished drafts on purpose — this is the member's own profile and
+ * the only place a saved wait check can be published from. Do not copy this
+ * hook as the template for a public listing.
+ */
+export function useMyPosts(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.community.myPosts(),
+    enabled,
+    queryFn: async () => {
+      const { data } = await apiClient.get<JourneyOut[]>("/community/me/posts");
+      return data;
+    },
+    retry: false,
+  });
+}
+
+/** The Comments tab of "You". */
+export function useMyComments(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.community.myComments(),
+    enabled,
+    queryFn: async () => {
+      const { data } = await apiClient.get<MyCommentOut[]>(
+        "/community/me/comments"
+      );
+      return data;
+    },
+    retry: false,
+  });
+}
+
+/**
+ * What is left to write today. Reading it spends nothing.
+ *
+ * The composer uses this to say "you've written a lot today" up front instead
+ * of throwing a 429 once the member has finished typing.
+ */
+export function useAllowance(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.community.allowance(),
+    enabled,
+    queryFn: async () => {
+      const { data } = await apiClient.get<AllowanceOut>(
+        "/community/me/allowance"
+      );
+      return data;
+    },
+    staleTime: 1000 * 30,
+    retry: false,
   });
 }
 
