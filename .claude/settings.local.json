@@ -6,7 +6,11 @@
       "Bash(curl -s \"https://www.redditinc.com/policies/content-policy\")",
       "Bash(curl -s http://localhost:8000/health)",
       "Bash(curl -s -o /dev/null -w '%{http_code}\\\\n' http://localhost:3000/dashboard/inbox)",
-      "Bash(curl -s -o /dev/null -w '%{http_code}\\\\n' http://localhost:3001/dashboard/inbox)"
+      "Bash(curl -s -o /dev/null -w '%{http_code}\\\\n' http://localhost:3001/dashboard/inbox)",
+      "Bash(python3 -c \"import json;d=json.load\\(open\\('scripts/scraped_journeys.json'\\)\\);print\\(json.dumps\\(d[0],indent=2,ensure_ascii=False\\)\\)\")",
+      "Bash(python3 -c \"import json;d=json.load\\(open\\('scripts/scraped_journeys.json'\\)\\);import collections;print\\(sorted\\(set\\(x.get\\('subclass_slug'\\) for x in d\\)\\)\\)\")",
+      "Bash(python3 -c \"import json;d=json.load\\(open\\('scripts/scraped_journeys.json'\\)\\);print\\(sorted\\(set\\(x.get\\('category_slug'\\) for x in d\\)\\)\\)\")",
+      "Bash(python3 -c \"import json;d=json.load\\(open\\('scripts/scraped_journeys.json'\\)\\);print\\(sorted\\(set\\(x.get\\('source_site'\\) for x in d\\)\\)\\)\")"
     ]
   }
 }
