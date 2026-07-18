@@ -57,6 +57,10 @@ MILESTONE_TYPES = (
 # What a journey's votes/comments can hang off.
 VOTE_TARGET_TYPES = ("journey", "comment")
 
+# Rate-counter scopes. "account" caps one member's day; "ip" is the network
+# backstop that keeps free account creation from defeating the account cap.
+RATE_SCOPE_TYPES = ("account", "ip")
+
 
 class AnonIdentity(Base):
     """A pseudonymous community member — device identity AND account, one row.
@@ -105,6 +109,24 @@ class AnonIdentity(Base):
     recovery_token_hash = Column(String, nullable=True, index=True)
     recovery_expires_at = Column(DateTime(timezone=True), nullable=True)
 
+    # --- Trust ladder --------------------------------------------------------
+    # Computed, never member-facing: no score, no leaderboard, no badge except
+    # the registered-professional one (T4), which is a disclosure obligation
+    # rather than a reward. Defaults to T1 because the column only means
+    # anything once a password exists — a row with no password is read as T0
+    # regardless of what is stored here (``tiers.effective_tier``).
+    trust_tier = Column(Integer, nullable=False, default=1, server_default="1")
+    # When the nightly recompute last looked at this row (that job is p6).
+    tier_computed_at = Column(DateTime(timezone=True), nullable=True)
+    # Reports against this member that a moderator upheld — the demotion signal.
+    upheld_reports = Column(Integer, nullable=False, default=0, server_default="0")
+    # Shadow limiting: the author still sees their own content, the feed does
+    # not. Enforcement is p6; the column exists here so the ladder has somewhere
+    # to write its conclusion.
+    shadow_limited = Column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+
     # Set when the device is claimed by a real (portal) account → uncaps posting
     # and lets the portal stitch the prior anonymous activity to the account.
     user_id = Column(
@@ -128,6 +150,51 @@ class AnonIdentity(Base):
     def is_account(self) -> bool:
         """True once a password has been set — i.e. this row is a real account."""
         return bool(self.password_hash)
+
+
+class RateCounter(Base):
+    """One write-allowance bucket: (scope, action, day) → how many so far.
+
+    This replaces a module-level dict. The dict was wrong in two ways that only
+    show up in production: counters vanished on every dyno restart, and each
+    dyno kept its own tally, so the effective limit was silently multiplied by
+    the number of dynos. A member could exhaust their day, get a restart, and
+    start over. Putting the count in Postgres makes the limit mean one thing
+    across every process.
+
+    Fixed daily buckets (``window_start`` = UTC midnight) rather than a rolling
+    window, so an increment is a single ``INSERT … ON CONFLICT DO UPDATE``
+    returning the new value: atomic, race-free, one round trip. A rolling window
+    would need read-filter-write, which two concurrent requests can interleave.
+
+    ``scope_type`` is ``account`` or ``ip``; both are checked on every write.
+    The account scope shapes an individual's day, the IP scope is the backstop
+    that stops free account creation from making the account cap meaningless.
+    Rows are disposable — old windows can be swept at any time without loss.
+    """
+
+    __tablename__ = "rate_counters"
+    __table_args__ = (
+        UniqueConstraint(
+            "scope_type",
+            "scope_key",
+            "action",
+            "window_start",
+            name="uq_rate_counter_scope_action_window",
+        ),
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    scope_type = Column(String, nullable=False, index=True)  # account | ip
+    scope_key = Column(String, nullable=False, index=True)  # identity id | ip hash
+    action = Column(String, nullable=False)  # post | reply | report
+    window_start = Column(DateTime(timezone=True), nullable=False, index=True)
+    count = Column(Integer, nullable=False, default=0, server_default="0")
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
 
 class Journey(Base):
