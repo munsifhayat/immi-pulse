@@ -30,10 +30,12 @@ def main():
             "timeout_keep_alive": 65,
         }
     else:
-        # Local development
+        # Local development. Honour PORT here too — the frontend's .env.local
+        # points at :8001, and hardcoding 8000 meant `PORT=8001 make dev`
+        # silently bound the wrong port.
         config = {
             "host": "0.0.0.0",
-            "port": 8000,
+            "port": int(os.environ.get("PORT", 8000)),
             "log_level": settings.log_level.lower(),
             "access_log": True,
             "reload": True,
