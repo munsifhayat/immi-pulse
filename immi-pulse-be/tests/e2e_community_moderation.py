@@ -81,13 +81,19 @@ async def main():
         base_sample = community_sample(r.json(), slug)
 
         # ── 1. Bootstrap two anonymous identities (two devices) ──
+        # Bootstrap now also sets a durable HttpOnly ``ip_device`` cookie, and one
+        # httpx client keeps one cookie jar — so without clearing it the second
+        # call would correctly return the *same* identity (one browser, one
+        # device) and this would stop simulating two devices at all.
         r = await c.post("/community/public/identity", headers=svc)
         dev1 = r.json()["device_token"]
         check("identity 1 issued", bool(dev1))
+        c.cookies.clear()
 
         r = await c.post("/community/public/identity", headers=svc)
         dev2 = r.json()["device_token"]
         check("identity 2 issued", bool(dev2) and dev2 != dev1)
+        c.cookies.clear()
 
         h1 = {**svc, "X-Device-Token": dev1}
         h2 = {**svc, "X-Device-Token": dev2}
