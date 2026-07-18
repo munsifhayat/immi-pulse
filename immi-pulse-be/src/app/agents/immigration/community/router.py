@@ -15,20 +15,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.immigration.community.identity import initials_of
-from app.agents.immigration.community.models import (
-    CommunitySpace,
-    CommunityThread,
-    CommunityTimeline,
-)
+from app.agents.immigration.community.models import CommunityTimeline
 from app.agents.immigration.community.schemas import (
-    CommentOut,
     CommunitySpaceOut,
     CommunityStatsOut,
-    CreateCommentRequest,
     CreateCommunitySpaceRequest,
     CreateJourneyCommentRequest,
     CreateJourneyRequest,
-    CreateThreadRequest,
     FeedSummaryOut,
     IdentityOut,
     JourneyCommentOut,
@@ -39,8 +32,6 @@ from app.agents.immigration.community.schemas import (
     ReportOut,
     ReportRequest,
     SubmitTimelineRequest,
-    ThreadOut,
-    ThreadWithCommentsOut,
     TimelineOut,
     VisaSubclassOut,
     VoteResultOut,
@@ -52,6 +43,7 @@ from app.agents.immigration.community.service import (
     JourneyCapError,
     hash_ip,
 )
+from app.core.jwt_auth import get_current_owner_or_admin
 from app.db.session import get_db
 
 logger = logging.getLogger(__name__)
@@ -77,14 +69,6 @@ def _device_token(request: Request) -> Optional[str]:
     return token.strip() if token and token.strip() else None
 
 
-async def _thread_out(db: AsyncSession, thread: CommunityThread) -> ThreadOut:
-    space = await db.get(CommunitySpace, thread.space_id)
-    payload = ThreadOut.model_validate(thread).model_dump()
-    payload["space_slug"] = space.slug if space else None
-    payload["space_name"] = space.name if space else None
-    return ThreadOut(**payload)
-
-
 def _timeline_out(timeline: CommunityTimeline) -> TimelineOut:
     processing_days = None
     if timeline.outcome == "granted" and timeline.decided_on is not None:
@@ -100,18 +84,6 @@ def _timeline_out(timeline: CommunityTimeline) -> TimelineOut:
 @router.get("/public/stats", response_model=CommunityStatsOut)
 async def get_community_stats(db: AsyncSession = Depends(get_db)):
     return await CommunityService.get_stats(db)
-
-
-# --- Public: recent threads (cross-space, for homepage) --------------------
-
-
-@router.get("/public/threads/recent", response_model=list[ThreadOut])
-async def list_recent_threads(
-    limit: int = Query(10, ge=1, le=50),
-    db: AsyncSession = Depends(get_db),
-):
-    threads = await CommunityService.list_recent_threads(db, limit=limit)
-    return [await _thread_out(db, t) for t in threads]
 
 
 # --- Public: processing times ("is my wait normal?") ------------------------
@@ -385,132 +357,7 @@ async def get_community_space(slug: str, db: AsyncSession = Depends(get_db)):
     return space
 
 
-@router.get("/public/spaces/{slug}/threads", response_model=list[ThreadOut])
-async def list_space_threads(
-    slug: str,
-    sort: str = Query("new", pattern="^(new|top|trending)$"),
-    limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0),
-    db: AsyncSession = Depends(get_db),
-):
-    space = await CommunityService.get_space_by_slug(db, slug)
-    if space is None:
-        raise HTTPException(status_code=404, detail="Space not found")
-    threads = await CommunityService.list_threads(
-        db, space_id=space.id, sort=sort, limit=limit, offset=offset
-    )
-    return [await _thread_out(db, t) for t in threads]
-
-
-@router.get("/public/threads/{thread_id}", response_model=ThreadWithCommentsOut)
-async def get_community_thread(
-    thread_id: UUID, db: AsyncSession = Depends(get_db)
-):
-    thread = await CommunityService.get_thread(db, thread_id)
-    if thread is None:
-        raise HTTPException(status_code=404, detail="Thread not found")
-    await CommunityService.increment_view_count(db, thread_id)
-    await db.commit()
-    comments = await CommunityService.list_comments(db, thread_id)
-    base = await _thread_out(db, thread)
-    return ThreadWithCommentsOut(
-        **base.model_dump(),
-        comments=[CommentOut.model_validate(c) for c in comments],
-    )
-
-
-# --- Public writes (token-free, IP-hash rate limited) -----------------------
-
-
-@router.post(
-    "/threads", response_model=ThreadOut, status_code=status.HTTP_201_CREATED
-)
-async def create_community_thread(
-    payload: CreateThreadRequest,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-):
-    try:
-        thread = await CommunityService.create_thread(
-            db, payload, ip_hash=_client_ip_hash(request)
-        )
-    except CommunityRateLimitError as err:
-        raise HTTPException(status_code=429, detail=str(err)) from err
-    except ValueError as err:
-        raise HTTPException(status_code=404, detail=str(err)) from err
-    await db.commit()
-    await db.refresh(thread)
-    return await _thread_out(db, thread)
-
-
-@router.post("/threads/{thread_id}/upvote", response_model=ThreadOut)
-async def upvote_community_thread(
-    thread_id: UUID, db: AsyncSession = Depends(get_db)
-):
-    thread = await CommunityService.upvote_thread(db, thread_id)
-    if thread is None:
-        raise HTTPException(status_code=404, detail="Thread not found")
-    await db.commit()
-    return await _thread_out(db, thread)
-
-
-@router.post(
-    "/threads/{thread_id}/comments",
-    response_model=CommentOut,
-    status_code=status.HTTP_201_CREATED,
-)
-async def create_community_comment(
-    thread_id: UUID,
-    payload: CreateCommentRequest,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-):
-    try:
-        comment = await CommunityService.create_comment(
-            db, thread_id, payload, ip_hash=_client_ip_hash(request)
-        )
-    except CommunityRateLimitError as err:
-        raise HTTPException(status_code=429, detail=str(err)) from err
-    except ValueError as err:
-        raise HTTPException(status_code=404, detail=str(err)) from err
-    await db.commit()
-    return CommentOut.model_validate(comment)
-
-
-@router.post("/comments/{comment_id}/upvote", response_model=CommentOut)
-async def upvote_community_comment(
-    comment_id: UUID, db: AsyncSession = Depends(get_db)
-):
-    comment = await CommunityService.upvote_comment(db, comment_id)
-    if comment is None:
-        raise HTTPException(status_code=404, detail="Comment not found")
-    await db.commit()
-    return CommentOut.model_validate(comment)
-
-
-@router.post(
-    "/threads/{thread_id}/report",
-    response_model=ReportOut,
-    status_code=status.HTTP_201_CREATED,
-)
-async def report_thread(
-    thread_id: UUID,
-    payload: ReportRequest,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-):
-    try:
-        report = await CommunityService.report_target(
-            db,
-            target_type="thread",
-            target_id=thread_id,
-            payload=payload,
-            ip_hash=_client_ip_hash(request),
-        )
-    except CommunityRateLimitError as err:
-        raise HTTPException(status_code=429, detail=str(err)) from err
-    await db.commit()
-    return ReportOut.model_validate(report)
+# --- Live-feed reports: journey comments ------------------------------------
 
 
 @router.post(
@@ -524,10 +371,12 @@ async def report_comment(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    """Report a live-feed journey comment. target_type ``journey_comment`` is
+    what lets a moderator's Hide/Remove actually act on the comment row."""
     try:
         report = await CommunityService.report_target(
             db,
-            target_type="comment",
+            target_type="journey_comment",
             target_id=comment_id,
             payload=payload,
             ip_hash=_client_ip_hash(request),
@@ -538,24 +387,32 @@ async def report_comment(
     return ReportOut.model_validate(report)
 
 
-# --- Admin -----------------------------------------------------------------
+# --- Admin (owner/admin JWT required — NOT the shipped public key) ----------
 
 
-@router.get("/admin/reports", response_model=list[ReportOut])
-async def list_open_reports(db: AsyncSession = Depends(get_db)):
-    return await CommunityService.list_open_reports(db)
-
-
-@router.post(
-    "/admin/reports/{report_id}/action", response_model=ReportOut
+@router.get(
+    "/admin/reports",
+    response_model=list[ReportOut],
+    dependencies=[Depends(get_current_owner_or_admin)],
 )
+async def list_open_reports(db: AsyncSession = Depends(get_db)):
+    rows = await CommunityService.list_open_reports_enriched(db)
+    return [ReportOut(**r) for r in rows]
+
+
+@router.post("/admin/reports/{report_id}/action", response_model=ReportOut)
 async def act_on_report(
     report_id: UUID,
     payload: ModerationActionRequest,
+    ctx=Depends(get_current_owner_or_admin),
     db: AsyncSession = Depends(get_db),
 ):
     report = await CommunityService.resolve_report(
-        db, report_id, action=payload.action, note=payload.note
+        db,
+        report_id,
+        action=payload.action,
+        note=payload.note,
+        resolver_user_id=ctx.user_id,
     )
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
@@ -567,6 +424,7 @@ async def act_on_report(
     "/admin/spaces",
     response_model=CommunitySpaceOut,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_owner_or_admin)],
 )
 async def create_admin_space(
     payload: CreateCommunitySpaceRequest,
@@ -575,17 +433,3 @@ async def create_admin_space(
     space = await CommunityService.create_space(db, payload)
     await db.commit()
     return space
-
-
-@router.post("/admin/threads/{thread_id}/pin", response_model=ThreadOut)
-async def pin_thread(
-    thread_id: UUID,
-    pinned: bool = True,
-    db: AsyncSession = Depends(get_db),
-):
-    thread = await db.get(CommunityThread, thread_id)
-    if thread is None:
-        raise HTTPException(status_code=404, detail="Thread not found")
-    thread.is_pinned = pinned
-    await db.commit()
-    return await _thread_out(db, thread)

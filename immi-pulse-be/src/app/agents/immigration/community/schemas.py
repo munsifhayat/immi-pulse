@@ -136,6 +136,13 @@ class ReportOut(BaseModel):
     resolved_at: Optional[datetime] = None
     resolution_note: Optional[str] = None
 
+    # Populated on the admin queue so a moderator can see what was reported
+    # (a snippet of the content, its current status, and the author handle)
+    # without a separate lookup. Null on the public report-created response.
+    target_preview: Optional[str] = None
+    target_status: Optional[str] = None
+    target_handle: Optional[str] = None
+
     model_config = {"from_attributes": True}
 
 

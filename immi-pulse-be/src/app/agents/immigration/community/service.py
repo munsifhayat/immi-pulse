@@ -10,7 +10,7 @@ from threading import Lock
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.immigration.community import identity as identity_gen
@@ -55,6 +55,14 @@ _RATE_LIMITS = {
 
 _rate_state: dict[tuple[str, str], list[datetime]] = defaultdict(list)
 _rate_lock = Lock()
+
+# Server-side backstop for the "one anonymous timeline" rule. The per-identity
+# cap lives in localStorage (the device token), so clearing storage mints a
+# fresh identity and resets it. The ip_hash persists across that, so we also cap
+# how many real timelines a single network can contribute anonymously before the
+# sign-in gate kicks in. Kept above 1 so a shared home/office IP isn't blocked
+# outright — signing in always lifts it.
+_ANON_IP_TIMELINE_CAP = 2
 
 
 class CommunityRateLimitError(Exception):
@@ -299,7 +307,7 @@ class CommunityService:
         result = await db.execute(
             select(CommunityReport)
             .where(CommunityReport.status == "open")
-            .order_by(CommunityReport.created_at.asc())
+            .order_by(CommunityReport.created_at.desc())
         )
         return list(result.scalars().all())
 
@@ -316,15 +324,22 @@ class CommunityService:
         if report is None:
             return None
 
-        # Mutate the target if needed.
-        if action == "hide":
+        # Mutate the target if the action changes its visibility. "hide" keeps
+        # the record but drops it from the public feed; "remove" tombstones it.
+        if action in ("hide", "remove"):
+            new_status = "hidden" if action == "hide" else "removed"
             target = await CommunityService._load_target(db, report)
             if target is not None:
-                target.status = "hidden"
-        elif action == "remove":
-            target = await CommunityService._load_target(db, report)
-            if target is not None:
-                target.status = "removed"
+                target.status = new_status
+                # A hidden/removed journey must also stop feeding the stats:
+                # suppress the materialised timeline row(s) it produced so the
+                # wait-check percentile maths no longer counts it.
+                if report.target_type == "journey":
+                    await db.execute(
+                        update(CommunityTimeline)
+                        .where(CommunityTimeline.journey_id == report.target_id)
+                        .values(status=new_status)
+                    )
 
         report.status = "dismissed" if action == "dismiss" else "actioned"
         report.resolved_at = datetime.now(timezone.utc)
@@ -335,11 +350,74 @@ class CommunityService:
 
     @staticmethod
     async def _load_target(db: AsyncSession, report: CommunityReport):
-        if report.target_type == "thread":
+        """Resolve a report to the row it targets, across the live feed
+        (journeys + journey comments) and the legacy forum (threads +
+        comments). Returns None for an unknown type or a missing row."""
+        target_type = report.target_type
+        if target_type == "journey":
+            return await db.get(Journey, report.target_id)
+        if target_type == "journey_comment":
+            return await db.get(JourneyComment, report.target_id)
+        if target_type == "thread":
             return await db.get(CommunityThread, report.target_id)
-        if report.target_type == "comment":
+        if target_type == "comment":
             return await db.get(CommunityComment, report.target_id)
         return None
+
+    @staticmethod
+    async def _report_context(
+        db: AsyncSession, report: CommunityReport
+    ) -> tuple[Optional[str], Optional[str], Optional[str]]:
+        """A short preview + current status + author handle for the reported
+        row, so the moderation queue can show *what* was reported, not just an
+        opaque id. Returns (preview, target_status, target_handle)."""
+        target = await CommunityService._load_target(db, report)
+        if target is None:
+            return None, None, None
+
+        target_status = getattr(target, "status", None)
+        if report.target_type == "journey":
+            preview = target.title or target.note
+            handle = target.handle
+        elif report.target_type == "journey_comment":
+            preview = target.body
+            handle = target.handle
+        elif report.target_type == "thread":
+            preview = target.title or target.body
+            handle = target.author_display_name
+        else:  # legacy comment
+            preview = target.body
+            handle = target.author_display_name
+
+        if preview and len(preview) > 200:
+            preview = preview[:200].rstrip() + "…"
+        return preview, target_status, handle
+
+    @staticmethod
+    async def list_open_reports_enriched(db: AsyncSession) -> list[dict]:
+        """Open reports with the reported content's preview/status/handle
+        attached — the shape the moderation queue actually needs."""
+        reports = await CommunityService.list_open_reports(db)
+        out: list[dict] = []
+        for r in reports:
+            preview, tstatus, handle = await CommunityService._report_context(db, r)
+            out.append(
+                {
+                    "id": r.id,
+                    "target_type": r.target_type,
+                    "target_id": r.target_id,
+                    "reason": r.reason,
+                    "description": r.description,
+                    "status": r.status,
+                    "created_at": r.created_at,
+                    "resolved_at": r.resolved_at,
+                    "resolution_note": r.resolution_note,
+                    "target_preview": preview,
+                    "target_status": tstatus,
+                    "target_handle": handle,
+                }
+            )
+        return out
 
     # --- Stats ----------------------------------------------------------------
 
@@ -693,14 +771,27 @@ class CommunityService:
         is_timeline = payload.post_type == "timeline"
         _consume_rate("journey" if is_timeline else "question", ip_hash)
 
-        if (
-            is_timeline
-            and identity.user_id is None
-            and (identity.journeys_posted or 0) >= 1
-        ):
-            raise JourneyCapError(
-                "You've already shared a timeline. Sign in to add or edit more."
+        if is_timeline and identity.user_id is None:
+            if (identity.journeys_posted or 0) >= 1:
+                raise JourneyCapError(
+                    "You've already shared a timeline. Sign in to add or edit more."
+                )
+            # Storage-clear backstop: count real (materialised, non-sample)
+            # timelines already contributed from this network.
+            ip_timelines = await db.scalar(
+                select(func.count())
+                .select_from(CommunityTimeline)
+                .where(
+                    CommunityTimeline.author_ip_hash == ip_hash,
+                    CommunityTimeline.status == "active",
+                    CommunityTimeline.journey_id.isnot(None),
+                )
             )
+            if (ip_timelines or 0) >= _ANON_IP_TIMELINE_CAP:
+                raise JourneyCapError(
+                    "A timeline has already been shared from this network. "
+                    "Sign in to add another."
+                )
 
         category_slug = payload.category_slug
         if payload.subclass_slug:
