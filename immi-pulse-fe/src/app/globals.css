@@ -17,6 +17,7 @@
   --color-navy: var(--navy);
   --color-navy-light: var(--navy-light);
   --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-hair: var(--hair);
@@ -87,6 +88,7 @@
 
   /* ── Community "Waiting Room" editorial palette ── */
   --paper: #FBFAF8;        /* warm off-white page well */
+  --paper-deep: #F4F2ED;   /* one step down — rail hovers, inset wells */
   --ink: #16181D;          /* near-black body ink */
   --ink-soft: #5B6270;     /* muted ink for meta */
   --hair: #E7E4DE;         /* warm hairline rule */

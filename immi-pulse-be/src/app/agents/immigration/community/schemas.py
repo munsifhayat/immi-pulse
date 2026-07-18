@@ -703,6 +703,35 @@ class NotificationPreferencesOut(BaseModel):
     email_available: bool
 
 
+class AllowanceActionOut(BaseModel):
+    """What is left for one action family today.
+
+    ``limited_by`` says which ceiling is the binding one — an account that has
+    run out because of its *network* rather than its own writing is a different
+    situation, and the two deserve different words in the UI.
+    """
+
+    remaining: int
+    limited_by: str
+
+
+class AllowanceOut(BaseModel):
+    """A read-only peek at today's remaining allowance.
+
+    Exists so the composer can offer the sign-in prompt *before* a write is
+    attempted rather than surfacing a 429 after the member has finished typing.
+    Reading this spends nothing.
+
+    ``tier`` is present because the caller is the account itself and the number
+    is about them. It is **not** for any other surface: trust tier is never
+    rendered as a score, and no public or consultant serializer carries it.
+    """
+
+    tier: int
+    tier_name: str
+    actions: dict[str, AllowanceActionOut]
+
+
 class FeedSummaryOut(BaseModel):
     """Live counts for the left filter rail."""
 

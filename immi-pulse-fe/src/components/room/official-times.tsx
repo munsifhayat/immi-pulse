@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, Loader2, ShieldCheck } from "lucide-react";
 import { useProcessingStats } from "@/lib/api/hooks/community";
-import { deltaVsOfficial, formatDays } from "../_lib/format";
+import { deltaVsOfficial, formatDays } from "@/lib/room/format";
 
 export function OfficialTimes() {
   const [open, setOpen] = useState(false);

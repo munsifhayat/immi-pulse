@@ -7,8 +7,24 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        // Private console, auth, and per-token form surfaces stay out of search.
-        disallow: ["/dashboard", "/login", "/api/", "/q/", "/find-consultants"],
+        disallow: [
+          // Private console, auth, and per-token form surfaces.
+          "/dashboard",
+          "/login",
+          "/api/",
+          "/q/",
+          // A member's own inbox and activity. Pseudonymity is worth very
+          // little if a handle accumulates a crawlable dossier.
+          "/inbox",
+          "/you",
+          // Retired surfaces. They redirect, so a crawler would not reach the
+          // page anyway — this keeps the old URLs from lingering in an index
+          // while the redirect propagates. Reversible with the redirects.
+          "/find-consultants",
+          "/pricing",
+          "/features",
+          "/get-started",
+        ],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

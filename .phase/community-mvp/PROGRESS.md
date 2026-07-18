@@ -3,7 +3,7 @@
 Epic: Turn immi360 into a community platform — pseudonymous Reddit-style accounts with an inbox, app-shell homepage, unified wait-check/timeline flow, dual-source (Official vs Room) wait data, and a self-running trust ladder.
 Integration branch: feat/community-mvp
 Base: main
-Phase status: [done] p1 · [done] p2 · [done] p3 · [done] p4 · [pending] p5 · [pending] p6
+Phase status: [done] p1 · [done] p2 · [done] p3 · [done] p4 · [done] p5 · [pending] p6
 
 <!--
 Legend: pending → in_progress → done  (or blocked)
@@ -643,5 +643,199 @@ owns the surface).
   "3 so far · need 20" in place of a delta it should not publish
 - Mixed-provenance sentence confirmed live against seeded forum rows: **"Based on 7
   timelines — 3 reported by members, 4 collected from public immigration forums."**
+
+---
+
+## Handoff — p5 The app shell homepage · done · 2026-07-18
+
+Branch `feat/community-mvp-p5-appshell` → PR into `feat/community-mvp`. Frontend, plus the
+one backend route p2 explicitly deferred to this phase.
+
+### Shipped vs planned
+
+Every Phase-5 acceptance criterion is met. Four things go past the written scope, each
+because the phase could not honestly be called done without it:
+
+1. **`GET /community/me/allowance`.** p2 built `remaining_allowance` as a service function
+   and said in writing that p5 wires the route. Without it the criterion "show the sign-in
+   prompt **before** a write is attempted — never a 429 after the fact" is unimplementable
+   for a signed-in member who has spent their allowance.
+2. **The sitemap's journey entries were already dead, and this phase fixed them.** The
+   standing constraint says they must survive; they had not been surviving. `sitemap.ts`
+   asked for `limit=200`, the API caps `limit` at 100 and returns **422**, and the `!res.ok`
+   guard turned that into an empty list — so the "organic growth engine" has been emitting
+   **zero** journey URLs since before this epic. It now pages with `offset` at the
+   documented cap. Verified live: 0 → 31 journey URLs.
+3. **Community session token is its own localStorage slot**, not the console's `ip_token` —
+   see the first key decision below.
+4. **The full milestone builder was kept and rewired** rather than orphaned. `ShareJourney`
+   (617 lines: every milestone type, stream, occupation, state) would have become dead code
+   behind the new quick composer. It is now the composer's "Add medicals, s56 and the rest".
+
+Deliberately NOT built (still out of scope): moderation UI, the marketplace, any backend
+contract change beyond the allowance route, email verification UI, password-recovery UI
+(the backend route exists from p1; no surface links to it yet — see gotcha 6).
+
+### Key decisions
+
+- **The room's session lives in `ip_community_token`, never `ip_token`.** A consultant and a
+  community member are different people who can be signed in on the same machine, with
+  different JWT audiences. The axios interceptor picks per request: `/community/*` gets the
+  community token, everything else the console's (`client.ts:29-33`). Sending the console's
+  JWT at `/community/me/*` would 401 against a different audience, and merging the two slots
+  would mean signing out of one silently signs you out of the other.
+- **`withCredentials: true` on the API client.** p1's durable device cookie is HttpOnly and
+  cross-origin, so it never travelled without this. Safe because the backend already names
+  explicit CORS origins with `allow_credentials=True` — checked before enabling, since a
+  wildcard origin plus credentials is a request browsers refuse outright.
+- **A new `(room)` route group, and `(public)/page.tsx` deleted.** Two route groups cannot
+  both own `/`. The room's layout has no navbar and no site footer on purpose: the footer
+  links live in the right rail, and website chrome is exactly what a platform is not. The
+  surviving editorial pages keep the old navbar.
+- **Components hoisted to `src/components/room/` + `src/lib/room/`.** They were under
+  `app/(public)/community/_components/`, which is now a route that only serves
+  `journey/[id]`. Leaving the shell's building blocks inside a retired route's private
+  folder would have been the confusing option.
+- **Gating is a `writeBlock`/`canWrite` pair in `RoomContext`, resolved from the account and
+  the read-only allowance.** Every write surface asks it *before* firing — composer, feed
+  upvote, drawer reply, nested reply. A 429 the member discovers after typing is the failure
+  this criterion exists to prevent.
+- **A vote is a write, so it needs a handle.** Voting is not rate-counted server-side, but
+  "writing requires an account" reads on votes too, and an anonymous upvote button that
+  silently does nothing would be worse than one that asks.
+- **Inbox and You are visible to signed-out visitors and open the signup prompt.** Hiding
+  them hides the reason to sign up; 404ing them punishes curiosity. `SignedOutPanel` explains
+  what the account is *for* instead.
+- **Feed rows: upvote · reply · share, with Report hover-only.** Report is a moderation
+  affordance rather than an engagement action, so it sits outside the action row and does not
+  count against "exactly two". The old `Heart` became `ArrowBigUp` — a heart reads as "like",
+  which is the third action this criterion removes.
+- **Retired marketing routes redirect to `/` directly, not via `/community`.** Chaining
+  `/pricing → /community → /` would have been two hops for no reason. `/community` matches
+  **exactly** in `next.config.ts`, so `/community/journey/:id` is untouched.
+- **`/inbox` and `/you` are `noindex` in page metadata *and* disallowed in robots.txt.**
+  Pseudonymity is worth little if a handle accumulates a crawlable dossier.
+- **One provenance sentence for the right-rail table, not one per row.** The note is
+  generated server-side per subclass; in a 340px rail, six of them would be unreadable, so
+  the panel renders the widest. Every Room cell still carries its own `n=`, and a figure
+  below the n-floor renders `—` rather than a median that would swing on the next grant.
+
+### Interfaces produced
+
+- `src/components/room/room-context.tsx`:
+  - `:61` `RoomProvider` · `:139` `useRoom()`
+  - `:44` `canWrite(action) -> boolean` — **the pre-write gate; opens the prompt itself**
+  - `:46` `writeBlock(action) -> "no-account" | "spent" | null`
+  - context also carries `account`, `identity`, `allowance`, `queue`/`setQueue`,
+    `search`/`setSearch`, `openAccount`/`closeAccount`
+- `src/components/room/room-shell.tsx`: `:92` `RoomShell` (grid + provider + dialog),
+  `:105` `RoomHeader` (sticky centre-column header), `:17` `MobileBar`
+- `src/components/room/left-rail.tsx`: `:29` `ROOM_NAV`, `:39` `ROOM_QUEUES`,
+  `:49` `UnreadBadge`, `:58` `useUnreadCount()`, `:66` `LeftRail`
+- `src/components/room/right-rail.tsx`: `:12` `RoomSearch` (the `/` shortcut),
+  `:57` `DualSourceTimes`, `:117` `WaitCheckTeaser`, `:143` `RightRail`
+- `src/components/room/account-dialog.tsx`: `:26` `PasswordField` (one field + reveal),
+  `:66` `SignupPanel`, `:214` `LoginPanel`, `:279` `AccountDialog`
+- `src/components/room/composer.tsx`: `:34` `Composer` — two modes, pre-write gate,
+  escape hatch into `ShareJourney`
+- `src/components/room/room-feed.tsx`: `:47` `RoomFeed({ type? })`
+- `src/components/room/inbox-view.tsx`: `:19` `InboxView`
+- `src/components/room/you-view.tsx`: `:27` `DraftPublishRow`, `:63` `YouView`
+- `src/components/room/wait-check-view.tsx`: `:15` `WaitCheckView`
+- `src/components/room/signed-out-panel.tsx`: `:15` `SignedOutPanel`
+- `src/lib/room/session.ts`: `getCommunityToken` / `setCommunityToken` /
+  `clearCommunityToken`
+- `src/lib/api/hooks/community.ts` (new hooks): `useCommunityAccount`, `useCommunitySignup`,
+  `useCommunityLogin`, `useCommunityLogout`, `useInbox`, `useMarkInboxRead`, `useMyPosts`,
+  `useMyComments`, `useAllowance`; types `CommunityAccount`, `CommunitySessionOut`,
+  `NotificationOut`, `InboxOut`, `MyCommentOut`, `AllowanceOut`
+- Routes: `(room)/layout.tsx`, `page.tsx` (`/`), `questions/`, `timelines/`, `wait-check/`,
+  `inbox/`, `you/`
+- Backend: `GET /community/me/allowance` (`community/router.py:747`) → `AllowanceOut`;
+  schemas `AllowanceActionOut` / `AllowanceOut` (`community/schemas.py:706-732`)
+- Moved: `_components/*` → `src/components/room/*`, `_lib/format.ts` →
+  `src/lib/room/format.ts`
+- Deleted (superseded by the shell): `community-feed.tsx`, `feed-filter-rail.tsx`,
+  `identity-badge.tsx`, `login-gate.tsx`, `share-timeline.tsx`, `(public)/page.tsx`,
+  `(public)/community/page.tsx`
+- `globals.css`: `--paper-deep` + `--color-paper-deep` (the mockup's one missing token)
+
+### Gotchas for the next phase
+
+1. **No backend migration in this phase. Alembic head is unchanged: `d7f9b3c5e1a8`.**
+2. **`canWrite` opens the dialog as a side effect.** It is a gate, not a predicate — calling
+   it to *ask* a question will pop a modal at the member. Use `writeBlock` for rendering
+   decisions and `canWrite` only on the actual write path.
+3. **The allowance query only runs for signed-in accounts** (`useAllowance(!!account)`), and
+   `writeBlock` returns `null` when the allowance has not loaded. A slow request therefore
+   lets the write through and the server still enforces the cap — deliberate, because
+   guessing "blocked" from missing data locks out a paying-attention member. p6 tightening
+   caps must not assume the client blocks first.
+4. **`/community` redirects but `/community/journey/:id` does not.** The `next.config.ts`
+   source is the exact string `/community`. Any future `source: "/community/:path*"` would
+   destroy the indexed journey pages and the sitemap entries with them.
+5. **The sitemap fetch is capped at 500 URLs across 5 pages of 100** and stops at the first
+   short page. If the room outgrows that, page further — but never raise `limit` above 100
+   again (that is exactly the 422 that silently emptied it).
+6. **Password recovery has a backend route and no UI.** `POST /public/auth/recover` and
+   `/reset` work (p1), and `send_recovery_email` links to `/community/recover?token=…` — **a
+   route that does not exist**. Anyone who sets an email and forgets their password currently
+   gets a dead link. Not in p5's criteria, worth owning early.
+7. **Reply nesting is capped at one level structurally, not just visually** — `ReplyRow` has
+   no reply affordance at all, so there is nowhere to nest a third level from. Keep it that
+   way; the backend's `parent_comment_id` would happily accept deeper.
+8. **`ShareJourney` still takes `identity` and `onCapReached`** (the pre-account device-cap
+   flow). It predates community accounts; its internal `can_post_timeline` logic is now
+   mostly redundant for signed-in members but harmless. If p6 changes cap semantics, that
+   component needs a second look.
+9. **The FE lint baseline is 5 errors / 27 warnings, not 7 errors.** The inherited note said
+   7; measured on `feat/community-mvp` in a clean worktree it is 5. This branch is 5 errors /
+   26 warnings — errors identical, one warning fewer.
+10. **`by_category` is `{}` on a room with no categorised posts**, so every queue count
+    renders `0` (not `—`, which is reserved for "summary not loaded"). Do not read a rail of
+    zeros as a broken filter.
+
+### Verify → result (p5)
+
+- `cd immi-pulse-fe && bunx tsc --noEmit` → **clean** (needed `rm -rf .next` once: stale
+  generated route validators still referenced the two deleted pages)
+- `bun run lint` → **5 errors, 26 warnings**; baseline measured on `feat/community-mvp` in a
+  throwaway worktree = **5 errors, 27 warnings**. Zero new errors; all 5 are in files this
+  phase never created (`next.config.ts` require, a dashboard `<a>`, three pre-existing
+  set-state-in-effect)
+- `bun run build` → **Compiled successfully**; `/`, `/questions`, `/timelines`,
+  `/wait-check`, `/inbox`, `/you` all emitted
+- `PYTHONPATH=src .venv/bin/python -m pytest tests/ -q` → **117 passed** (unchanged)
+- `PYTHONPATH=src .venv/bin/alembic heads` → **`d7f9b3c5e1a8`, exactly one head**
+- All five community e2e scripts pass: `accounts`, `ratelimit`, `moderation`, `inbox`,
+  `waitcheck_save`
+- `ruff check` clean on both touched backend files
+- Redirects, live: `/community` `/pricing` `/features` `/get-started` `/find-consultants`
+  → **307 → `/`**; `/community/journey/<id>` → **200**
+- `robots.txt` disallows `/inbox` `/you` + the four retired routes; sitemap has **42 URLs,
+  31 of them journeys** (was 0 — see "Shipped vs planned" item 2)
+
+**Driven in a real browser** (uvicorn :8001 + `bun run dev`, Playwright, screenshots taken):
+- Signed-out `/` renders the three-column shell; the composer shows **"Get a handle to post"**
+  instead of a submit button — the prompt arrives before the write, not as a 429 after
+- Signup dialog assigns **MellowSummit6807** with a reroll control, one password field with a
+  reveal toggle, email marked optional with **both** reasons stated, and the no-recovery
+  acknowledgement as a **required checkbox** — "Join the room" stays disabled until it is
+  ticked
+- Posted a question as that account → landed top of feed, count 30 → 31, composer footer
+  switched to "POSTING AS MELLOWSUMMIT6807 · ANONYMOUS · EXPERIENCES, NOT ADVICE"
+- **Second real account** (`SteadyMeadow1600`, fresh cookie jar = a second device) signed up
+  and replied → account A's left-rail **Inbox badge showed 1**, the post showed "1 reply",
+  and **B's own inbox stayed at 0** (replying to someone else notifies them, not you)
+- `/inbox` showed the reply with actor handle, context title and preview
+- `/you` showed **Posts (1) / Comments (0)**, plus the "cannot be recovered" banner; after
+  replying to another thread from the drawer it read **Posts (1) / Comments (1)**
+- `/wait-check` on its own route, driven **with no account and no device token**: 820 lodged
+  2025-02-10 → "YOU · 17.2 months · On track" with "Department of Home Affairs · 50% by 17.7
+  months · 90% by 31 months · **as at Mar 2026**" and "Nobody has shared a timeline for this
+  visa yet. Once 20 have been decided…" — official and room rendered together, no bare
+  community number anywhere
+- Mobile (390×844): rails collapse to a scrolling icon nav, single column, no horizontal
+  page overflow
 
 ---

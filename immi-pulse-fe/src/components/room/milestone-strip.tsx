@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { JourneyOut, MilestoneOut } from "@/lib/api/hooks/community";
-import { shortDate } from "../_lib/format";
+import { shortDate } from "@/lib/room/format";
 import { dayGap, gapLabel, milestoneMeta } from "./milestone-meta";
 
 /* Short display name for a milestone (drop trailing ellipsis, trim "Received"). */
