@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>immi360 — The Waiting Room · Community-first homepage mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ═══════════════════════════════════════════════════════════════════
+     immi360 — COMMUNITY-FIRST HOMEPAGE MOCKUP
+     "The Waiting Room" editorial data-journal system, extended to the
+     front door. Ink on paper. Hairline rules. Mono micro-labels.
+     One serif accent. Purple used as ink, never as gradient.
+     ═══════════════════════════════════════════════════════════════════ */
+  :root {
+    --paper:      #FBFAF8;
+    --paper-deep: #F4F2ED;
+    --ink:        #16181D;
+    --ink-soft:   #5B6270;
+    --hair:       #E7E4DE;
+    --navy:       #0F1117;
+    --purple:     #7C5CFC;
+    --purple-deep:#5B3ADB;
+    --teal:       #1B7B6F;
+    --teal-light: #2DD4BF;
+    --warning:    #F59E0B;
+    --serif: "Instrument Serif", Georgia, serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+    --sans: "Inter", -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    font-size: 15px;
+    line-height: 1.6;
+    background-image:
+      radial-gradient(120% 90% at 82% -8%, color-mix(in srgb, var(--purple) 5%, transparent), transparent 60%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 32px; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 10.5px; line-height: 1;
+    letter-spacing: 0.24em; text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .serif { font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: 0.01em; }
+  .hair { height: 1px; background: var(--hair); border: 0; }
+
+  /* ── Reveal on scroll ─────────────────────────────────────────── */
+  .rv { opacity: 0; transform: translateY(14px); transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); }
+  .rv.in { opacity: 1; transform: none; }
+
+  /* ── 0 · Live ticker ──────────────────────────────────────────── */
+  .ticker {
+    background: var(--navy); color: #B9BECB;
+    font-family: var(--mono); font-size: 11px; letter-spacing: .06em;
+    overflow: hidden; white-space: nowrap; user-select: none;
+  }
+  .ticker-inner { display: inline-block; padding: 8px 0; animation: tick 55s linear infinite; }
+  .ticker:hover .ticker-inner { animation-play-state: paused; }
+  @keyframes tick { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .ticker b { color: #fff; font-weight: 500; }
+  .ticker .grant { color: var(--teal-light); }
+  .ticker .q     { color: #C9BEFF; }
+  .ticker .sep   { margin: 0 22px; opacity: .35; }
+
+  /* ── 1 · Masthead ─────────────────────────────────────────────── */
+  header.masthead {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid transparent;
+    transition: border-color .3s;
+  }
+  header.masthead.scrolled { border-bottom-color: var(--hair); }
+  .masthead-row { display: flex; align-items: center; gap: 28px; padding: 18px 0; }
+  .wordmark { display: flex; align-items: baseline; gap: 12px; }
+  .wordmark .brand { font-weight: 700; letter-spacing: -0.02em; font-size: 17px; }
+  .wordmark .brand sup { font-family: var(--mono); font-size: 8.5px; color: var(--purple); letter-spacing: .1em; top: -7px; position: relative; }
+  .wordmark .room { font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--ink-soft); border-left: 1px solid var(--hair); padding-left: 12px; }
+  nav.main { display: flex; gap: 26px; margin-left: auto; }
+  nav.main a { font-size: 13.5px; font-weight: 500; color: var(--ink-soft); position: relative; padding: 4px 0; transition: color .2s; }
+  nav.main a:hover, nav.main a.active { color: var(--ink); }
+  nav.main a.active::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px; background: var(--ink);
+  }
+  .mast-actions { display: flex; align-items: center; gap: 18px; }
+  .mast-actions .signin { font-size: 13px; color: var(--ink-soft); }
+  .mast-actions .signin:hover { color: var(--ink); }
+  .btn-ink {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--ink); color: var(--paper);
+    font-size: 13px; font-weight: 600; letter-spacing: .01em;
+    padding: 10px 18px; border-radius: 999px; border: 1px solid var(--ink);
+    cursor: pointer; transition: background .2s, color .2s;
+  }
+  .btn-ink:hover { background: transparent; color: var(--ink); }
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent; color: var(--ink);
+    font-size: 13px; font-weight: 600;
+    padding: 10px 18px; border-radius: 999px; border: 1px solid var(--ink);
+    cursor: pointer; transition: background .2s, color .2s;
+  }
+  .btn-ghost:hover { background: var(--ink); color: var(--paper); }
+
+  /* ── 2 · Hero ─────────────────────────────────────────────────── */
+  .hero { padding: 76px 0 0; }
+  .hero-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, .9fr); gap: 64px; align-items: start; }
+  .hero .kicker { display: flex; align-items: center; gap: 14px; margin-bottom: 26px; }
+  .hero .kicker .dot { width: 6px; height: 6px; border-radius: 99px; background: var(--teal-light); box-shadow: 0 0 0 4px color-mix(in srgb, var(--teal-light) 18%, transparent); }
+  .hero h1 {
+    font-family: var(--serif); font-weight: 400; font-style: normal;
+    font-size: clamp(44px, 5.6vw, 72px); line-height: 1.02; letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .hero h1 em { font-style: italic; color: var(--purple-deep); }
+  .hero .deck {
+    margin-top: 24px; font-size: 16.5px; color: var(--ink-soft); max-width: 56ch; line-height: 1.7;
+  }
+  .hero .deck b { color: var(--ink); font-weight: 600; }
+
+  /* Ask box */
+  .askbox { margin-top: 40px; max-width: 640px; }
+  .askbox-field {
+    display: flex; align-items: center; gap: 12px;
+    border: 1.5px solid var(--ink); border-radius: 14px; background: #fff;
+    padding: 6px 6px 6px 20px;
+    box-shadow: 4px 4px 0 0 color-mix(in srgb, var(--ink) 8%, transparent);
+    transition: box-shadow .2s, transform .2s;
+  }
+  .askbox-field:focus-within { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 0 color-mix(in srgb, var(--purple) 22%, transparent); }
+  .askbox-field .qmark { font-family: var(--serif); font-style: italic; font-size: 22px; color: var(--purple); }
+  .askbox-field input {
+    flex: 1; border: 0; outline: 0; background: transparent;
+    font-family: var(--sans); font-size: 15px; color: var(--ink); min-width: 0;
+  }
+  .askbox-field input::placeholder { color: var(--ink-soft); }
+  .askbox-field .btn-ink { border-radius: 10px; padding: 12px 20px; }
+  .ask-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .chip {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .04em;
+    border: 1px solid var(--hair); background: #fff; color: var(--ink-soft);
+    padding: 6px 12px; border-radius: 999px; cursor: pointer;
+    transition: border-color .2s, color .2s, background .2s;
+  }
+  .chip:hover { border-color: var(--ink); color: var(--ink); }
+  .chip.hot { border-color: color-mix(in srgb, var(--purple) 45%, transparent); color: var(--purple-deep); background: color-mix(in srgb, var(--purple) 6%, #fff); }
+
+  .hero-stats { display: flex; gap: 0; margin-top: 52px; border-top: 1px solid var(--hair); }
+  .hero-stat { padding: 20px 36px 26px 0; margin-right: 36px; border-right: 1px solid var(--hair); }
+  .hero-stat:last-child { border-right: 0; }
+  .hero-stat .n { font-family: var(--serif); font-size: 34px; line-height: 1; }
+  .hero-stat .n span { color: var(--purple-deep); }
+  .hero-stat .l { margin-top: 8px; }
+
+  /* Hero right — front-page dispatch card */
+  .dispatch {
+    border: 1px solid var(--hair); border-radius: 18px; background: #fff;
+    overflow: hidden;
+    box-shadow: 0 24px 60px -32px color-mix(in srgb, var(--ink) 22%, transparent);
+  }
+  .dispatch-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--hair); }
+  .dispatch-head .live { display: flex; align-items: center; gap: 8px; }
+  .dispatch-head .live .dot { width: 6px; height: 6px; border-radius: 99px; background: var(--teal-light); animation: pulse 2.4s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+  .dispatch-item { padding: 15px 20px; border-bottom: 1px solid var(--hair); display: flex; gap: 14px; align-items: flex-start; transition: background .2s; cursor: pointer; }
+  .dispatch-item:hover { background: var(--paper); }
+  .dispatch-item:last-child { border-bottom: 0; }
+  .dtag {
+    flex-shrink: 0; font-family: var(--mono); font-size: 10px; letter-spacing: .08em;
+    padding: 4px 8px; border-radius: 6px; margin-top: 2px;
+  }
+  .dtag.grant { background: color-mix(in srgb, var(--teal) 10%, #fff); color: var(--teal); border: 1px solid color-mix(in srgb, var(--teal) 25%, transparent); }
+  .dtag.ask   { background: color-mix(in srgb, var(--purple) 8%, #fff); color: var(--purple-deep); border: 1px solid color-mix(in srgb, var(--purple) 22%, transparent); }
+  .dtag.rfi   { background: color-mix(in srgb, var(--warning) 10%, #fff); color: #B45309; border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent); }
+  .dispatch-item .t { font-size: 13.5px; font-weight: 500; line-height: 1.45; }
+  .dispatch-item .m { font-family: var(--mono); font-size: 10.5px; color: var(--ink-soft); margin-top: 4px; letter-spacing: .03em; }
+
+  /* ── 3 · Feed section ─────────────────────────────────────────── */
+  .feed-section { padding: 96px 0 40px; }
+  .section-head { display: flex; align-items: baseline; gap: 20px; margin-bottom: 8px; }
+  .section-head h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(30px, 3.4vw, 44px); letter-spacing: -0.01em; }
+  .section-head h2 em { color: var(--purple-deep); }
+  .section-head .rule { flex: 1; height: 1px; background: var(--hair); position: relative; top: -6px; }
+  .feed-grid { display: grid; grid-template-columns: 210px minmax(0,1fr) 300px; gap: 40px; margin-top: 44px; align-items: start; }
+
+  /* Left rail */
+  .rail { position: sticky; top: 96px; }
+  .rail-block { margin-bottom: 36px; }
+  .rail-block .eyebrow { display: block; margin-bottom: 14px; }
+  .queue-list { list-style: none; }
+  .queue-list li {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; padding: 7px 0; color: var(--ink-soft); cursor: pointer;
+    border-bottom: 1px dashed color-mix(in srgb, var(--hair) 70%, transparent);
+    transition: color .15s;
+  }
+  .queue-list li:hover { color: var(--ink); }
+  .queue-list li.active { color: var(--ink); font-weight: 600; }
+  .queue-list li.active .qn { color: var(--purple-deep); }
+  .queue-list .qn { font-family: var(--mono); font-size: 11px; }
+  .queue-list .qc { font-family: var(--mono); font-size: 10.5px; color: var(--ink-soft); }
+  .today-digest { border-left: 2px solid var(--ink); padding-left: 14px; }
+  .today-digest p { font-size: 12.5px; color: var(--ink-soft); line-height: 1.6; margin-bottom: 10px; }
+  .today-digest p b { color: var(--ink); font-weight: 600; }
+
+  /* Center feed */
+  .feed-tabs { display: flex; gap: 4px; border: 1px solid var(--hair); border-radius: 999px; background: #fff; padding: 4px; width: max-content; margin-bottom: 26px; }
+  .feed-tab {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    padding: 8px 18px; border-radius: 999px; cursor: pointer; color: var(--ink-soft); border: 0; background: transparent;
+    transition: background .2s, color .2s;
+  }
+  .feed-tab.active { background: var(--ink); color: var(--paper); }
+  .card {
+    border: 1px solid var(--hair); border-radius: 16px; background: #fff;
+    padding: 22px 24px; margin-bottom: 18px; cursor: pointer;
+    transition: transform .25s cubic-bezier(.16,1,.3,1), box-shadow .25s, border-color .25s;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--ink) 22%, var(--hair));
+    box-shadow: 0 18px 44px -26px color-mix(in srgb, var(--ink) 30%, transparent);
+  }
+  .card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .idchip {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .05em;
+    padding: 5px 10px; border-radius: 7px; border: 1px solid var(--hair); color: var(--ink-soft); background: var(--paper);
+  }
+  .idchip .swatch { width: 8px; height: 8px; border-radius: 3px; }
+  .sw-500 { background: var(--purple); } .sw-482 { background: #2563EB; }
+  .sw-189 { background: var(--teal); }  .sw-820 { background: #DB2777; }
+  .sw-485 { background: var(--warning);} .sw-103 { background: #78716C; }
+  .waitchip { font-family: var(--mono); font-size: 10.5px; letter-spacing: .05em; color: #B45309; background: color-mix(in srgb, var(--warning) 9%, #fff); border: 1px solid color-mix(in srgb, var(--warning) 28%, transparent); padding: 5px 10px; border-radius: 7px; }
+  .grantchip { font-family: var(--mono); font-size: 10.5px; letter-spacing: .05em; color: var(--teal); background: color-mix(in srgb, var(--teal) 9%, #fff); border: 1px solid color-mix(in srgb, var(--teal) 26%, transparent); padding: 5px 10px; border-radius: 7px; }
+  .card h3 { font-size: 16.5px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.45; }
+  .card h3:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  .card .snippet { margin-top: 8px; font-size: 13.5px; color: var(--ink-soft); line-height: 1.65; }
+  .card .answer-peek {
+    margin-top: 14px; border-left: 2px solid var(--teal); padding: 2px 0 2px 14px;
+    font-size: 13px; color: var(--ink-soft); font-style: normal;
+  }
+  .card .answer-peek .who { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; color: var(--teal); text-transform: uppercase; display: block; margin-bottom: 4px; }
+  .card-meta { display: flex; gap: 18px; margin-top: 16px; font-family: var(--mono); font-size: 11px; color: var(--ink-soft); letter-spacing: .03em; }
+  .card-meta .up { color: var(--purple-deep); }
+
+  /* Milestone strip (timeline cards) */
+  .mstrip { margin-top: 16px; }
+  .mstrip-bar { display: flex; height: 10px; border-radius: 99px; overflow: hidden; gap: 2px; }
+  .mseg { height: 100%; border-radius: 3px; position: relative; }
+  .mseg.lodged { background: color-mix(in srgb, var(--ink-soft) 38%, #fff); }
+  .mseg.rfi    { background: var(--warning); }
+  .mseg.med    { background: var(--purple); }
+  .mseg.grant  { background: var(--teal); }
+  .mseg.waiting { background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--warning) 45%, #fff), color-mix(in srgb, var(--warning) 45%, #fff) 4px, color-mix(in srgb, var(--warning) 15%, #fff) 4px, color-mix(in srgb, var(--warning) 15%, #fff) 8px); }
+  .mstrip-labels { display: flex; justify-content: space-between; margin-top: 8px; font-family: var(--mono); font-size: 10px; color: var(--ink-soft); letter-spacing: .04em; }
+
+  /* Right rail — wait check */
+  .wait-card {
+    border: 1.5px solid var(--ink); border-radius: 18px; background: #fff; padding: 22px;
+    box-shadow: 5px 5px 0 0 color-mix(in srgb, var(--purple) 16%, transparent);
+  }
+  .wait-card h4 { font-family: var(--serif); font-weight: 400; font-size: 24px; line-height: 1.15; margin: 10px 0 4px; }
+  .wait-card h4 em { font-style: italic; color: var(--purple-deep); }
+  .wait-card .sub { font-size: 12.5px; color: var(--ink-soft); }
+  .dist { margin: 18px 0 6px; }
+  .dist svg { width: 100%; height: auto; display: block; }
+  .dist-verdict { font-family: var(--mono); font-size: 11px; letter-spacing: .04em; line-height: 1.7; color: var(--ink-soft); border-top: 1px dashed var(--hair); padding-top: 12px; }
+  .dist-verdict b { color: var(--teal); font-weight: 600; }
+  .wait-card .btn-ink { width: 100%; justify-content: center; margin-top: 16px; border-radius: 12px; }
+
+  .official { margin-top: 30px; }
+  .official table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; }
+  .official td { padding: 9px 0; border-bottom: 1px dashed var(--hair); color: var(--ink-soft); letter-spacing: .02em; }
+  .official td:last-child { text-align: right; color: var(--ink); }
+  .official .src { font-family: var(--mono); font-size: 9.5px; color: var(--ink-soft); letter-spacing: .06em; margin-top: 10px; opacity: .7; }
+
+  .cohort-card { margin-top: 30px; border: 1px solid var(--hair); border-radius: 14px; padding: 18px; background: var(--paper-deep); }
+  .cohort-card .row { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; padding: 7px 0; border-bottom: 1px dashed color-mix(in srgb, var(--ink) 10%, transparent); color: var(--ink-soft); }
+  .cohort-card .row:last-of-type { border-bottom: 0; }
+  .cohort-card .row b { color: var(--ink); font-weight: 600; }
+
+  /* ── 4 · Manifesto band ───────────────────────────────────────── */
+  .manifesto { background: var(--navy); color: #E7E4DE; margin-top: 96px; padding: 96px 0; position: relative; overflow: hidden; }
+  .manifesto::after {
+    content: "everything, in one room"; position: absolute; right: -40px; bottom: -34px;
+    font-family: var(--serif); font-style: italic; font-size: 150px; color: color-mix(in srgb, #fff 4%, transparent);
+    white-space: nowrap; pointer-events: none;
+  }
+  .manifesto .eyebrow { color: #8B90A0; }
+  .manifesto h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 4vw, 54px); line-height: 1.1; margin-top: 22px; max-width: 22ch; letter-spacing: -0.005em; }
+  .manifesto h2 em { font-style: italic; color: var(--purple-light, #BDB4FE); color: #BDB4FE; }
+  .griefs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 64px; border-top: 1px solid color-mix(in srgb, #fff 12%, transparent); }
+  .grief { padding: 30px 36px 0 0; margin-right: 36px; border-right: 1px solid color-mix(in srgb, #fff 10%, transparent); }
+  .grief:last-child { border-right: 0; margin-right: 0; }
+  .grief .n { font-family: var(--mono); font-size: 10.5px; letter-spacing: .2em; color: #6E7382; }
+  .grief h5 { font-size: 16px; font-weight: 600; color: #fff; margin: 14px 0 8px; letter-spacing: -0.01em; }
+  .grief p { font-size: 13.5px; color: #9BA0AE; line-height: 1.7; }
+  .grief p s { color: #6E7382; }
+  .manifesto .resolve { margin-top: 64px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+  .manifesto .resolve p { font-size: 17px; color: #C9CDD8; max-width: 52ch; }
+  .manifesto .resolve p b { color: #fff; }
+  .btn-paper {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--paper); color: var(--ink); font-size: 13px; font-weight: 600;
+    padding: 12px 22px; border-radius: 999px; border: 1px solid var(--paper); cursor: pointer;
+    transition: background .2s, color .2s;
+  }
+  .btn-paper:hover { background: transparent; color: var(--paper); }
+
+  /* ── 5 · Wedge band — is my wait normal ───────────────────────── */
+  .wedge { padding: 110px 0 90px; }
+  .wedge-grid { display: grid; grid-template-columns: minmax(0,.95fr) minmax(0,1.2fr); gap: 72px; align-items: center; }
+  .wedge h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(36px, 4.2vw, 56px); line-height: 1.05; letter-spacing: -0.01em; }
+  .wedge h2 em { font-style: italic; color: var(--purple-deep); }
+  .wedge .deck { margin-top: 20px; color: var(--ink-soft); font-size: 15.5px; max-width: 46ch; line-height: 1.7; }
+  .wedge .picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+  .bigdist { border: 1px solid var(--hair); border-radius: 20px; background: #fff; padding: 30px 30px 22px; box-shadow: 0 28px 70px -40px color-mix(in srgb, var(--ink) 28%, transparent); }
+  .bigdist .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .bigdist svg { width: 100%; height: auto; display: block; }
+  .bigdist .legend { display: flex; gap: 22px; margin-top: 14px; border-top: 1px dashed var(--hair); padding-top: 14px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-soft); letter-spacing: .05em; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 7px; position: relative; top: 1px; }
+
+  /* ── 6 · Footer ───────────────────────────────────────────────── */
+  footer { border-top: 1px solid var(--hair); padding: 56px 0 46px; background: var(--paper-deep); }
+  .foot-grid { display: flex; justify-content: space-between; gap: 40px; flex-wrap: wrap; }
+  .foot-left .wordmark { margin-bottom: 14px; }
+  .foot-left p { font-size: 12px; color: var(--ink-soft); max-width: 52ch; line-height: 1.7; }
+  .foot-links { display: flex; gap: 56px; }
+  .foot-links .col .eyebrow { display: block; margin-bottom: 14px; }
+  .foot-links .col a { display: block; font-size: 13px; color: var(--ink-soft); padding: 4px 0; transition: color .15s; }
+  .foot-links .col a:hover { color: var(--ink); }
+  .foot-legal { margin-top: 44px; border-top: 1px dashed var(--hair); padding-top: 20px; display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  .foot-legal p { font-family: var(--mono); font-size: 10px; letter-spacing: .05em; color: var(--ink-soft); }
+  .foot-legal .agent-door { font-family: var(--mono); font-size: 10px; letter-spacing: .05em; color: var(--ink-soft); }
+  .foot-legal .agent-door a { text-decoration: underline; text-underline-offset: 3px; }
+  .foot-legal .agent-door a:hover { color: var(--purple-deep); }
+
+  /* ── Annotation notes (mockup-only) ───────────────────────────── */
+  .note {
+    position: absolute; z-index: 40;
+    font-family: var(--mono); font-size: 10px; letter-spacing: .04em; line-height: 1.5;
+    color: #B45309; background: #FFFBEB; border: 1px dashed var(--warning);
+    padding: 8px 10px; border-radius: 8px; max-width: 220px;
+    transform: rotate(-1deg);
+  }
+  .note::before { content: "✎ MOCKUP NOTE — "; font-weight: 600; }
+  body.hide-notes .note { display: none; }
+  .note-toggle {
+    position: fixed; bottom: 20px; right: 20px; z-index: 99;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em;
+    background: var(--ink); color: var(--paper); border: 0; border-radius: 999px;
+    padding: 10px 16px; cursor: pointer; opacity: .85;
+  }
+
+  @media (max-width: 1080px) {
+    .hero-grid, .wedge-grid { grid-template-columns: 1fr; }
+    .feed-grid { grid-template-columns: 1fr; }
+    .rail { position: static; }
+    nav.main { display: none; }
+    .griefs { grid-template-columns: 1fr; }
+    .grief { border-right: 0; padding: 24px 0; border-bottom: 1px solid color-mix(in srgb, #fff 10%, transparent); }
+    .note { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ 0 · LIVE TICKER ═══ -->
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-inner" id="tickerInner"></div>
+</div>
+
+<!-- ═══ 1 · MASTHEAD ═══ -->
+<header class="masthead" id="masthead">
+  <div class="wrap masthead-row">
+    <a class="wordmark" href="#">
+      <span class="brand">IMMI360<sup>AU</sup></span>
+      <span class="room">The Waiting Room</span>
+    </a>
+    <nav class="main">
+      <a href="#feed" class="active">Questions</a>
+      <a href="#feed">Timelines</a>
+      <a href="#wedge">Wait Check</a>
+      <a href="#feed">Cohorts</a>
+    </nav>
+    <div class="mast-actions">
+      <a class="signin" href="#">Sign in</a>
+      <button class="btn-ink">Share your timeline</button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ 2 · HERO ═══ -->
+<section class="hero wrap" style="position: relative;">
+  <div class="note" style="top: -6px; right: 0;">SaaS pitch is gone. No “platform”, no pricing, no console screenshot. Consultant product moves to a quiet footer link.</div>
+  <div class="hero-grid">
+    <div>
+      <div class="kicker rv in">
+        <span class="dot"></span>
+        <span class="eyebrow">Australia · every visa · every queue · anonymous by default</span>
+      </div>
+      <h1 class="rv in">Someone in this room has <em>already asked</em> your question.</h1>
+      <p class="deck rv in">
+        The one place for Australian visa questions and real waiting timelines —
+        <b>student, skilled, partner, graduate, parent, visitor</b>. No dead Reddit threads,
+        no answers buried under 900 Facebook comments, no tracker numbers with no story.
+      </p>
+
+      <div class="askbox rv in">
+        <div class="askbox-field">
+          <span class="qmark">?</span>
+          <input id="askInput" type="text" placeholder="Ask about any Australian visa…" />
+          <button class="btn-ink">Ask the room →</button>
+        </div>
+        <div class="ask-chips">
+          <button class="chip hot">500 · Student</button>
+          <button class="chip">482 · Skills in Demand</button>
+          <button class="chip">189 / 190 · Skilled</button>
+          <button class="chip hot">820 · Partner</button>
+          <button class="chip">485 · Graduate</button>
+          <button class="chip">600 · Visitor</button>
+          <button class="chip">103 · Parent</button>
+          <button class="chip">everything else →</button>
+        </div>
+      </div>
+
+      <div class="hero-stats rv in">
+        <div class="hero-stat">
+          <div class="n mono">2,847</div>
+          <div class="l eyebrow">timelines tracked</div>
+        </div>
+        <div class="hero-stat">
+          <div class="n mono">391</div>
+          <div class="l eyebrow">questions this week</div>
+        </div>
+        <div class="hero-stat">
+          <div class="n mono"><span>41</span> min</div>
+          <div class="l eyebrow">median first answer</div>
+        </div>
+        <div class="hero-stat">
+          <div class="n mono">214</div>
+          <div class="l eyebrow">grants logged · 30 days</div>
+        </div>
+      </div>
+    </div>
+
+    <aside style="position: relative;">
+      <div class="note" style="top: -34px; left: 18px;">Right card = the room breathing in real time. Replaces the SaaS console screenshot.</div>
+      <div class="dispatch rv in">
+        <div class="dispatch-head">
+          <span class="live"><span class="dot"></span><span class="eyebrow" style="color: var(--teal);">Happening now</span></span>
+          <span class="mono" style="font-size:10.5px; color:var(--ink-soft);">FRI 18 JUL · 14:32 AEST</span>
+        </div>
+        <div class="dispatch-item">
+          <span class="dtag grant">GRANT</span>
+          <div>
+            <div class="t">Subclass 189 granted — 187 days after lodgement, no CO contact at all</div>
+            <div class="m">Skilled Independent · offshore · 14 min ago</div>
+          </div>
+        </div>
+        <div class="dispatch-item">
+          <span class="dtag ask">QUESTION</span>
+          <div>
+            <div class="t">“My police check expires next month but I'm still waiting — do I redo it now or wait to be asked?”</div>
+            <div class="m">Partner 820 · 3 answers already · 26 min ago</div>
+          </div>
+        </div>
+        <div class="dispatch-item">
+          <span class="dtag rfi">S56 RFI</span>
+          <div>
+            <div class="t">Request for more information at day 204 — additional evidence of relationship</div>
+            <div class="m">Partner 309 · timeline updated · 41 min ago</div>
+          </div>
+        </div>
+        <div class="dispatch-item">
+          <span class="dtag ask">QUESTION</span>
+          <div>
+            <div class="t">“Confused about the new Skills in Demand stream names — which one is my 482 under now?”</div>
+            <div class="m">482 SID · 7 answers · 1 h ago</div>
+          </div>
+        </div>
+        <div class="dispatch-item">
+          <span class="dtag grant">GRANT</span>
+          <div>
+            <div class="t">Student 500 granted in 11 days — higher education, onshore, first entry</div>
+            <div class="m">Student 500 · timeline shared · 2 h ago</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ═══ 3 · THE FEED ═══ -->
+<section class="feed-section wrap" id="feed" style="position: relative;">
+  <div class="note" style="top: 44px; right: -8px;">Scroll = you're already inside the community. Same three-rail layout as the live /community page — the homepage is a windowed view of the real feed.</div>
+  <div class="section-head rv">
+    <h2>The room, <em>right now</em></h2>
+    <div class="rule"></div>
+    <span class="eyebrow">live feed · updated continuously</span>
+  </div>
+
+  <div class="feed-grid">
+    <!-- Left rail -->
+    <aside class="rail rv">
+      <div class="rail-block">
+        <span class="eyebrow">Filter by queue</span>
+        <ul class="queue-list" id="queueList">
+          <li class="active" data-q="all"><span>All queues</span><span class="qc">1,982</span></li>
+          <li data-q="500"><span><span class="qn">500</span> Student</span><span class="qc">644</span></li>
+          <li data-q="482"><span><span class="qn">482</span> Skills in Demand</span><span class="qc">303</span></li>
+          <li data-q="189"><span><span class="qn">189/190</span> Skilled</span><span class="qc">431</span></li>
+          <li data-q="820"><span><span class="qn">820/309</span> Partner</span><span class="qc">387</span></li>
+          <li data-q="485"><span><span class="qn">485</span> Graduate</span><span class="qc">139</span></li>
+          <li data-q="103"><span><span class="qn">103/143</span> Parent</span><span class="qc">78</span></li>
+        </ul>
+      </div>
+      <div class="rail-block">
+        <span class="eyebrow">Today in the room</span>
+        <div class="today-digest">
+          <p><b>Partner 820</b> is moving — 9 grants logged this week, median wait dropping.</p>
+          <p><b>500 Student</b> questions spiked after the July financial-evidence change.</p>
+          <p><b>189</b> quietest week since May — 3 grants, all ~180-day waits.</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center feed -->
+    <div>
+      <div class="feed-tabs rv">
+        <button class="feed-tab active" data-tab="all">All</button>
+        <button class="feed-tab" data-tab="question">Questions</button>
+        <button class="feed-tab" data-tab="timeline">Timelines</button>
+      </div>
+
+      <!-- Question card -->
+      <article class="card rv" data-type="question" data-q="500">
+        <div class="card-top">
+          <span class="idchip"><span class="swatch sw-500"></span>Student 500 · onshore</span>
+          <span class="waitchip">IN QUEUE · DAY 148</span>
+        </div>
+        <h3>Medical booked but zero CO contact after 5 months — is this normal for a 500 higher-ed application?</h3>
+        <p class="snippet">Lodged mid-Feb, did biometrics in March, booked medicals myself in April. Since then: silence. My course starts in 6 weeks and I'm starting to panic…</p>
+        <div class="answer-peek">
+          <span class="who">Top answer · granted after a 172-day wait</span>
+          “Same situation, same panic. 500s with self-booked medicals often sit until ~day 160 in this year's queue — check the cohort chart before you spend money on a lawyer.”
+        </div>
+        <div class="card-meta"><span class="up">▲ 41</span><span>12 answers</span><span>2 h ago</span><span>#financial-evidence</span></div>
+      </article>
+
+      <!-- Timeline card -->
+      <article class="card rv" data-type="timeline" data-q="189">
+        <div class="card-top">
+          <span class="idchip"><span class="swatch sw-189"></span>Skilled 189 · offshore</span>
+          <span class="grantchip">GRANTED · 187 DAYS</span>
+        </div>
+        <h3>189 timeline: lodged Jan 12 → direct grant July 18. No CO contact, no RFI.</h3>
+        <div class="mstrip">
+          <div class="mstrip-bar">
+            <div class="mseg lodged" style="width: 38%;"></div>
+            <div class="mseg med" style="width: 9%;"></div>
+            <div class="mseg lodged" style="width: 46%;"></div>
+            <div class="mseg grant" style="width: 7%;"></div>
+          </div>
+          <div class="mstrip-labels">
+            <span>LODGED · JAN 12</span><span>MEDICALS · D71</span><span>SILENCE · 116 DAYS</span><span>GRANT · D187</span>
+          </div>
+        </div>
+        <div class="card-meta"><span class="up">▲ 96</span><span>18 congratulations</span><span>14 min ago</span><span>75 pts · accountant</span></div>
+      </article>
+
+      <!-- Question card -->
+      <article class="card rv" data-type="question" data-q="820">
+        <div class="card-top">
+          <span class="idchip"><span class="swatch sw-820"></span>Partner 820 · onshore</span>
+          <span class="waitchip">IN QUEUE · DAY 292</span>
+        </div>
+        <h3>Police check expires next month while I'm still waiting — renew now or wait for the s56 request?</h3>
+        <p class="snippet">AFP check was valid when I lodged, but it hits 12 months in August. Some people say renew proactively, others say it wastes money because they'll ask again anyway…</p>
+        <div class="answer-peek">
+          <span class="who">Top answer · 820 granted 2024, now on 801</span>
+          “Renew it the moment you get an s56 — not before. They only care that it's valid at decision time. I renewed twice for nothing.”
+        </div>
+        <div class="card-meta"><span class="up">▲ 28</span><span>3 answers</span><span>26 min ago</span><span>#police-check</span></div>
+      </article>
+
+      <!-- Timeline card with RFI -->
+      <article class="card rv" data-type="timeline" data-q="820">
+        <div class="card-top">
+          <span class="idchip"><span class="swatch sw-820"></span>Partner 309 · offshore</span>
+          <span class="waitchip">WAITING · DAY 204 · S56 RECEIVED</span>
+        </div>
+        <h3>309 timeline: s56 request at day 204 — they want more evidence of cohabitation.</h3>
+        <div class="mstrip">
+          <div class="mstrip-bar">
+            <div class="mseg lodged" style="width: 44%;"></div>
+            <div class="mseg med" style="width: 8%;"></div>
+            <div class="mseg lodged" style="width: 28%;"></div>
+            <div class="mseg rfi" style="width: 8%;"></div>
+            <div class="mseg waiting" style="width: 12%;"></div>
+          </div>
+          <div class="mstrip-labels">
+            <span>LODGED · DEC 26</span><span>MEDICALS · D93</span><span>S56 · D204</span><span>STILL WAITING</span>
+          </div>
+        </div>
+        <div class="card-meta"><span class="up">▲ 12</span><span>6 comments</span><span>41 min ago</span><span>cohort · dec 2025 lodgers</span></div>
+      </article>
+
+      <!-- Question card -->
+      <article class="card rv" data-type="question" data-q="482">
+        <div class="card-top">
+          <span class="idchip"><span class="swatch sw-482"></span>482 Skills in Demand</span>
+        </div>
+        <h3>Which Skills in Demand stream is my old TSS occupation under now — Core Skills or Specialist?</h3>
+        <p class="snippet">My nomination was lodged under the old TSS medium-term list. Employer's HR says it "carried over" but can't tell me which stream. Salary is above $135k if that matters…</p>
+        <div class="card-meta"><span class="up">▲ 19</span><span>7 answers</span><span>1 h ago</span><span>#sid-streams</span></div>
+      </article>
+
+      <!-- Question card -->
+      <article class="card rv" data-type="question" data-q="485">
+        <div class="card-top">
+          <span class="idchip"><span class="swatch sw-485"></span>Graduate 485</span>
+          <span class="waitchip">PRE-LODGE</span>
+        </div>
+        <h3>Finishing my Masters in November — can I lodge the 485 before my final results are released?</h3>
+        <p class="snippet">Completion letter vs. conferral date confusion. My uni releases results Dec 12 but conferral is in March. Which date starts my eligibility window?</p>
+        <div class="answer-peek">
+          <span class="who">Top answer · 485 holder, asked this exact thing in 2025</span>
+          “Completion letter is what matters — you have 6 months from results release, not graduation day. I lodged 3 weeks after results with just the letter.”
+        </div>
+        <div class="card-meta"><span class="up">▲ 33</span><span>9 answers</span><span>3 h ago</span><span>#completion-letter</span></div>
+      </article>
+
+      <!-- Timeline card -->
+      <article class="card rv" data-type="timeline" data-q="500">
+        <div class="card-top">
+          <span class="idchip"><span class="swatch sw-500"></span>Student 500 · offshore</span>
+          <span class="grantchip">GRANTED · 11 DAYS</span>
+        </div>
+        <h3>500 granted in 11 days — higher education, first entry, no interview.</h3>
+        <div class="mstrip">
+          <div class="mstrip-bar">
+            <div class="mseg lodged" style="width: 55%;"></div>
+            <div class="mseg med" style="width: 18%;"></div>
+            <div class="mseg grant" style="width: 27%;"></div>
+          </div>
+          <div class="mstrip-labels">
+            <span>LODGED · JUL 7</span><span>MEDICALS · D6</span><span>GRANT · D11</span>
+          </div>
+        </div>
+        <div class="card-meta"><span class="up">▲ 54</span><span>11 congratulations</span><span>2 h ago</span><span>cohort · jul 2026 lodgers</span></div>
+      </article>
+
+      <!-- Question / long-queue empathy card -->
+      <article class="card rv" data-type="question" data-q="103">
+        <div class="card-top">
+          <span class="idchip"><span class="swatch sw-103"></span>Parent 103</span>
+          <span class="waitchip">IN QUEUE · YEAR 6</span>
+        </div>
+        <h3>Six years into the 103 queue — is switching to a 143 contributory application worth it at this point?</h3>
+        <p class="snippet">Mum's application was lodged in 2020. The published wait is now measured in decades. Has anyone actually done the switch mid-queue, and did you keep your original queue date?</p>
+        <div class="card-meta"><span class="up">▲ 67</span><span>21 answers</span><span>6 h ago</span><span>#parent-queue</span></div>
+      </article>
+
+      <div style="text-align:center; padding: 18px 0 0;">
+        <button class="btn-ghost">Enter the full room →</button>
+      </div>
+    </div>
+
+    <!-- Right rail -->
+    <aside class="rail rv" style="position: sticky; top: 96px;">
+      <div class="wait-card">
+        <span class="eyebrow" style="color: var(--purple-deep);">The wedge</span>
+        <h4>Is my wait <em>normal?</em></h4>
+        <p class="sub">Your wait against 644 real Student 500 timelines — not the official estimate.</p>
+        <div class="dist">
+          <svg viewBox="0 0 260 110" fill="none" aria-label="Wait distribution">
+            <path class="c-draw" d="M4 100 C 30 98, 42 60, 62 42 C 78 28, 92 22, 110 26 C 132 31, 148 58, 170 74 C 192 88, 226 96, 256 99"
+                  stroke="#7C5CFC" stroke-width="2" style="--c-dash: 400;"/>
+            <path d="M4 100 C 30 98, 42 60, 62 42 C 78 28, 92 22, 110 26 C 132 31, 148 58, 170 74 C 192 88, 226 96, 256 99 L 256 104 L 4 104 Z"
+                  fill="url(#gfill)" opacity="0.25"/>
+            <defs>
+              <linearGradient id="gfill" x1="0" y1="0" x2="0" y2="1">
+                <stop stop-color="#7C5CFC"/><stop offset="1" stop-color="#7C5CFC" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <line x1="96" y1="14" x2="96" y2="104" stroke="#5B6270" stroke-dasharray="3 3" stroke-width="1"/>
+            <text x="96" y="9" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#5B6270">MEDIAN 4.2 MO</text>
+            <circle cx="148" cy="58" r="5" fill="#F59E0B"/>
+            <circle cx="148" cy="58" r="9" fill="none" stroke="#F59E0B" opacity="0.4">
+              <animate attributeName="r" values="5;13" dur="2.4s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values="0.5;0" dur="2.4s" repeatCount="indefinite"/>
+            </circle>
+            <text x="148" y="78" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#B45309">YOU · 5.1 MO</text>
+          </svg>
+        </div>
+        <p class="dist-verdict">68TH PERCENTILE · <b>STILL NORMAL</b> · 1 IN 3 WAITS LONGER THAN YOU</p>
+        <button class="btn-ink">Check my wait →</button>
+      </div>
+
+      <div class="official">
+        <span class="eyebrow">Official processing times</span>
+        <table>
+          <tr><td>500 Higher Ed</td><td>90% · 5 months</td></tr>
+          <tr><td>482 Core Skills</td><td>90% · 3 months</td></tr>
+          <tr><td>189 Skilled</td><td>90% · 8 months</td></tr>
+          <tr><td>820 Partner</td><td>90% · 14 months</td></tr>
+          <tr><td>485 Graduate</td><td>90% · 9 months</td></tr>
+        </table>
+        <p class="src">SOURCE · HOMEAFFAIRS.GOV.AU · CHECKED DAILY</p>
+      </div>
+
+      <div class="cohort-card">
+        <span class="eyebrow">Your cohort</span>
+        <div style="margin-top: 12px;">
+          <div class="row"><span>FEB 2026 · 500 LODGERS</span><b>112 ppl</b></div>
+          <div class="row"><span>GRANTED</span><b style="color:var(--teal);">61</b></div>
+          <div class="row"><span>STILL WAITING</span><b style="color:#B45309;">48</b></div>
+          <div class="row"><span>S56 / RFI</span><b>3</b></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ═══ 4 · MANIFESTO ═══ -->
+<section class="manifesto">
+  <div class="wrap">
+    <span class="eyebrow rv">Why this room exists</span>
+    <h2 class="rv">Immigration advice is everywhere. <em>Answers</em> are nowhere.</h2>
+    <div class="griefs">
+      <div class="grief rv">
+        <span class="n">GRIEF · 01</span>
+        <h5>Reddit threads die in 48 hours</h5>
+        <p>Your exact situation was answered brilliantly — in 2022, for rules that no longer exist, in a thread you'll never find. <s>r/AusVisa, 847 comments, locked.</s></p>
+      </div>
+      <div class="grief rv">
+        <span class="n">GRIEF · 02</span>
+        <h5>Facebook groups bury the answer</h5>
+        <p>The one person who knew posted it under 900 comments of “following”, “bump”, and a screenshot of someone else's grant letter with no dates.</p>
+      </div>
+      <div class="grief rv">
+        <span class="n">GRIEF · 03</span>
+        <h5>Tracker apps give numbers, not stories</h5>
+        <p>A median tells you nothing at 2 a.m. on day 148. You need the person one step ahead of you in the same queue, and what happened next to them.</p>
+      </div>
+    </div>
+    <div class="resolve rv">
+      <p><b>One room.</b> Every question searchable, every timeline structured, every queue visible — attached to real, anonymous journeys instead of usernames and vibes.</p>
+      <button class="btn-paper">Join the room — it's free →</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 5 · WEDGE — IS MY WAIT NORMAL ═══ -->
+<section class="wedge wrap" id="wedge" style="position: relative;">
+  <div class="note" style="top: 40px; right: 0;">The proven wedge keeps its own full band — it's the #1 shared artefact and the SEO magnet (“is my 820 wait normal”).</div>
+  <div class="wedge-grid">
+    <div>
+      <span class="eyebrow rv">The question behind every question</span>
+      <h2 class="rv" style="margin-top: 18px;">“Is my wait <em>normal?</em>”</h2>
+      <p class="deck rv">
+        Enter your visa and lodgement date. See yourself on the real distribution —
+        drawn from thousands of community timelines, not the official estimate that
+        hasn't changed since March.
+      </p>
+      <div class="picker rv">
+        <button class="chip hot">500 Student</button>
+        <button class="chip">482 SID</button>
+        <button class="chip">189 / 190</button>
+        <button class="chip">820 Partner</button>
+        <button class="chip">485 Graduate</button>
+      </div>
+      <div class="rv" style="margin-top: 26px; display: flex; gap: 12px; align-items: center;">
+        <button class="btn-ink">Check my wait — 20 seconds →</button>
+        <span class="mono" style="font-size: 10.5px; color: var(--ink-soft); letter-spacing:.05em;">NO ACCOUNT NEEDED</span>
+      </div>
+    </div>
+    <div class="bigdist rv">
+      <div class="head">
+        <span class="eyebrow">Subclass 820 · Partner (onshore) · n = 387 timelines</span>
+        <span class="mono" style="font-size: 10px; color: var(--ink-soft);">UPDATED TODAY</span>
+      </div>
+      <svg viewBox="0 0 560 200" fill="none">
+        <line x1="10" y1="176" x2="550" y2="176" stroke="#E7E4DE"/>
+        <path class="c-draw" d="M10 172 C 60 170, 95 130, 130 96 C 160 68, 190 48, 235 44 C 285 40, 320 62, 360 100 C 400 138, 460 164, 550 172"
+              stroke="#16181D" stroke-width="2" style="--c-dash: 800;"/>
+        <path d="M10 172 C 60 170, 95 130, 130 96 C 160 68, 190 48, 235 44 C 285 40, 320 62, 360 100 C 400 138, 460 164, 550 172 L 550 176 L 10 176 Z" fill="#16181D" opacity="0.05"/>
+        <line x1="235" y1="30" x2="235" y2="176" stroke="#5B6270" stroke-dasharray="4 4"/>
+        <text x="235" y="22" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#5B6270">COMMUNITY MEDIAN · 11.2 MO</text>
+        <line x1="418" y1="70" x2="418" y2="176" stroke="#7C5CFC" stroke-dasharray="4 4"/>
+        <text x="418" y="62" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#5B3ADB">OFFICIAL 90% · 14 MO</text>
+        <circle cx="310" cy="55" r="6" fill="#F59E0B"/>
+        <circle cx="310" cy="55" r="11" fill="none" stroke="#F59E0B" opacity="0.4">
+          <animate attributeName="r" values="6;16" dur="2.4s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.5;0" dur="2.4s" repeatCount="indefinite"/>
+        </circle>
+        <text x="310" y="42" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#B45309" font-weight="600">YOU · 12.4 MO · DAY 377</text>
+        <text x="14" y="192" font-family="JetBrains Mono" font-size="8.5" fill="#5B6270">0 MO</text>
+        <text x="275" y="192" text-anchor="middle" font-family="JetBrains Mono" font-size="8.5" fill="#5B6270">12 MO</text>
+        <text x="546" y="192" text-anchor="end" font-family="JetBrains Mono" font-size="8.5" fill="#5B6270">24 MO+</text>
+      </svg>
+      <div class="legend">
+        <span><i style="background:#16181D;"></i>387 COMMUNITY TIMELINES</span>
+        <span><i style="background:#F59E0B;"></i>YOUR POSITION</span>
+        <span><i style="background:#7C5CFC;"></i>OFFICIAL ESTIMATE</span>
+        <span style="margin-left:auto; color: var(--teal); font-weight: 600;">VERDICT · STILL NORMAL</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 6 · FOOTER ═══ -->
+<footer style="position: relative;">
+  <div class="note" style="top: 18px; right: 24px;">The only remaining SaaS surface: one mono line in legal. Pricing / features / get-started pages get noindexed or redirected for now.</div>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-left">
+        <div class="wordmark">
+          <span class="brand">IMMI360<sup>AU</sup></span>
+          <span class="room">The Waiting Room</span>
+        </div>
+        <p>An anonymous community of people waiting on Australian visas — sharing questions,
+        timelines, and what actually happened. General information shared between community
+        members. Not immigration assistance or migration advice.</p>
+      </div>
+      <div class="foot-links">
+        <div class="col">
+          <span class="eyebrow">The room</span>
+          <a href="#">Questions</a>
+          <a href="#">Timelines</a>
+          <a href="#">Wait check</a>
+          <a href="#">Cohorts</a>
+        </div>
+        <div class="col">
+          <span class="eyebrow">House rules</span>
+          <a href="#">Community guidelines</a>
+          <a href="#">Moderation &amp; s276</a>
+          <a href="#">Anonymity &amp; identity</a>
+          <a href="#">Report content</a>
+        </div>
+        <div class="col">
+          <span class="eyebrow">Boring but important</span>
+          <a href="#">Terms of service</a>
+          <a href="#">Privacy policy</a>
+          <a href="#">Contact</a>
+        </div>
+      </div>
+    </div>
+    <div class="foot-legal">
+      <p>© 2026 IMMI360 · MADE IN AUSTRALIA · CONTENT IS GENERAL INFORMATION, NOT MIGRATION ADVICE (MIGRATION ACT 1958, S276)</p>
+      <p class="agent-door">REGISTERED MIGRATION AGENT? → <a href="#">IMMI360 FOR CONSULTANTS</a></p>
+    </div>
+  </div>
+</footer>
+
+<button class="note-toggle" onclick="document.body.classList.toggle('hide-notes')">✎ TOGGLE MOCKUP NOTES</button>
+
+<script>
+  // ── Ticker content (doubled for seamless loop) ─────────────────
+  const tickerItems = [
+    '<span class="grant">GRANT</span> · <b>189</b> · direct grant after 187 days',
+    '<span class="q">QUESTION</span> · <b>820</b> · “police check expiring mid-wait — renew now?”',
+    '<span class="grant">GRANT</span> · <b>500</b> · 11 days, higher education, offshore',
+    '<span class="q">QUESTION</span> · <b>482</b> · “which Skills in Demand stream am I under?”',
+    'S56 RFI · <b>309</b> · more relationship evidence requested at day 204',
+    '<span class="q">QUESTION</span> · <b>485</b> · “lodge before final results are released?”',
+    '<span class="grant">GRANT</span> · <b>190</b> · NSW nominated, 156 days',
+    '<b>2,847</b> timelines tracked · <b>391</b> questions this week · median first answer <b>41 min</b>',
+  ];
+  const half = tickerItems.map(i => `<span>${i}</span><span class="sep">·—·</span>`).join('');
+  document.getElementById('tickerInner').innerHTML = half + half;
+
+  // ── Masthead border on scroll ──────────────────────────────────
+  const mast = document.getElementById('masthead');
+  addEventListener('scroll', () => mast.classList.toggle('scrolled', scrollY > 8), { passive: true });
+
+  // ── Reveal on scroll ───────────────────────────────────────────
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  }), { threshold: 0.12 });
+  document.querySelectorAll('.rv:not(.in)').forEach(el => io.observe(el));
+
+  // ── Rotating ask placeholder ───────────────────────────────────
+  const hints = [
+    'Ask about any Australian visa…',
+    '“Is a 5-month wait normal for a 500?”',
+    '“Can I travel while my 820 is processing?”',
+    '“What does an s56 request actually mean?”',
+    '“189 vs 190 — which queue moves faster right now?”',
+    '“Parent 103 — is the queue really 30 years?”',
+  ];
+  let hi = 0;
+  const ask = document.getElementById('askInput');
+  setInterval(() => {
+    if (document.activeElement === ask || ask.value) return;
+    hi = (hi + 1) % hints.length;
+    ask.placeholder = hints[hi];
+  }, 3200);
+
+  // ── Feed tabs ──────────────────────────────────────────────────
+  let activeTab = 'all', activeQ = 'all';
+  const applyFilters = () => {
+    document.querySelectorAll('.card').forEach(c => {
+      const okT = activeTab === 'all' || c.dataset.type === activeTab;
+      const okQ = activeQ === 'all' || c.dataset.q === activeQ;
+      c.style.display = okT && okQ ? '' : 'none';
+    });
+  };
+  document.querySelectorAll('.feed-tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.feed-tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active'); activeTab = t.dataset.tab; applyFilters();
+  }));
+  document.querySelectorAll('#queueList li').forEach(li => li.addEventListener('click', () => {
+    document.querySelectorAll('#queueList li').forEach(x => x.classList.remove('active'));
+    li.classList.add('active'); activeQ = li.dataset.q; applyFilters();
+  }));
+</script>
+</body>
+</html>

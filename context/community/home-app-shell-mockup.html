@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>immi360 — The Waiting Room · App-shell homepage mockup (v3 · finalised)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ═══════════════════════════════════════════════════════════════════
+     immi360 — APP-SHELL HOMEPAGE MOCKUP · v3 (FINALISED)
+     X-familiar three-column platform. You land INSIDE the room.
+     Left rail = nav + queue filter (static). Center = composer + feed
+     (only thing that scrolls). Right rail = search, wait-check teaser,
+     dual-source processing times, footer (static).
+     Ink-on-paper "Waiting Room" language retained, zero marketing.
+     ═══════════════════════════════════════════════════════════════════ */
+  :root {
+    --paper:      #FBFAF8;
+    --paper-deep: #F4F2ED;
+    --ink:        #16181D;
+    --ink-soft:   #5B6270;
+    --hair:       #E7E4DE;
+    --navy:       #0F1117;
+    --purple:     #7C5CFC;
+    --purple-deep:#5B3ADB;
+    --teal:       #1B7B6F;
+    --teal-light: #2DD4BF;
+    --warning:    #F59E0B;
+    --serif: "Instrument Serif", Georgia, serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+    --sans: "Inter", -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--sans); background: var(--paper); color: var(--ink);
+    -webkit-font-smoothing: antialiased; font-size: 15px; line-height: 1.55;
+    background-image:
+      radial-gradient(110% 70% at 85% -10%, color-mix(in srgb, var(--purple) 4%, transparent), transparent 60%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; }
+  .eyebrow { font-family: var(--mono); font-size: 10.5px; line-height: 1; letter-spacing: .22em; text-transform: uppercase; color: var(--ink-soft); }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  /* ── App shell ────────────────────────────────────────────────── */
+  .shell {
+    display: grid;
+    grid-template-columns: 265px minmax(0, 660px) 340px;
+    gap: 0;
+    max-width: 1280px; margin: 0 auto;
+    min-height: 100vh;
+  }
+
+  /* ── LEFT RAIL ────────────────────────────────────────────────── */
+  .lrail {
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    padding: 22px 26px 18px 20px; display: flex; flex-direction: column;
+    scrollbar-width: none;
+  }
+  .lrail::-webkit-scrollbar { display: none; }
+  .wordmark { display: flex; flex-direction: column; gap: 3px; padding: 4px 10px 22px; }
+  .wordmark .brand { font-weight: 700; letter-spacing: -0.02em; font-size: 18px; }
+  .wordmark .brand sup { font-family: var(--mono); font-size: 8.5px; color: var(--purple); letter-spacing: .1em; top: -7px; position: relative; }
+  .wordmark .room { font-family: var(--serif); font-style: italic; font-size: 14.5px; color: var(--ink-soft); }
+  nav.main { display: flex; flex-direction: column; gap: 2px; }
+  nav.main a {
+    display: flex; align-items: center; gap: 14px;
+    font-size: 15px; font-weight: 500; color: var(--ink-soft);
+    padding: 10px 12px; border-radius: 999px; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  nav.main a:hover { background: var(--paper-deep); color: var(--ink); }
+  nav.main a.active { color: var(--ink); font-weight: 700; }
+  nav.main a .ico { width: 21px; text-align: center; font-size: 16px; opacity: .85; }
+  nav.main a .pagechip { margin-left: auto; font-family: var(--mono); font-size: 8.5px; letter-spacing: .08em; color: var(--purple-deep); border: 1px solid color-mix(in srgb, var(--purple) 30%, transparent); border-radius: 5px; padding: 2px 5px; }
+
+  .lrail .queue-block { margin-top: 26px; padding: 0 12px; }
+  .lrail .queue-block .eyebrow { display: block; margin-bottom: 12px; }
+  .queue-list { list-style: none; }
+  .queue-list li {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; padding: 6.5px 0; color: var(--ink-soft); cursor: pointer;
+    border-bottom: 1px dashed color-mix(in srgb, var(--hair) 70%, transparent);
+    transition: color .15s;
+  }
+  .queue-list li:hover { color: var(--ink); }
+  .queue-list li.active { color: var(--ink); font-weight: 600; }
+  .queue-list li.active .qn { color: var(--purple-deep); }
+  .queue-list .qn { font-family: var(--mono); font-size: 11px; }
+  .queue-list .qc { font-family: var(--mono); font-size: 10.5px; }
+
+  .btn-ink {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--ink); color: var(--paper);
+    font-size: 14px; font-weight: 600; letter-spacing: .01em;
+    padding: 13px 20px; border-radius: 999px; border: 1.5px solid var(--ink);
+    cursor: pointer; transition: background .2s, color .2s;
+  }
+  .btn-ink:hover { background: transparent; color: var(--ink); }
+  .lrail .btn-ink { margin: 26px 4px 0; }
+
+  .identity {
+    margin-top: auto; padding-top: 20px;
+    display: flex; align-items: center; gap: 11px; padding: 20px 10px 6px;
+    cursor: pointer; border-radius: 14px;
+  }
+  .identity .avatar {
+    width: 38px; height: 38px; border-radius: 999px; flex-shrink: 0;
+    background: conic-gradient(from 210deg, var(--purple), var(--teal-light), var(--warning), var(--purple));
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--serif); font-style: italic; font-size: 17px; color: #fff;
+  }
+  .identity .who { font-size: 13px; font-weight: 600; line-height: 1.3; }
+  .identity .sub { font-family: var(--mono); font-size: 9.5px; letter-spacing: .05em; color: var(--ink-soft); }
+
+  /* ── CENTER COLUMN ────────────────────────────────────────────── */
+  .center { border-left: 1px solid var(--hair); border-right: 1px solid var(--hair); min-height: 100vh; background: color-mix(in srgb, #fff 55%, var(--paper)); }
+  .center-head {
+    position: sticky; top: 0; z-index: 30;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--hair);
+  }
+  .center-head .row1 { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px 10px; }
+  .center-head .title { font-family: var(--serif); font-size: 20px; }
+  .center-head .title em { font-style: italic; color: var(--purple-deep); }
+  .live { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--teal); }
+  .live .dot { width: 6px; height: 6px; border-radius: 99px; background: var(--teal-light); animation: pulse 2.4s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+  .tabs { display: flex; }
+  .tab {
+    flex: 1; text-align: center; padding: 12px 0 13px; cursor: pointer;
+    font-size: 13.5px; font-weight: 600; color: var(--ink-soft);
+    background: transparent; border: 0; position: relative; transition: color .15s, background .15s;
+  }
+  .tab:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); color: var(--ink); }
+  .tab.active { color: var(--ink); }
+  .tab.active::after { content: ""; position: absolute; left: 50%; transform: translateX(-50%); bottom: 0; width: 56px; height: 3px; border-radius: 99px; background: var(--ink); }
+
+  /* Composer */
+  .composer { border-bottom: 1px solid var(--hair); padding: 18px 20px 16px; }
+  .composer-modes { display: inline-flex; gap: 4px; border: 1px solid var(--hair); background: #fff; border-radius: 999px; padding: 3px; margin-bottom: 14px; }
+  .cmode {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase;
+    padding: 7px 15px; border-radius: 999px; border: 0; background: transparent; color: var(--ink-soft); cursor: pointer;
+    transition: background .2s, color .2s;
+  }
+  .cmode.active { background: var(--ink); color: var(--paper); }
+  .composer-body { display: flex; gap: 13px; }
+  .composer-body .avatar {
+    width: 42px; height: 42px; border-radius: 999px; flex-shrink: 0;
+    background: conic-gradient(from 210deg, var(--purple), var(--teal-light), var(--warning), var(--purple));
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--serif); font-style: italic; font-size: 19px; color: #fff;
+  }
+  .composer-main { flex: 1; min-width: 0; }
+  .composer textarea {
+    width: 100%; border: 0; outline: 0; resize: none; background: transparent;
+    font-family: var(--sans); font-size: 17px; color: var(--ink); line-height: 1.5;
+    min-height: 54px; padding-top: 8px;
+  }
+  .composer textarea::placeholder { color: var(--ink-soft); }
+  /* timeline mode fields */
+  .tl-fields { display: none; flex-wrap: wrap; gap: 8px; padding-top: 8px; }
+  .tl-field {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .04em; color: var(--ink-soft);
+    border: 1px dashed color-mix(in srgb, var(--ink) 24%, transparent); background: #fff;
+    border-radius: 9px; padding: 9px 13px; cursor: pointer; transition: border-color .15s, color .15s;
+  }
+  .tl-field:hover { border-color: var(--ink); color: var(--ink); }
+  .tl-field b { color: var(--ink); font-weight: 600; }
+  .composer.mode-timeline textarea { display: none; }
+  .composer.mode-timeline .tl-fields { display: flex; }
+  .composer-foot { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .chip {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .04em;
+    border: 1px solid var(--hair); background: #fff; color: var(--ink-soft);
+    padding: 5px 11px; border-radius: 999px; cursor: pointer;
+    transition: border-color .2s, color .2s, background .2s;
+  }
+  .chip:hover { border-color: var(--ink); color: var(--ink); }
+  .chip.sel { border-color: color-mix(in srgb, var(--purple) 45%, transparent); color: var(--purple-deep); background: color-mix(in srgb, var(--purple) 6%, #fff); }
+  .composer-foot .anon-note { font-family: var(--mono); font-size: 9.5px; letter-spacing: .05em; color: var(--ink-soft); margin-left: auto; }
+  .composer-foot .btn-ink { padding: 9px 20px; font-size: 13px; }
+
+  /* Feed rows — flat, hairline-divided, X-familiar */
+  .post {
+    display: flex; gap: 13px; padding: 17px 20px 14px;
+    border-bottom: 1px solid var(--hair); cursor: pointer;
+    transition: background .15s;
+  }
+  .post:hover { background: color-mix(in srgb, var(--ink) 2.5%, transparent); }
+  .post .avatar {
+    width: 42px; height: 42px; border-radius: 999px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--serif); font-style: italic; font-size: 18px; color: #fff;
+  }
+  .post-main { flex: 1; min-width: 0; }
+  .post-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 3px; }
+  .post-top .name { font-size: 14px; font-weight: 700; }
+  .post-top .meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-soft); letter-spacing: .03em; }
+  .idchip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .05em;
+    padding: 3.5px 8px; border-radius: 6px; border: 1px solid var(--hair); color: var(--ink-soft); background: #fff;
+  }
+  .idchip .swatch { width: 7px; height: 7px; border-radius: 2.5px; }
+  .sw-500 { background: var(--purple); } .sw-482 { background: #2563EB; }
+  .sw-189 { background: var(--teal); }  .sw-820 { background: #DB2777; }
+  .sw-485 { background: var(--warning);} .sw-103 { background: #78716C; }
+  .waitchip { font-family: var(--mono); font-size: 9.5px; letter-spacing: .05em; color: #B45309; background: color-mix(in srgb, var(--warning) 9%, #fff); border: 1px solid color-mix(in srgb, var(--warning) 28%, transparent); padding: 3.5px 8px; border-radius: 6px; }
+  .grantchip { font-family: var(--mono); font-size: 9.5px; letter-spacing: .05em; color: var(--teal); background: color-mix(in srgb, var(--teal) 9%, #fff); border: 1px solid color-mix(in srgb, var(--teal) 26%, transparent); padding: 3.5px 8px; border-radius: 6px; }
+  .post h3 { font-size: 15px; font-weight: 600; letter-spacing: -0.005em; line-height: 1.45; margin-top: 4px; }
+  .post .snippet { margin-top: 5px; font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; }
+  .answer-peek { margin-top: 11px; border-left: 2px solid var(--teal); padding: 1px 0 1px 12px; font-size: 12.5px; color: var(--ink-soft); }
+  .answer-peek .who { font-family: var(--mono); font-size: 9px; letter-spacing: .06em; color: var(--teal); text-transform: uppercase; display: block; margin-bottom: 3px; }
+  .post-actions { display: flex; gap: 0; margin-top: 11px; max-width: 420px; justify-content: space-between; }
+  .pact {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-soft);
+    background: transparent; border: 0; cursor: pointer; padding: 4px 8px; border-radius: 999px;
+    transition: color .15s, background .15s;
+  }
+  .pact:hover { color: var(--purple-deep); background: color-mix(in srgb, var(--purple) 7%, transparent); }
+  .pact.grantlove:hover { color: var(--teal); background: color-mix(in srgb, var(--teal) 8%, transparent); }
+
+  /* Milestone strip */
+  .mstrip { margin-top: 12px; }
+  .mstrip-bar { display: flex; height: 9px; border-radius: 99px; overflow: hidden; gap: 2px; }
+  .mseg { height: 100%; border-radius: 3px; }
+  .mseg.lodged { background: color-mix(in srgb, var(--ink-soft) 38%, #fff); }
+  .mseg.rfi    { background: var(--warning); }
+  .mseg.med    { background: var(--purple); }
+  .mseg.grant  { background: var(--teal); }
+  .mseg.waiting { background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--warning) 45%, #fff), color-mix(in srgb, var(--warning) 45%, #fff) 4px, color-mix(in srgb, var(--warning) 15%, #fff) 4px, color-mix(in srgb, var(--warning) 15%, #fff) 8px); }
+  .mstrip-labels { display: flex; justify-content: space-between; margin-top: 7px; font-family: var(--mono); font-size: 9.5px; color: var(--ink-soft); letter-spacing: .04em; }
+
+  .loadmore { display: block; width: 100%; text-align: center; padding: 18px; font-family: var(--mono); font-size: 11px; letter-spacing: .08em; color: var(--purple-deep); background: transparent; border: 0; cursor: pointer; }
+  .loadmore:hover { background: color-mix(in srgb, var(--purple) 5%, transparent); }
+
+  /* ── WAIT-CHECK "PAGE" (center view swap) ─────────────────────── */
+  .wc-page { display: none; padding: 26px 24px 60px; }
+  body.view-waitcheck .wc-page { display: block; }
+  body.view-waitcheck .composer, body.view-waitcheck .feed, body.view-waitcheck .center-head .tabs { display: none; }
+  .wc-page h2 { font-family: var(--serif); font-weight: 400; font-size: 38px; line-height: 1.05; }
+  .wc-page h2 em { font-style: italic; color: var(--purple-deep); }
+  .wc-page .deck { margin-top: 12px; color: var(--ink-soft); font-size: 14.5px; max-width: 52ch; }
+  .wc-form { display: flex; gap: 8px; margin: 22px 0 26px; flex-wrap: wrap; }
+  .bigdist { border: 1px solid var(--hair); border-radius: 18px; background: #fff; padding: 24px 24px 18px; }
+  .bigdist .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; flex-wrap: wrap; gap: 6px; }
+  .bigdist svg { width: 100%; height: auto; display: block; }
+  .bigdist .legend { display: flex; gap: 18px; margin-top: 12px; border-top: 1px dashed var(--hair); padding-top: 12px; font-family: var(--mono); font-size: 10px; color: var(--ink-soft); letter-spacing: .05em; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 6px; position: relative; top: 1px; }
+
+  /* ── RIGHT RAIL ───────────────────────────────────────────────── */
+  .rrail {
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    padding: 14px 8px 20px 28px; scrollbar-width: none;
+  }
+  .rrail::-webkit-scrollbar { display: none; }
+  .search {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--hair); border-radius: 999px; background: #fff;
+    padding: 11px 18px; margin-bottom: 20px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .search:focus-within { border-color: var(--ink); box-shadow: 3px 3px 0 0 color-mix(in srgb, var(--purple) 16%, transparent); }
+  .search .glass { font-size: 13px; opacity: .5; }
+  .search input { flex: 1; border: 0; outline: 0; background: transparent; font-family: var(--sans); font-size: 13.5px; color: var(--ink); min-width: 0; }
+  .search input::placeholder { color: var(--ink-soft); }
+  .search kbd { font-family: var(--mono); font-size: 9.5px; color: var(--ink-soft); border: 1px solid var(--hair); border-radius: 5px; padding: 2px 6px; }
+
+  .rcard { border: 1px solid var(--hair); border-radius: 16px; background: #fff; padding: 18px 18px 16px; margin-bottom: 16px; }
+  .rcard .eyebrow { display: block; margin-bottom: 12px; }
+  .rcard h4 { font-family: var(--serif); font-weight: 400; font-size: 21px; line-height: 1.15; margin-bottom: 4px; }
+  .rcard h4 em { font-style: italic; color: var(--purple-deep); }
+  .rcard .sub { font-size: 12px; color: var(--ink-soft); }
+  .wait-mini { border: 1.5px solid var(--ink); box-shadow: 4px 4px 0 0 color-mix(in srgb, var(--purple) 14%, transparent); }
+  .wait-mini .dist svg { width: 100%; height: auto; display: block; margin: 12px 0 4px; }
+  .wait-mini .verdict { font-family: var(--mono); font-size: 10px; letter-spacing: .04em; color: var(--ink-soft); border-top: 1px dashed var(--hair); padding-top: 10px; line-height: 1.7; }
+  .wait-mini .verdict b { color: var(--teal); }
+  .wait-mini .btn-ink { width: 100%; margin-top: 12px; padding: 10px; font-size: 12.5px; border-radius: 11px; }
+
+  .official table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 10.5px; }
+  .official td { padding: 8px 0; border-bottom: 1px dashed var(--hair); color: var(--ink-soft); letter-spacing: .02em; }
+  .official tr:last-child td { border-bottom: 0; }
+  .official td:last-child { text-align: right; color: var(--ink); }
+  .official .src { font-family: var(--mono); font-size: 9px; color: var(--ink-soft); letter-spacing: .06em; margin-top: 8px; opacity: .7; line-height: 1.7; }
+  .official table.dual th {
+    font-family: var(--mono); font-size: 8.5px; letter-spacing: .12em; color: var(--ink-soft);
+    text-align: right; font-weight: 500; padding-bottom: 6px; border-bottom: 1px solid var(--hair);
+  }
+  .official table.dual th:first-child { text-align: left; }
+  .official table.dual td { text-align: right; }
+  .official table.dual td:first-child { text-align: left; }
+  .official table.dual td.off { color: var(--ink-soft); }
+  .official table.dual td.com { color: var(--purple-deep); font-weight: 600; }
+  .official table.dual td.com .n { display: block; font-size: 8px; color: var(--ink-soft); font-weight: 400; letter-spacing: .06em; opacity: .8; }
+
+  .digest p { font-size: 12.5px; color: var(--ink-soft); line-height: 1.6; padding: 7px 0; border-bottom: 1px dashed var(--hair); }
+  .digest p:last-of-type { border-bottom: 0; }
+  .digest p b { color: var(--ink); font-weight: 600; }
+
+  .consult { background: var(--navy); border-color: var(--navy); color: #C9CDD8; }
+  .consult .eyebrow { color: #8B90A0; }
+  .consult h4 { color: #fff; font-size: 19px; }
+  .consult h4 em { color: #BDB4FE; }
+  .consult p { font-size: 12px; line-height: 1.65; color: #9BA0AE; margin-top: 4px; }
+  .consult .soon { display: inline-block; margin-top: 12px; font-family: var(--mono); font-size: 9px; letter-spacing: .14em; color: var(--teal-light); border: 1px solid color-mix(in srgb, var(--teal-light) 35%, transparent); padding: 4px 9px; border-radius: 999px; }
+
+  .rfoot { padding: 4px 6px 30px; }
+  .rfoot .links { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-bottom: 10px; }
+  .rfoot a { font-family: var(--mono); font-size: 9.5px; letter-spacing: .05em; color: var(--ink-soft); }
+  .rfoot a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+  .rfoot .legal { font-family: var(--mono); font-size: 8.5px; letter-spacing: .04em; color: var(--ink-soft); opacity: .75; line-height: 1.8; }
+  .rfoot .legal a { font-size: 8.5px; text-decoration: underline; text-underline-offset: 2px; }
+
+  /* ── Mockup notes ─────────────────────────────────────────────── */
+  .note {
+    position: absolute; z-index: 60;
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .04em; line-height: 1.5;
+    color: #B45309; background: #FFFBEB; border: 1px dashed var(--warning);
+    padding: 7px 9px; border-radius: 8px; max-width: 205px; transform: rotate(-1deg);
+    pointer-events: none;
+  }
+  .note::before { content: "✎ NOTE — "; font-weight: 600; }
+  body.hide-notes .note { display: none; }
+  .note-toggle {
+    position: fixed; bottom: 18px; right: 18px; z-index: 99;
+    font-family: var(--mono); font-size: 10px; letter-spacing: .06em;
+    background: var(--ink); color: var(--paper); border: 0; border-radius: 999px;
+    padding: 9px 15px; cursor: pointer; opacity: .85;
+  }
+
+  @media (max-width: 1120px) {
+    .shell { grid-template-columns: 72px minmax(0, 1fr); }
+    .rrail, .note { display: none; }
+    .lrail { padding: 18px 10px; }
+    .wordmark .room, nav.main a span.lbl, nav.main a .pagechip, .queue-block, .identity .who, .identity .sub { display: none; }
+    nav.main a { justify-content: center; padding: 12px; }
+    .lrail .btn-ink { padding: 13px; font-size: 16px; }
+    .lrail .btn-ink .lbl { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ═══ LEFT RAIL — nav + queue filter (static) ═══ -->
+  <aside class="lrail" style="position: sticky;">
+    <div class="note" style="top: 190px; left: 14px;">Left rail = X's nav. Cohort + Find-a-consultant removed for now. Wait Check is its own page — click it to preview.</div>
+    <a class="wordmark" href="#">
+      <span class="brand">IMMI360<sup>AU</sup></span>
+      <span class="room">The Waiting Room</span>
+    </a>
+    <nav class="main">
+      <a class="active" id="navHome"><span class="ico">⌂</span><span class="lbl">Home</span></a>
+      <a><span class="ico">?</span><span class="lbl">Questions</span></a>
+      <a><span class="ico">〜</span><span class="lbl">Timelines</span></a>
+      <a id="navWait"><span class="ico">◔</span><span class="lbl">Wait Check</span><span class="pagechip">PAGE</span></a>
+      <a><span class="ico">◷</span><span class="lbl">Notifications</span></a>
+    </nav>
+    <div class="queue-block">
+      <span class="eyebrow">Filter by queue</span>
+      <ul class="queue-list" id="queueList">
+        <li class="active" data-q="all"><span>All queues</span><span class="qc">1,982</span></li>
+        <li data-q="500"><span><span class="qn">500</span> Student</span><span class="qc">644</span></li>
+        <li data-q="482"><span><span class="qn">482</span> Skills in Demand</span><span class="qc">303</span></li>
+        <li data-q="189"><span><span class="qn">189/190</span> Skilled</span><span class="qc">431</span></li>
+        <li data-q="820"><span><span class="qn">820/309</span> Partner</span><span class="qc">387</span></li>
+        <li data-q="485"><span><span class="qn">485</span> Graduate</span><span class="qc">139</span></li>
+        <li data-q="103"><span><span class="qn">103/143</span> Parent</span><span class="qc">78</span></li>
+      </ul>
+    </div>
+    <button class="btn-ink"><span>＋</span><span class="lbl">Share your timeline</span></button>
+    <div class="identity">
+      <div class="avatar">W</div>
+      <div>
+        <div class="who">Quiet Wombat</div>
+        <div class="sub">ANONYMOUS · CLAIM IDENTITY →</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══ CENTER — the only thing that scrolls ═══ -->
+  <main class="center" style="position: relative;">
+    <div class="note" style="top: 118px; right: 14px;">Composer replaces the hero. Two modes: Ask the room (default) / Share your story. Post actions cut to 3: helpful, replies, share.</div>
+    <div class="center-head">
+      <div class="row1">
+        <span class="title" id="centerTitle">The room, <em>right now</em></span>
+        <span class="live"><span class="dot"></span>LIVE · 391 QUESTIONS THIS WEEK</span>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-tab="all">All</button>
+        <button class="tab" data-tab="question">Questions</button>
+        <button class="tab" data-tab="timeline">Timelines</button>
+      </div>
+    </div>
+
+    <!-- Composer -->
+    <div class="composer mode-ask" id="composer">
+      <div class="composer-modes">
+        <button class="cmode active" data-mode="ask">? &nbsp;Ask the room</button>
+        <button class="cmode" data-mode="timeline">〜 &nbsp;Share your story</button>
+      </div>
+      <div class="composer-body">
+        <div class="avatar">W</div>
+        <div class="composer-main">
+          <textarea id="askArea" rows="2" placeholder="What do you want to ask the room?"></textarea>
+          <div class="tl-fields">
+            <button class="tl-field">VISA · <b>500 Student</b> ▾</button>
+            <button class="tl-field">LODGED · <b>PICK DATE</b></button>
+            <button class="tl-field">STATUS · <b>WAITING</b> ▾</button>
+            <button class="tl-field">＋ MILESTONE</button>
+          </div>
+          <div class="composer-foot">
+            <button class="chip sel">500 Student</button>
+            <button class="chip">820 Partner</button>
+            <button class="chip">189/190</button>
+            <button class="chip">more ▾</button>
+            <span class="anon-note">POSTING AS QUIET WOMBAT · ANONYMOUS · EXPERIENCES, NOT ADVICE</span>
+            <button class="btn-ink" id="composerCta">Ask the room</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feed -->
+    <div class="feed" id="feed">
+      <article class="post" data-type="question" data-q="500">
+        <div class="avatar" style="background: conic-gradient(from 40deg, #7C5CFC, #DB2777, #7C5CFC);">P</div>
+        <div class="post-main">
+          <div class="post-top">
+            <span class="name">Patient Heron</span>
+            <span class="idchip"><span class="swatch sw-500"></span>500 · onshore</span>
+            <span class="waitchip">DAY 148</span>
+            <span class="meta">· 2 h</span>
+          </div>
+          <h3>Medical booked but zero CO contact after 5 months — is this normal for a 500 higher-ed application?</h3>
+          <p class="snippet">Lodged mid-Feb, biometrics in March, booked medicals myself in April. Since then: silence. My course starts in 6 weeks and I'm starting to panic…</p>
+          <div class="answer-peek">
+            <span class="who">Top answer · granted after a 172-day wait</span>
+            “500s with self-booked medicals often sit until ~day 160 in this year's queue — check the cohort chart before you spend money on a lawyer.”
+          </div>
+          <div class="post-actions">
+            <button class="pact">▲ 41 helpful</button>
+            <button class="pact">◌ 12 replies</button>
+            <button class="pact">↗ share</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="post" data-type="timeline" data-q="189">
+        <div class="avatar" style="background: conic-gradient(from 210deg, #1B7B6F, #2DD4BF, #1B7B6F);">S</div>
+        <div class="post-main">
+          <div class="post-top">
+            <span class="name">Steady Ibis</span>
+            <span class="idchip"><span class="swatch sw-189"></span>189 · offshore</span>
+            <span class="grantchip">GRANTED · 187 DAYS</span>
+            <span class="meta">· 14 min</span>
+          </div>
+          <h3>189 timeline: lodged Jan 12 → direct grant July 18. No CO contact, no RFI.</h3>
+          <div class="mstrip">
+            <div class="mstrip-bar">
+              <div class="mseg lodged" style="width: 38%;"></div>
+              <div class="mseg med" style="width: 9%;"></div>
+              <div class="mseg lodged" style="width: 46%;"></div>
+              <div class="mseg grant" style="width: 7%;"></div>
+            </div>
+            <div class="mstrip-labels">
+              <span>LODGED · JAN 12</span><span>MEDICALS · D71</span><span>SILENCE · 116 D</span><span>GRANT · D187</span>
+            </div>
+          </div>
+          <div class="post-actions">
+            <button class="pact">▲ 96 helpful</button>
+            <button class="pact">◌ 18 replies</button>
+            <button class="pact">↗ share</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="post" data-type="question" data-q="820">
+        <div class="avatar" style="background: conic-gradient(from 120deg, #DB2777, #F59E0B, #DB2777);">L</div>
+        <div class="post-main">
+          <div class="post-top">
+            <span class="name">Long-haul Lyrebird</span>
+            <span class="idchip"><span class="swatch sw-820"></span>820 · onshore</span>
+            <span class="waitchip">DAY 292</span>
+            <span class="meta">· 26 min</span>
+          </div>
+          <h3>Police check expires next month while I'm still waiting — renew now or wait for the s56 request?</h3>
+          <p class="snippet">AFP check was valid when I lodged, but it hits 12 months in August. Some say renew proactively, others say it wastes money because they'll ask again anyway…</p>
+          <div class="answer-peek">
+            <span class="who">Top answer · 820 granted 2024, now on 801</span>
+            “Renew it the moment you get an s56 — not before. They only care that it's valid at decision time. I renewed twice for nothing.”
+          </div>
+          <div class="post-actions">
+            <button class="pact">▲ 28 helpful</button>
+            <button class="pact">◌ 3 replies</button>
+            <button class="pact">↗ share</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="post" data-type="timeline" data-q="820">
+        <div class="avatar" style="background: conic-gradient(from 300deg, #DB2777, #7C5CFC, #DB2777);">D</div>
+        <div class="post-main">
+          <div class="post-top">
+            <span class="name">Distant Dunnart</span>
+            <span class="idchip"><span class="swatch sw-820"></span>309 · offshore</span>
+            <span class="waitchip">DAY 204 · S56</span>
+            <span class="meta">· 41 min</span>
+          </div>
+          <h3>309 timeline: s56 request at day 204 — they want more evidence of cohabitation.</h3>
+          <div class="mstrip">
+            <div class="mstrip-bar">
+              <div class="mseg lodged" style="width: 44%;"></div>
+              <div class="mseg med" style="width: 8%;"></div>
+              <div class="mseg lodged" style="width: 28%;"></div>
+              <div class="mseg rfi" style="width: 8%;"></div>
+              <div class="mseg waiting" style="width: 12%;"></div>
+            </div>
+            <div class="mstrip-labels">
+              <span>LODGED · DEC 26</span><span>MEDICALS · D93</span><span>S56 · D204</span><span>WAITING</span>
+            </div>
+          </div>
+          <div class="post-actions">
+            <button class="pact">▲ 12 helpful</button>
+            <button class="pact">◌ 6 replies</button>
+            <button class="pact">↗ share</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="post" data-type="question" data-q="482">
+        <div class="avatar" style="background: conic-gradient(from 80deg, #2563EB, #2DD4BF, #2563EB);">B</div>
+        <div class="post-main">
+          <div class="post-top">
+            <span class="name">Brisbane Bilby</span>
+            <span class="idchip"><span class="swatch sw-482"></span>482 SID</span>
+            <span class="meta">· 1 h</span>
+          </div>
+          <h3>Which Skills in Demand stream is my old TSS occupation under now — Core Skills or Specialist?</h3>
+          <p class="snippet">Nomination was lodged under the old TSS medium-term list. Employer's HR says it "carried over" but can't tell me which stream. Salary is above $135k if that matters…</p>
+          <div class="post-actions">
+            <button class="pact">▲ 19 helpful</button>
+            <button class="pact">◌ 7 replies</button>
+            <button class="pact">↗ share</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="post" data-type="question" data-q="485">
+        <div class="avatar" style="background: conic-gradient(from 20deg, #F59E0B, #DB2777, #F59E0B);">N</div>
+        <div class="post-main">
+          <div class="post-top">
+            <span class="name">November Numbat</span>
+            <span class="idchip"><span class="swatch sw-485"></span>485 · pre-lodge</span>
+            <span class="meta">· 3 h</span>
+          </div>
+          <h3>Finishing my Masters in November — can I lodge the 485 before my final results are released?</h3>
+          <p class="snippet">Completion letter vs. conferral date confusion. My uni releases results Dec 12 but conferral is in March. Which date starts my eligibility window?</p>
+          <div class="answer-peek">
+            <span class="who">Top answer · 485 holder, asked this exact thing in 2025</span>
+            “Completion letter is what matters — you have 6 months from results release, not graduation day.”
+          </div>
+          <div class="post-actions">
+            <button class="pact">▲ 33 helpful</button>
+            <button class="pact">◌ 9 replies</button>
+            <button class="pact">↗ share</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="post" data-type="timeline" data-q="500">
+        <div class="avatar" style="background: conic-gradient(from 250deg, #7C5CFC, #2DD4BF, #7C5CFC);">R</div>
+        <div class="post-main">
+          <div class="post-top">
+            <span class="name">Rapid Rosella</span>
+            <span class="idchip"><span class="swatch sw-500"></span>500 · offshore</span>
+            <span class="grantchip">GRANTED · 11 DAYS</span>
+            <span class="meta">· 2 h</span>
+          </div>
+          <h3>500 granted in 11 days — higher education, first entry, no interview.</h3>
+          <div class="mstrip">
+            <div class="mstrip-bar">
+              <div class="mseg lodged" style="width: 55%;"></div>
+              <div class="mseg med" style="width: 18%;"></div>
+              <div class="mseg grant" style="width: 27%;"></div>
+            </div>
+            <div class="mstrip-labels">
+              <span>LODGED · JUL 7</span><span>MEDICALS · D6</span><span>GRANT · D11</span>
+            </div>
+          </div>
+          <div class="post-actions">
+            <button class="pact">▲ 54 helpful</button>
+            <button class="pact">◌ 11 replies</button>
+            <button class="pact">↗ share</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="post" data-type="question" data-q="103">
+        <div class="avatar" style="background: conic-gradient(from 160deg, #78716C, #F59E0B, #78716C);">E</div>
+        <div class="post-main">
+          <div class="post-top">
+            <span class="name">Enduring Echidna</span>
+            <span class="idchip"><span class="swatch sw-103"></span>103 Parent</span>
+            <span class="waitchip">YEAR 6</span>
+            <span class="meta">· 6 h</span>
+          </div>
+          <h3>Six years into the 103 queue — is switching to a 143 contributory application worth it at this point?</h3>
+          <p class="snippet">Mum's application was lodged in 2020. The published wait is now measured in decades. Has anyone done the switch mid-queue, and did you keep your original queue date?</p>
+          <div class="post-actions">
+            <button class="pact">▲ 67 helpful</button>
+            <button class="pact">◌ 21 replies</button>
+            <button class="pact">↗ share</button>
+          </div>
+        </div>
+      </article>
+
+      <button class="loadmore">SHOW MORE FROM THE ROOM ↓</button>
+    </div>
+
+    <!-- Wait-check page (shown when nav item clicked) -->
+    <div class="wc-page">
+      <span class="eyebrow">Wait check · its own page — the feed stays clean</span>
+      <h2 style="margin-top: 14px;">“Is my wait <em>normal?</em>”</h2>
+      <p class="deck">Pick your visa, enter your lodgement date, and see yourself on the real distribution — drawn from community timelines, not the official estimate.</p>
+      <div class="wc-form">
+        <button class="chip sel">820 Partner</button>
+        <button class="chip">500 Student</button>
+        <button class="chip">482 SID</button>
+        <button class="chip">189 / 190</button>
+        <button class="chip">485 Graduate</button>
+        <button class="tl-field">LODGED · <b>12 JUL 2025</b></button>
+        <button class="btn-ink" style="padding: 9px 20px; font-size: 13px;">Check →</button>
+      </div>
+      <div class="bigdist">
+        <div class="head">
+          <span class="eyebrow">Subclass 820 · Partner (onshore) · n = 387 timelines</span>
+          <span class="mono" style="font-size: 10px; color: var(--ink-soft);">UPDATED TODAY</span>
+        </div>
+        <svg viewBox="0 0 560 200" fill="none">
+          <line x1="10" y1="176" x2="550" y2="176" stroke="#E7E4DE"/>
+          <path d="M10 172 C 60 170, 95 130, 130 96 C 160 68, 190 48, 235 44 C 285 40, 320 62, 360 100 C 400 138, 460 164, 550 172" stroke="#16181D" stroke-width="2"/>
+          <path d="M10 172 C 60 170, 95 130, 130 96 C 160 68, 190 48, 235 44 C 285 40, 320 62, 360 100 C 400 138, 460 164, 550 172 L 550 176 L 10 176 Z" fill="#16181D" opacity="0.05"/>
+          <line x1="235" y1="30" x2="235" y2="176" stroke="#5B6270" stroke-dasharray="4 4"/>
+          <text x="235" y="22" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#5B6270">COMMUNITY MEDIAN · 11.2 MO</text>
+          <line x1="418" y1="70" x2="418" y2="176" stroke="#7C5CFC" stroke-dasharray="4 4"/>
+          <text x="418" y="62" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#5B3ADB">OFFICIAL 90% · 14 MO</text>
+          <circle cx="310" cy="55" r="6" fill="#F59E0B"/>
+          <circle cx="310" cy="55" r="11" fill="none" stroke="#F59E0B" opacity="0.4">
+            <animate attributeName="r" values="6;16" dur="2.4s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.5;0" dur="2.4s" repeatCount="indefinite"/>
+          </circle>
+          <text x="310" y="42" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#B45309" font-weight="600">YOU · 12.4 MO · DAY 377</text>
+          <text x="14" y="192" font-family="JetBrains Mono" font-size="8.5" fill="#5B6270">0 MO</text>
+          <text x="275" y="192" text-anchor="middle" font-family="JetBrains Mono" font-size="8.5" fill="#5B6270">12 MO</text>
+          <text x="546" y="192" text-anchor="end" font-family="JetBrains Mono" font-size="8.5" fill="#5B6270">24 MO+</text>
+        </svg>
+        <div class="legend">
+          <span><i style="background:#16181D;"></i>387 TIMELINES</span>
+          <span><i style="background:#F59E0B;"></i>YOU</span>
+          <span><i style="background:#7C5CFC;"></i>OFFICIAL</span>
+          <span style="margin-left:auto; color: var(--teal); font-weight: 600;">VERDICT · STILL NORMAL</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ═══ RIGHT RAIL — static, X-style ═══ -->
+  <aside class="rrail" style="position: sticky;">
+    <div class="note" style="top: 320px; right: 10px;">Right rail = X's widgets. Search on top, wait-check teaser, and processing times now DUAL-SOURCE: Official vs Room. Footer lives here — critical links, zero website chrome.</div>
+    <label class="search">
+      <span class="glass">⌕</span>
+      <input type="text" placeholder="Search the room — visas, questions, timelines" />
+      <kbd>/</kbd>
+    </label>
+
+    <div class="rcard wait-mini">
+      <span class="eyebrow" style="color: var(--purple-deep);">Wait check</span>
+      <h4>Is my wait <em>normal?</em></h4>
+      <p class="sub">Your wait against 644 real Student 500 timelines.</p>
+      <div class="dist">
+        <svg viewBox="0 0 260 100" fill="none">
+          <path d="M4 90 C 30 88, 42 52, 62 36 C 78 24, 92 18, 110 22 C 132 27, 148 50, 170 65 C 192 78, 226 86, 256 89" stroke="#7C5CFC" stroke-width="2"/>
+          <path d="M4 90 C 30 88, 42 52, 62 36 C 78 24, 92 18, 110 22 C 132 27, 148 50, 170 65 C 192 78, 226 86, 256 89 L 256 94 L 4 94 Z" fill="#7C5CFC" opacity="0.12"/>
+          <line x1="96" y1="12" x2="96" y2="94" stroke="#5B6270" stroke-dasharray="3 3" stroke-width="1"/>
+          <text x="96" y="8" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#5B6270">MEDIAN 4.2 MO</text>
+          <circle cx="148" cy="50" r="5" fill="#F59E0B"/>
+          <circle cx="148" cy="50" r="9" fill="none" stroke="#F59E0B" opacity="0.4">
+            <animate attributeName="r" values="5;13" dur="2.4s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.5;0" dur="2.4s" repeatCount="indefinite"/>
+          </circle>
+          <text x="148" y="70" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#B45309">YOU · 5.1 MO</text>
+        </svg>
+      </div>
+      <p class="verdict">68TH PERCENTILE · <b>STILL NORMAL</b></p>
+      <button class="btn-ink" id="waitCta">Check my wait →</button>
+    </div>
+
+    <div class="rcard official">
+      <span class="eyebrow">Processing times · two sources</span>
+      <table class="dual">
+        <thead>
+          <tr><th></th><th>OFFICIAL</th><th>ROOM</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>500 Higher Ed</td><td class="off">5 mo</td><td class="com">4.2 <span class="n">n=644</span></td></tr>
+          <tr><td>482 Core Skills</td><td class="off">3 mo</td><td class="com">3.4 <span class="n">n=303</span></td></tr>
+          <tr><td>189 Skilled</td><td class="off">8 mo</td><td class="com">6.1 <span class="n">n=431</span></td></tr>
+          <tr><td>820 Partner</td><td class="off">14 mo</td><td class="com">11.2 <span class="n">n=387</span></td></tr>
+          <tr><td>485 Graduate</td><td class="off">9 mo</td><td class="com">— <span class="n">n=139</span></td></tr>
+        </tbody>
+      </table>
+      <p class="src">OFFICIAL · HOMEAFFAIRS.GOV.AU 90TH PCTL · UPDATED MAR 2026<br/>ROOM · MEDIAN OF COMMUNITY TIMELINES · STILL-WAITING CASES COUNTED</p>
+    </div>
+
+    <div class="rcard digest">
+      <span class="eyebrow">Today in the room</span>
+      <p><b>Partner 820</b> is moving — 9 grants this week, median dropping.</p>
+      <p><b>500 Student</b> questions spiked after the July financial-evidence change.</p>
+      <p><b>189</b> quietest week since May — 3 grants, all ~180 days.</p>
+    </div>
+
+    <div class="rfoot">
+      <div class="links">
+        <a href="#">Terms</a><a href="#">Privacy</a><a href="#">House rules</a>
+        <a href="#">Moderation</a><a href="#">Anonymity</a><a href="#">Contact</a>
+        <a href="#">For consultants</a>
+      </div>
+      <p class="legal">© 2026 IMMI360 · GENERAL INFORMATION SHARED BETWEEN COMMUNITY MEMBERS — NOT MIGRATION ADVICE (MIGRATION ACT 1958, S276)</p>
+    </div>
+  </aside>
+</div>
+
+<button class="note-toggle" onclick="document.body.classList.toggle('hide-notes')">✎ TOGGLE MOCKUP NOTES</button>
+
+<script>
+  // ── Composer mode toggle: Ask (default) ⇄ Share timeline ──────
+  const composer = document.getElementById('composer');
+  const cta = document.getElementById('composerCta');
+  document.querySelectorAll('.cmode').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.cmode').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    const mode = b.dataset.mode;
+    composer.className = 'composer mode-' + mode;
+    cta.textContent = mode === 'ask' ? 'Ask the room' : 'Share timeline';
+  }));
+
+  // ── Rotating ask placeholder ───────────────────────────────────
+  const hints = [
+    'What do you want to ask the room?',
+    '“Is a 5-month wait normal for a 500?”',
+    '“Can I travel while my 820 is processing?”',
+    '“What does an s56 request actually mean?”',
+    '“189 vs 190 — which queue moves faster right now?”',
+  ];
+  let hi = 0;
+  const ta = document.getElementById('askArea');
+  setInterval(() => {
+    if (document.activeElement === ta || ta.value) return;
+    hi = (hi + 1) % hints.length;
+    ta.placeholder = hints[hi];
+  }, 3200);
+
+  // ── Feed tab + queue filtering ─────────────────────────────────
+  let activeTab = 'all', activeQ = 'all';
+  const applyFilters = () => {
+    document.querySelectorAll('.post').forEach(p => {
+      const okT = activeTab === 'all' || p.dataset.type === activeTab;
+      const okQ = activeQ === 'all' || p.dataset.q === activeQ;
+      p.style.display = okT && okQ ? '' : 'none';
+    });
+  };
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    showHome();
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active'); activeTab = t.dataset.tab; applyFilters();
+  }));
+  document.querySelectorAll('#queueList li').forEach(li => li.addEventListener('click', () => {
+    showHome();
+    document.querySelectorAll('#queueList li').forEach(x => x.classList.remove('active'));
+    li.classList.add('active'); activeQ = li.dataset.q; applyFilters();
+  }));
+
+  // ── Wait Check as its own page (center view swap) ──────────────
+  const navHome = document.getElementById('navHome');
+  const navWait = document.getElementById('navWait');
+  const title = document.getElementById('centerTitle');
+  const showHome = () => {
+    document.body.classList.remove('view-waitcheck');
+    navWait.classList.remove('active'); navHome.classList.add('active');
+    title.innerHTML = 'The room, <em>right now</em>';
+  };
+  const showWait = () => {
+    document.body.classList.add('view-waitcheck');
+    navHome.classList.remove('active'); navWait.classList.add('active');
+    title.innerHTML = 'Wait <em>check</em>';
+    document.querySelector('.center').scrollIntoView({ block: 'start' });
+  };
+  navHome.addEventListener('click', showHome);
+  navWait.addEventListener('click', showWait);
+  document.getElementById('waitCta').addEventListener('click', showWait);
+
+  // ── "/" focuses search, like real platforms ────────────────────
+  addEventListener('keydown', e => {
+    if (e.key === '/' && !['TEXTAREA','INPUT'].includes(document.activeElement.tagName)) {
+      e.preventDefault(); document.querySelector('.search input').focus();
+    }
+  });
+</script>
+</body>
+</html>
