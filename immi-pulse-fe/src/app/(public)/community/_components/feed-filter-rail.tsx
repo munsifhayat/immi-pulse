@@ -110,6 +110,8 @@ export const FEED_FILTERS: FeedFilter[] = [
   },
 ];
 
+/* ── Vertical rail (lg+) ─────────────────────────────────────────────────── */
+
 export function FeedFilterRail({
   activeId,
   onSelect,
@@ -126,8 +128,8 @@ export function FeedFilterRail({
   const sharedAlready = identity ? !identity.can_post_timeline : false;
 
   return (
-    <div className="flex flex-col gap-3">
-      <nav className="rounded-2xl border border-border bg-white p-2 shadow-sm">
+    <div className="flex flex-col gap-4">
+      <nav className="flex flex-col gap-0.5">
         {FEED_FILTERS.map((f, i) => {
           const showGroup = !!f.group && f.group !== FEED_FILTERS[i - 1]?.group;
           const active = activeId === f.id;
@@ -135,41 +137,37 @@ export function FeedFilterRail({
           return (
             <div key={f.id}>
               {showGroup && (
-                <div className="px-2.5 pb-1.5 pt-3 text-[10px] font-bold uppercase tracking-wide text-gray-text">
-                  {f.group}
-                </div>
+                <div className="c-eyebrow px-2.5 pb-2 pt-4">{f.group}</div>
               )}
               <button
                 onClick={() => onSelect(f.id)}
-                className={`mb-0.5 flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors ${
-                  active ? "bg-purple/10" : "hover:bg-gray-light"
+                className={`relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors ${
+                  active
+                    ? "bg-purple/[0.06] text-ink"
+                    : "text-ink-soft hover:bg-black/[0.03] hover:text-ink"
                 }`}
               >
-                <span
-                  className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg border ${
-                    active
-                      ? "border-purple bg-purple text-white"
-                      : "border-border bg-white text-purple"
-                  }`}
-                >
-                  <f.Icon className="h-4 w-4" />
-                </span>
+                {active && (
+                  <span className="absolute inset-y-1.5 left-0 w-[2.5px] rounded-full bg-purple" />
+                )}
+                <f.Icon
+                  className={`h-4 w-4 shrink-0 ${active ? "text-purple" : "text-ink-soft"}`}
+                  strokeWidth={1.75}
+                />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13.5px] font-semibold text-navy">
+                  <span className="block truncate text-[13px] font-medium">
                     {f.label}
                   </span>
                   {f.sub && (
-                    <span className="block truncate text-[11px] text-gray-text">
+                    <span className="c-mono block truncate text-[10px] text-ink-soft">
                       {f.sub}
                     </span>
                   )}
                 </span>
                 {count != null && (
                   <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                      active
-                        ? "bg-purple text-white"
-                        : "border border-border bg-white text-gray-text"
+                    className={`c-mono shrink-0 text-[11px] ${
+                      active ? "text-purple" : "text-ink-soft/70"
                     }`}
                   >
                     {count}
@@ -181,22 +179,66 @@ export function FeedFilterRail({
         })}
       </nav>
 
+      <div className="h-px bg-hair" />
+
       <button
         onClick={onShare}
-        className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-[14px] font-semibold shadow-lg transition-colors ${
+        className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-[13.5px] font-semibold transition-colors ${
           sharedAlready
-            ? "bg-teal/10 text-teal shadow-none hover:bg-teal/15"
-            : "bg-purple text-white shadow-purple/25 hover:bg-purple-deep"
+            ? "bg-teal/10 text-teal hover:bg-teal/15"
+            : "bg-ink text-white hover:bg-ink/90"
         }`}
       >
-        <Plus className="h-4 w-4" />
+        <Plus className="h-4 w-4" strokeWidth={2} />
         {sharedAlready ? "Shared ✓ · add more" : "Share your timeline"}
       </button>
       {identity && (
-        <div className="px-1 text-center text-[11px] text-gray-text">
+        <div className="c-mono px-1 text-center text-[10.5px] text-ink-soft">
           posting as <IdentityBadge identity={identity} />
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Horizontal chips (mobile) ───────────────────────────────────────────── */
+
+export function FeedFilterChips({
+  activeId,
+  onSelect,
+  summary,
+}: {
+  activeId: string;
+  onSelect: (id: string) => void;
+  summary?: FeedSummaryOut;
+}) {
+  return (
+    <div className="-mx-6 flex gap-2 overflow-x-auto px-6 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {FEED_FILTERS.map((f) => {
+        const active = activeId === f.id;
+        const count = f.count(summary);
+        return (
+          <button
+            key={f.id}
+            onClick={() => onSelect(f.id)}
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors ${
+              active
+                ? "border-ink bg-ink text-white"
+                : "border-hair bg-white text-ink-soft hover:border-purple-light"
+            }`}
+          >
+            <f.Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+            {f.label}
+            {count != null && (
+              <span
+                className={`c-mono text-[10.5px] ${active ? "text-white/70" : "text-ink-soft/60"}`}
+              >
+                {count}
+              </span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -36,8 +36,9 @@ import { shortDate } from "../_lib/format";
 import { milestoneMeta } from "./milestone-meta";
 
 const fieldCls =
-  "w-full rounded-lg border border-border bg-white px-3 py-2.5 text-[14px] text-navy outline-none transition-colors focus:border-purple/60 focus:ring-2 focus:ring-purple/15";
-const labelCls = "mb-1.5 block text-[12px] font-semibold text-navy";
+  "w-full rounded-xl border border-hair bg-white px-3.5 py-2.5 text-[14px] text-ink outline-none transition-all focus:border-purple/50 focus:ring-4 focus:ring-purple/10";
+const labelCls =
+  "mb-1.5 block c-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-soft";
 
 const STREAMS = [
   "Direct Entry (DE)",
@@ -58,16 +59,16 @@ function Seg<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="flex gap-1 rounded-lg border border-border bg-gray-light p-1">
+    <div className="flex gap-1 rounded-xl border border-hair bg-gray-light p-1">
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           onClick={() => onChange(o.value)}
-          className={`flex-1 rounded-md px-2 py-1.5 text-[12.5px] font-semibold transition-colors ${
+          className={`flex-1 rounded-lg px-2 py-1.5 text-[12.5px] font-semibold transition-colors ${
             value === o.value
-              ? "bg-white text-navy shadow-sm"
-              : "text-gray-text hover:text-navy"
+              ? "bg-white text-ink shadow-sm"
+              : "text-ink-soft hover:text-ink"
           }`}
         >
           {o.label}
@@ -224,31 +225,31 @@ export function ShareJourney({
         else close();
       }}
     >
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="c-paper max-h-[92vh] overflow-y-auto sm:max-w-xl">
         {done ? (
           <div className="py-8 text-center">
             <DialogTitle className="sr-only">Shared successfully</DialogTitle>
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-teal/10">
-              <Check className="h-8 w-8 text-teal" />
+              <Check className="h-8 w-8 text-teal" strokeWidth={1.75} />
             </div>
-            <h3 className="mt-4 font-heading text-xl font-semibold text-navy">
+            <h3 className="mt-4 font-heading text-xl font-semibold text-ink">
               You&apos;re live, {identity?.handle}
             </h3>
-            <p className="mx-auto mt-2 max-w-sm text-[13.5px] text-gray-text">
+            <p className="mx-auto mt-2 max-w-sm text-[13.5px] text-ink-soft">
               {postType === "timeline"
                 ? "Your timeline is now in the feed and feeding the live processing-time stats. It just helped answer “is my wait normal?” for everyone behind you."
                 : "Your question is now in the feed. Someone ahead of you will likely have an answer soon."}
             </p>
             {postType === "timeline" && (
-              <div className="mx-auto mt-4 inline-flex items-center gap-2 rounded-lg bg-gray-light px-3.5 py-2.5 text-[12px] text-navy">
-                <Lock className="h-3.5 w-3.5 text-teal" />
+              <div className="mx-auto mt-4 inline-flex items-center gap-2 rounded-xl border border-hair bg-white px-3.5 py-2.5 text-[12px] text-ink">
+                <Lock className="h-3.5 w-3.5 text-teal" strokeWidth={1.75} />
                 That&apos;s your one anonymous timeline — sign in to add or edit more.
               </div>
             )}
             <div className="mt-6">
               <button
                 onClick={close}
-                className="rounded-lg bg-navy px-6 py-2.5 text-[14px] font-semibold text-white hover:bg-navy/90"
+                className="rounded-xl bg-ink px-6 py-2.5 text-[14px] font-semibold text-white hover:bg-ink/90"
               >
                 Done
               </button>
@@ -257,11 +258,11 @@ export function ShareJourney({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 font-heading text-xl font-semibold text-navy">
-                <GitCommitHorizontal className="h-5 w-5 text-purple" />
+              <DialogTitle className="flex items-center gap-2 font-heading text-xl font-semibold text-ink">
+                <GitCommitHorizontal className="h-5 w-5 text-purple" strokeWidth={1.75} />
                 Share with the community
               </DialogTitle>
-              <DialogDescription className="text-[13px] text-gray-text">
+              <DialogDescription className="text-[13px] text-ink-soft">
                 Anonymous &amp; free. Post a milestone timeline or ask a question —
                 every detail helps the next applicant.
               </DialogDescription>
@@ -269,18 +270,16 @@ export function ShareJourney({
 
             {/* identity row */}
             {identity && (
-              <div className="flex items-center gap-3 rounded-xl border border-purple-light bg-purple/5 px-4 py-3">
+              <div className="flex items-center gap-3 rounded-xl border border-hair bg-white px-4 py-3">
                 <span
-                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[13px] font-bold text-white"
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[13px] font-semibold text-white"
                   style={{ backgroundColor: identity.color }}
                 >
                   {identity.initials}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[11px] font-bold uppercase tracking-wide text-gray-text">
-                    Posting as
-                  </div>
-                  <div className="font-heading text-[16px] font-bold text-navy">
+                  <div className="c-eyebrow">Posting as</div>
+                  <div className="mt-0.5 font-heading text-[16px] font-semibold text-ink">
                     {identity.handle}
                   </div>
                 </div>
@@ -289,7 +288,7 @@ export function ShareJourney({
                     type="button"
                     onClick={() => reroll.mutate()}
                     disabled={reroll.isPending}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-purple-light px-3 py-2 text-[12px] font-semibold text-purple transition-colors hover:bg-white disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-hair px-3 py-2 text-[12px] font-semibold text-purple transition-colors hover:bg-purple/5 disabled:opacity-50"
                   >
                     {reroll.isPending ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -308,34 +307,34 @@ export function ShareJourney({
                 type="button"
                 onClick={() => canPostTimeline && setPostType("timeline")}
                 disabled={!canPostTimeline}
-                className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-[13.5px] font-semibold transition-colors ${
+                className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-[13.5px] font-semibold transition-colors ${
                   postType === "timeline"
                     ? "border-purple bg-purple/5 text-purple-deep"
-                    : "border-border bg-white text-gray-text hover:border-purple-light"
+                    : "border-hair bg-white text-ink-soft hover:border-purple-light"
                 } ${!canPostTimeline ? "cursor-not-allowed opacity-50" : ""}`}
               >
-                <GitCommitHorizontal className="h-4 w-4" /> Timeline
+                <GitCommitHorizontal className="h-4 w-4" strokeWidth={1.75} /> Timeline
               </button>
               <button
                 type="button"
                 onClick={() => setPostType("question")}
-                className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-[13.5px] font-semibold transition-colors ${
+                className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-[13.5px] font-semibold transition-colors ${
                   postType === "question"
                     ? "border-purple bg-purple/5 text-purple-deep"
-                    : "border-border bg-white text-gray-text hover:border-purple-light"
+                    : "border-hair bg-white text-ink-soft hover:border-purple-light"
                 }`}
               >
-                <HelpCircle className="h-4 w-4" /> Question
+                <HelpCircle className="h-4 w-4" strokeWidth={1.75} /> Question
               </button>
             </div>
 
             {!canPostTimeline && postType === "timeline" ? (
-              <div className="rounded-xl border border-border bg-gray-light/50 p-6 text-center">
-                <Lock className="mx-auto h-6 w-6 text-gray-text" />
-                <p className="mt-2 text-[14px] font-semibold text-navy">
+              <div className="rounded-xl border border-hair bg-white p-6 text-center">
+                <Lock className="mx-auto h-6 w-6 text-ink-soft" strokeWidth={1.5} />
+                <p className="mt-2 text-[14px] font-semibold text-ink">
                   You&apos;ve already shared your anonymous timeline
                 </p>
-                <p className="mx-auto mt-1 max-w-xs text-[12.5px] text-gray-text">
+                <p className="mx-auto mt-1 max-w-xs text-[12.5px] text-ink-soft">
                   Sign in to share another timeline or edit your existing one. You
                   can still ask a question anytime.
                 </p>
@@ -344,7 +343,7 @@ export function ShareJourney({
                     close();
                     onCapReached();
                   }}
-                  className="mt-4 rounded-lg bg-purple px-5 py-2.5 text-[13.5px] font-semibold text-white hover:bg-purple-deep"
+                  className="mt-4 rounded-xl bg-ink px-5 py-2.5 text-[13.5px] font-semibold text-white hover:bg-ink/90"
                 >
                   Sign in to add more
                 </button>
@@ -457,7 +456,7 @@ export function ShareJourney({
                     <div>
                       <label className={labelCls}>Your milestones</label>
                       {milestones.length === 0 ? (
-                        <div className="rounded-lg bg-gray-light px-4 py-3.5 text-center text-[12.5px] text-gray-text">
+                        <div className="rounded-xl border border-hair bg-white px-4 py-3.5 text-center text-[12.5px] text-ink-soft">
                           No milestones yet — add your first below. Most people start
                           with “Visa Lodged” or “Nomination Lodged”.
                         </div>
@@ -481,27 +480,27 @@ export function ShareJourney({
                                   >
                                     <Icon className="h-3.5 w-3.5" />
                                   </span>
-                                  <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-white px-3 py-2">
+                                  <div className="flex flex-1 items-center gap-2 rounded-xl border border-hair bg-white px-3 py-2">
                                     <div className="min-w-0 flex-1">
-                                      <div className="text-[13px] font-semibold text-navy">
+                                      <div className="text-[13px] font-semibold text-ink">
                                         {m.type}
                                       </div>
-                                      <div className="text-[11.5px] text-gray-text">
+                                      <div className="c-mono text-[11px] text-ink-soft">
                                         {shortDate(m.date)}
                                       </div>
                                     </div>
                                     <button
                                       type="button"
                                       onClick={() => removeMilestone(i)}
-                                      className="grid h-7 w-7 place-items-center rounded-md text-gray-text transition-colors hover:bg-rose-50 hover:text-rose-600"
+                                      className="grid h-7 w-7 place-items-center rounded-md text-ink-soft transition-colors hover:bg-rose-50 hover:text-rose-600"
                                       aria-label="Remove milestone"
                                     >
-                                      <Trash2 className="h-4 w-4" />
+                                      <Trash2 className="h-4 w-4" strokeWidth={1.75} />
                                     </button>
                                   </div>
                                 </div>
                                 {gap != null && gap > 0 && (
-                                  <div className="ml-9 py-1 text-[10px] font-semibold text-purple">
+                                  <div className="c-mono ml-9 py-1 text-[10px] font-semibold text-purple">
                                     ↓ {gap} {gap === 1 ? "day" : "days"} later
                                   </div>
                                 )}
@@ -511,7 +510,7 @@ export function ShareJourney({
                         </div>
                       )}
 
-                      <div className="mt-2.5 grid grid-cols-1 gap-2 rounded-xl border border-dashed border-purple-light bg-purple/5 p-3 sm:grid-cols-[1fr_150px_auto]">
+                      <div className="mt-2.5 grid grid-cols-1 gap-2 rounded-xl border border-dashed border-purple-light bg-purple/[0.04] p-3 sm:grid-cols-[1fr_150px_auto]">
                         <select
                           value={msType}
                           onChange={(e) => setMsType(e.target.value)}
@@ -527,15 +526,15 @@ export function ShareJourney({
                           max={today}
                           value={msDate}
                           onChange={(e) => setMsDate(e.target.value)}
-                          className={fieldCls}
+                          className={`${fieldCls} c-mono`}
                         />
                         <button
                           type="button"
                           onClick={addMilestone}
-                          className="grid h-[42px] w-full place-items-center rounded-lg bg-purple text-white hover:bg-purple-deep sm:w-[42px]"
+                          className="grid h-[42px] w-full place-items-center rounded-xl bg-ink text-white hover:bg-ink/90 sm:w-[42px]"
                           aria-label="Add milestone"
                         >
-                          <Plus className="h-5 w-5" />
+                          <Plus className="h-5 w-5" strokeWidth={1.75} />
                         </button>
                       </div>
                     </div>
@@ -554,7 +553,7 @@ export function ShareJourney({
                         placeholder="Anything you'd tell someone with the same profile?"
                       />
                       <div className="mt-2 inline-flex items-center gap-2 rounded-lg border border-dashed border-purple-light bg-white px-3 py-1.5 text-[11.5px] text-purple-deep">
-                        <Info className="h-3.5 w-3.5" />
+                        <Info className="h-3.5 w-3.5" strokeWidth={1.75} />
                         Posts to the feed <b>&amp;</b> updates the live
                         processing-time stats for your visa.
                       </div>
@@ -588,22 +587,22 @@ export function ShareJourney({
 
                 {error && <p className="text-[13px] text-rose-600">{error}</p>}
 
-                <div className="flex items-center gap-3 border-t border-border pt-4">
-                  <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-text">
-                    <ShieldCheck className="h-3.5 w-3.5 text-teal" />
+                <div className="flex items-center gap-3 border-t border-hair pt-4">
+                  <span className="c-mono inline-flex items-center gap-1.5 text-[10.5px] text-ink-soft">
+                    <ShieldCheck className="h-3.5 w-3.5 text-teal" strokeWidth={1.75} />
                     {postType === "timeline"
-                      ? "One timeline per anonymous identity — keeps the data honest."
-                      : "Anonymous & rate-limited to keep the feed clean."}
+                      ? "One timeline per anonymous identity"
+                      : "Anonymous & rate-limited"}
                   </span>
                   <button
                     onClick={submit}
                     disabled={create.isPending}
-                    className="ml-auto inline-flex items-center gap-2 rounded-lg bg-purple px-5 py-2.5 text-[14px] font-semibold text-white shadow-lg shadow-purple/25 transition-colors hover:bg-purple-deep disabled:opacity-60"
+                    className="ml-auto inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-ink/90 disabled:opacity-60"
                   >
                     {create.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} />
                     ) : (
-                      <Send className="h-4 w-4" />
+                      <Send className="h-4 w-4" strokeWidth={1.75} />
                     )}
                     {postType === "timeline" ? "Post my timeline" : "Post my question"}
                   </button>

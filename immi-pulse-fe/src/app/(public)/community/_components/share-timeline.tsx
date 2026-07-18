@@ -17,8 +17,8 @@ import {
 } from "@/lib/api/hooks/community";
 
 const fieldCls =
-  "w-full rounded-lg border border-border bg-white px-3 py-2.5 text-[14px] text-navy outline-none transition-colors focus:border-purple/60 focus:ring-2 focus:ring-purple/15";
-const labelCls = "text-[12px] font-medium text-navy";
+  "w-full rounded-xl border border-hair bg-white px-3.5 py-2.5 text-[14px] text-ink outline-none transition-all focus:border-purple/50 focus:ring-4 focus:ring-purple/10";
+const labelCls = "c-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-soft";
 
 const OUTCOMES: { value: TimelineOutcome; label: string }[] = [
   { value: "waiting", label: "Still waiting" },
@@ -95,8 +95,8 @@ export function ShareTimeline({
     >
       <DialogTrigger asChild>
         {trigger ?? (
-          <button className="inline-flex items-center gap-2 rounded-lg border border-purple/30 bg-white px-4 py-2.5 text-[14px] font-medium text-purple transition-colors hover:bg-purple/5">
-            <Plus className="h-4 w-4" />
+          <button className="inline-flex items-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-ink/90">
+            <Plus className="h-4 w-4" strokeWidth={2} />
             Share your timeline
           </button>
         )}
@@ -106,16 +106,18 @@ export function ShareTimeline({
         {done ? (
           <div className="py-6 text-center">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-teal/10">
-              <Check className="h-6 w-6 text-teal" />
+              <Check className="h-6 w-6 text-teal" strokeWidth={1.75} />
             </div>
-            <h3 className="mt-4 font-heading text-xl text-navy">Thank you</h3>
-            <p className="mx-auto mt-2 max-w-xs text-[14px] text-gray-text">
+            <h3 className="mt-4 font-heading text-xl font-semibold text-ink">
+              Thank you
+            </h3>
+            <p className="mx-auto mt-2 max-w-xs text-[14px] text-ink-soft">
               Your timeline helps everyone else answer “is my wait normal?”. It’s
               anonymous and now part of the community data.
             </p>
             <button
               onClick={() => setOpen(false)}
-              className="mt-6 rounded-lg bg-navy px-5 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-navy/90"
+              className="mt-6 rounded-xl bg-ink px-5 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-ink/90"
             >
               Done
             </button>
@@ -123,10 +125,10 @@ export function ShareTimeline({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="font-heading text-xl font-normal text-navy">
+              <DialogTitle className="font-heading text-xl font-semibold text-ink">
                 Share your timeline
               </DialogTitle>
-              <DialogDescription className="text-[13px] text-gray-text">
+              <DialogDescription className="text-[13px] text-ink-soft">
                 Anonymous and free. No sign-in, no personal details — just dates
                 that help the next applicant.
               </DialogDescription>
@@ -197,8 +199,7 @@ export function ShareTimeline({
 
               <div className="space-y-1.5">
                 <label className={labelCls}>
-                  Country{" "}
-                  <span className="font-normal text-gray-text">(optional)</span>
+                  Country <span className="text-ink-soft/70">(optional)</span>
                 </label>
                 <input
                   type="text"
@@ -217,10 +218,10 @@ export function ShareTimeline({
               <button
                 type="submit"
                 disabled={submit.isPending}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-purple px-4 py-3 text-[14px] font-medium text-white transition-colors hover:bg-purple-deep disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-4 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-ink/90 disabled:opacity-60"
               >
                 {submit.isPending && (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} />
                 )}
                 Add my timeline
               </button>

@@ -57,9 +57,9 @@ export function LoginGate({
           </button>
           <Link
             href="/get-started"
-            className="inline-flex items-center gap-2 rounded-lg bg-purple px-5 py-2.5 text-[13.5px] font-semibold text-white shadow-lg shadow-purple/25 transition-colors hover:bg-purple-deep"
+            className="inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-ink/90"
           >
-            <LogIn className="h-4 w-4" />
+            <LogIn className="h-4 w-4" strokeWidth={1.75} />
             Create my account
           </Link>
         </div>

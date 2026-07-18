@@ -1,175 +1,117 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import type { JourneyOut, MilestoneOut } from "@/lib/api/hooks/community";
 import { shortDate } from "../_lib/format";
-import {
-  AWAITING_META,
-  dayGap,
-  gapLabel,
-  milestoneMeta,
-} from "./milestone-meta";
+import { dayGap, gapLabel, milestoneMeta } from "./milestone-meta";
 
-/** A synthetic trailing "awaiting" node for still-waiting timelines. */
-function awaitingLabel(journey: JourneyOut): string | null {
-  if (journey.outcome !== "waiting") return null;
-  if (journey.elapsed_days != null && journey.elapsed_days > 0) {
-    return `${journey.elapsed_days}d & counting`;
-  }
-  return "in progress";
+/* Short display name for a milestone (drop trailing ellipsis, trim "Received"). */
+function shortName(type: string): string {
+  return type.replace("…", "");
 }
 
-/* ── Feed-card strip: horizontal on ≥sm, vertical on mobile ─────────────── */
+function endState(journey: JourneyOut): {
+  label: string;
+  color: string;
+  pulse: boolean;
+} {
+  if (journey.outcome === "granted")
+    return { label: "Granted", color: "#1B7B6F", pulse: false };
+  if (journey.outcome === "refused")
+    return { label: "Decided", color: "#D6465B", pulse: false };
+  const d =
+    journey.elapsed_days != null && journey.elapsed_days > 0
+      ? `${journey.elapsed_days}d & counting`
+      : "In progress";
+  return { label: d, color: "#C77D18", pulse: true };
+}
 
+/* ── Feed-card rail: a proportional "journey sparkline" ──────────────────────
+   Nodes are positioned by their real dates, so long gaps read as wide spacing —
+   an honest glance at the cadence. The last node is the live status. */
 export function MilestoneStrip({ journey }: { journey: JourneyOut }) {
-  return (
-    <>
-      {/* Mobile: a clean vertical timeline (horizontal gets cramped < 640px) */}
-      <VerticalStripCompact journey={journey} />
-      {/* ≥sm: the original horizontal strip */}
-      <HorizontalStrip journey={journey} />
-    </>
+  const ms = useMemo(
+    () =>
+      [...journey.milestones].sort(
+        (a, b) => +new Date(a.occurred_on) - +new Date(b.occurred_on)
+      ),
+    [journey.milestones]
   );
-}
 
-/* ── Compact vertical timeline for mobile feed cards ────────────────────── */
+  // Stable "now" captured once at mount — keeps render pure (no Date.now() call
+  // during render) while still letting a live timeline stretch to today.
+  const [now] = useState(() => Date.now());
 
-function VerticalStripCompact({ journey }: { journey: JourneyOut }) {
-  const ms = journey.milestones;
-  const awaiting = awaitingLabel(journey);
+  if (ms.length === 0) return null;
 
-  return (
-    <div className="mt-4 flex flex-col sm:hidden">
-      {ms.map((m, i) => {
-        const { Icon, color } = milestoneMeta(m.milestone_type);
-        const next = ms[i + 1];
-        const gap = next ? dayGap(m.occurred_on, next.occurred_on) : null;
-        const isLast = i === ms.length - 1 && !awaiting;
-        return (
-          <div key={m.id} className="flex gap-3">
-            <div className="flex flex-col items-center">
-              <span
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white shadow-sm"
-                style={{ backgroundColor: color }}
-              >
-                <Icon className="h-4 w-4" />
-              </span>
-              {!isLast && (
-                <span className="my-1 w-[2.5px] flex-1 rounded bg-gradient-to-b from-purple-light to-purple-muted" />
-              )}
-            </div>
-            <div className="pb-3 pt-1">
-              <div className="text-[12.5px] font-semibold leading-tight text-navy">
-                {m.milestone_type.replace("…", "")}
-              </div>
-              <div className="mt-0.5 text-[11px] text-gray-text">
-                {shortDate(m.occurred_on)}
-              </div>
-              {gap != null && gap > 0 && (
-                <span className="mt-1 inline-block rounded bg-purple/10 px-1.5 py-px text-[10px] font-bold text-purple">
-                  {gapLabel(gap)}
-                </span>
-              )}
-            </div>
-          </div>
-        );
-      })}
+  const awaiting = journey.outcome === "waiting";
+  const start = new Date(ms[0].occurred_on).getTime();
+  const lastReal = new Date(ms[ms.length - 1].occurred_on).getTime();
+  const end = awaiting ? Math.max(now, lastReal) : lastReal;
+  const span = Math.max(end - start, 1);
+  const pct = (t: number) => ((t - start) / span) * 100;
 
-      {awaiting && (
-        <div className="flex gap-3">
-          <span
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white shadow-sm"
-            style={{ backgroundColor: AWAITING_META.color }}
-          >
-            <AWAITING_META.Icon className="h-4 w-4" />
-          </span>
-          <div className="pt-1">
-            <div className="text-[12.5px] font-semibold leading-tight text-amber-600">
-              Awaiting
-            </div>
-            <div className="mt-0.5 text-[11px] text-gray-text">{awaiting}</div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── Horizontal strip for feed cards (compact, up to 4 steps) ───────────── */
-
-function HorizontalStrip({ journey }: { journey: JourneyOut }) {
-  const all = journey.milestones;
-  const awaiting = awaitingLabel(journey);
-  const MAX = 4;
-  const shown = all.slice(0, MAX);
-  const hidden = all.length - shown.length;
+  const es = endState(journey);
+  const lastRealPct = pct(lastReal);
 
   return (
-    <div className="mt-4 hidden items-start overflow-hidden sm:flex">
-      {shown.map((m, i) => {
-        const { Icon, color } = milestoneMeta(m.milestone_type);
-        const next = shown[i + 1];
-        const gap = next ? dayGap(m.occurred_on, next.occurred_on) : null;
-        const isLast = i === shown.length - 1;
-        return (
-          <div key={m.id} className="flex flex-1 items-start">
-            <div className="flex w-[78px] shrink-0 flex-col items-center text-center">
-              <span
-                className="grid h-10 w-10 place-items-center rounded-full text-white shadow-md"
-                style={{ backgroundColor: color }}
-              >
-                <Icon className="h-5 w-5" />
-              </span>
-              <span className="mt-2 text-[11px] font-semibold leading-tight text-navy">
-                {m.milestone_type.replace("…", "")}
-              </span>
-              <span className="mt-0.5 text-[10px] text-gray-text">
-                {shortDate(m.occurred_on)}
-              </span>
-            </div>
-            {!isLast && (
-              <div className="flex flex-1 flex-col items-center pt-3.5">
-                {gap != null && gap > 0 && (
-                  <span className="mb-1 whitespace-nowrap rounded bg-purple/10 px-1.5 py-px text-[9.5px] font-bold text-purple">
-                    {gapLabel(gap)}
-                  </span>
-                )}
-                <span className="h-[3px] w-full rounded bg-gradient-to-r from-purple-light to-purple-muted" />
-              </div>
-            )}
-          </div>
-        );
-      })}
+    <div className="mt-4">
+      <div className="relative mx-1.5 h-6">
+        {/* baseline */}
+        <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-hair" />
+        {/* travelled portion */}
+        <div
+          className="absolute left-0 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-purple/50 to-purple/25"
+          style={{ width: `${lastRealPct}%` }}
+        />
 
-      {hidden > 0 && (
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-dashed border-border bg-gray-light text-[12px] font-bold text-gray-text">
-          +{hidden}
-        </span>
-      )}
-
-      {hidden === 0 && awaiting && (
-        <div className="flex flex-1 items-start">
-          <div className="flex flex-1 flex-col items-center pt-3.5">
-            <span className="h-[3px] w-full rounded bg-gradient-to-r from-purple-light to-amber-200" />
-          </div>
-          <div className="flex w-[78px] shrink-0 flex-col items-center text-center">
+        {/* milestone nodes */}
+        {ms.map((m) => {
+          const { color } = milestoneMeta(m.milestone_type);
+          return (
             <span
-              className="grid h-10 w-10 place-items-center rounded-full text-white shadow-md"
-              style={{ backgroundColor: AWAITING_META.color }}
-            >
-              <AWAITING_META.Icon className="h-5 w-5" />
-            </span>
-            <span className="mt-2 text-[11px] font-semibold leading-tight text-amber-600">
-              Awaiting
-            </span>
-            <span className="mt-0.5 text-[10px] text-gray-text">{awaiting}</span>
-          </div>
-        </div>
-      )}
+              key={m.id}
+              title={`${shortName(m.milestone_type)} · ${shortDate(m.occurred_on)}`}
+              className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white transition-transform duration-150 hover:scale-[1.6]"
+              style={{
+                left: `${pct(new Date(m.occurred_on).getTime())}%`,
+                backgroundColor: color,
+              }}
+            />
+          );
+        })}
+
+        {/* live end node */}
+        <span
+          className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+          style={{ left: awaiting ? "100%" : `${lastRealPct}%` }}
+        >
+          <span
+            className={`relative block h-3 w-3 rounded-full border-2 border-white ${
+              es.pulse ? "c-node-pulse" : ""
+            }`}
+            style={{ backgroundColor: es.color }}
+          />
+        </span>
+      </div>
+
+      {/* endpoint captions */}
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <span className="c-mono truncate text-[10.5px] text-ink-soft">
+          {shortName(ms[0].milestone_type)} · {shortDate(ms[0].occurred_on)}
+        </span>
+        <span
+          className="c-mono shrink-0 text-[10.5px] font-semibold"
+          style={{ color: es.color }}
+        >
+          {es.label}
+        </span>
+      </div>
     </div>
   );
 }
 
-/* ── Vertical list for the detail drawer (full journey) ─────────────────── */
+/* ── Drawer / detail: a full vertical timeline, refined ──────────────────── */
 
 function VerticalItem({
   m,
@@ -182,73 +124,78 @@ function VerticalItem({
 }) {
   const { Icon, color } = milestoneMeta(m.milestone_type);
   return (
-    <>
-      <div className="flex items-start gap-3">
-        <div className="flex shrink-0 flex-col items-center">
-          <span
-            className="grid h-6 w-6 place-items-center rounded-full text-white"
-            style={{ backgroundColor: color }}
-          >
-            <Icon className="h-3.5 w-3.5" />
-          </span>
-          {!isLast && <span className="my-0.5 min-h-3.5 w-0.5 flex-1 bg-border" />}
+    <div className="flex gap-3.5">
+      <div className="flex shrink-0 flex-col items-center">
+        <span
+          className="grid h-7 w-7 place-items-center rounded-full text-white"
+          style={{ backgroundColor: color }}
+        >
+          <Icon className="h-3.5 w-3.5" strokeWidth={2} />
+        </span>
+        {!isLast && <span className="my-1 w-px flex-1 bg-hair" />}
+      </div>
+      <div className={isLast ? "pb-0.5" : "pb-5"}>
+        <div className="text-[13.5px] font-semibold text-ink">
+          {m.milestone_type}
+          {m.label ? ` · ${m.label}` : ""}
         </div>
-        <div className="pb-1">
-          <div className="text-[13px] font-semibold text-navy">
-            {m.milestone_type}
-            {m.label ? ` · ${m.label}` : ""}
-          </div>
-          <div className="text-[11.5px] text-gray-text">
-            {shortDate(m.occurred_on)}
-          </div>
+        <div className="c-mono mt-0.5 text-[11px] text-ink-soft">
+          {shortDate(m.occurred_on)}
+          {gap != null && gap > 0 && (
+            <span className="text-ink-soft/70"> · {gapLabel(gap)} later</span>
+          )}
         </div>
       </div>
-      {!isLast && gap != null && gap > 0 && (
-        <div className="ml-[35px] py-0.5 text-[10px] font-semibold text-purple">
-          ↓ {gap} {gap === 1 ? "day" : "days"} later
-        </div>
-      )}
-    </>
+    </div>
   );
 }
 
 export function JourneyBox({ journey }: { journey: JourneyOut }) {
-  const ms = journey.milestones;
-  const awaiting = awaitingLabel(journey);
+  const ms = useMemo(
+    () =>
+      [...journey.milestones].sort(
+        (a, b) => +new Date(a.occurred_on) - +new Date(b.occurred_on)
+      ),
+    [journey.milestones]
+  );
   if (ms.length === 0) return null;
 
+  const awaiting = journey.outcome === "waiting";
+  const es = endState(journey);
+
   return (
-    <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-gray-light/40">
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <span className="text-[11px] font-bold uppercase tracking-wide text-gray-text">
-          Application journey
-        </span>
-        <span className="text-[11.5px] font-semibold text-purple">
+    <div className="mt-5">
+      <div className="mb-3.5 flex items-center justify-between">
+        <span className="c-eyebrow">The journey</span>
+        <span className="c-mono text-[11px] text-ink-soft">
           {ms.length} milestone{ms.length === 1 ? "" : "s"}
         </span>
       </div>
-      <div className="max-h-[280px] overflow-y-auto px-4 py-3.5">
+      <div className="pl-0.5">
         {ms.map((m, i) => {
-          const next = ms[i + 1];
-          const gap = next ? dayGap(m.occurred_on, next.occurred_on) : null;
+          const prev = i > 0 ? ms[i - 1] : null;
+          const gap = prev ? dayGap(prev.occurred_on, m.occurred_on) : null;
           const isLastReal = i === ms.length - 1 && !awaiting;
           return (
             <VerticalItem key={m.id} m={m} gap={gap} isLast={isLastReal} />
           );
         })}
         {awaiting && (
-          <div className="flex items-start gap-3">
+          <div className="flex gap-3.5">
             <span
-              className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-white"
-              style={{ backgroundColor: AWAITING_META.color }}
+              className="relative grid h-7 w-7 shrink-0 place-items-center rounded-full"
+              style={{ backgroundColor: es.color }}
             >
-              <AWAITING_META.Icon className="h-3.5 w-3.5" />
+              <span className="c-node-pulse absolute inset-0 rounded-full" />
+              <span className="h-1.5 w-1.5 rounded-full bg-white" />
             </span>
             <div>
-              <div className="text-[13px] font-semibold text-amber-600">
-                Awaiting decision…
+              <div className="text-[13.5px] font-semibold text-[#B4700F]">
+                Awaiting decision
               </div>
-              <div className="text-[11.5px] text-gray-text">{awaiting}</div>
+              <div className="c-mono mt-0.5 text-[11px] text-ink-soft">
+                {es.label}
+              </div>
             </div>
           </div>
         )}

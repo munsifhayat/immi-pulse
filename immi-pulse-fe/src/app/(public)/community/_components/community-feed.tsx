@@ -6,8 +6,6 @@ import {
   GitCommitHorizontal,
   Loader2,
   MessageCircle,
-  MessagesSquare,
-  PenLine,
   Plus,
   UserCheck,
 } from "lucide-react";
@@ -17,7 +15,11 @@ import {
   useJourneys,
   type ThreadSort,
 } from "@/lib/api/hooks/community";
-import { FEED_FILTERS, FeedFilterRail } from "./feed-filter-rail";
+import {
+  FEED_FILTERS,
+  FeedFilterChips,
+  FeedFilterRail,
+} from "./feed-filter-rail";
 import { FeedPost } from "./feed-post";
 import { PostDetailDrawer } from "./post-detail-drawer";
 import { ShareJourney } from "./share-journey";
@@ -32,7 +34,7 @@ const SORTS: { id: ThreadSort; label: string }[] = [
 const GUARDRAILS = [
   {
     Icon: UserCheck,
-    text: "You post as one auto-generated anonymous name per device — no impersonation.",
+    text: "One auto-generated anonymous name per device — no impersonation.",
   },
   {
     Icon: CheckCircle2,
@@ -40,7 +42,7 @@ const GUARDRAILS = [
   },
   {
     Icon: GitCommitHorizontal,
-    text: "One shared timeline while anonymous — sign in to add or edit more.",
+    text: "One shared timeline while anonymous — sign in to add more.",
   },
 ];
 
@@ -62,35 +64,41 @@ export function CommunityFeed() {
   const { data: journeys = [], isLoading } = useJourneys(params);
 
   return (
-    <section className="border-t border-border bg-gradient-to-b from-white to-gray-light/30 py-12">
-      <div className="mx-auto max-w-[1240px] px-6 lg:px-8">
+    <section className="mt-8 border-t border-hair py-14">
+      <div className="mx-auto max-w-[1200px] px-6 lg:px-8">
         {/* section header */}
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <span className="inline-flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wider text-purple">
-              <MessagesSquare className="h-3.5 w-3.5" /> Community feed
-            </span>
-            <h2 className="mt-2 font-heading text-[clamp(1.5rem,2.6vw,2rem)] font-semibold tracking-[-0.5px] text-navy">
+            <span className="c-eyebrow">Community feed</span>
+            <h2 className="mt-2.5 font-heading text-[clamp(1.6rem,2.8vw,2.1rem)] font-semibold tracking-[-0.6px] text-ink">
               Ask the people ahead of you
             </h2>
-            <p className="mt-1.5 max-w-xl text-[14.5px] text-gray-text">
-              One live feed of real timelines and questions. Pick what you&apos;re
-              interested in — open any post to see the full journey and join the
-              conversation.
+            <p className="mt-2 max-w-md text-[14.5px] leading-relaxed text-ink-soft">
+              One live feed of real timelines and questions. Open any post to see
+              the full journey.
             </p>
           </div>
           <button
             onClick={() => setShareOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-purple px-5 py-2.5 text-[14px] font-semibold text-white shadow-lg shadow-purple/25 transition-colors hover:bg-purple-deep"
+            className="inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-ink/90"
           >
-            <Plus className="h-4 w-4" /> Share your timeline
+            <Plus className="h-4 w-4" strokeWidth={2} /> Share your timeline
           </button>
         </div>
 
+        {/* mobile filter chips */}
+        <div className="mt-6 lg:hidden">
+          <FeedFilterChips
+            activeId={activeFilter}
+            onSelect={setActiveFilter}
+            summary={summary}
+          />
+        </div>
+
         {/* 3-column app shell */}
-        <div className="mt-5 grid items-start gap-6 lg:grid-cols-[236px_minmax(0,1fr)] xl:grid-cols-[236px_minmax(0,1fr)_304px]">
+        <div className="mt-6 grid items-start gap-8 lg:grid-cols-[210px_minmax(0,1fr)] xl:grid-cols-[210px_minmax(0,1fr)_280px]">
           {/* left */}
-          <aside className="lg:sticky lg:top-20">
+          <aside className="hidden lg:sticky lg:top-24 lg:block">
             <FeedFilterRail
               activeId={activeFilter}
               onSelect={setActiveFilter}
@@ -102,45 +110,52 @@ export function CommunityFeed() {
 
           {/* center */}
           <main className="min-w-0">
-            <div className="mb-3.5 flex items-center justify-between gap-3">
-              <span className="font-heading text-[16px] font-semibold text-navy">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <span className="c-mono text-[11.5px] uppercase tracking-[0.14em] text-ink-soft">
                 {current.label}
-                <span className="ml-2 text-[13px] font-medium text-gray-text">
+                <span className="ml-2 text-ink-soft/70">
                   {journeys.length} {journeys.length === 1 ? "post" : "posts"}
                 </span>
               </span>
-              <div className="inline-flex rounded-full border border-border bg-gray-light/60 p-1">
+              <div className="flex items-center gap-4">
                 {SORTS.map((s) => (
                   <button
                     key={s.id}
                     onClick={() => setSort(s.id)}
-                    className={`rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold transition-colors ${
+                    className={`relative pb-1 text-[12.5px] font-semibold transition-colors ${
                       sort === s.id
-                        ? "bg-white text-navy shadow-sm"
-                        : "text-gray-text hover:text-navy"
+                        ? "text-ink"
+                        : "text-ink-soft/70 hover:text-ink"
                     }`}
                   >
                     {s.label}
+                    {sort === s.id && (
+                      <span className="absolute -bottom-px left-0 h-[2px] w-full rounded-full bg-purple" />
+                    )}
                   </button>
                 ))}
               </div>
             </div>
 
             {isLoading ? (
-              <div className="flex items-center justify-center rounded-2xl border border-border bg-white py-16 text-gray-text">
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading feed…
+              <div className="flex items-center justify-center rounded-2xl border border-hair bg-white py-16 text-ink-soft">
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" strokeWidth={1.75} />{" "}
+                Loading feed…
               </div>
             ) : journeys.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border bg-white p-12 text-center">
-                <MessageCircle className="mx-auto h-8 w-8 text-gray-text/40" />
-                <p className="mt-3 text-[14px] font-medium text-navy">
+              <div className="rounded-2xl border border-dashed border-hair bg-white p-12 text-center">
+                <MessageCircle
+                  className="mx-auto h-8 w-8 text-ink-soft/40"
+                  strokeWidth={1.5}
+                />
+                <p className="mt-3 text-[14px] font-medium text-ink">
                   Nothing here yet — be the first to post.
                 </p>
                 <button
                   onClick={() => setShareOpen(true)}
-                  className="mt-4 inline-flex items-center gap-2 rounded-lg border border-purple/30 bg-white px-4 py-2 text-[13.5px] font-semibold text-purple hover:bg-purple/5"
+                  className="mt-4 inline-flex items-center gap-2 rounded-lg border border-hair bg-white px-4 py-2 text-[13px] font-semibold text-ink transition-colors hover:border-purple-light"
                 >
-                  <Plus className="h-4 w-4" /> Share yours
+                  <Plus className="h-4 w-4" strokeWidth={2} /> Share yours
                 </button>
               </div>
             ) : (
@@ -153,68 +168,55 @@ export function CommunityFeed() {
           </main>
 
           {/* right context rail */}
-          <aside className="hidden flex-col gap-4 xl:sticky xl:top-20 xl:flex">
-            <div className="rounded-2xl bg-gradient-to-br from-purple-deep to-purple p-5 text-white shadow">
-              <h4 className="font-heading text-[18px] font-semibold">
-                Share your journey
-              </h4>
-              <p className="mt-2 text-[12.5px] text-white/85">
-                Post a timeline or a question
-                {identity ? <> as <b>{identity.handle}</b></> : null}. Help the people
-                behind you.
-              </p>
-              <button
-                onClick={() => setShareOpen(true)}
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-[13.5px] font-semibold text-purple-deep hover:bg-white/90"
-              >
-                <PenLine className="h-4 w-4" /> Share a timeline or question
-              </button>
-            </div>
-
-            <div className="rounded-2xl border border-teal-light/60 bg-gradient-to-b from-teal/5 to-white p-5">
-              <h4 className="text-[13px] font-bold uppercase tracking-wide text-teal">
-                Built to stay honest
-              </h4>
-              <div className="mt-3 flex flex-col gap-2.5">
+          <aside className="hidden flex-col gap-8 xl:sticky xl:top-24 xl:flex">
+            <div>
+              <span className="c-eyebrow">Built to stay honest</span>
+              <div className="mt-3.5 flex flex-col gap-3">
                 {GUARDRAILS.map(({ Icon, text }) => (
                   <div
                     key={text}
-                    className="flex items-start gap-2.5 text-[12.5px] text-navy"
+                    className="flex items-start gap-2.5 text-[12.5px] leading-relaxed text-ink-soft"
                   >
-                    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-teal" />
+                    <Icon
+                      className="mt-0.5 h-4 w-4 shrink-0 text-teal"
+                      strokeWidth={1.75}
+                    />
                     {text}
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-border bg-white p-5">
-              <h4 className="text-[13px] font-bold uppercase tracking-wide text-gray-text">
-                Popular spaces
-              </h4>
-              <div className="mt-2.5 flex flex-col gap-1">
-                {FEED_FILTERS.filter((f) => f.group === "Visa families" || f.params.category)
-                  .slice(0, 4)
+            <div className="h-px bg-hair" />
+
+            <div>
+              <span className="c-eyebrow">Popular spaces</span>
+              <div className="mt-2 flex flex-col">
+                {FEED_FILTERS.filter(
+                  (f) => f.group === "Visa families" || f.params.category
+                )
+                  .slice(0, 5)
                   .map((f) => (
                     <button
                       key={f.id}
                       onClick={() => setActiveFilter(f.id)}
-                      className="flex items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-gray-light"
+                      className="group flex items-center gap-3 rounded-lg py-2 text-left transition-colors"
                     >
-                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-purple/10">
-                        <f.Icon className="h-4 w-4 text-purple" />
-                      </span>
+                      <f.Icon
+                        className="h-4 w-4 shrink-0 text-ink-soft transition-colors group-hover:text-purple"
+                        strokeWidth={1.75}
+                      />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13px] font-semibold text-navy">
+                        <span className="block truncate text-[13px] font-medium text-ink">
                           {f.label}
                         </span>
                         {f.sub && (
-                          <span className="block truncate text-[11px] text-gray-text">
+                          <span className="c-mono block truncate text-[10px] text-ink-soft">
                             {f.sub}
                           </span>
                         )}
                       </span>
-                      <span className="text-[11px] font-semibold text-gray-text">
+                      <span className="c-mono text-[11px] text-ink-soft/70">
                         {f.count(summary) ?? 0}
                       </span>
                     </button>
