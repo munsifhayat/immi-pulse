@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, Eye, EyeOff, Loader2, Shuffle } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, Loader2, Shuffle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,48 +16,7 @@ import {
   useRerollIdentity,
 } from "@/lib/api/hooks/community";
 import { useRoom } from "./room-context";
-
-const fieldCls =
-  "w-full rounded-xl border border-hair bg-white px-3.5 py-2.5 text-[14px] text-ink outline-none transition-all focus:border-purple/50 focus:ring-4 focus:ring-purple/10";
-
-/** One password field with a reveal toggle — no confirm field. */
-function PasswordField({
-  value,
-  onChange,
-  autoComplete,
-  placeholder = "Choose a password",
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  autoComplete: string;
-  placeholder?: string;
-}) {
-  const [shown, setShown] = useState(false);
-  return (
-    <div className="relative">
-      <input
-        type={shown ? "text" : "password"}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        className={`${fieldCls} pr-11`}
-      />
-      <button
-        type="button"
-        onClick={() => setShown((s) => !s)}
-        aria-label={shown ? "Hide password" : "Show password"}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-soft transition-colors hover:text-ink"
-      >
-        {shown ? (
-          <EyeOff className="h-4 w-4" strokeWidth={1.75} />
-        ) : (
-          <Eye className="h-4 w-4" strokeWidth={1.75} />
-        )}
-      </button>
-    </div>
-  );
-}
+import { PasswordField, fieldCls } from "./password-field";
 
 /* ── Signup ──────────────────────────────────────────────────────────────── */
 
@@ -263,6 +223,24 @@ function LoginPanel({ onSwitch }: { onSwitch: () => void }) {
         )}
         Log in
       </button>
+
+      {/*
+        Recovery is offered here rather than only after a failed attempt: the
+        person who needs it usually knows they have forgotten before they try,
+        and making them fail first to be shown the door is pointless friction.
+        The link is honest about the condition — recovery only exists for
+        accounts that supplied an email, and saying so here saves a wasted trip.
+      */}
+      <p className="text-center text-[12.5px] text-ink-soft">
+        Forgotten it?{" "}
+        <Link
+          href="/community/recover"
+          className="font-semibold text-purple-deep hover:underline"
+        >
+          Recover your account
+        </Link>{" "}
+        — if you gave us an email.
+      </p>
 
       <p className="text-center text-[12.5px] text-ink-soft">
         New here?{" "}

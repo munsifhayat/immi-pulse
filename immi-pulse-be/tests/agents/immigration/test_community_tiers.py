@@ -214,3 +214,189 @@ def test_non_utc_input_is_converted_not_truncated():
     tz = timezone(timedelta(hours=11))
     start = tiers.day_window_start(datetime(2026, 7, 18, 13, 0, tzinfo=tz))
     assert start == datetime(2026, 7, 18, 0, 0, tzinfo=timezone.utc)
+
+
+# --- Promotion policy (p6) ----------------------------------------------------
+#
+# compute_tier is pure, so the whole ladder can be argued about here rather than
+# discovered in production. Every test below constructs the signals by hand.
+
+
+def _signals(**overrides) -> tiers.TrustSignals:
+    """A member who has cleanly earned T2, unless a test says otherwise."""
+    base = dict(
+        account_age_days=10,
+        surviving_contributions=6,
+        net_votes=3,
+        upheld_reports=0,
+        upheld_reports_recent=0,
+        completed_timelines=0,
+        email_verified=False,
+        is_professional=False,
+    )
+    base.update(overrides)
+    return tiers.TrustSignals(**base)
+
+
+def test_a_brand_new_account_is_t1():
+    assert tiers.compute_tier(_signals(account_age_days=0, surviving_contributions=0,
+                                       net_votes=0)) == tiers.T1_NEW
+
+
+def test_the_baseline_member_earns_t2():
+    assert tiers.compute_tier(_signals()) == tiers.T2_ESTABLISHED
+
+
+@pytest.mark.parametrize(
+    "missing",
+    [
+        {"account_age_days": 6},          # a day short of the tenure bar
+        {"surviving_contributions": 4},   # one contribution short
+        {"net_votes": 0},                 # nobody has found anything useful yet
+    ],
+)
+def test_every_t2_requirement_is_load_bearing(missing):
+    """Each condition alone must be able to withhold T2.
+
+    Without this, a criterion could quietly stop being checked and the suite
+    would stay green — the failure mode where a gate exists in the docstring
+    and nowhere else.
+    """
+    assert tiers.compute_tier(_signals(**missing)) == tiers.T1_NEW
+
+
+def test_a_verified_email_shortens_probation_but_does_not_skip_it():
+    four_days = _signals(account_age_days=4, email_verified=True)
+    assert tiers.compute_tier(four_days) == tiers.T2_ESTABLISHED
+    # Still not instant: verification shortens the wait, it does not remove it.
+    two_days = _signals(account_age_days=2, email_verified=True)
+    assert tiers.compute_tier(two_days) == tiers.T1_NEW
+
+
+def _t3_signals(**overrides) -> tiers.TrustSignals:
+    base = dict(account_age_days=120, surviving_contributions=30, completed_timelines=1)
+    base.update(overrides)
+    return _signals(**base)
+
+
+def test_t3_needs_tenure_volume_and_a_finished_visa_queue():
+    assert tiers.compute_tier(_t3_signals()) == tiers.T3_TRUSTED
+
+
+def test_t3_is_refused_without_a_completed_timeline():
+    """The anti-farming gate: tenure and volume alone must not reach T3.
+
+    Sitting out a visa queue is the one signal a patient script cannot
+    manufacture, which is exactly why it is the T3 requirement.
+    """
+    assert tiers.compute_tier(_t3_signals(completed_timelines=0)) == tiers.T2_ESTABLISHED
+
+
+def test_a_recent_upheld_report_blocks_both_promotions():
+    assert tiers.compute_tier(_t3_signals(upheld_reports=1, upheld_reports_recent=1)) == (
+        tiers.T1_NEW
+    )
+    assert tiers.compute_tier(_signals(upheld_reports=1, upheld_reports_recent=1)) == (
+        tiers.T1_NEW
+    )
+
+
+def test_an_old_upheld_report_stops_counting():
+    """Moderation is a setback, not a permanent record.
+
+    The lifetime count is still 1 — it has simply aged out of the window — and
+    the member can be established again. A single upheld call, which is
+    sometimes wrong, must not cost someone the room for ever.
+    """
+    aged_out = _signals(upheld_reports=1, upheld_reports_recent=0)
+    assert tiers.compute_tier(aged_out) == tiers.T2_ESTABLISHED
+
+
+def test_the_ladder_is_monotone():
+    """Anything that earns T3 must also satisfy T2.
+
+    Reading the written criteria literally (T2 "no upheld reports" vs T3 "none
+    in 90 days") gives a ladder where a member could qualify for T3 and be
+    barred from T2. That is not a ladder, so both use the same recency window —
+    and this test is what stops the inconsistency being reintroduced.
+    """
+    t3 = _t3_signals(upheld_reports=1, upheld_reports_recent=0)
+    assert tiers.compute_tier(t3) == tiers.T3_TRUSTED
+    assert tiers.may_post_contact_details(tiers.compute_tier(t3))
+
+
+def test_a_pattern_of_upheld_reports_returns_an_account_to_probation():
+    demoted = _t3_signals(
+        upheld_reports=tiers.SHADOW_LIMIT_UPHELD_THRESHOLD,
+        upheld_reports_recent=0,
+    )
+    assert tiers.compute_tier(demoted) == tiers.T1_NEW
+
+
+def test_a_professional_keeps_the_disclosure_tier():
+    """T4 is a disclosure the reader is owed, not a reward for behaving.
+
+    An agent who misbehaves gets shadow-limited and moderated like anyone else;
+    what must never happen is the badge saying who they are quietly falling off
+    while they keep posting.
+    """
+    assert tiers.compute_tier(_signals(is_professional=True, upheld_reports=5)) == (
+        tiers.T4_PROFESSIONAL
+    )
+
+
+# --- What a tier unlocks ------------------------------------------------------
+
+
+def test_contact_details_unlock_at_t2():
+    assert not tiers.may_post_contact_details(tiers.T0_VISITOR)
+    assert not tiers.may_post_contact_details(tiers.T1_NEW)
+    assert tiers.may_post_contact_details(tiers.T2_ESTABLISHED)
+    assert tiers.may_post_contact_details(tiers.T3_TRUSTED)
+    assert tiers.may_post_contact_details(tiers.T4_PROFESSIONAL)
+
+
+def test_the_ip_ceiling_stops_binding_at_t2():
+    """The resolution of the shared-IP tension.
+
+    T0/T1 is where free account creation makes per-account caps meaningless, so
+    the network backstop applies there. An established account has paid a week
+    and real participation, which five flatmates each manage and a spam ring
+    does not — so the ceiling stops landing on the household.
+    """
+    assert tiers.ip_ceiling_applies(tiers.T0_VISITOR)
+    assert tiers.ip_ceiling_applies(tiers.T1_NEW)
+    assert not tiers.ip_ceiling_applies(tiers.T2_ESTABLISHED)
+    assert not tiers.ip_ceiling_applies(tiers.T3_TRUSTED)
+
+
+# --- Weighted reports ---------------------------------------------------------
+
+
+def test_report_weight_rises_with_standing():
+    assert tiers.report_weight(tiers.T1_NEW) == 1
+    assert tiers.report_weight(tiers.T2_ESTABLISHED) == 3
+    assert tiers.report_weight(tiers.T3_TRUSTED) >= tiers.AUTO_HOLD_REPORT_WEIGHT
+
+
+def test_one_trusted_report_holds_content_on_its_own():
+    """"T3 reports auto-hide", expressed as a weight rather than a special case."""
+    assert tiers.report_weight(tiers.T3_TRUSTED) >= tiers.AUTO_HOLD_REPORT_WEIGHT
+
+
+def test_no_single_established_report_can_hold_content():
+    """One annoyed member must not be able to silence another.
+
+    In a room where people disagree about agents and outcomes, a control where
+    a single report hides a post would be used to settle arguments within the
+    week. Two established members, or five new ones, is a defensible bar; one
+    person is not.
+    """
+    assert tiers.report_weight(tiers.T2_ESTABLISHED) < tiers.AUTO_HOLD_REPORT_WEIGHT
+    assert 2 * tiers.report_weight(tiers.T2_ESTABLISHED) >= tiers.AUTO_HOLD_REPORT_WEIGHT
+
+
+def test_new_accounts_need_a_real_consensus_to_hold_anything():
+    assert (
+        tiers.AUTO_HOLD_REPORT_WEIGHT / tiers.report_weight(tiers.T1_NEW) >= 5
+    )

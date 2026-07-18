@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Loader2, Lock } from "lucide-react";
+import { Check, Loader2, Lock, ShieldAlert } from "lucide-react";
 import {
   useMyComments,
   useMyPosts,
@@ -27,6 +27,29 @@ type Tab = "posts" | "comments";
 function DraftPublishRow({ journey }: { journey: JourneyOut }) {
   const publish = usePublishJourney();
   const [done, setDone] = useState(false);
+
+  // A post an automatic check has parked for review. Said plainly, because the
+  // alternative is a post that looks live to its author and is invisible to
+  // everyone else — which is how a member concludes the room is broken. It is
+  // named as a check rather than a verdict, since that is what it is: a
+  // moderator has not looked yet.
+  if (journey.is_held) {
+    return (
+      <div className="border-b border-hair bg-paper-deep/50 px-5 py-3">
+        <p className="flex items-start gap-2 text-[12.5px] font-medium text-ink">
+          <ShieldAlert
+            className="mt-px h-3.5 w-3.5 shrink-0 text-[#B4700F]"
+            strokeWidth={1.75}
+          />
+          <span>
+            Waiting on a moderator. Something in this post matched a check we run
+            on everything, so it is not in the feed yet. You can still see it
+            here.
+          </span>
+        </p>
+      </div>
+    );
+  }
 
   if (journey.is_published) return null;
 

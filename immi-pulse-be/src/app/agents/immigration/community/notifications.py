@@ -43,6 +43,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.agents.immigration.community import identity as identity_gen
 from app.agents.immigration.community import tiers
 from app.agents.immigration.community.models import (
+    CONTENT_ACTIVE,
+    CONTENT_HELD,
     AnonIdentity,
     CommunityNotification,
     Journey,
@@ -289,19 +291,26 @@ async def list_my_posts(
 ) -> list[Journey]:
     """Posts authored by this account, newest first.
 
-    Hidden and removed posts are excluded. A moderated post staying visible only
-    to its author is a p6 decision (shadow limiting), not this phase's — and
-    showing a removed post here with no explanation would be worse than omitting
-    it.
+    Hidden and removed posts are excluded: showing a removed post here with no
+    explanation would be worse than omitting it.
 
-    Unpublished drafts **are** included, deliberately. This is the member's own
-    profile, and a saved wait check that were invisible even to its owner would
-    be unreachable — there would be nowhere to go to publish it. Each row carries
-    ``is_published`` so the UI can mark it as private.
+    Held posts **are** included. This is the whole mechanism of a soft hold —
+    the author sees their post exactly where they expect it while a moderator
+    decides, and only the room does not. A post that vanished from its own
+    author's profile would teach them the site had eaten it, which is how a
+    false positive turns into a lost member.
+
+    Unpublished drafts **are** included too, deliberately. This is the member's
+    own profile, and a saved wait check that were invisible even to its owner
+    would be unreachable — there would be nowhere to go to publish it. Each row
+    carries ``is_published`` so the UI can mark it as private.
     """
     result = await db.execute(
         select(Journey)
-        .where(Journey.identity_id == account.id, Journey.status == "active")
+        .where(
+            Journey.identity_id == account.id,
+            Journey.status.in_((CONTENT_ACTIVE, CONTENT_HELD)),
+        )
         .order_by(Journey.created_at.desc())
         .limit(limit)
         .offset(offset)
@@ -317,14 +326,19 @@ async def list_my_comments(
     A comment on its own is unreadable out of context — "yes, mine took about
     that long too" means nothing without knowing what it answered — so each row
     carries the parent post's id and title.
+
+    A held reply of the member's own is listed, for the same reason a held post
+    is listed on their profile: the author must go on seeing what they wrote.
+    The *parent* post still has to be live, though — a reply shown under a post
+    that is not there reads as a broken page rather than as a moderated one.
     """
     result = await db.execute(
         select(JourneyComment, Journey)
         .join(Journey, Journey.id == JourneyComment.journey_id)
         .where(
             JourneyComment.identity_id == account.id,
-            JourneyComment.status == "active",
-            Journey.status == "active",
+            JourneyComment.status.in_((CONTENT_ACTIVE, CONTENT_HELD)),
+            Journey.status == CONTENT_ACTIVE,
             Journey.is_published.is_(True),
         )
         .order_by(JourneyComment.created_at.desc())

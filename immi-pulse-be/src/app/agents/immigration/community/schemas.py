@@ -17,7 +17,7 @@ from app.agents.immigration.community.models import (
     TIMELINE_OUTCOMES,
 )
 
-ThreadStatusLiteral = Literal["active", "hidden", "removed"]
+ThreadStatusLiteral = Literal["active", "held", "hidden", "removed"]
 ReportTargetLiteral = Literal["thread", "comment", "journey", "journey_comment"]
 ReportReasonLiteral = Literal["spam", "harassment", "misleading_advice", "other"]
 ReportStatusLiteral = Literal["open", "actioned", "dismissed"]
@@ -145,6 +145,16 @@ class ReportOut(BaseModel):
     target_preview: Optional[str] = None
     target_status: Optional[str] = None
     target_handle: Optional[str] = None
+
+    # "member" or "auto". An automatic hold and a member's report need visibly
+    # different handling in the queue: one is a machine's guess that a human is
+    # being asked to confirm, the other is a person telling us something. A
+    # moderator who cannot tell them apart will work them at the same speed,
+    # which is the wrong speed for both.
+    source: str = "member"
+    # What this report counted for against the auto-hold threshold, snapshotted
+    # when it was filed.
+    weight: int = 1
 
     model_config = {"from_attributes": True}
 
@@ -562,6 +572,11 @@ class JourneyOut(BaseModel):
     # (the feed filters drafts out), so the UI can mark it "only you can see
     # this" and offer the publish action.
     is_published: bool = True
+    # True while an automatic check has parked this post for review. Only ever
+    # returned to its author — every other reader's query filters held content
+    # out — so it exists purely so the member's own view can say honestly that
+    # it is waiting rather than pretending it is live.
+    is_held: bool = False
     is_mine: bool = False
     viewer_voted: bool = False
 

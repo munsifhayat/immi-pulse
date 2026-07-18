@@ -3,7 +3,8 @@
 Epic: Turn immi360 into a community platform — pseudonymous Reddit-style accounts with an inbox, app-shell homepage, unified wait-check/timeline flow, dual-source (Official vs Room) wait data, and a self-running trust ladder.
 Integration branch: feat/community-mvp
 Base: main
-Phase status: [done] p1 · [done] p2 · [done] p3 · [done] p4 · [done] p5 · [pending] p6
+Phase status: [done] p1 · [done] p2 · [done] p3 · [done] p4 · [done] p5 · [done] p6
+**Epic complete** — see the closing section at the foot of this file.
 
 <!--
 Legend: pending → in_progress → done  (or blocked)
@@ -45,7 +46,24 @@ the next phase needs — not the conversation.
 
    **Correction (2026-07-18, caught by p4):** the original wording above said sample rows "stay excluded from the *feed*". That was **factually wrong** — it describes the opposite of the code. Samples have always *populated* the feed (they are most of its current content) and were excluded from *stats*. p4 correctly changed stats only and left feed behaviour untouched rather than "fixing" the feed to match a mistaken premise, which would have emptied it. **Whether samples should also leave the feed is a separate, unmade decision**, and it cannot be made until enough member-reported content exists to fill the gap.
 
-2. **Real per-IP ceiling.** (p2 set the starting value — **still open for p6 to tune**)
+2. ~~**Real per-IP ceiling.**~~ — **RESOLVED 2026-07-18 by p6: the ceiling is now tier-aware.**
+   Enforced against T0 and T1; **not** enforced above T1 (`tiers.ip_ceiling_applies`). The
+   counter is still *incremented* for every writer at every tier, so the number stays
+   observable and tunable — only the refusal is scoped.
+   **The argument:** p2 correctly rejected "exempt anyone signed in", because signing up is
+   free and the exemption would be defeated in one click. p6 has a signal p2 did not: T2 costs
+   seven days, five contributions that survived moderation, and net-positive votes from other
+   members. Five flatmates each clear that within a fortnight; a spam ring does not clear it at
+   volume, because each account costs a week of genuine participation. So the backstop stays
+   exactly where free account creation would otherwise defeat the per-account cap, and stops
+   landing on the lecture theatre. Both halves are asserted in `e2e_community_antispam.py` §12
+   (a probationer on an exhausted network is refused; an established account on the same
+   exhausted network is not).
+   **Still soft, and still never a ban** — asserted in the same section: the refusal offers
+   signing in, names tomorrow, states no number, and contains none of "ban", "blocked",
+   "blacklist", "forbidden". The bucket resets at UTC midnight and `reset_rate_counters` clears
+   it on demand.
+   *Original note, kept for the record:*
    Accounts are free to create, so per-account caps alone do not bind — the per-IP ceiling and new-account probation are the controls that do.
    *Shipped starting value:* 25 posts / 60 replies / 30 reports per IP per day (`tiers.IP_CEILING`). Every rejection is logged at WARNING with `scope=ip action=… cap=… signed_in=…`, so the first fortnight of real traffic can move it.
    **Known tension p6 must confront with data:** the ceiling applies to signed-in accounts too, so a lecture theatre or share house behind one NAT holding more than five active T1 members would trip it. Applying it only to account-less writers was considered and rejected — it would be defeated by signing up, which is free. The mitigations shipped instead: the bucket resets at UTC midnight, and an operator can clear a scope outright (`service.reset_rate_counters`), so the failure mode is "come back tomorrow or ask us", never a ban.
@@ -839,3 +857,324 @@ contract change beyond the allowance route, email verification UI, password-reco
   page overflow
 
 ---
+
+## Handoff — p6 Trust promotion & anti-spam · done · 2026-07-18
+
+Branch `feat/community-mvp-p6-trust` → PR into `feat/community-mvp`. Backend, plus the two
+frontend surfaces this phase owed (password recovery, and the author's view of held content).
+
+### Shipped vs planned
+
+Every Phase-6 acceptance criterion is met. Four things go past the written scope, each
+because the phase could not honestly be called done without it:
+
+1. **`/community/recover` — the dead link p5 flagged.** `send_recovery_email` has linked to
+   a route that did not exist since p1, so anyone who set an email and forgot their password
+   got a 404. The page now handles both halves (request a link; set a new password), and an
+   expired or already-used token falls back to the request form **with the error inline**
+   rather than dead-ending. A "Forgotten it?" link was added to the login panel — the person
+   who needs it usually knows before they try, so making them fail first was pointless.
+2. **A settings-backed velocity threshold** (`community_velocity_max_writes` /
+   `community_velocity_window_seconds`). A burst threshold that cannot be relaxed makes every
+   legitimate scripted flow — seeders, the e2e suite — hold its own content, and these are
+   exactly the numbers the plan says real traffic should move. Same in-process-mutation
+   pattern p3 established for `resend_api_key`.
+3. **An official-source link allowlist** (`antispam.ALLOWED_LINK_DOMAINS`). Deliberate
+   deviation from a flat "no links below T2" — see key decisions.
+4. **`is_held` on `JourneyOut` + a banner on `/you`.** The soft hold is only soft if its
+   author can see what happened; a post that silently vanishes teaches a member the site ate
+   it. Only ever returned to the author, because every other reader's query filters held
+   content out server-side.
+
+Deliberately NOT built (still out of scope, as planned): T4 professional verification
+(OMARA/MARN checking), DMs, the marketplace, any moderator UI beyond the fields the existing
+queue now renders.
+
+### Key decisions
+
+- **A hold is a third content state, not a moderation verdict.** `status = "held"` sits
+  between `active` and `hidden`. Because every public query already filters on `active`,
+  adding the value excludes held content everywhere by default — the safe direction for a
+  status whose call sites nobody has audited one by one. Crucially it is *reversible by
+  dismissal*: a moderator dismissing the auto-report puts the content straight back in the
+  feed, re-creates its stats mirror row, and (for a reply) banks the notification it was
+  denied. The whole case for holding rather than deleting rests on that path existing.
+- **Touting is checked at every tier; contact details only below T2.** These are different
+  kinds of problem. Publishing a phone number is a spam question a member can fix themselves,
+  so it is *refused* with a message saying how. Touting is an s276 question — giving
+  immigration assistance while unregistered is an offence — so it is *held for a human*, and
+  tenure buys no exemption. A long-standing account touting is if anything more dangerous
+  than a new one. Asserted at T1, T2 and T3 in the e2e.
+- **Official gov.au links are always allowed** (`homeaffairs.gov.au`, `legislation.gov.au`,
+  `mara.gov.au`, …, suffix-matched so `homeaffairs.gov.au.evil.com` is not covered). The
+  single most useful thing one applicant can do for another is point at the department's own
+  page, and it is a link no tout will ever post — nobody sells a visa service by linking to
+  Home Affairs. Removes the most common false positive the gate would otherwise produce,
+  which is what stops a safety control being experienced as an obstacle.
+- **Naming a messaging app is not a contact detail.** "My agent only ever messages me on
+  WhatsApp" is ordinary content here — first-hand accounts of dealing with agents are what
+  the room is *for*. Only unambiguous artefacts reject: links, phone numbers, @handles, email
+  addresses, `wa.me`/`t.me`. The solicitation form ("whatsapp me", "dm me") is caught by the
+  touting patterns instead, which is the stronger place for it since those apply at all tiers.
+- **The auto-hold threshold is 5, and T2 is worth 3.** So no *single* report from an
+  established member can hold content on its own; two can, or five new accounts can, or one
+  T3 (worth 10 — that is "T3 reports auto-hide", expressed as a weight rather than a special
+  case, so there is one rule instead of two). A control where one annoyed person silences
+  another will be used to settle arguments within the week, and this room is full of people
+  who disagree about agents and outcomes.
+- **Weight is snapshotted at report time**, not derived at read time, so a later promotion or
+  demotion cannot retroactively re-price someone's old reports.
+- **The T2/T3 upheld-report criteria were inconsistent as written and were reconciled.** The
+  plan states T2 as "no upheld reports" and T3 as "zero upheld reports in 90 days" — read
+  literally, a member with one old upheld report qualifies for T3 while being permanently
+  barred from T2, which is not a ladder. Both now use the same 90-day recency window, so T3's
+  requirements strictly imply T2's. The lifetime count is not discarded: it drives
+  shadow-limiting, which is the right place for "this account has a history" to have teeth.
+  One upheld call, which is sometimes wrong, should cost three months of link privileges —
+  not the room for ever. `test_the_ladder_is_monotone` stops the inconsistency returning.
+- **Demotion does not wait for the nightly job.** An upheld report recomputes the tier on the
+  spot, because that is the one direction where a day's delay has a real cost — the account
+  keeps posting in the meantime. Promotion is nightly, silent, and effective on the next
+  request; nobody is told they were promoted, because being told turns a ladder into a game.
+- **Short bodies are never fingerprinted** (`MIN_FINGERPRINT_CHARS = 40`). "Any update?"
+  posted in thirty threads over a year is somebody waiting, not somebody spamming. Copy-paste
+  touting is never that short — it has to contain the pitch.
+- **Velocity raised from a first-draft 5 to 8 writes/60s.** A member firing off short answers
+  across several threads can plausibly manage five or six in a minute, and holding *their*
+  content costs a real person a real delay. The sharp controls are touting and duplication;
+  this is the backstop behind them, so it is set where it only catches the unambiguous.
+- **A held reply does not raise the visible reply count and sends no notification.** A thread
+  reading "1 reply" with nothing under it advertises the hold, which tells a spammer exactly
+  which message tripped the screen. Both effects are applied on release instead.
+- **T4 is never demoted by `compute_tier`.** The badge is a disclosure the reader is owed,
+  not a reward misbehaviour forfeits. A professional who abuses the room is shadow-limited and
+  moderated like anyone else; what must not happen is the disclosure quietly falling off while
+  they keep posting.
+
+### Interfaces produced
+
+- `community/antispam.py` (new; pure, no DB, no service imports):
+  - `:122` `find_links(text)` · `:190` `find_phone_numbers(text)` · `:244` `find_handles(text)`
+  - `:261` `contact_signals(text) -> list[str]` — the below-T2 reject gate
+  - `:394` `touting_signals(text) -> list[str]` — held at every tier
+  - `:421` `normalise(text)` · `:432` `fingerprint(text) -> str | None`
+  - `:111` `is_allowed_link(candidate)` · `:86` `ALLOWED_LINK_DOMAINS`
+  - `:416` `MIN_FINGERPRINT_CHARS = 40` · `:450-451` `VELOCITY_*` defaults ·
+    `:457` `SIMILARITY_MIN_THREADS = 3`
+- `community/tiers.py` (extended; still pure):
+  - `:204` `ip_ceiling_applies(tier)` — **the open-decision-2 resolution**
+  - `:277` `TrustSignals` · `:303` `compute_tier(signals) -> int`
+  - `:349` `may_post_contact_details(tier)` · `:382` `report_weight(tier)`
+  - `:379` `AUTO_HOLD_REPORT_WEIGHT = 5` · `:268` `UPHELD_REPORT_WINDOW_DAYS = 90`
+  - `:273` `SHADOW_LIMIT_UPHELD_THRESHOLD = 3` · `:244-255` T2/T3 thresholds
+- `community/trust.py` (new; the DB side):
+  - `:58` `gather_signals(db, account) -> TrustSignals`
+  - `:133` `recompute_tier(db, account) -> int`
+  - `:170` `recompute_all_tiers(db, *, batch_size=500) -> dict` — the nightly entry point
+  - `:211` `record_upheld_report(db, *, identity_id)` — increments, stamps, demotes
+  - `:313` `screen_write(db, *, identity, text, fingerprint=None) -> ScreenResult`
+  - `:238` `ScreenResult` (`.reject_reasons` / `.hold_reasons` / `.rejected` / `.held`)
+  - `:264` `CONTACT_GATE_MESSAGE`
+  - `:371` `auto_hold(db, *, target_type, target_id, reasons) -> CommunityReport`
+  - `:408` `accumulated_report_weight(db, *, target_type, target_id) -> int`
+  - `:425` `shadow_limit_filter(model, viewer)` · `:449` `visible_status_filter(model, viewer)`
+- `community/service.py`:
+  - `:102` `ContentGateError` — new; router maps it to **400** with the message verbatim
+  - `consume_rate` now resolves the tier and skips IP *enforcement* above T1 (still counts)
+  - `remaining_allowance` no longer reports an IP-bound remainder for T2+
+  - `create_journey` / `create_journey_comment` screen before writing; set `status="held"`
+    and file an auto-report when held
+  - `list_journeys(..., viewer=)` — **new kwarg**; applies both soft-control filters
+  - `get_journey` honours held + shadow-limited; `:1655` `_is_shadow_limited(db, identity_id)`
+  - `report_target(..., reporter=)` — **new kwarg**; weights and may auto-hold
+  - `_hold_reported_target`, `_release_held_comment`; `resolve_report` records the upheld
+    report on hide/remove and **releases** a held target on dismiss
+- `community/models.py`: `CONTENT_ACTIVE` / `CONTENT_HELD`, `REPORT_SOURCES`;
+  `AnonIdentity.last_upheld_report_at`; `Journey.content_fingerprint`;
+  `JourneyComment.content_fingerprint`; `CommunityReport.reporter_identity_id` / `.source` /
+  `.weight`
+- `community/notifications.py`: `list_my_posts` and `list_my_comments` now include the
+  member's own held content
+- `scheduler/jobs.py`: `_run_community_tier_recompute`, registered as
+  `community_tier_recompute` at **03:20** (midnight already holds webhook renewal)
+- `core/config.py:129-130`: `community_velocity_max_writes` (8),
+  `community_velocity_window_seconds` (60)
+- Schemas: `ReportOut.source` / `.weight`; `JourneyOut.is_held`;
+  `ThreadStatusLiteral` gained `"held"`
+- Migration `e9b1d3f5a7c2` (down_revision `d7f9b3c5e1a8`)
+- Frontend: `useCommunityRecover`, `useCommunityResetPassword`
+  (`src/lib/api/hooks/community.ts`); `RecoverView` (`components/room/recover-view.tsx`);
+  `PasswordField` + `fieldCls` extracted to `components/room/password-field.tsx`;
+  `(public)/community/recover/page.tsx` (noindex + robots-disallowed); held banner in
+  `you-view.tsx`; "Forgotten it?" link in `account-dialog.tsx`
+- Tests: `tests/agents/immigration/test_community_antispam.py` (43 new),
+  `test_community_tiers.py` extended 26 → 45 (+19), `tests/e2e_community_antispam.py`
+  (63 checks)
+
+### Gotchas for whoever picks this up
+
+1. **`status = "held"` is a new value on a plain String column** — no enum, no migration for
+   it. The `assert set(THREAD_STATUSES) == set(ThreadStatusLiteral.__args__)` guard in
+   `schemas.py:32` is what caught it being added in only one place; keep that guard.
+2. **Any NEW public query that reads journeys or comments must apply BOTH filters** —
+   `trust.visible_status_filter` and `trust.shadow_limit_filter` — exactly as p4 warned about
+   `is_published`. There is still no global default scope. A query that forgets them leaks
+   held content and shadow-limited authors into the feed, and nothing will fail.
+3. **`shadow_limit_filter` explicitly keeps NULL-`identity_id` rows.** A bare `NOT IN`
+   evaluates to NULL for them and would silently empty the feed of every seeded sample post —
+   which looks like a broken query rather than a policy. Do not "simplify" it.
+4. **`recompute_all_tiers` re-derives every tier from real signals**, so any hand-set
+   `trust_tier` is reset the next time it runs. This bit the e2e (a tier set in §8 was gone by
+   §12) and it will bite anyone who sets a tier by hand in prod. T4 is the exception — it is
+   carried through, because `compute_tier` returns T4 for `is_professional`, which is itself
+   read from the stored column. That is a deliberate self-perpetuating loop and the only way
+   a hand-assigned tier survives the job.
+5. **The velocity check counts landed writes across posts *and* comments**, in one 60-second
+   window, per identity. Any new write path that creates `Journey` or `JourneyComment` rows
+   without going through `screen_write` is invisible to it.
+6. **`e2e_community_inbox.py` §8 had its "objectionable reply" body changed.** It used a
+   touting phrase, which p6 now auto-holds before anyone can report it — so the section
+   silently stopped testing anything (no notification, nothing for a moderator to remove). It
+   now uses an unpleasant remark with no pattern to match, which is what "only a human can
+   judge" looks like. The auto-hold path is covered directly in `e2e_community_antispam.py`.
+7. **`tests/e2e_community_antispam.py` resets the IP scope at startup**, like its five
+   siblings (p2 gotcha 1 applies verbatim).
+8. **The pre-existing `ruff F841 journey_report_id`** at `e2e_community_moderation.py:192`
+   is still there, still deliberately untouched — same reasoning p2 gave (gotcha 7): fixing
+   unrelated lint would make this phase's diff dishonest.
+9. **`(public)` editorial pages — including the new `/community/recover` — still render the
+   old marketing navbar and footer**, whose links point at `/pricing`, `/features` and
+   `/get-started`. Those routes now 307 to `/`. Pre-existing since p5 (it affects `/about`,
+   `/terms`, `/privacy` equally) and not p6's to fix, but it is a real dead-end-ish click and
+   somebody should own it.
+10. **Seeding is a live dependency of the dual-source table.** See the epic-complete section
+    below — this is the single most likely thing to make the product look broken on a fresh
+    environment.
+
+### Verify → result (p6)
+
+- `PYTHONPATH=src .venv/bin/python -m pytest tests/ -q` → **179 passed** (117 before; +19 in
+  `test_community_tiers.py`, +43 in the new `test_community_antispam.py`)
+- `PYTHONPATH=src .venv/bin/python tests/e2e_community_antispam.py` → **63 checks, all
+  passed**; re-run twice in the same UTC day, still green
+- `PYTHONPATH=src .venv/bin/alembic upgrade head && … heads` → **`e9b1d3f5a7c2`, exactly one
+  head**
+- Regression, all still pass: `e2e_community_accounts.py`, `e2e_community_ratelimit.py`,
+  `e2e_community_moderation.py`, `e2e_community_inbox.py`,
+  `e2e_community_waitcheck_save.py`, `e2e_portal_flow.py`
+- `ruff check` clean on every file this phase touched (the one remaining finding is the
+  pre-existing F841 above)
+- `cd immi-pulse-fe && bun run lint && bunx tsc --noEmit && bun run build` → tsc **clean**,
+  build **compiled successfully** with `/community/recover` emitted, lint **5 errors / 26
+  warnings — identical to the baseline measured on `feat/community-mvp` in a throwaway
+  worktree**. Zero new findings.
+- **The nightly job registers without disturbing the existing three** — `email_poll`,
+  `webhook_renewal` and `precase_triage_retry` are untouched; `community_tier_recompute` is
+  added at 03:20 and the startup log line names all four.
+
+**Driven in a real browser** (uvicorn :8001 with the Resend sender captured to a file so the
+genuine recovery link could be followed, `bun run dev`, Playwright):
+
+- **Recovery, end to end, as a member would experience it.** `/community/recover` → entered
+  the address → "**If we have that address, a link is on its way**" (the copy matches the
+  backend's non-oracle exactly — it says *if*, and explains that the message looks the same
+  either way) → the captured email carried
+  `http://localhost:3000/community/recover?token=…` with the neutral subject "Reset your
+  immi360 password" → following that link rendered "Choose a new password" → set it → landed
+  in the room **already signed in as SunnyFalcon4817** → logged out → logged back in with the
+  **new** password → composer footer read "Posting as SunnyFalcon4817". The old password was
+  genuinely replaced, not shadowed.
+- **The spent token is a single use.** Revisiting the same link and submitting returned
+  "That recovery link is invalid or has already been used." **with the request form rendered
+  directly beneath it** — no dead end.
+- **The "Forgotten it? Recover your account — if you gave us an email" link** is present in
+  the login panel and points at the route.
+- **The link gate, live.** Posting "Has anyone used best-migration-help.com…" as a fresh
+  account returned the gate message in the composer — **with the typed text still in the
+  box**, nothing lost — reading "New accounts can't post links, phone numbers or contact
+  handles yet. This lifts automatically once you've been part of the room for a week or so.
+  Links to homeaffairs.gov.au and other official sources always work." No tier, no score, no
+  number anywhere in it.
+- **The allowlist earns its place.** The *same* T1 account then posted
+  "Is this the right page? https://immi.homeaffairs.gov.au/visas/getting-a-visa" → **201, top
+  of feed**. The most useful post in the room is not blocked.
+- **Touting auto-hold, live.** Posting "I can lodge your 189 for you, my fee is very
+  reasonable" → accepted, and: DB `status = held`; an open report with `source=auto`,
+  `weight=5`, description "Held automatically: offer to lodge on someone's behalf; quoting a
+  fee"; **an anonymous feed request returned 0 of them out of 100 posts**; the author's own
+  feed still showed it; `/you` showed it under "**Waiting on a moderator. Something in this
+  post matched a check we run on everything, so it is not in the feed yet. You can still see
+  it here.**"
+
+---
+
+## Epic complete — community-mvp · 2026-07-18
+
+Six phases, six squash-merged PRs into `feat/community-mvp`. The final
+`feat/community-mvp` → `main` PR is **left for the human**, as the standing constraint
+requires. Nothing was deployed.
+
+### What the epic delivered
+
+immi360 stopped being a marketing site with a community section and became a room.
+
+- **A pseudonymous account** (p1) — assigned handle, member-set password, email genuinely
+  optional and used for nothing but recovery and reply notifications. Fifteen seconds to join;
+  no email means no recovery, said plainly at signup rather than buried. The existing
+  `anon_identities` table grew into the account, so not one post had to be migrated.
+- **Rate limiting that survives a restart** (p2) — Postgres-backed counters replacing a
+  module-level dict that silently multiplied every limit by the dyno count, plus the five-tier
+  scaffolding everything downstream reads.
+- **An inbox** (p3) — the loop a Q&A community lives or dies on. You ask, someone answers, you
+  find out. In-app first, which is exactly what makes the optional email workable. Email
+  batched to one send per thread per day, and it says nothing: no subclass, no title, no reply
+  text, not even in the preheader, because members share inboxes with partners and employers.
+- **Honest numbers** (p4) — Wait Check and timeline-sharing collapsed into one act, every
+  median travelling with its sample size, its still-waiting count and its provenance, and a
+  hard n=20 floor below which the product says "not enough yet" instead of showing a figure
+  that would swing on the next grant.
+- **The room as the homepage** (p5) — a three-column shell replacing 787 lines of marketing.
+  Also, incidentally, fixed the sitemap's journey entries, which had been emitting **zero**
+  URLs since before the epic started because of a 422 nobody had noticed.
+- **A self-running trust ladder** (p6) — silent nightly promotion, immediate demotion, link
+  and contact gating below T2, touting held for a human at every tier, velocity and duplicate
+  detection, weighted reports, and shadow-limiting. No tier is ever displayed except T4.
+
+Across all six: **179 unit tests and six e2e scripts** (≈420 individual checks), a single
+Alembic head throughout (`e5f7a9c1b3d5` → `e9b1d3f5a7c2`), and every phase driven in a real
+browser or over a real socket before being called done.
+
+### What is still open
+
+1. **Seeding — the most likely thing to make this look broken.** The Room column of the
+   dual-source table renders `—` and `n=0` on any database without scraped timelines. That is
+   the n=20 floor behaving correctly: it refuses to publish a median from a thin sample. But
+   **the p4 decision to include forum-collected timelines only pays off once
+   `scripts/seed_community_scraped.py` has actually been run wherever the app is deployed** —
+   the loader and the 141-row dataset (`scripts/scraped_journeys.json`) exist and are *not*
+   loaded in every environment. Observed directly in the browser during p6: every Room figure
+   showed a dash. **Run the seeder as part of deploying this epic**, or the single most
+   distinctive thing the product does will look empty on day one.
+2. **Kaplan–Meier** (deferred by p4, as the plan permitted). The input shape it needs already
+   exists — `service._cohort_sample` is provenance-split and window-filtered. What is missing
+   is the survival curve and a product decision: a KM median beside an official band that is
+   *not* censoring-corrected is no longer comparing like with like. `test_processing_engine.py`
+   pins the current optimistic bias with a fixture where the two medians differ by more than
+   2×, so the omission is documented in a test rather than a comment.
+3. **Per-IP tuning.** p6 resolved *who* the ceiling applies to (T0/T1 only). The **numbers** —
+   25 posts / 60 replies / 30 reports per network per day — are still p2's starting values.
+   Every rejection logs at WARNING with `scope=ip action=… cap=… signed_in=…`; the first
+   fortnight of real traffic should move them. Same for
+   `community_velocity_max_writes` (8/60s), now a setting rather than a constant.
+4. **Whether sample timelines should leave the *feed*.** Still an unmade decision, correctly
+   left unmade. Samples have always populated the feed and are most of its current content;
+   removing them would empty it. This cannot be decided until enough member-reported content
+   exists to fill the gap — which is a reason to watch the ratio, not a reason to defer
+   indefinitely.
+5. **T4 professional verification.** Out of scope by design: build OMARA/MARN checking when
+   the first genuine registered agent asks to take part. The tier, its caps and its
+   never-demoted disclosure semantics all exist and are tested; only the verification is
+   missing.
+6. **Two small inherited items**, both recorded above as p6 gotchas: the old marketing
+   navbar/footer on surviving editorial pages links to retired routes (gotcha 9), and the
+   pre-existing `ruff F841` in `e2e_community_moderation.py` (gotcha 8).

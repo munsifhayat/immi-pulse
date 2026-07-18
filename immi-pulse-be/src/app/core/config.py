@@ -113,6 +113,22 @@ class Settings(BaseSettings):
     # starting today — it is just data we happen to have.
     community_stats_window_months: int = 12
 
+    # --- Community anti-spam (p6) ---
+    # Velocity: writes from one account inside the window, above which the next
+    # one is held for review. Settings rather than constants because these are
+    # exactly the numbers the first fortnight of real traffic should move, and
+    # because a burst threshold that cannot be relaxed makes every legitimate
+    # scripted flow (seeders, the e2e suite) hold its own content.
+    #
+    # Eight is set where it only catches the unambiguous. A member firing off
+    # short answers across several threads can plausibly manage five or six in a
+    # minute, and holding *their* content costs a real person a real delay,
+    # whereas the cost of letting a spammer land three more posts is small —
+    # touting detection and duplicate detection are the sharp controls, and this
+    # is the backstop behind them.
+    community_velocity_max_writes: int = 8
+    community_velocity_window_seconds: int = 60
+
     # --- Resend (transactional email) ---
     resend_api_key: str | None = None
     resend_from_email: str = "IMMI-PULSE <onboarding@resend.dev>"

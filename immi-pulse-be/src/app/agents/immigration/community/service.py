@@ -13,9 +13,13 @@ from sqlalchemy import and_, delete, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.immigration.community import antispam
 from app.agents.immigration.community import identity as identity_gen
-from app.agents.immigration.community import notifications, processing, tiers
+from app.agents.immigration.community import notifications, processing, tiers, trust
 from app.agents.immigration.community.models import (
+    CONTENT_ACTIVE,
+    CONTENT_HELD,
+    REPORT_SOURCE_MEMBER,
     TIMELINE_SOURCE_FORUM,
     TIMELINE_SOURCE_MEMBER,
     AnonIdentity,
@@ -92,6 +96,17 @@ class JourneyCapError(Exception):
     """Raised when an anonymous identity tries to post a second timeline.
 
     The router maps this to HTTP 409 so the frontend can show the sign-in gate.
+    """
+
+
+class ContentGateError(Exception):
+    """Raised when content breaks a rule the member can fix themselves.
+
+    Distinct from a rate limit and from an auto-hold. A rate limit says "not
+    now"; an auto-hold says "a human will look at this"; this says "edit that
+    and try again", and it is the only one of the three the member can act on
+    immediately. The router maps it to HTTP 400 with the message shown verbatim,
+    so the message has to be worth reading.
     """
 
 
@@ -183,12 +198,12 @@ async def consume_rate(
     """
     family = tiers.family_for(action)
     window_start = tiers.day_window_start()
+    tier = tiers.effective_tier(
+        has_account=bool(identity is not None and identity.password_hash),
+        stored_tier=identity.trust_tier if identity is not None else None,
+    )
 
     if identity is not None:
-        tier = tiers.effective_tier(
-            has_account=bool(identity.password_hash),
-            stored_tier=identity.trust_tier,
-        )
         cap = tiers.caps_for(tier).for_action(family)
         used = await _bump_counter(
             db,
@@ -208,6 +223,13 @@ async def consume_rate(
                 _ACCOUNT_LIMIT_MESSAGES[family], scope="account"
             )
 
+    # The IP ceiling is still *counted* for everyone — the tally is how the
+    # number gets tuned from real traffic, and a scope that stops being counted
+    # stops being observable. It is only *enforced* against T0 and T1, which is
+    # where free account creation makes per-account caps meaningless. See
+    # tiers.ip_ceiling_applies for the full argument; the short version is that
+    # a share house of five established members is a normal thing and a spam
+    # ring of five established accounts is not a cheap one.
     ip_cap = tiers.IP_CEILING.for_action(family)
     ip_used = await _bump_counter(
         db,
@@ -216,7 +238,7 @@ async def consume_rate(
         family=family,
         window_start=window_start,
     )
-    if ip_used > ip_cap:
+    if ip_used > ip_cap and tiers.ip_ceiling_applies(tier):
         # Logged at warning because this is the number the plan says to tune
         # from real traffic, and because a shared campus or CGNAT address
         # hitting it is a false positive we want to see, not a win.
@@ -268,6 +290,7 @@ async def remaining_allowance(
         (scope_type, act): int(cnt or 0) for scope_type, act, cnt in rows.all()
     }
 
+    ip_binds = tiers.ip_ceiling_applies(tier)
     out = {"tier": tier, "tier_name": tiers.tier_name(tier), "actions": {}}
     for family in tiers.FAMILIES:
         account_left = (
@@ -275,8 +298,13 @@ async def remaining_allowance(
             if identity is not None
             else caps.for_action(family)
         )
-        ip_left = max(
-            0, tiers.IP_CEILING.for_action(family) - used.get(("ip", family), 0)
+        # An established account is not held to the network ceiling, so
+        # reporting it as their remaining allowance would show a member on a
+        # busy campus "0 left" for a limit that will not actually refuse them.
+        ip_left = (
+            max(0, tiers.IP_CEILING.for_action(family) - used.get(("ip", family), 0))
+            if ip_binds
+            else account_left
         )
         out["actions"][family] = {
             "remaining": min(account_left, ip_left),
@@ -500,20 +528,66 @@ class CommunityService:
         target_id: UUID,
         payload: ReportRequest,
         ip_hash: str,
+        reporter: Optional[AnonIdentity] = None,
     ) -> CommunityReport:
-        await consume_rate(db, "report", ip_hash=ip_hash)
+        await consume_rate(db, "report", ip_hash=ip_hash, identity=reporter)
 
+        # Weight the report by who filed it, snapshotted now. A member the room
+        # has trusted for three months noticing something is a stronger signal
+        # than an anonymous click, and treating those as equal is what makes a
+        # report queue either useless (drowned in noise) or dangerous (one
+        # annoyed person can silence anyone).
+        reporter_tier = tiers.effective_tier(
+            has_account=bool(reporter is not None and reporter.password_hash),
+            stored_tier=reporter.trust_tier if reporter is not None else None,
+        )
         report = CommunityReport(
             id=uuid.uuid4(),
             target_type=target_type,
             target_id=target_id,
+            reporter_identity_id=reporter.id if reporter is not None else None,
             reporter_ip_hash=ip_hash,
             reason=payload.reason,
             description=payload.description,
+            source=REPORT_SOURCE_MEMBER,
+            weight=tiers.report_weight(reporter_tier),
         )
         db.add(report)
         await db.flush()
+
+        # Enough accumulated weight holds the content pending review. A T3
+        # report clears the threshold on its own — that is the "T3 reports
+        # auto-hide" criterion, expressed as a weight rather than as a special
+        # case, so there is one rule to reason about instead of two.
+        total = await trust.accumulated_report_weight(
+            db, target_type=target_type, target_id=target_id
+        )
+        if total >= tiers.AUTO_HOLD_REPORT_WEIGHT:
+            await CommunityService._hold_reported_target(db, report)
+
         return report
+
+    @staticmethod
+    async def _hold_reported_target(
+        db: AsyncSession, report: CommunityReport
+    ) -> None:
+        """Move a reported row to ``held`` — never past it.
+
+        Only ``active`` content is touched. Something a moderator has already
+        hidden or removed must not be quietly *un*-hidden by an automatic
+        control, and something already held does not need holding twice.
+        """
+        target = await CommunityService._load_target(db, report)
+        if target is None or getattr(target, "status", None) != CONTENT_ACTIVE:
+            return
+        target.status = CONTENT_HELD
+        if report.target_type == "journey":
+            # Held content must stop feeding the public numbers for exactly as
+            # long as it is held. _sync_timeline_mirror deletes the mirror row
+            # because a held journey no longer qualifies, and re-creates it if a
+            # moderator dismisses the report.
+            await CommunityService._sync_timeline_mirror(db, target)
+        await db.flush()
 
     @staticmethod
     async def list_open_reports(db: AsyncSession) -> list[CommunityReport]:
@@ -544,6 +618,15 @@ class CommunityService:
             target = await CommunityService._load_target(db, report)
             if target is not None:
                 target.status = new_status
+                # The report was upheld, so it counts against whoever wrote the
+                # content: the lifetime tally rises, the 90-day recency clock
+                # restarts, and the tier is recomputed immediately rather than
+                # at the next nightly run — demotion is the one direction where
+                # a day's delay has a real cost, because the account keeps
+                # posting in the meantime.
+                await trust.record_upheld_report(
+                    db, identity_id=getattr(target, "identity_id", None)
+                )
                 # A hidden/removed journey must also stop feeding the stats:
                 # suppress the materialised timeline row(s) it produced so the
                 # wait-check percentile maths no longer counts it.
@@ -562,12 +645,50 @@ class CommunityService:
                     target_id=report.target_id,
                 )
 
+        # Dismissing is what releases an auto-hold. The whole case for holding
+        # content rather than deleting it rests on this path existing: a false
+        # positive costs its author a delay, not their post. Only ``held`` is
+        # released — dismissing a report on content a moderator hid earlier for
+        # some other reason must not silently republish it.
+        if action == "dismiss":
+            target = await CommunityService._load_target(db, report)
+            if target is not None and getattr(target, "status", None) == CONTENT_HELD:
+                target.status = CONTENT_ACTIVE
+                await db.flush()
+                if report.target_type == "journey":
+                    await CommunityService._sync_timeline_mirror(db, target)
+                elif report.target_type == "journey_comment":
+                    # The reply never counted toward the thread or reached an
+                    # inbox while it was held; releasing it does both now, so
+                    # the person who was answered still finds out.
+                    await CommunityService._release_held_comment(db, target)
+
         report.status = "dismissed" if action == "dismiss" else "actioned"
         report.resolved_at = datetime.now(timezone.utc)
         report.resolved_by = resolver_user_id
         report.resolution_note = note
         await db.flush()
         return report
+
+    @staticmethod
+    async def _release_held_comment(
+        db: AsyncSession, comment: JourneyComment
+    ) -> None:
+        """Give a released reply the effects it was denied while held."""
+        journey = await db.get(Journey, comment.journey_id)
+        if journey is None:
+            return
+        journey.comment_count = (journey.comment_count or 0) + 1
+        author = (
+            await db.get(AnonIdentity, comment.identity_id)
+            if comment.identity_id
+            else None
+        )
+        if author is not None:
+            await notifications.fan_out_reply(
+                db, journey=journey, comment=comment, author=author
+            )
+        await db.flush()
 
     @staticmethod
     async def _load_target(db: AsyncSession, report: CommunityReport):
@@ -633,6 +754,8 @@ class CommunityService:
                     "created_at": r.created_at,
                     "resolved_at": r.resolved_at,
                     "resolution_note": r.resolution_note,
+                    "source": r.source or "member",
+                    "weight": int(r.weight or 1),
                     "target_preview": preview,
                     "target_status": tstatus,
                     "target_handle": handle,
@@ -1152,6 +1275,20 @@ class CommunityService:
             if not category_slug:
                 category_slug = subclass.category_slug
 
+        title = payload.title.strip() if payload.title else None
+        note = payload.note.strip() if payload.note else None
+
+        # Screen the member-written text only. Drafts are screened too: a draft
+        # is published by a later call that does no screening of its own, so
+        # skipping it here would leave a route that publishes unscreened text.
+        screened = " ".join(part for part in (title, note) if part)
+        fingerprint = antispam.fingerprint(screened)
+        screen = await trust.screen_write(
+            db, identity=identity, text=screened, fingerprint=fingerprint
+        )
+        if screen.rejected:
+            raise ContentGateError(trust.CONTACT_GATE_MESSAGE)
+
         journey = Journey(
             id=uuid.uuid4(),
             identity_id=identity.id,
@@ -1164,15 +1301,25 @@ class CommunityService:
             area=payload.area,
             sponsor_type=payload.sponsor_type,
             outcome=payload.outcome,
-            title=(payload.title.strip() if payload.title else None),
-            note=(payload.note.strip() if payload.note else None),
+            title=title,
+            note=note,
             handle=identity.handle,
             color=identity.color,
+            content_fingerprint=fingerprint,
+            status=CONTENT_HELD if screen.held else CONTENT_ACTIVE,
             is_published=publish,
             published_at=datetime.now(timezone.utc) if publish else None,
         )
         db.add(journey)
         await db.flush()  # assign journey.id for FK rows
+
+        if screen.held:
+            await trust.auto_hold(
+                db,
+                target_type="journey",
+                target_id=journey.id,
+                reasons=screen.hold_reasons,
+            )
 
         if is_timeline:
             ordered = sorted(payload.milestones, key=lambda m: m.occurred_on)
@@ -1429,11 +1576,19 @@ class CommunityService:
         sort: str = "new",
         limit: int = 30,
         offset: int = 0,
+        viewer: Optional[AnonIdentity] = None,
     ) -> list[Journey]:
         # Drafts are excluded here and nowhere else is needed for the feed:
         # every feed read funnels through this one query.
+        #
+        # ``viewer`` is what makes both of p6's soft controls soft. A held post
+        # and a shadow-limited author's post are absent for everyone else and
+        # present for the person who wrote them — so nobody watches their own
+        # contribution disappear, and nobody learns they have been limited.
         q = select(Journey).where(
-            Journey.status == "active", Journey.is_published.is_(True)
+            trust.visible_status_filter(Journey, viewer),
+            trust.shadow_limit_filter(Journey, viewer),
+            Journey.is_published.is_(True),
         )
         if post_type:
             q = q.where(Journey.post_type == post_type)
@@ -1470,19 +1625,52 @@ class CommunityService:
         *,
         viewer: Optional[AnonIdentity] = None,
     ) -> Optional[Journey]:
-        """A publicly readable journey — or the caller's own draft.
+        """A publicly readable journey — or the caller's own draft or held post.
 
         Passing ``viewer`` is what lets someone open the timeline they just
         saved. Everyone else gets ``None`` (→ 404) for a draft, indistinguishable
         from a post that does not exist.
+
+        Held content follows exactly the same rule, and for the same reason: its
+        author can open it, and to everyone else it is not there. A separate
+        "this is under review" 403 would tell a spammer precisely which of their
+        messages tripped the screen, which is how they learn to write around it.
         """
         journey = await db.get(Journey, journey_id)
-        if journey is None or journey.status != "active":
+        if journey is None:
             return None
-        if not journey.is_published:
-            if viewer is None or journey.identity_id != viewer.id:
+        own = viewer is not None and journey.identity_id == viewer.id
+        if journey.status == CONTENT_HELD:
+            if not own:
                 return None
+        elif journey.status != CONTENT_ACTIVE:
+            return None
+        if not journey.is_published and not own:
+            return None
+        if not own and await CommunityService._is_shadow_limited(db, journey.identity_id):
+            return None
         return journey
+
+    @staticmethod
+    async def _is_shadow_limited(
+        db: AsyncSession, identity_id: Optional[UUID]
+    ) -> bool:
+        """Whether this author's content should be kept out of public reads.
+
+        Checked on the single-row path because the feed's set-based filter
+        cannot cover a direct fetch by id — and a shadow-limited post that is
+        gone from the feed but reachable by its permalink is not shadow-limited
+        at all, it is merely harder to find.
+        """
+        if identity_id is None:
+            return False
+        return bool(
+            await db.scalar(
+                select(AnonIdentity.shadow_limited).where(
+                    AnonIdentity.id == identity_id
+                )
+            )
+        )
 
     @staticmethod
     async def _milestones_for(
@@ -1554,6 +1742,7 @@ class CommunityService:
             "comment_count": j.comment_count or 0,
             "is_sample": j.is_sample,
             "is_published": bool(j.is_published),
+            "is_held": j.status == CONTENT_HELD,
             "is_mine": bool(identity and j.identity_id == identity.id),
             "viewer_voted": j.id in voted_ids,
             "processing_days": j.processing_days,
@@ -1603,7 +1792,8 @@ class CommunityService:
             select(JourneyComment)
             .where(
                 JourneyComment.journey_id == journey.id,
-                JourneyComment.status == "active",
+                trust.visible_status_filter(JourneyComment, identity),
+                trust.shadow_limit_filter(JourneyComment, identity),
             )
             .order_by(JourneyComment.created_at.asc())
         )
@@ -1687,6 +1877,14 @@ class CommunityService:
                 # Flatten: a reply to a reply attaches to the top-level message.
                 parent_id = parent.parent_comment_id
 
+        body = payload.body.strip()
+        fingerprint = antispam.fingerprint(body)
+        screen = await trust.screen_write(
+            db, identity=identity, text=body, fingerprint=fingerprint
+        )
+        if screen.rejected:
+            raise ContentGateError(trust.CONTACT_GATE_MESSAGE)
+
         comment = JourneyComment(
             id=uuid.uuid4(),
             journey_id=journey_id,
@@ -1694,11 +1892,26 @@ class CommunityService:
             identity_id=identity.id,
             handle=identity.handle,
             color=identity.color,
-            body=payload.body.strip(),
+            body=body,
+            content_fingerprint=fingerprint,
+            status=CONTENT_HELD if screen.held else CONTENT_ACTIVE,
         )
         db.add(comment)
-        journey.comment_count = (journey.comment_count or 0) + 1
         await db.flush()
+
+        if screen.held:
+            await trust.auto_hold(
+                db,
+                target_type="journey_comment",
+                target_id=comment.id,
+                reasons=screen.hold_reasons,
+            )
+            # A held reply has not reached the room, so it must not raise the
+            # visible reply count and must not appear in anyone's inbox. If a
+            # moderator releases it, both happen then — see resolve_report.
+            return comment
+
+        journey.comment_count = (journey.comment_count or 0) + 1
 
         # Tell whoever was answered. Runs inside this transaction, so a reply
         # that fails to save cannot leave a notification pointing at nothing.
@@ -1758,9 +1971,17 @@ class CommunityService:
 
     @staticmethod
     async def feed_summary(db: AsyncSession) -> dict:
-        # Counts describe the feed, so they count what the feed shows: drafts
-        # are excluded, or the filter rail would promise posts that aren't there.
-        active = and_(Journey.status == "active", Journey.is_published.is_(True))
+        # Counts describe the feed, so they count what the feed shows: drafts,
+        # held posts and shadow-limited authors are all excluded, or the filter
+        # rail would promise posts that aren't there. There is no viewer here —
+        # this is one shared summary — so nobody's own held content is counted
+        # either; a count that moved depending on who asked would be a worse
+        # trade than a count that is occasionally one low for its author.
+        active = and_(
+            Journey.status == CONTENT_ACTIVE,
+            Journey.is_published.is_(True),
+            trust.shadow_limit_filter(Journey, None),
+        )
         total = await db.scalar(
             select(func.count()).select_from(Journey).where(active)
         )

@@ -338,10 +338,24 @@ async def main():
         print("\n8. Moderation removes the notification with the content")
         c_token, _ = await _signup(c, svc)
         C = {**svc, "Authorization": f"Bearer {c_token}"}
+        # This body used to read "Message me on WhatsApp, I can lodge this for
+        # you cheap." — which p6's touting screen now auto-holds before anyone
+        # can report it, so it never reaches an inbox and there is no
+        # notification left for a moderator to remove. That is the anti-spam
+        # phase working, not this test breaking, but it made section 8 test
+        # nothing.
+        #
+        # The body is now something only a human can judge — an unpleasant
+        # remark with no pattern to match — so this section still exercises what
+        # it was written for: a moderator taking content down, and the inbox
+        # entry going with it. The auto-hold path is covered directly in
+        # tests/e2e_community_antispam.py.
         r = await c.post(
             f"/community/journeys/{journey_id}/comments",
             headers=C,
-            json={"body": "Message me on WhatsApp, I can lodge this for you cheap."},
+            json={
+                "body": "Honestly, people who ask this are wasting everyone's time."
+            },
         )
         check("the objectionable reply landed", r.status_code == 201)
         bad_comment_id = r.json()["id"]

@@ -13,15 +13,18 @@ The ladder, five rungs:
     T3  Trusted              earned over a real visa queue; flags auto-hide
     T4  Registered pro       an OMARA/MARN agent, disclosed — not a reward
 
-Two things this module deliberately does NOT encode:
+One thing this module deliberately does NOT encode:
 
-1. **Promotion criteria.** What earns T2 or T3 is a separate concern with its
-   own nightly job. This module answers "given a tier, what may they do?" and
-   nothing else.
-2. **Email verification as a rung.** Verifying an email is an *attribute* that
-   shortens probation, never a tier of its own. Making it a tier would quietly
-   turn an optional field into a required one, and optional email is the
-   decision the whole identity model rests on.
+- **Email verification as a rung.** Verifying an email is an *attribute* that
+  shortens probation, never a tier of its own. Making it a tier would quietly
+  turn an optional field into a required one, and optional email is the
+  decision the whole identity model rests on.
+
+Promotion criteria live here too, as :func:`compute_tier` — still pure, a
+function of a :class:`TrustSignals` value. Gathering those signals needs the
+database and lives in ``community/trust.py``; deciding what they *mean* does
+not, and keeping the decision testable without a session is what lets the
+ladder be argued about in a test file rather than in production.
 
 Two scopes are enforced, and they are not the same thing:
 
@@ -196,6 +199,189 @@ def effective_tier(*, has_account: bool, stored_tier: Optional[int]) -> int:
 
 def tier_name(tier: int) -> str:
     return TIER_NAMES[max(MIN_TIER, min(MAX_TIER, int(tier)))]
+
+
+def ip_ceiling_applies(tier: int) -> bool:
+    """Whether :data:`IP_CEILING` should be enforced against this writer.
+
+    **This is the resolution of the per-IP tension the epic left open**, and it
+    is worth stating the argument rather than just the number.
+
+    The ceiling exists because accounts are free, so per-account caps alone do
+    not bind — one person can mint five accounts and get five allowances. But
+    the ceiling is applied per *network*, and this audience shares networks far
+    more than most: campuses, share houses, migrant hostels, carrier CGNAT.
+    Five flatmates all waiting on 189s is a completely ordinary shape for a
+    household here, and the ceiling as p2 shipped it would land on the fifth of
+    them.
+
+    The two obvious fixes are both bad. Raising the number weakens the only
+    control that binds. Exempting anyone signed in defeats it entirely, because
+    signing up is free — which is exactly why p2 rejected that option.
+
+    What p6 has that p2 did not is an *earned* signal. T2 takes seven days,
+    five contributions that survived moderation, and net-positive votes from
+    other members. That is not a bar a spam ring clears at volume — it costs a
+    week and real participation per account — but it is a bar five genuine
+    flatmates clear individually within a fortnight. So the ceiling applies to
+    T0 and T1, where abuse actually operates, and stops applying once an account
+    has demonstrably behaved like a member.
+
+    The failure mode stays soft either way: a T1 member on a busy network is
+    told the network is busy and invited to come back tomorrow, and an operator
+    can clear the bucket outright. Nothing here bans an address, and nothing
+    here can.
+    """
+    return int(tier) < T2_ESTABLISHED
+
+
+# --- Promotion, demotion, and what a tier unlocks -----------------------------
+
+# T2 thresholds. Seven days is the plan's figure; a verified email shortens it,
+# because an address that received and survived a round trip is a small but real
+# cost that a disposable account does not pay. It shortens probation — it never
+# skips it, and it is never required.
+T2_MIN_AGE_DAYS: Final[int] = 7
+T2_MIN_AGE_DAYS_VERIFIED_EMAIL: Final[int] = 3
+T2_MIN_CONTRIBUTIONS: Final[int] = 5
+
+# T3 thresholds. The completed-timeline requirement is the interesting one:
+# tenure and post count are both farmable by anyone patient, but having lodged a
+# visa and seen it decided is a fact only this community is in a position to
+# observe, and it is the exact experience that makes someone worth trusting in a
+# waiting room. It is why T3 cannot be bought with volume.
+T3_MIN_AGE_DAYS: Final[int] = 90
+T3_MIN_CONTRIBUTIONS: Final[int] = 25
+T3_MIN_COMPLETED_TIMELINES: Final[int] = 1
+
+# How long an upheld report keeps counting against promotion.
+#
+# The plan states T2 as "no upheld reports" and T3 as "zero upheld reports in
+# 90 days". Read literally those are inconsistent — a member with one old upheld
+# report would qualify for T3 while being permanently barred from T2, which is
+# not a ladder. Resolved by applying the same 90-day recency window to both, so
+# T3's requirements strictly imply T2's and the ladder is monotone. The lifetime
+# count is not discarded: it drives shadow-limiting below, which is the right
+# place for "this account has a history" to have teeth. A single upheld report
+# should cost a member three months of link privileges, not their permanent
+# record.
+UPHELD_REPORT_WINDOW_DAYS: Final[int] = 90
+
+# Lifetime upheld reports at which an account is shadow-limited: their content
+# stays visible to them and stops reaching the feed. Three is a pattern, not an
+# accident or a bad day.
+SHADOW_LIMIT_UPHELD_THRESHOLD: Final[int] = 3
+
+
+@dataclass(frozen=True)
+class TrustSignals:
+    """Everything :func:`compute_tier` is allowed to look at.
+
+    Deliberately a flat value object with no database rows in it, so the whole
+    promotion policy can be exercised from a test that constructs one by hand.
+    """
+
+    account_age_days: int = 0
+    # Posts + comments that are still standing: drafts, hidden and removed
+    # content do not count. Volume that moderation had to clean up is not
+    # evidence of trustworthiness.
+    surviving_contributions: int = 0
+    # Upvotes received minus... nothing, for now: there is no downvote in this
+    # product (two actions only, by decision). "Net-positive" therefore means
+    # somebody, somewhere, found something they wrote worth marking.
+    net_votes: int = 0
+    upheld_reports: int = 0
+    upheld_reports_recent: int = 0
+    # Timelines this member has taken all the way to a decision. The T3 gate.
+    completed_timelines: int = 0
+    email_verified: bool = False
+    # T4 is assigned by a human after OMARA/MARN checking (out of scope this
+    # phase). It is never computed, only carried through.
+    is_professional: bool = False
+
+
+def compute_tier(signals: TrustSignals) -> int:
+    """The tier these signals earn. Pure; no clock, no session, no I/O.
+
+    Never returns T0: T0 means "no account at all", which is a property of the
+    row rather than of behaviour and is decided by :func:`effective_tier`.
+    """
+    # Registered professionals keep their tier — the badge is a disclosure that
+    # the reader is entitled to, not a reward that misbehaviour forfeits. A
+    # professional who abuses the room gets shadow-limited and moderated like
+    # anyone else; what must not happen is that the disclosure quietly
+    # disappears while the person keeps posting.
+    if signals.is_professional:
+        return T4_PROFESSIONAL
+
+    # Demotion, checked before promotion so it cannot be out-earned. An account
+    # with a real history of upheld reports goes back to probation regardless of
+    # tenure or volume.
+    if signals.upheld_reports >= SHADOW_LIMIT_UPHELD_THRESHOLD:
+        return T1_NEW
+
+    clean = signals.upheld_reports_recent == 0
+
+    if (
+        clean
+        and signals.account_age_days >= T3_MIN_AGE_DAYS
+        and signals.surviving_contributions >= T3_MIN_CONTRIBUTIONS
+        and signals.completed_timelines >= T3_MIN_COMPLETED_TIMELINES
+    ):
+        return T3_TRUSTED
+
+    min_age = (
+        T2_MIN_AGE_DAYS_VERIFIED_EMAIL
+        if signals.email_verified
+        else T2_MIN_AGE_DAYS
+    )
+    if (
+        clean
+        and signals.account_age_days >= min_age
+        and signals.surviving_contributions >= T2_MIN_CONTRIBUTIONS
+        and signals.net_votes > 0
+    ):
+        return T2_ESTABLISHED
+
+    return T1_NEW
+
+
+def may_post_contact_details(tier: int) -> bool:
+    """Whether this tier may publish links, phone numbers or handles.
+
+    The single highest-leverage control in the phase. Nearly all real
+    immigration-forum spam is an unregistered agent posting a way to be
+    contacted, which is simultaneously the top spam vector and the top s276
+    legal vector — so one gate closes both.
+    """
+    return int(tier) >= T2_ESTABLISHED
+
+
+# --- Report weighting ---------------------------------------------------------
+
+# What one report from each tier is worth, and the total that holds content.
+#
+# The threshold is 5 rather than 3 so that no *single* report from a member can
+# hold content on its own except from T3. A control where one established
+# member silences another is a control that will be used to silence people, and
+# in a room where members disagree about migration agents and outcomes, that
+# would happen in the first week. Two established members, or five new ones, or
+# one member the community has trusted for three months: those are all
+# defensible. One annoyed person is not.
+_REPORT_WEIGHTS: Final[dict[int, int]] = {
+    T0_VISITOR: 1,
+    T1_NEW: 1,
+    T2_ESTABLISHED: 3,
+    T3_TRUSTED: 10,
+    T4_PROFESSIONAL: 10,
+}
+
+AUTO_HOLD_REPORT_WEIGHT: Final[int] = 5
+
+
+def report_weight(tier: int) -> int:
+    """How much one report from this tier counts toward an auto-hold."""
+    return _REPORT_WEIGHTS[max(MIN_TIER, min(MAX_TIER, int(tier)))]
 
 
 # --- Windows ------------------------------------------------------------------

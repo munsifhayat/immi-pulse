@@ -18,10 +18,25 @@ from sqlalchemy.dialects.postgresql import UUID
 
 from app.db.base import Base
 
-THREAD_STATUSES = ("active", "hidden", "removed")
+# Content lifecycle. "held" is p6's addition and it is deliberately NOT a
+# moderation verdict: it means an automatic check thought this needed a human
+# before it went out. It sits between active and hidden — the author still sees
+# it, the feed does not, the stats do not, and a moderator dismissing the report
+# puts it straight back. Because every public query filters on "active", adding
+# the value excludes held content everywhere by default, which is the safe
+# direction for a status nobody has audited every call site for.
+CONTENT_ACTIVE = "active"
+CONTENT_HELD = "held"
+THREAD_STATUSES = ("active", "held", "hidden", "removed")
 REPORT_TARGET_TYPES = ("thread", "comment", "journey", "journey_comment")
 REPORT_REASONS = ("spam", "harassment", "misleading_advice", "other")
 REPORT_STATUSES = ("open", "actioned", "dismissed")
+
+# Who filed a report. "auto" rows come from the anti-spam screen; they carry a
+# reason string naming the pattern that fired, so the queue can explain itself.
+REPORT_SOURCES = ("member", "auto")
+REPORT_SOURCE_MEMBER = "member"
+REPORT_SOURCE_AUTO = "auto"
 
 # Community-submitted visa timeline outcomes. "waiting" = lodged, no decision
 # yet (the survivorship-bias denominator); "granted"/"refused" are decided.
@@ -139,6 +154,10 @@ class AnonIdentity(Base):
     tier_computed_at = Column(DateTime(timezone=True), nullable=True)
     # Reports against this member that a moderator upheld — the demotion signal.
     upheld_reports = Column(Integer, nullable=False, default=0, server_default="0")
+    # When the most recent one landed. The recency clock: an upheld report keeps
+    # an account out of T2/T3 for 90 days rather than for ever, so moderation is
+    # a setback and not a permanent record.
+    last_upheld_report_at = Column(DateTime(timezone=True), nullable=True)
     # Shadow limiting: the author still sees their own content, the feed does
     # not. Enforcement is p6; the column exists here so the ladder has somewhere
     # to write its conclusion.
@@ -374,6 +393,12 @@ class Journey(Base):
     is_sample = Column(Boolean, nullable=False, default=False, index=True)
     status = Column(String, nullable=False, default="active", index=True)
 
+    # Normalised hash of the body, for spotting the same text broadcast across
+    # several threads (``antispam.fingerprint``). NULL when the body is too
+    # short to fingerprint — short repeated replies ("any update?") are the
+    # normal texture of a waiting room, not duplicate spam.
+    content_fingerprint = Column(String, nullable=True, index=True)
+
     # Draft vs public. ``status`` is moderation's axis (active/hidden/removed);
     # this is the *author's* axis and the two are independent — a saved wait
     # check is a perfectly healthy row that its owner has simply not published.
@@ -463,6 +488,8 @@ class JourneyComment(Base):
     body = Column(Text, nullable=False)
     upvotes = Column(Integer, nullable=False, default=0)
     status = Column(String, nullable=False, default="active", index=True)
+    # See Journey.content_fingerprint.
+    content_fingerprint = Column(String, nullable=True, index=True)
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -608,11 +635,31 @@ class CommunityReport(Base):
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
     )
+    # Which community member reported it, when one is resolvable. Needed to
+    # weight the report by their trust tier — an established member's report is
+    # a stronger signal than an anonymous one, and that is the difference
+    # between a moderation queue that surfaces real problems and one that
+    # surfaces whoever is angriest.
+    reporter_identity_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("anon_identities.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     reporter_ip_hash = Column(String, nullable=True)
 
     reason = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     status = Column(String, nullable=False, default="open", index=True)
+    # member | auto — auto rows are the anti-spam screen's holds.
+    source = Column(
+        String, nullable=False, default="member", server_default="member", index=True
+    )
+    # What this report counts for against the auto-hold threshold. Snapshotted
+    # at report time rather than derived at read time, so a member's later
+    # promotion or demotion cannot retroactively change what their old reports
+    # were worth.
+    weight = Column(Integer, nullable=False, default=1, server_default="1")
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     resolved_at = Column(DateTime(timezone=True), nullable=True)
