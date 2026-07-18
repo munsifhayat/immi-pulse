@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Outfit, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import { Providers } from "./providers";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const inter = Inter({
@@ -49,6 +50,23 @@ export const metadata: Metadata = {
     "document validation",
     "case management",
   ],
+  metadataBase: new URL(SITE_URL),
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "IMMI-PULSE",
+    locale: "en_AU",
+    url: SITE_URL,
+    title: "IMMI-PULSE | AI-Powered Immigration Consulting",
+    description:
+      "Compare your Australian visa wait against real applicant timelines, and the platform migration agents use to run cases end to end.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "IMMI-PULSE | AI-Powered Immigration Consulting",
+    description:
+      "Compare your Australian visa wait against real applicant timelines.",
+  },
 };
 
 export default function RootLayout({

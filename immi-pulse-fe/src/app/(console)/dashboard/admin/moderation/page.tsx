@@ -25,6 +25,19 @@ const reasonLabels: Record<string, string> = {
   other: "Other",
 };
 
+const targetLabels: Record<string, string> = {
+  journey: "Post",
+  journey_comment: "Comment",
+  thread: "Thread",
+  comment: "Comment",
+};
+
+const statusStyles: Record<string, string> = {
+  active: "bg-emerald-50 text-emerald-700",
+  hidden: "bg-amber-50 text-amber-700",
+  removed: "bg-rose-50 text-rose-700",
+};
+
 export default function ModerationPage() {
   const reports = useCommunityReports();
   const actOnReport = useActOnReport();
@@ -76,21 +89,53 @@ export default function ModerationPage() {
             {(reports.data ?? []).map((report) => (
               <Card key={report.id} className="p-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="flex-1 space-y-2">
+                  <div className="flex-1 space-y-2.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="secondary" className="capitalize">
-                        {report.target_type}
+                      <Badge variant="secondary">
+                        {targetLabels[report.target_type] ?? report.target_type}
                       </Badge>
                       <Badge variant="secondary">
                         {reasonLabels[report.reason] ?? report.reason}
                       </Badge>
+                      {report.target_status && (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${
+                            statusStyles[report.target_status] ??
+                            "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {report.target_status}
+                        </span>
+                      )}
                       <span className="text-[11px] text-muted-foreground">
-                        Reported{" "}
-                        {new Date(report.created_at).toLocaleString()}
+                        Reported {new Date(report.created_at).toLocaleString()}
                       </span>
                     </div>
+
+                    {/* What was reported */}
+                    <div className="rounded-lg border border-border bg-muted/40 p-3">
+                      {report.target_handle && (
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          {report.target_handle}
+                        </p>
+                      )}
+                      <p className="text-sm text-foreground">
+                        {report.target_preview ? (
+                          <span className="whitespace-pre-wrap">
+                            {report.target_preview}
+                          </span>
+                        ) : (
+                          <span className="italic text-muted-foreground">
+                            Content is no longer available (already actioned or
+                            deleted).
+                          </span>
+                        )}
+                      </p>
+                    </div>
+
                     {report.description && (
                       <p className="text-sm text-foreground whitespace-pre-wrap">
+                        <span className="font-semibold">Reporter note: </span>
                         {report.description}
                       </p>
                     )}
