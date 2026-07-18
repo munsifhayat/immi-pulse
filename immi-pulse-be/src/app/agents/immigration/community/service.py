@@ -5,16 +5,16 @@ import logging
 import secrets
 import uuid
 from collections import defaultdict
-from datetime import date, datetime, timedelta, timezone
-from threading import Lock
+from datetime import date, datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.immigration.community import identity as identity_gen
-from app.agents.immigration.community import processing
+from app.agents.immigration.community import processing, tiers
 from app.agents.immigration.community.models import (
     AnonIdentity,
     CommunityComment,
@@ -26,6 +26,7 @@ from app.agents.immigration.community.models import (
     Journey,
     JourneyComment,
     JourneyMilestone,
+    RateCounter,
     VisaSubclass,
 )
 from app.agents.immigration.community.schemas import (
@@ -40,33 +41,47 @@ from app.agents.immigration.community.schemas import (
 
 logger = logging.getLogger(__name__)
 
-# --- In-memory IP-hashed rate limiter -----------------------------------------
-# Simple per-process counter. Graduates to Redis later if/when the backend
-# runs in more than one worker.
-
-_RATE_LIMITS = {
-    "thread": (10, timedelta(days=1)),
-    "comment": (50, timedelta(days=1)),
-    "report": (20, timedelta(days=1)),
-    "timeline": (20, timedelta(days=1)),
-    "journey": (20, timedelta(days=1)),
-    "question": (15, timedelta(days=1)),
-}
-
-_rate_state: dict[tuple[str, str], list[datetime]] = defaultdict(list)
-_rate_lock = Lock()
+# --- Durable rate limiting ----------------------------------------------------
+#
+# Counters live in Postgres (``rate_counters``), not in this process. The old
+# module-level dict looked fine locally and was wrong everywhere else: a dyno
+# restart wiped every tally, and each dyno kept its own, so the real limit was
+# the configured one multiplied by the dyno count. A limit that means different
+# things on different machines is not a limit.
+#
+# Two scopes are consumed on every write, in this order:
+#
+#   1. the **account** (or the device identity standing in for one), capped by
+#      its trust tier — see ``tiers.caps_for``;
+#   2. the **IP**, capped by ``tiers.IP_CEILING`` — the backstop that keeps free
+#      account creation from making (1) meaningless.
+#
+# Both increments happen inside the caller's transaction, so a write that fails
+# for any later reason (a cap error, a validation error, a 409) rolls its own
+# consumption back. Allowance is therefore spent on writes that actually
+# landed, which is the behaviour a member would expect if you explained it to
+# them. The cost is that rejected *attempts* are not themselves counted; p6's
+# velocity detection is the right place for that, not this counter.
 
 # Server-side backstop for the "one anonymous timeline" rule. The per-identity
-# cap lives in localStorage (the device token), so clearing storage mints a
-# fresh identity and resets it. The ip_hash persists across that, so we also cap
-# how many real timelines a single network can contribute anonymously before the
-# sign-in gate kicks in. Kept above 1 so a shared home/office IP isn't blocked
-# outright — signing in always lifts it.
-_ANON_IP_TIMELINE_CAP = 2
+# cap keys off the device token, so clearing storage mints a fresh identity and
+# resets it; the ip_hash survives that. Re-exported from ``tiers`` so every
+# allowance number in the product is declared in one file.
+_ANON_IP_TIMELINE_CAP = tiers.ANON_IP_TIMELINE_CAP
 
 
 class CommunityRateLimitError(Exception):
-    """Raised when an IP hash exceeds the per-action daily cap."""
+    """Raised when a write would exceed a daily allowance (→ HTTP 429).
+
+    Carries which scope refused it, because the two mean different things to
+    the member: ``account`` is "you personally have written a lot today",
+    ``ip`` is "this network has", and only the latter has "sign in" as a
+    remedy.
+    """
+
+    def __init__(self, message: str, *, scope: str = "account"):
+        super().__init__(message)
+        self.scope = scope
 
 
 class JourneyCapError(Exception):
@@ -82,19 +97,213 @@ def hash_ip(ip: str | None) -> str:
     return hashlib.sha256(f"immi-pulse.community.{ip}".encode("utf-8")).hexdigest()[:32]
 
 
-def _consume_rate(action: str, ip_hash: str) -> None:
-    cap, window = _RATE_LIMITS[action]
+async def _bump_counter(
+    db: AsyncSession,
+    *,
+    scope_type: str,
+    scope_key: str,
+    family: str,
+    window_start: datetime,
+) -> int:
+    """Atomically increment one bucket and return its new value.
+
+    A single ``INSERT … ON CONFLICT DO UPDATE … RETURNING`` — the read and the
+    write are one statement, so two concurrent requests from the same member
+    cannot both see "4 used" and both proceed. Doing this as SELECT-then-UPDATE
+    would be a textbook lost update, and the whole point of moving off the dict
+    was to stop the limit being approximate.
+    """
     now = datetime.now(timezone.utc)
-    cutoff = now - window
-    key = (action, ip_hash)
-    with _rate_lock:
-        history = [t for t in _rate_state[key] if t >= cutoff]
-        if len(history) >= cap:
-            raise CommunityRateLimitError(
-                f"Daily {action} limit reached ({cap}). Try again tomorrow."
+    stmt = (
+        pg_insert(RateCounter)
+        .values(
+            id=uuid.uuid4(),
+            scope_type=scope_type,
+            scope_key=scope_key,
+            action=family,
+            window_start=window_start,
+            count=1,
+            updated_at=now,
+        )
+        .on_conflict_do_update(
+            constraint="uq_rate_counter_scope_action_window",
+            set_={
+                "count": RateCounter.__table__.c.count + 1,
+                "updated_at": now,
+            },
+        )
+        .returning(RateCounter.__table__.c.count)
+    )
+    return int(await db.scalar(stmt))
+
+
+# Member-facing copy. Never states the number: a cap you can see is a cap you
+# can plan around, and "you have 2 posts left" reads as an accusation to the
+# many more people who will see it innocently than abusively.
+_ACCOUNT_LIMIT_MESSAGES = {
+    tiers.POST: "You've posted a lot today. Try again tomorrow.",
+    tiers.REPLY: "You've replied a lot today. Try again tomorrow.",
+    tiers.REPORT: "You've reported a lot today. Try again tomorrow.",
+}
+
+# The IP ceiling's remedy is signing in, so it says so. It is never a ban: the
+# bucket resets at UTC midnight and an operator can clear it outright
+# (:func:`reset_rate_counters`) for a shared address that trips it honestly.
+_IP_LIMIT_MESSAGES = {
+    tiers.POST: (
+        "A lot has been posted from this network today. "
+        "Sign in to keep going, or try again tomorrow."
+    ),
+    tiers.REPLY: (
+        "A lot has been posted from this network today. "
+        "Sign in to keep going, or try again tomorrow."
+    ),
+    tiers.REPORT: (
+        "A lot has been reported from this network today. Try again tomorrow."
+    ),
+}
+
+
+async def consume_rate(
+    db: AsyncSession,
+    action: str,
+    *,
+    ip_hash: str,
+    identity: Optional[AnonIdentity] = None,
+) -> None:
+    """Spend one unit of ``action`` allowance, or raise.
+
+    ``identity`` is optional because a few legacy write paths (the old thread
+    endpoints, timeline submission, reporting) never resolve one — those are
+    held to the IP ceiling alone, exactly as they were before this existed.
+    """
+    family = tiers.family_for(action)
+    window_start = tiers.day_window_start()
+
+    if identity is not None:
+        tier = tiers.effective_tier(
+            has_account=bool(identity.password_hash),
+            stored_tier=identity.trust_tier,
+        )
+        cap = tiers.caps_for(tier).for_action(family)
+        used = await _bump_counter(
+            db,
+            scope_type="account",
+            scope_key=str(identity.id),
+            family=family,
+            window_start=window_start,
+        )
+        if used > cap:
+            logger.info(
+                "community rate limit hit scope=account action=%s tier=%s cap=%s",
+                family,
+                tier,
+                cap,
             )
-        history.append(now)
-        _rate_state[key] = history
+            raise CommunityRateLimitError(
+                _ACCOUNT_LIMIT_MESSAGES[family], scope="account"
+            )
+
+    ip_cap = tiers.IP_CEILING.for_action(family)
+    ip_used = await _bump_counter(
+        db,
+        scope_type="ip",
+        scope_key=ip_hash,
+        family=family,
+        window_start=window_start,
+    )
+    if ip_used > ip_cap:
+        # Logged at warning because this is the number the plan says to tune
+        # from real traffic, and because a shared campus or CGNAT address
+        # hitting it is a false positive we want to see, not a win.
+        logger.warning(
+            "community rate limit hit scope=ip action=%s cap=%s signed_in=%s",
+            family,
+            ip_cap,
+            bool(identity is not None and identity.password_hash),
+        )
+        raise CommunityRateLimitError(_IP_LIMIT_MESSAGES[family], scope="ip")
+
+
+async def remaining_allowance(
+    db: AsyncSession,
+    *,
+    ip_hash: str,
+    identity: Optional[AnonIdentity] = None,
+) -> dict:
+    """What is left today, without spending any of it.
+
+    Exists so a composer can show the sign-in prompt *before* a write is
+    attempted rather than surfacing a 429 after the fact — being told "no" once
+    you have finished typing is a far worse experience than being told up front.
+    Read-only: touches no counter.
+    """
+    window_start = tiers.day_window_start()
+    tier = tiers.effective_tier(
+        has_account=bool(identity is not None and identity.password_hash),
+        stored_tier=identity.trust_tier if identity is not None else None,
+    )
+    caps = tiers.caps_for(tier)
+
+    scope_filter = RateCounter.scope_type == "ip"
+    scope_filter = scope_filter & (RateCounter.scope_key == ip_hash)
+    if identity is not None:
+        scope_filter = scope_filter | (
+            (RateCounter.scope_type == "account")
+            & (RateCounter.scope_key == str(identity.id))
+        )
+
+    rows = await db.execute(
+        select(
+            RateCounter.scope_type,
+            RateCounter.action,
+            RateCounter.count,
+        ).where(RateCounter.window_start == window_start, scope_filter)
+    )
+    used: dict[tuple[str, str], int] = {
+        (scope_type, act): int(cnt or 0) for scope_type, act, cnt in rows.all()
+    }
+
+    out = {"tier": tier, "tier_name": tiers.tier_name(tier), "actions": {}}
+    for family in tiers.FAMILIES:
+        account_left = (
+            max(0, caps.for_action(family) - used.get(("account", family), 0))
+            if identity is not None
+            else caps.for_action(family)
+        )
+        ip_left = max(
+            0, tiers.IP_CEILING.for_action(family) - used.get(("ip", family), 0)
+        )
+        out["actions"][family] = {
+            "remaining": min(account_left, ip_left),
+            "limited_by": "ip" if ip_left < account_left else "account",
+        }
+    return out
+
+
+async def reset_rate_counters(
+    db: AsyncSession,
+    *,
+    scope_type: str,
+    scope_key: str,
+    action: Optional[str] = None,
+) -> int:
+    """Clear a scope's counters. Returns how many buckets were removed.
+
+    An operator escape hatch, and the reason the IP ceiling can be described as
+    "never a ban": a lecture theatre, a share house or a carrier CGNAT range
+    that trips the ceiling honestly can be cleared on the spot rather than told
+    to wait out the day. Test harnesses use it for the same reason — they all
+    write from 127.0.0.1, so without it a few runs would exhaust the day.
+    """
+    stmt = delete(RateCounter).where(
+        RateCounter.scope_type == scope_type,
+        RateCounter.scope_key == scope_key,
+    )
+    if action is not None:
+        stmt = stmt.where(RateCounter.action == tiers.family_for(action))
+    result = await db.execute(stmt)
+    return int(result.rowcount or 0)
 
 
 class CommunityService:
@@ -183,7 +392,7 @@ class CommunityService:
         *,
         ip_hash: str,
     ) -> CommunityThread:
-        _consume_rate("thread", ip_hash)
+        await consume_rate(db, "thread", ip_hash=ip_hash)
 
         space = await CommunityService.get_space_by_slug(db, payload.space_slug)
         if space is None:
@@ -244,7 +453,7 @@ class CommunityService:
         *,
         ip_hash: str,
     ) -> CommunityComment:
-        _consume_rate("comment", ip_hash)
+        await consume_rate(db, "comment", ip_hash=ip_hash)
 
         thread = await CommunityService.get_thread(db, thread_id)
         if thread is None:
@@ -288,7 +497,7 @@ class CommunityService:
         payload: ReportRequest,
         ip_hash: str,
     ) -> CommunityReport:
-        _consume_rate("report", ip_hash)
+        await consume_rate(db, "report", ip_hash=ip_hash)
 
         report = CommunityReport(
             id=uuid.uuid4(),
@@ -590,7 +799,7 @@ class CommunityService:
         *,
         ip_hash: str,
     ) -> CommunityTimeline:
-        _consume_rate("timeline", ip_hash)
+        await consume_rate(db, "timeline", ip_hash=ip_hash)
 
         subclass = await CommunityService.get_subclass(db, payload.subclass_slug)
         if subclass is None:
@@ -777,7 +986,12 @@ class CommunityService:
         ip_hash: str,
     ) -> Journey:
         is_timeline = payload.post_type == "timeline"
-        _consume_rate("journey" if is_timeline else "question", ip_hash)
+        await consume_rate(
+            db,
+            "journey" if is_timeline else "question",
+            ip_hash=ip_hash,
+            identity=identity,
+        )
 
         if is_timeline and identity.user_id is None:
             if (identity.journeys_posted or 0) >= 1:
@@ -1107,7 +1321,7 @@ class CommunityService:
         identity: AnonIdentity,
         ip_hash: str,
     ) -> JourneyComment:
-        _consume_rate("comment", ip_hash)
+        await consume_rate(db, "comment", ip_hash=ip_hash, identity=identity)
         journey = await CommunityService.get_journey(db, journey_id)
         if journey is None:
             raise ValueError("Post not found")

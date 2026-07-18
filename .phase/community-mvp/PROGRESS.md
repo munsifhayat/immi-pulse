@@ -3,7 +3,7 @@
 Epic: Turn immi360 into a community platform — pseudonymous Reddit-style accounts with an inbox, app-shell homepage, unified wait-check/timeline flow, dual-source (Official vs Room) wait data, and a self-running trust ladder.
 Integration branch: feat/community-mvp
 Base: main
-Phase status: [done] p1 · [pending] p2 · [pending] p3 · [pending] p4 · [pending] p5 · [pending] p6
+Phase status: [done] p1 · [done] p2 · [pending] p3 · [pending] p4 · [pending] p5 · [pending] p6
 
 <!--
 Legend: pending → in_progress → done  (or blocked)
@@ -16,7 +16,7 @@ the next phase needs — not the conversation.
 - **Do not deploy.** No Heroku push, no Vercel deploy, no merge to `main`. The final `feat/community-mvp` → `main` PR is left for the human.
 - Backend: `source .venv/bin/activate` + `PYTHONPATH=src` for every command. Run locally on `PORT=8001` (the frontend's `.env.local` expects it).
 - Frontend: **bun only** — never npm/yarn/pnpm.
-- Alembic must stay on a **single head** (`e5f7a9c1b3d5` before p1).
+- Alembic must stay on a **single head** (`e5f7a9c1b3d5` before p1; `b3d5f7a9c1e4` after p2).
 - New no-API-key routes must live under `/api/v1/community/public/...`.
 - Backend testing convention: pure-logic tests in `tests/agents/...`; flow coverage in standalone `tests/e2e_*.py` scripts driven by `httpx.ASGITransport`. There is no router-level pytest.
 - Frontend has **no test runner**. `bun run lint && bunx tsc --noEmit && bun run build` are the only gates — drive the real flow before calling a phase done.
@@ -38,9 +38,10 @@ the next phase needs — not the conversation.
    Stats-isolated today. Excluded, most cohorts have no publishable median at launch and the dual-source table shows a dash beside every official figure. Included, the numbers work immediately but rest partly on forum-scraped data.
    *Recommendation:* include them with provenance stated in the open — "based on 141 reported timelines, 66 collected from public forums". Transparency about a number's origin is more defensible than a dash.
 
-2. **Real per-IP ceiling.** (p2 sets a starting value, p6 tunes it)
+2. **Real per-IP ceiling.** (p2 set the starting value — **still open for p6 to tune**)
    Accounts are free to create, so per-account caps alone do not bind — the per-IP ceiling and new-account probation are the controls that do.
-   *Starting value:* 25 posts / 60 replies per IP per day; log every rejection and tune from the first fortnight of real traffic.
+   *Shipped starting value:* 25 posts / 60 replies / 30 reports per IP per day (`tiers.IP_CEILING`). Every rejection is logged at WARNING with `scope=ip action=… cap=… signed_in=…`, so the first fortnight of real traffic can move it.
+   **Known tension p6 must confront with data:** the ceiling applies to signed-in accounts too, so a lecture theatre or share house behind one NAT holding more than five active T1 members would trip it. Applying it only to account-less writers was considered and rejected — it would be defeated by signing up, which is free. The mitigations shipped instead: the bucket resets at UTC midnight, and an operator can clear a scope outright (`service.reset_rate_counters`), so the failure mode is "come back tomorrow or ask us", never a ban.
 
 3. **Kaplan–Meier scope in p4.** If the censoring-corrected median does not land comfortably inside the phase, ship honest denominators (sample size + pending + as-at date on every figure) and record the deferral rather than stretching the phase.
 
@@ -138,7 +139,7 @@ inbox.
 6. Two accounts may both have NULL email under the unique index (Postgres treats NULLs as
    distinct) — which is exactly what makes optional email workable.
 
-### Verify → result
+### Verify → result (p1)
 
 - `PYTHONPATH=src pytest tests/ -v` → **75 passed** (60 before, 15 new in
   `tests/agents/immigration/test_community_accounts.py`)
@@ -149,5 +150,141 @@ inbox.
 - Driven live over real HTTP (not just ASGI in-process): bootstrap → signup → `auth/me`
   with and without the API key (public prefix exempt, 200 both ways) → cross-device login →
   identical failure strings → non-oracle recovery → `Set-Cookie: ip_device … HttpOnly`
+
+---
+
+## Handoff — p2 Durable rate limiting & tier scaffolding · done · 2026-07-18
+
+Branch `feat/community-mvp-p2-ratelimits` → PR into `feat/community-mvp` (squash-merged).
+
+### Shipped vs planned
+
+Every Phase-2 acceptance criterion is met. Three things went slightly past the written
+scope, each because the phase could not be called done without it:
+
+1. **`reset_rate_counters`.** Durable counters need an escape hatch or the standing
+   "IP throttling must never hard-ban" constraint is unenforceable — a shared campus
+   address that trips the ceiling honestly would otherwise just have to wait out the day.
+   It is also what makes the e2e scripts re-runnable (see gotcha 1).
+2. **`remaining_allowance`.** p5's criterion is "show the sign-in prompt **before** a write
+   is attempted — never a 429 after the fact", which is impossible without a read-only peek
+   at what is left. Built as a service function only; p5 wires the route and the UI.
+3. **Two existing e2e scripts gained a counter reset** at startup. A real consequence of
+   durability, not a fudge — see gotcha 1.
+
+Deliberately NOT built (still p6, as planned): promotion criteria, the nightly recompute
+job, link gating, touting patterns, velocity/similarity detection, shadow-limit
+*enforcement*. p2 added the columns those will write to and read from, nothing more.
+
+### Key decisions
+
+- **Concrete actions collapse into three families before a counter is touched** —
+  `post` (journey/question/timeline/thread), `reply` (comment), `report`. One knob per
+  family instead of one per endpoint. Reports are their own family on purpose: throttling
+  them like posts would suppress the moderation signal that keeps the room clean.
+- **Fixed daily buckets, not a rolling window.** `window_start` = UTC midnight, so an
+  increment is one `INSERT … ON CONFLICT DO UPDATE … RETURNING` — atomic, race-free, one
+  round trip. A rolling window needs read-filter-write, which two concurrent requests
+  interleave into a lost update. The cost is a boundary effect (spend today's allowance at
+  23:59 and tomorrow's at 00:01); acceptable for daily caps on a forum.
+- **Consumption rides the caller's transaction.** A write rejected for any later reason
+  (cap error, validation, the 409 timeline cap) rolls its own consumption back, so
+  allowance is only spent on writes that actually landed. Consequence p6 should know:
+  *rejected attempts are not themselves counted*. Counting attempts is velocity detection
+  and belongs in p6, not in this counter.
+- **A passwordless row is T0 regardless of its `trust_tier` column.** The column defaults
+  to 1 on every row including bare devices, so reading it alone would hand a brand-new
+  visitor a member's allowance. `tiers.effective_tier` checks for an account first.
+- **T0 is tighter than T1, not zero.** Anonymous writing is on its way out but the gate is
+  p5's; zeroing it here would have broken every anonymous write in a scaffolding phase.
+  T0 = 2 posts / 10 replies vs T1 = 5 / 20, so the value of signing up is already visible.
+- **T4 mirrors T3 on volume.** Being a registered agent is a disclosure obligation, not a
+  licence to post more; the only thing T4 unlocks is the badge saying who you are.
+- **Limit messages never state the number.** A visible cap is a plannable cap, and "you
+  have 2 posts left" reads as an accusation to the many more people who will meet it
+  innocently than abusively. The e2e asserts the message contains no digits.
+- **Account and IP refusals say different things.** IP refusals name the *network*, offer
+  signing in as the remedy, and are temporary on their face — asserted in the e2e.
+- **Login lockout still bypasses this layer**, exactly as p1 left it (8 failures → 15-min
+  lock on the account row). It was deliberately kept off the module dict p2 replaced, and
+  routing it through daily counters now would be a downgrade: lockout needs minutes, not
+  days.
+
+### Interfaces produced
+
+- `community/tiers.py` — pure policy, no I/O, no service imports:
+  - `:171` `caps_for(tier) -> Caps` (clamps out-of-range rather than raising)
+  - `:46-50` `T0_VISITOR … T4_PROFESSIONAL`, `:52-53` `MIN_TIER`/`MAX_TIER`
+  - `:142` `_TIER_CAPS` — T1 = 5 posts / 20 replies, the specified anchor
+  - `:159` `IP_CEILING` = 25 posts / 60 replies / 30 reports
+  - `:168` `ANON_IP_TIMELINE_CAP` = 2 (moved here from `service.py`; **not** a rate
+    counter — it counts materialised timeline rows, not writes in a window)
+  - `:181` `effective_tier(*, has_account, stored_tier)` — **use this, never the column**
+  - `:96` `family_for(action)`, `:76-78` `POST`/`REPLY`/`REPORT`, `:82` `ACTION_FAMILY`
+  - `:204` `day_window_start(now=None)` — the bucket key
+- `community/service.py`:
+  - `:167` `consume_rate(db, action, *, ip_hash, identity=None) -> None` — **replaces
+    `_consume_rate`**; async now, needs the session, `identity` optional
+  - `:100` `_bump_counter(...)` — the atomic upsert
+  - `:228` `remaining_allowance(db, *, ip_hash, identity=None) -> dict` — read-only;
+    returns `{tier, tier_name, actions: {family: {remaining, limited_by}}}` (**for p5**)
+  - `:284` `reset_rate_counters(db, *, scope_type, scope_key, action=None) -> int`
+  - `:73` `CommunityRateLimitError` now carries `.scope` (`"account"` | `"ip"`)
+- `community/models.py`:
+  - `:155` `RateCounter` — table `rate_counters`, unique constraint
+    `uq_rate_counter_scope_action_window` (`:183`; **named — the upsert targets it by name**)
+  - `:118` `AnonIdentity.trust_tier` (default 1) · `:120` `.tier_computed_at` ·
+    `:122` `.upheld_reports` · `:126` `.shadow_limited`
+  - `:62` `RATE_SCOPE_TYPES = ("account", "ip")`
+- Migration `b3d5f7a9c1e4` (down_revision `f1a3c5e7b9d2`)
+- `tests/agents/immigration/test_community_tiers.py` — 26 pure tests
+- `tests/e2e_community_ratelimit.py` — 28 checks, incl. the cross-process proof
+
+### Gotchas for the next phase
+
+1. **Counters are durable, and every ASGITransport request reports as `127.0.0.1`** — so
+   the whole e2e suite shares one IP scope, *across runs*. Without a reset, a handful of
+   runs in one UTC day would exhaust the 25-post ceiling and scripts would start failing on
+   their own history. `e2e_community_accounts.py`, `e2e_community_moderation.py` and
+   `e2e_community_ratelimit.py` each clear `scope_type="ip", scope_key=hash_ip("127.0.0.1")`
+   at startup. **Any new e2e that writes must do the same.**
+2. **`consume_rate` is `async` and takes the session** — the old `_consume_rate(action,
+   ip_hash)` was sync and is gone. Any new write path must `await` it and pass `db`.
+3. **Pass `identity=` on new write paths.** Omitting it silently downgrades that endpoint to
+   IP-only enforcement with no per-account cap at all. The legacy paths that omit it do so
+   knowingly: `create_thread`, `create_comment`, `submit_timeline`, `report_target` never
+   resolve an identity, so they are IP-ceiling-only exactly as they were before.
+4. **The upsert targets the unique constraint by name.** Renaming
+   `uq_rate_counter_scope_action_window` in a later migration breaks the limiter at runtime,
+   not at import.
+5. **`shadow_limited` and `upheld_reports` are written by nothing yet.** They exist, they
+   default to `false`/`0`, and p6 owns both the writer and the reader. Do not assume a
+   non-default value can appear before then.
+6. **`trust_tier` is not member-facing and must stay that way.** No serializer exposes it;
+   the only visible tier is ever T4. Keep it out of every public and consultant surface —
+   the p1 leak sweep does not currently assert this, so it is on the author to not add it.
+7. Pre-existing lint noise unrelated to p2: `ruff` flags `F841 journey_report_id` at
+   `tests/e2e_community_moderation.py:192` (from p1). Left alone deliberately to keep the
+   p2 diff honest.
+
+### Verify → result
+
+- `PYTHONPATH=src pytest tests/ -v` → **101 passed** (75 before, 26 new in
+  `tests/agents/immigration/test_community_tiers.py`)
+- `PYTHONPATH=src python tests/e2e_community_ratelimit.py` → **28 checks, all passed**;
+  re-run twice more in the same UTC day, still green (proves the reset works)
+- `PYTHONPATH=src alembic upgrade head && PYTHONPATH=src alembic heads` →
+  **`b3d5f7a9c1e4`, exactly one head**
+- Regression: `e2e_community_accounts.py` (65 checks), `e2e_community_moderation.py` and
+  `e2e_portal_flow.py` all still pass
+- **The cross-process check, which is the point of the phase:** account exhausts its 5
+  posts in process A → `subprocess` launches a *fresh interpreter* → that process refuses
+  the same account with 429, **while a brand-new account created inside that same child
+  process posts successfully (201)**. The second half is load-bearing: without it a child
+  broken for an unrelated reason would look identical to a child correctly hitting the cap.
+- Driven live over real HTTP (uvicorn on :8001, real socket, not ASGI in-process):
+  bootstrap a device → 2 posts land → the 3rd returns
+  `429 {"detail":"You've posted a lot today. Try again tomorrow."}` — T0 caps enforced
+  end-to-end through the real server.
 
 ---
