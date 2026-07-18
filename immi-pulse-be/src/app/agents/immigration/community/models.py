@@ -59,13 +59,25 @@ VOTE_TARGET_TYPES = ("journey", "comment")
 
 
 class AnonIdentity(Base):
-    """One anonymous identity per device — the spine of the guardrail layer.
+    """A pseudonymous community member — device identity AND account, one row.
 
-    The device holds an opaque ``device_token`` (issued at bootstrap, persisted
-    client-side) and is shown a generated, unique ``handle`` + ``color``. While
-    anonymous, an identity may post a single timeline (``journeys_posted`` is
-    capped at 1); after that the Share CTA flips to a sign-in gate. Signing in
-    sets ``user_id`` and lifts the cap. No PII is ever stored here.
+    NAMING DEBT (accepted deliberately): the table is still called
+    ``anon_identities`` because every ``Journey``/``JourneyComment``/
+    ``CommunityVote`` already FKs to ``identity_id``. Renaming it would touch
+    far more than the clarity is worth, so the table grew into the account
+    instead of a parallel ``community_accounts`` table being added beside it.
+    Read "identity" as "community account" throughout.
+
+    Lifecycle, in one line: a visitor arrives → a row is minted against their
+    ``device_token`` with a generated unique ``handle`` + ``color`` → they read
+    freely → when they want to write they set a ``password_hash``, which claims
+    that same row as an account, keeping the handle and every prior post.
+
+    ``email`` is **optional** and exists for exactly two reasons: password
+    recovery and reply notifications. It is never displayed, never public, and
+    never required to participate — for this audience an email address is often
+    a real name and a real risk. No email means no recovery, stated plainly at
+    signup. It must never appear in any public or consultant-facing serializer.
     """
 
     __tablename__ = "anon_identities"
@@ -76,6 +88,22 @@ class AnonIdentity(Base):
     color = Column(String, nullable=False)
 
     journeys_posted = Column(Integer, nullable=False, default=0)
+
+    # --- Account columns (NULL while the row is still an unclaimed device) ---
+    # Set once the member chooses a password; this is what turns the identity
+    # into a durable, cross-device account. bcrypt-over-HMAC, same primitive as
+    # the consultant console (core/jwt_auth.hash_password).
+    password_hash = Column(String, nullable=True)
+    # Nullable + unique-when-present. Lowercased on write.
+    email = Column(String, nullable=True, unique=True, index=True)
+    email_verified_at = Column(DateTime(timezone=True), nullable=True)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+    # Login throttling — reset on success, checked before verifying a password.
+    failed_login_count = Column(Integer, nullable=False, default=0)
+    locked_until = Column(DateTime(timezone=True), nullable=True)
+    # Single-use, hashed password-recovery token (only usable when email is set).
+    recovery_token_hash = Column(String, nullable=True, index=True)
+    recovery_expires_at = Column(DateTime(timezone=True), nullable=True)
 
     # Set when the device is claimed by a real (portal) account → uncaps posting
     # and lets the portal stitch the prior anonymous activity to the account.
@@ -95,6 +123,11 @@ class AnonIdentity(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+
+    @property
+    def is_account(self) -> bool:
+        """True once a password has been set — i.e. this row is a real account."""
+        return bool(self.password_hash)
 
 
 class Journey(Base):

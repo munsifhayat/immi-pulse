@@ -7,16 +7,33 @@ Admin:         /community/admin/*      (X-API-Key — add admin role later)
 """
 
 import logging
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.immigration.community.accounts import (
+    AccountError,
+    CommunityAccountService,
+    device_token_from_request,
+    issue_community_session_jwt,
+    optional_community_account,
+    require_community_account,
+    send_recovery_email,
+    set_device_cookie,
+)
 from app.agents.immigration.community.identity import initials_of
-from app.agents.immigration.community.models import CommunityTimeline
+from app.agents.immigration.community.models import AnonIdentity, CommunityTimeline
 from app.agents.immigration.community.schemas import (
+    CommunityAccountOut,
+    CommunityLoginRequest,
+    CommunityRecoverAcceptedOut,
+    CommunityRecoverRequest,
+    CommunityResetPasswordRequest,
+    CommunitySessionOut,
+    CommunitySignupRequest,
     CommunitySpaceOut,
     CommunityStatsOut,
     CreateCommunitySpaceRequest,
@@ -64,9 +81,50 @@ def _client_ip_hash(request: Request) -> str:
 
 
 def _device_token(request: Request) -> Optional[str]:
-    """The per-device anonymous identity token (set client-side at bootstrap)."""
-    token = request.headers.get("x-device-token")
-    return token.strip() if token and token.strip() else None
+    """The per-device identity token — ``X-Device-Token`` header, then cookie.
+
+    The header path is the original localStorage client; the HttpOnly cookie is
+    the durable copy that survives Safari's seven-day ITP eviction. Both are
+    honoured so the transition needs no flag day.
+    """
+    return device_token_from_request(request)
+
+
+async def _viewer_identity(
+    request: Request, db: AsyncSession, account: Optional[AnonIdentity]
+) -> Optional[AnonIdentity]:
+    """Who is reading — the signed-in account first, the device token second.
+
+    Session beats device: someone who logs in on a borrowed or brand-new device
+    must still see their own posts marked as theirs, and that is precisely the
+    thing an account is for. Falls back to the device token so signed-out
+    readers keep the ownership cues they had before accounts existed.
+    """
+    if account is not None:
+        return account
+    return await CommunityService.get_identity_by_token(db, _device_token(request))
+
+
+async def _writer_identity(
+    request: Request,
+    db: AsyncSession,
+    account: Optional[AnonIdentity],
+    *,
+    ip_hash: str,
+) -> AnonIdentity:
+    """Who is writing — the signed-in account, else this device's identity.
+
+    Same precedence as :func:`_viewer_identity`, but this one always yields a
+    row: an anonymous writer still gets a device identity minted for them, as
+    before. Attribution follows the session so a member posting from a new
+    device writes as themselves rather than as a stranger.
+    """
+    if account is not None:
+        account.last_seen_at = datetime.now(timezone.utc)
+        return account
+    return await CommunityService.get_or_create_identity(
+        db, token=_device_token(request), ip_hash=ip_hash
+    )
 
 
 def _timeline_out(timeline: CommunityTimeline) -> TimelineOut:
@@ -144,12 +202,18 @@ async def submit_timeline(
 
 
 @router.post("/public/identity", response_model=IdentityOut)
-async def bootstrap_identity(request: Request, db: AsyncSession = Depends(get_db)):
+async def bootstrap_identity(
+    request: Request, response: Response, db: AsyncSession = Depends(get_db)
+):
     """Issue or return this device's anonymous handle + colour + device token."""
     identity = await CommunityService.get_or_create_identity(
         db, token=_device_token(request), ip_hash=_client_ip_hash(request)
     )
     await db.commit()
+    # Durable, XSS-safe copy of the device token. Safari's ITP evicts
+    # script-writable storage after seven days idle; a server-set cookie is
+    # exempt, which matters for people who check back once a month.
+    set_device_cookie(response, identity.device_token)
     return IdentityOut(**CommunityService.identity_out(identity, include_token=True))
 
 
@@ -165,6 +229,135 @@ async def reroll_identity(request: Request, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=409, detail=str(err)) from err
     await db.commit()
     return IdentityOut(**CommunityService.identity_out(identity, include_token=True))
+
+
+# --- Community accounts: signup / login / recovery --------------------------
+#
+# All public (no X-API-Key) — they must stay under /community/public/ for the
+# middleware to exempt them (middleware/api_key_auth.py PUBLIC_PREFIXES).
+
+
+def _session_out(
+    account: AnonIdentity, response: Response, *, include_device_token: bool = True
+) -> CommunitySessionOut:
+    token, expires_at = issue_community_session_jwt(account)
+    # Refresh the durable device cookie on every session issue, so a returning
+    # member's device stays bound even if their localStorage was cleared.
+    set_device_cookie(response, account.device_token)
+    return CommunitySessionOut(
+        token=token,
+        expires_at=expires_at,
+        account=CommunityAccountOut(**CommunityAccountService.account_out(account)),
+        device_token=account.device_token if include_device_token else None,
+    )
+
+
+@router.post(
+    "/public/auth/signup",
+    response_model=CommunitySessionOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def community_signup(
+    payload: CommunitySignupRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    """Claim this device's identity as an account by setting a password.
+
+    Never show an empty signup form ahead of this call: the member does the
+    thing first — runs a wait check, writes a timeline — and claims it after,
+    which is why signup resolves the *existing* device identity rather than
+    creating a fresh one. The handle and any prior posts carry over untouched.
+    """
+    identity = await CommunityService.get_or_create_identity(
+        db, token=_device_token(request), ip_hash=_client_ip_hash(request)
+    )
+    try:
+        account = await CommunityAccountService.signup(
+            db,
+            identity=identity,
+            password=payload.password,
+            email=payload.email,
+            accepted_no_recovery=payload.accepted_no_recovery,
+        )
+    except AccountError as err:
+        raise HTTPException(status_code=err.status_code, detail=str(err)) from err
+    await db.commit()
+    await db.refresh(account)
+    return _session_out(account, response)
+
+
+@router.post("/public/auth/login", response_model=CommunitySessionOut)
+async def community_login(
+    payload: CommunityLoginRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    """Handle + password. Deliberately ignores the device token — logging in
+    from a second device is the whole point, and it re-binds the cookie to the
+    account's original device token so both devices resolve the same identity."""
+    try:
+        account = await CommunityAccountService.login(
+            db, handle=payload.handle, password=payload.password
+        )
+    except AccountError as err:
+        await db.commit()  # persist the failed-attempt counter
+        raise HTTPException(status_code=err.status_code, detail=str(err)) from err
+    await db.commit()
+    await db.refresh(account)
+    return _session_out(account, response)
+
+
+@router.get("/public/auth/me", response_model=CommunityAccountOut)
+async def community_me(account: AnonIdentity = Depends(require_community_account)):
+    return CommunityAccountOut(**CommunityAccountService.account_out(account))
+
+
+@router.post("/public/auth/recover", response_model=CommunityRecoverAcceptedOut)
+async def community_recover(
+    payload: CommunityRecoverRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Start password recovery. Only works when an email was supplied at signup.
+
+    Responds identically whether or not the address is known — a differing
+    response would let anyone test which emails hold accounts, which for this
+    audience is a genuine safety problem, not a theoretical one.
+    """
+    token = await CommunityAccountService.begin_recovery(db, email=payload.email)
+    await db.commit()
+    if token:
+        account = await CommunityAccountService.get_by_email(db, payload.email)
+        if account is not None:
+            try:
+                await send_recovery_email(
+                    to=account.email, handle=account.handle, token=token
+                )
+            except Exception:  # never leak send failures back to the caller
+                logger.exception("Community recovery email failed to send")
+    return CommunityRecoverAcceptedOut(
+        detail="If that email has an account, a recovery link is on its way."
+    )
+
+
+@router.post("/public/auth/reset", response_model=CommunitySessionOut)
+async def community_reset_password(
+    payload: CommunityResetPasswordRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    """Consume a recovery token and set a new password."""
+    try:
+        account = await CommunityAccountService.complete_recovery(
+            db, token=payload.token, new_password=payload.password
+        )
+    except AccountError as err:
+        await db.commit()
+        raise HTTPException(status_code=err.status_code, detail=str(err)) from err
+    await db.commit()
+    await db.refresh(account)
+    return _session_out(account, response)
 
 
 # --- Community feed v2: journeys (reads) ------------------------------------
@@ -187,9 +380,10 @@ async def list_journeys(
     sort: str = Query("new", pattern="^(new|top|trending)$"),
     limit: int = Query(30, ge=1, le=100),
     offset: int = Query(0, ge=0),
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
     db: AsyncSession = Depends(get_db),
 ):
-    identity = await CommunityService.get_identity_by_token(db, _device_token(request))
+    identity = await _viewer_identity(request, db, account)
     journeys = await CommunityService.list_journeys(
         db,
         post_type=type,
@@ -206,12 +400,15 @@ async def list_journeys(
 
 @router.get("/public/journeys/{journey_id}", response_model=JourneyDetailOut)
 async def get_journey_detail(
-    journey_id: UUID, request: Request, db: AsyncSession = Depends(get_db)
+    journey_id: UUID,
+    request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
+    db: AsyncSession = Depends(get_db),
 ):
     journey = await CommunityService.get_journey(db, journey_id)
     if journey is None:
         raise HTTPException(status_code=404, detail="Post not found")
-    identity = await CommunityService.get_identity_by_token(db, _device_token(request))
+    identity = await _viewer_identity(request, db, account)
     detail = await CommunityService.get_journey_detail(db, journey, identity=identity)
     return JourneyDetailOut(**detail)
 
@@ -225,12 +422,11 @@ async def get_journey_detail(
 async def create_journey(
     payload: CreateJourneyRequest,
     request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
     db: AsyncSession = Depends(get_db),
 ):
     ip_hash = _client_ip_hash(request)
-    identity = await CommunityService.get_or_create_identity(
-        db, token=_device_token(request), ip_hash=ip_hash
-    )
+    identity = await _writer_identity(request, db, account, ip_hash=ip_hash)
     try:
         journey = await CommunityService.create_journey(
             db, payload, identity=identity, ip_hash=ip_hash
@@ -249,10 +445,13 @@ async def create_journey(
 
 @router.post("/journeys/{journey_id}/upvote", response_model=VoteResultOut)
 async def upvote_journey(
-    journey_id: UUID, request: Request, db: AsyncSession = Depends(get_db)
+    journey_id: UUID,
+    request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
+    db: AsyncSession = Depends(get_db),
 ):
-    identity = await CommunityService.get_or_create_identity(
-        db, token=_device_token(request), ip_hash=_client_ip_hash(request)
+    identity = await _writer_identity(
+        request, db, account, ip_hash=_client_ip_hash(request)
     )
     result = await CommunityService.toggle_vote(
         db, target_type="journey", target_id=journey_id, identity=identity
@@ -272,12 +471,11 @@ async def create_journey_comment(
     journey_id: UUID,
     payload: CreateJourneyCommentRequest,
     request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
     db: AsyncSession = Depends(get_db),
 ):
     ip_hash = _client_ip_hash(request)
-    identity = await CommunityService.get_or_create_identity(
-        db, token=_device_token(request), ip_hash=ip_hash
-    )
+    identity = await _writer_identity(request, db, account, ip_hash=ip_hash)
     try:
         comment = await CommunityService.create_journey_comment(
             db, journey_id, payload, identity=identity, ip_hash=ip_hash
@@ -302,10 +500,13 @@ async def create_journey_comment(
 
 @router.post("/comments/{comment_id}/upvote", response_model=VoteResultOut)
 async def upvote_journey_comment(
-    comment_id: UUID, request: Request, db: AsyncSession = Depends(get_db)
+    comment_id: UUID,
+    request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
+    db: AsyncSession = Depends(get_db),
 ):
-    identity = await CommunityService.get_or_create_identity(
-        db, token=_device_token(request), ip_hash=_client_ip_hash(request)
+    identity = await _writer_identity(
+        request, db, account, ip_hash=_client_ip_hash(request)
     )
     result = await CommunityService.toggle_vote(
         db, target_type="comment", target_id=comment_id, identity=identity

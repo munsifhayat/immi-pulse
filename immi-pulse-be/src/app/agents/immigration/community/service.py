@@ -711,6 +711,10 @@ class CommunityService:
     async def reroll_identity(
         db: AsyncSession, identity: AnonIdentity
     ) -> AnonIdentity:
+        # The handle is the login identifier once an account exists, so rerolling
+        # after signup would silently change what the member signs in with.
+        if identity.password_hash:
+            raise ValueError("Your handle locks once you've created an account.")
         if identity.user_id is not None or (identity.journeys_posted or 0) > 0:
             raise ValueError("Your handle locks once you've shared a timeline.")
         identity.handle = await CommunityService._unique_handle(db)
@@ -737,7 +741,10 @@ class CommunityService:
 
     @staticmethod
     def identity_out(identity: AnonIdentity, *, include_token: bool = False) -> dict:
-        is_claimed = identity.user_id is not None
+        has_account = bool(identity.password_hash)
+        # A community account lifts the one-timeline cap exactly like a portal
+        # account does — both mean "this is a durable person, not a drive-by".
+        is_claimed = identity.user_id is not None or has_account
         return {
             "handle": identity.handle,
             "color": identity.color,
@@ -746,6 +753,7 @@ class CommunityService:
             "is_claimed": is_claimed,
             "can_post_timeline": is_claimed or (identity.journeys_posted or 0) < 1,
             "device_token": identity.device_token if include_token else None,
+            "has_account": has_account,
         }
 
     # --- Journeys (unified feed posts) --------------------------------------

@@ -4,7 +4,7 @@ from datetime import date, datetime
 from typing import Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.agents.immigration.community.models import (
     MILESTONE_TYPES,
@@ -286,6 +286,69 @@ class IdentityOut(BaseModel):
     is_claimed: bool  # True once linked to a real account → posting uncapped
     can_post_timeline: bool
     device_token: Optional[str] = None
+    # True once a password has been set — the device is a real account and can
+    # sign in elsewhere. Drives "claim this" vs "log in" in the composer.
+    has_account: bool = False
+
+
+# --- Community accounts (pseudonymous signup / login / recovery) -------------
+
+
+class CommunitySignupRequest(BaseModel):
+    """Claim this device's identity as an account.
+
+    One password field, no confirm-password — a show-password toggle is the
+    better affordance and confirmation fields add friction for no real gain.
+    Email is optional; skipping it requires acknowledging the consequence.
+    """
+
+    password: str = Field(min_length=8, max_length=128)
+    email: Optional[EmailStr] = None
+    # Must be True when no email is supplied: no email means no recovery.
+    accepted_no_recovery: bool = False
+
+
+class CommunityLoginRequest(BaseModel):
+    handle: str = Field(min_length=3, max_length=64)
+    password: str = Field(min_length=1, max_length=128)
+
+
+class CommunityRecoverRequest(BaseModel):
+    email: EmailStr
+
+
+class CommunityResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=8, max_length=256)
+    password: str = Field(min_length=8, max_length=128)
+
+
+class CommunityAccountOut(BaseModel):
+    """The member's own view of their account. Deliberately carries no email
+    address — only whether one exists — so the value cannot leak through here."""
+
+    handle: str
+    color: str
+    has_email: bool
+    email_verified: bool
+    can_recover: bool
+    created_at: Optional[datetime] = None
+    last_login_at: Optional[datetime] = None
+
+
+class CommunitySessionOut(BaseModel):
+    """Issued on signup and login. ``device_token`` is echoed so a client that
+    cannot rely on the cookie (dev over http, cross-origin) still has it."""
+
+    token: str
+    expires_at: datetime
+    account: CommunityAccountOut
+    device_token: Optional[str] = None
+
+
+class CommunityRecoverAcceptedOut(BaseModel):
+    """Identical whether or not the address is known — never an account oracle."""
+
+    detail: str
 
 
 class MilestoneIn(BaseModel):
