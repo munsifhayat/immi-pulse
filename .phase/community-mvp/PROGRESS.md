@@ -3,7 +3,7 @@
 Epic: Turn immi360 into a community platform — pseudonymous Reddit-style accounts with an inbox, app-shell homepage, unified wait-check/timeline flow, dual-source (Official vs Room) wait data, and a self-running trust ladder.
 Integration branch: feat/community-mvp
 Base: main
-Phase status: [done] p1 · [done] p2 · [done] p3 · [pending] p4 · [pending] p5 · [pending] p6
+Phase status: [done] p1 · [done] p2 · [done] p3 · [done] p4 · [pending] p5 · [pending] p6
 
 <!--
 Legend: pending → in_progress → done  (or blocked)
@@ -17,7 +17,7 @@ the next phase needs — not the conversation.
 - Backend: `source .venv/bin/activate` + `PYTHONPATH=src` for every command. Run locally on `PORT=8001` (the frontend's `.env.local` expects it).
 - Frontend: **bun only** — never npm/yarn/pnpm.
 - Alembic must stay on a **single head** (`e5f7a9c1b3d5` before p1; `b3d5f7a9c1e4` after p2;
-  `c5e7a9b1d3f6` after p3).
+  `c5e7a9b1d3f6` after p3; `d7f9b3c5e1a8` after p4).
 - New no-API-key routes must live under `/api/v1/community/public/...`.
 - Backend testing convention: pure-logic tests in `tests/agents/...`; flow coverage in standalone `tests/e2e_*.py` scripts driven by `httpx.ASGITransport`. There is no router-level pytest.
 - Frontend has **no test runner**. `bun run lint && bunx tsc --noEmit && bun run build` are the only gates — drive the real flow before calling a phase done.
@@ -35,16 +35,21 @@ the next phase needs — not the conversation.
 
 ## Open decisions (resolve when the phase reaches them)
 
-1. **Do the 141 scraped `is_sample` timelines feed public numbers?** (blocks p4)
-   Stats-isolated today. Excluded, most cohorts have no publishable median at launch and the dual-source table shows a dash beside every official figure. Included, the numbers work immediately but rest partly on forum-scraped data.
-   *Recommendation:* include them with provenance stated in the open — "based on 141 reported timelines, 66 collected from public forums". Transparency about a number's origin is more defensible than a dash.
+1. ~~**Do the 141 scraped `is_sample` timelines feed public numbers?**~~ — **RESOLVED 2026-07-18: INCLUDE, with provenance always visible.**
+   The founder delegated the call; the recommendation stands. Sample timelines now feed public stats, but **every figure they contribute to must state its composition in the open** — e.g. "based on 141 reported timelines, 66 collected from public forums". Being visibly honest about where a number comes from is more defensible than an empty column, and it matches the show-your-working tone of the whole product.
+   **Binding requirements for p4:**
+   - The stats payload carries a provenance breakdown (`member_reported` vs `forum_collected` counts), not just a total `sample_size`
+   - The UI renders that breakdown wherever a Room figure appears — never a bare number
+   - `is_sample` rows remain individually flagged and stay excluded from the *feed*; this decision changes **stats only**
+   - Reversible by one flag if it ever reads as inflating the numbers
 
 2. **Real per-IP ceiling.** (p2 set the starting value — **still open for p6 to tune**)
    Accounts are free to create, so per-account caps alone do not bind — the per-IP ceiling and new-account probation are the controls that do.
    *Shipped starting value:* 25 posts / 60 replies / 30 reports per IP per day (`tiers.IP_CEILING`). Every rejection is logged at WARNING with `scope=ip action=… cap=… signed_in=…`, so the first fortnight of real traffic can move it.
    **Known tension p6 must confront with data:** the ceiling applies to signed-in accounts too, so a lecture theatre or share house behind one NAT holding more than five active T1 members would trip it. Applying it only to account-less writers was considered and rejected — it would be defeated by signing up, which is free. The mitigations shipped instead: the bucket resets at UTC midnight, and an operator can clear a scope outright (`service.reset_rate_counters`), so the failure mode is "come back tomorrow or ask us", never a ban.
 
-3. **Kaplan–Meier scope in p4.** If the censoring-corrected median does not land comfortably inside the phase, ship honest denominators (sample size + pending + as-at date on every figure) and record the deferral rather than stretching the phase.
+3. ~~**Kaplan–Meier scope in p4.**~~ — **RESOLVED 2026-07-18: DEFERRED, as the plan permitted.**
+   p4 shipped honest denominators instead: `pending` travels with every median, the verdict copy names the still-waiting count, and `tests/agents/immigration/test_processing_engine.py::test_decided_only_median_is_optimistic_when_slow_cases_are_still_waiting` pins the bias with a fixture where the decided-only and censoring-aware medians differ by more than 2×, so the omission is documented in a test rather than in a comment. The engine's module docstring states plainly that the median is optimistic and why. **Whoever picks KM up:** the sample is already provenance-split and window-filtered in `service._cohort_sample`, so the input shape it needs exists; what is missing is the survival curve itself and a decision about how to present a KM median beside an official band that is *not* censoring-corrected (they would no longer be comparing like with like — that is a product decision, not a maths one).
 
 ## Known risk accepted
 
@@ -438,5 +443,203 @@ beyond the reply case, vote/mention notifications, the frontend inbox UI (p5).
   but no session returns **401** → `/me/posts` shows A's post with `is_mine: true` →
   `/me/comments` shows B's reply carrying its post title → mark-read returns
   `{"marked":1,"unread_count":0}`, and again `{"marked":0,"unread_count":0}`
+
+---
+
+## Handoff — p4 Wait Check ↔ timeline, and honest numbers · done · 2026-07-18
+
+Branch `feat/community-mvp-p4-waitcheck` → PR into `feat/community-mvp`. Backend + the two
+frontend surfaces the plan named (`wait-check.tsx`, `official-times.tsx`); the app shell is
+still p5's.
+
+### Shipped vs planned
+
+Every Phase-4 acceptance criterion is met. Kaplan–Meier is deferred, which the plan
+explicitly permitted — see resolved open decision 3 above. Four things go past the written
+scope, each because the phase could not honestly be called done without it:
+
+1. **`POST /public/journeys/{id}/milestones`.** "A saved timeline accepts later milestones"
+   was an acceptance criterion with no endpoint behind it. Without one the saved check is a
+   snapshot that rots, and — worse — the grant that would *correct* the community median
+   never arrives, so the published numbers stay biased toward whatever people happened to
+   report on the day they signed up.
+2. **`_sync_timeline_mirror`.** Draft/publish/edit each change whether a journey should
+   count, and three call sites deciding that independently is three chances to get it
+   wrong. One idempotent function owns the whole relationship, including deleting the
+   mirror row when a journey stops qualifying.
+3. **`get_journey(viewer=…)` and `get_owned_journey`.** Drafts need an owner-only read path,
+   and it has to 404 rather than 403 — an endpoint that distinguishes "not yours" from "no
+   such post" is an oracle for which draft ids exist.
+4. **The seeder now writes mirror rows** (`scripts/seed_community_scraped.py`). Otherwise
+   the next harvest run would silently re-create stats-invisible sample journeys and quietly
+   undo the decision this phase implemented.
+
+Deliberately NOT built (still out of scope): Kaplan–Meier, official-figure ingestion, the
+app shell, the `/wait-check` route, any UI for editing milestones (the endpoint exists; p5
+owns the surface).
+
+### Key decisions
+
+- **Draft state is its own column, not a `status` value.** `status` is moderation's axis
+  (active/hidden/removed); a draft is a perfectly healthy row its author has not shared.
+  Overloading `status` would make "hidden" mean both "we took this down" and "you haven't
+  posted it yet", and every moderation surface would then have to disambiguate by guessing.
+  `is_published` defaults to TRUE, so nothing that was public yesterday is invisible today.
+- **Allowance is consumed at save, not at publish.** Publishing flips a flag on a row
+  already paid for. This makes draft-flooding impossible while leaving publication free —
+  and publication is the act we actually want people to take.
+- **Consent is a required field, not an implied one.** `POST /publish` rejects a body
+  without `consent_public: true` (422). Treating the URL itself as consent would let a
+  mis-wired client publish someone's private timeline by accident; the intent has to be
+  stated. Asserted three ways in the e2e (no body, `false`, and a non-owner).
+- **A draft has no mirror row at all** — not a filtered-out one. The strongest available
+  guarantee that an unpublished timeline cannot move a public number is that the table the
+  numbers come from has never heard of it. The e2e asserts the row count is zero directly,
+  not just that the API omits it.
+- **`sample_size` stays 0 when `basis == "official"`, while `provenance` reports the real
+  cohort.** These look contradictory and are not: `sample_size` counts the decided cases
+  *behind the percentiles being shown*, and those are the department's. `provenance`
+  describes the community cohort that exists, used or not. That distinction is what lets the
+  UI say "official figures, and we have 7 timelines — not enough yet", which is both honest
+  and the thing that invites the eighth. Documented at `processing.py:342`.
+- **The n-floor raised 5 → 20, and it now gates the *fallback*, not just a label.** Below 20
+  decided cases `wait_verdict` returns `unknown`, which `service.wait_check` reads as "answer
+  from the official bands". Twenty is not statistically magic; it is roughly where a median
+  stops swinging on one more grant, which is the property that matters when someone is
+  reading it to decide whether to worry.
+- **Forum-collected rows count, and every figure they touch states its composition.**
+  `provenance_note` is generated in `processing.py`, not in copy, so the sentence cannot
+  drift from the data. Three shapes: member-only (never mentions forums), forum-only, and
+  mixed ("Based on 7 timelines — 3 reported by members, 4 collected from public immigration
+  forums"). Returns `None` at zero, so nothing can render "based on 0 timelines".
+- **The 12-month window uses 30.44-day months**, not a calendar-month subtraction. A
+  cohort boundary that jitters with month length would make the same query return different
+  samples on different days for no defensible reason.
+- **The processing board hides the community-vs-official delta unless `sufficient`.** A
+  "12 days faster" built on four timelines is not a finding, it is noise wearing a badge.
+  It shows `"3 so far · need 20"` instead.
+
+### Interfaces produced
+
+- `community/processing.py` (pure, still no framework imports):
+  - `:40-41` `DEFAULT_MIN_SAMPLE = 20`, `DEFAULT_WINDOW_MONTHS = 12`
+  - `:103` `provenance_block(*, member_reported, forum_collected) -> dict`
+  - `:121` `provenance_note(...) -> Optional[str]` — the sentence; `None` when empty
+  - `:148` `compute_stats(decided_days, pending=0, *, member_reported, forum_collected,
+    min_sample, window_months)` — now also returns `sufficient`, `min_sample`,
+    `window_months`, `provenance`, `provenance_note`
+  - `:226` `wait_verdict(...)` — same new kwargs; `unknown` below the floor
+  - `:318` `wait_verdict_official(...)` — same new kwargs
+- `community/service.py`:
+  - `:715` `_cohort_sample(db, subclass_slug) -> {decided_days, pending, member_reported,
+    forum_collected}` — **the one place that decides what counts**: active, published,
+    within window, provenance-flag-respecting
+  - `:793` `_timeline_durations(...)` — back-compat shim, unchanged signature
+  - `:801` `_stats_from_cohort(cohort) -> dict`
+  - `:847` `_official_block(sc) -> dict`
+  - `:1215` `_sync_timeline_mirror(db, journey, *, ip_hash=None)` — idempotent; creates,
+    updates and **deletes** the stats mirror row
+  - `:1277` `save_wait_check(db, *, identity, ip_hash, subclass_slug, lodged_on,
+    milestones=None, note=None) -> Journey` (unpublished)
+  - `:1313` `get_owned_journey(db, journey_id, identity) -> Optional[Journey]`
+  - `:1332` `publish_journey(db, journey, *, ip_hash=None) -> Journey` (idempotent)
+  - `:1349` `append_milestones(db, journey, milestones, *, outcome=None, ip_hash=None)`
+  - `create_journey(..., publish: bool = True)` — new kwarg, default preserves old behaviour
+  - `get_journey(db, journey_id, *, viewer=None)` — new kwarg; drafts 404 for everyone else
+- `community/models.py`:
+  - `:79-81` `TIMELINE_SOURCES`, `TIMELINE_SOURCE_MEMBER`, `TIMELINE_SOURCE_FORUM`
+  - `:386` `Journey.is_published` (default True, indexed) · `:387` `.published_at`
+  - `:689` `CommunityTimeline.source` (default `"member"`, indexed)
+- `core/config.py:105-114` — `community_stats_include_forum` (**the one reversal switch**),
+  `community_stats_min_sample`, `community_stats_window_months`
+- Routes (`community/router.py`):
+  - `:197` `POST /community/public/wait-check/save` → `JourneyDetailOut`, 201
+  - `:239` `POST /community/public/journeys/{id}/publish` → `JourneyDetailOut`
+  - `:265` `POST /community/public/journeys/{id}/milestones` → `JourneyDetailOut`
+  - `GET /community/public/wait-check` — **contract unchanged**, fields added only
+- Schemas (`community/schemas.py`): `ProvenanceOut:181`, `OfficialFiguresOut:218`,
+  `SaveWaitCheckRequest:334`, `PublishJourneyRequest:353`, `AddMilestonesRequest:373`;
+  `CommunityDurationStats` / `WaitCheckOut` / `ProcessingStatOut` extended;
+  `JourneyOut.is_published`
+- Migration `d7f9b3c5e1a8` (down_revision `c5e7a9b1d3f6`) — columns **plus** the
+  INSERT…SELECT that materialises mirror rows for existing sample journeys
+- Frontend: `useSaveWaitCheck`, `usePublishJourney`, `useAddMilestones`
+  (`src/lib/api/hooks/community.ts`); `Provenance` / `OfficialFigures` types;
+  `ProvenanceLine` + `OfficialLine` + `SaveAndShare` in `wait-check.tsx`
+- `tests/e2e_community_waitcheck_save.py` — 76 checks
+
+### Gotchas for the next phase
+
+1. **A discrepancy in the source doc, resolved conservatively.** Resolved decision 1 says
+   sample rows "stay excluded from the *feed*" — but in the code they have always *populated*
+   the feed and been excluded from the *stats*, which is the opposite. Since the same
+   decision says "this changes **stats only**", p4 changed stats only and left feed behaviour
+   untouched. If the founder actually wants samples out of the feed, that is a separate,
+   unimplemented change — and it would empty the feed, so it needs a real decision, not a
+   patch.
+2. **`is_published` must be added to any NEW query that reads journeys publicly.** The feed
+   funnels through `list_journeys`, and `feed_summary`, `_inbox_query` and `list_my_comments`
+   were each updated by hand. There is no global default scope enforcing this — a new query
+   that forgets it will leak drafts. `list_my_posts` deliberately **includes** drafts (it is
+   the member's own profile and the only place to publish from), so it is not a
+   copy-paste-safe template.
+3. **p5 must render `provenance_note` wherever a Room figure appears.** This is the term on
+   which forum data was allowed to count at all, not a nice-to-have. `wait-check.tsx` and
+   `official-times.tsx` show the pattern. A bare community number in the new shell is a
+   regression even though nothing will fail.
+4. **Never render `official` without `room`, or `room` without `official`.** The official
+   figure alone is an unchecked claim; the room's alone has nothing corroborating it. Both
+   blocks are on every stats payload for this reason.
+5. **Nothing may claim official figures are refreshed automatically.** They are hand-seeded
+   into `VisaSubclass.official_updated`; `OfficialFiguresOut.is_live` is hard-coded false and
+   the e2e sweeps the payload for "checked daily" / "updated daily" / "live from". Copy in
+   the new shell is bound by the same rule.
+6. **The e2e creates its own throwaway `VisaSubclass`** (`p4test-<hex>`) so its assertions do
+   not depend on seed data, and deletes it in a `finally`. If it is ever interrupted mid-run,
+   a stray `p4test-*` subclass will show up in `/public/subclasses`; delete it by slug.
+7. **`tests/e2e_community_waitcheck_save.py` resets the IP scope at startup**, like its
+   siblings (p2 gotcha 1 applies verbatim).
+8. **Band-classification tests now pass `min_sample=5` explicitly** via the `BANDS` dict
+   (`test_processing_engine.py:84`). They are about which tier a wait lands in, not about
+   the floor; padding `SAMPLE` to 20 values would have moved the percentiles they assert
+   against. The real default floor is covered separately below them.
+9. **Replying to a draft is impossible by construction** — `create_journey_comment` calls
+   `get_journey` without a viewer, so a draft is 404 to it. That is what closes p3 gotcha 4
+   at the source, in addition to the `_inbox_query` filter.
+10. **`_cohort_sample` runs one query per subclass** and `processing_board` loops every
+    active subclass. Fine at ~10 subclasses; if p5 puts the board on the homepage for every
+    visitor, this wants a single grouped query or a cache.
+
+### Verify → result (p4)
+
+- `PYTHONPATH=src .venv/bin/python -m pytest tests/ -q` → **117 passed** (101 before, 16 new
+  in `test_processing_engine.py`)
+- `PYTHONPATH=src .venv/bin/python tests/e2e_community_waitcheck_save.py` → **76 checks, all
+  passed**; re-run in the same UTC day, still green
+- `PYTHONPATH=src .venv/bin/alembic upgrade head && … heads` → **`d7f9b3c5e1a8`, exactly one
+  head**
+- Regression: `e2e_community_accounts.py`, `e2e_community_ratelimit.py`,
+  `e2e_community_moderation.py`, `e2e_community_inbox.py`, `e2e_portal_flow.py` all pass
+- `ruff check` clean on every file this phase touched
+- `cd immi-pulse-fe && bun run lint && bunx tsc --noEmit && bun run build` → tsc clean, build
+  succeeds, **lint error count identical to baseline (7)** — verified by stashing the diff
+  and re-running; all remaining findings are pre-existing and in files this phase never
+  opened
+- **Driven live over real HTTP** (uvicorn on :8001, real socket): wait-check with *no*
+  API key, *no* session, *no* device token → **200** with the full payload · save → 201
+  unpublished, absent from the feed, 404 to a stranger, 200 to its owner, **zero rows in
+  `community_timelines`** · publish with no body → 422, `consent_public:false` → 422,
+  non-owner → 404, owner with consent → 200 · room total 2 → 3 the moment it published ·
+  grant milestone appended → `processing_days: 200`, case moved from pending into the sample
+- **Driven in a real browser** (`bun run dev`, Playwright): selecting a visa + lodgement date
+  renders "Department of Home Affairs · 50% by 5 weeks · 90% by 8 weeks · **as at Mar 2026**"
+  and "Based on 2 timelines reported by members. That is fewer than the 20 decided cases we
+  need before publishing a median of our own" — no bare number anywhere · "Keep this as my
+  timeline" → "**Saved. Only you can see this.** It is not in the feed and it is not in any
+  of the numbers above." · "Share it with the room" → "Shared with the room", and the figure
+  above it updated 2 → 3 · the official-times panel shows every row's as-at date and
+  "3 so far · need 20" in place of a delta it should not publish
+- Mixed-provenance sentence confirmed live against seeded forum rows: **"Based on 7
+  timelines — 3 reported by members, 4 collected from public immigration forums."**
 
 ---

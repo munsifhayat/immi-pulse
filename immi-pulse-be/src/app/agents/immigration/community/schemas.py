@@ -178,17 +178,57 @@ class VisaSubclassOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ProvenanceOut(BaseModel):
+    """What a community figure is made of.
+
+    Ships with every Room number. Forum-collected timelines were allowed to
+    count toward public statistics on exactly one condition — that the split is
+    always visible — so this is not optional metadata; it is the term of that
+    decision, encoded in the payload.
+    """
+
+    member_reported: int = 0
+    forum_collected: int = 0
+    total: int = 0
+
+
 class CommunityDurationStats(BaseModel):
-    """Percentile bands computed live from community timelines (all in days)."""
+    """Percentile bands computed live from community timelines (all in days).
+
+    ``sufficient`` is the field a client must branch on. When it is false, the
+    percentiles are thin and must not be rendered as an answer — show
+    ``provenance_note`` and the official block instead.
+    """
 
     sample_size: int
     pending: int
+    sufficient: bool = False
+    min_sample: int = 20
+    window_months: int = 12
+    provenance: ProvenanceOut = Field(default_factory=ProvenanceOut)
+    provenance_note: Optional[str] = None
     p25: Optional[int] = None
     p50: Optional[int] = None
     p75: Optional[int] = None
     p90: Optional[int] = None
     fastest: Optional[int] = None
     slowest: Optional[int] = None
+
+
+class OfficialFiguresOut(BaseModel):
+    """The Department of Home Affairs published bands, with their as-at date.
+
+    ``as_at`` is hand-seeded and ``is_live`` is hard-coded false: nothing in this
+    product ingests official figures on a schedule, so no surface may imply they
+    are checked daily. The date is what makes the figure honest, and it is a
+    required part of rendering one.
+    """
+
+    p50_days: Optional[int] = None
+    p90_days: Optional[int] = None
+    as_at: Optional[str] = None
+    source: str = "Department of Home Affairs"
+    is_live: bool = False
 
 
 class ProcessingStatOut(BaseModel):
@@ -204,6 +244,11 @@ class ProcessingStatOut(BaseModel):
     official_p90_days: Optional[int] = None
     official_updated: Optional[str] = None
 
+    # The two blocks a client must render together — never one without the
+    # other. ``community`` is the pre-Phase-4 alias of ``room``, kept so the
+    # existing frontend keeps working through the transition.
+    official: OfficialFiguresOut = Field(default_factory=OfficialFiguresOut)
+    room: CommunityDurationStats
     community: CommunityDurationStats
     trend: TrendLiteral = "steady"
 
@@ -263,6 +308,11 @@ class WaitCheckOut(BaseModel):
 
     sample_size: int
     pending: int
+    sufficient: bool = False
+    min_sample: int = 20
+    window_months: int = 12
+    provenance: ProvenanceOut = Field(default_factory=ProvenanceOut)
+    provenance_note: Optional[str] = None
     p25: Optional[int] = None
     p50: Optional[int] = None
     p75: Optional[int] = None
@@ -273,6 +323,58 @@ class WaitCheckOut(BaseModel):
     official_p50_days: Optional[int] = None
     official_p90_days: Optional[int] = None
     official_updated: Optional[str] = None
+
+    # Explicit blocks. A client renders both or neither: the official figure
+    # without the room's is a marketing claim, and the room's without the
+    # official one is a crowd-sourced number with nothing to check it against.
+    official: OfficialFiguresOut = Field(default_factory=OfficialFiguresOut)
+    room: CommunityDurationStats
+
+
+class SaveWaitCheckRequest(BaseModel):
+    """Save a wait check as the member's own, unpublished, timeline.
+
+    Running the check needs no account and no body at all — this is the separate,
+    later act of keeping the result. It publishes nothing.
+    """
+
+    subclass_slug: str = Field(..., min_length=1, max_length=64)
+    lodged_on: date
+    note: Optional[str] = Field(default=None, max_length=2000)
+    milestones: list["MilestoneIn"] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _check(self) -> "SaveWaitCheckRequest":
+        if self.lodged_on > date.today():
+            raise ValueError("Lodgement date cannot be in the future.")
+        return self
+
+
+class PublishJourneyRequest(BaseModel):
+    """The second consent, and the only way a saved timeline reaches the feed.
+
+    ``consent_public`` must be sent as true. Requiring an affirmative field
+    rather than treating the call itself as consent means a mis-wired client
+    cannot publish someone's private timeline by accident — the intent has to be
+    stated, not merely implied by which URL was hit.
+    """
+
+    consent_public: bool = False
+
+    @model_validator(mode="after")
+    def _check(self) -> "PublishJourneyRequest":
+        if not self.consent_public:
+            raise ValueError(
+                "Publishing to the feed needs explicit consent."
+            )
+        return self
+
+
+class AddMilestonesRequest(BaseModel):
+    """Add later steps (medical, s56, grant) to a timeline you own."""
+
+    milestones: list["MilestoneIn"] = Field(..., min_length=1)
+    outcome: Optional[TimelineOutcomeLiteral] = None
 
 
 # --- Community feed v2: identity, journeys, milestones, comments, votes ------
@@ -368,6 +470,13 @@ class MilestoneIn(BaseModel):
         return self
 
 
+# The wait-check request models above reference MilestoneIn by name because they
+# read better beside the rest of the wait-check contract than they would buried
+# in the journey section. Now that the name exists, resolve the forward refs.
+SaveWaitCheckRequest.model_rebuild()
+AddMilestonesRequest.model_rebuild()
+
+
 class MilestoneOut(BaseModel):
     id: UUID
     milestone_type: str
@@ -449,6 +558,10 @@ class JourneyOut(BaseModel):
     upvotes: int
     comment_count: int
     is_sample: bool
+    # False = a saved-but-unpublished draft. Only ever returned to its owner
+    # (the feed filters drafts out), so the UI can mark it "only you can see
+    # this" and offer the publish action.
+    is_published: bool = True
     is_mine: bool = False
     viewer_voted: bool = False
 

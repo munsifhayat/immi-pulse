@@ -53,15 +53,50 @@ export interface VisaSubclassOut {
   category_slug?: string | null;
 }
 
+/**
+ * What a community figure is made of.
+ *
+ * Ships with every Room number and must be rendered beside it. Timelines
+ * collected from public forums count toward the published statistics on exactly
+ * one condition — that the split is always visible — so this is not optional
+ * metadata to drop when space is tight. A bare Room number is a bug.
+ */
+export interface Provenance {
+  member_reported: number;
+  forum_collected: number;
+  total: number;
+}
+
 export interface CommunityDurationStats {
   sample_size: number;
   pending: number;
+  /** False → the percentiles are too thin to present as an answer. */
+  sufficient: boolean;
+  min_sample: number;
+  window_months: number;
+  provenance: Provenance;
+  provenance_note: string | null;
   p25: number | null;
   p50: number | null;
   p75: number | null;
   p90: number | null;
   fastest: number | null;
   slowest: number | null;
+}
+
+/**
+ * The Department of Home Affairs published bands.
+ *
+ * `as_at` is hand-seeded and `is_live` is always false — nothing ingests these
+ * figures on a schedule, so no surface may imply they are checked daily. Render
+ * the date with the number, every time.
+ */
+export interface OfficialFigures {
+  p50_days: number | null;
+  p90_days: number | null;
+  as_at: string | null;
+  source: string;
+  is_live: boolean;
 }
 
 export interface ProcessingStatOut {
@@ -73,6 +108,10 @@ export interface ProcessingStatOut {
   official_p50_days: number | null;
   official_p90_days: number | null;
   official_updated: string | null;
+  /** Render `official` and `room` together — never one without the other. */
+  official: OfficialFigures;
+  room: CommunityDurationStats;
+  /** Pre-Phase-4 alias of `room`. */
   community: CommunityDurationStats;
   trend: Trend;
 }
@@ -90,6 +129,11 @@ export interface WaitCheckOut {
   share_decided_within: number | null;
   sample_size: number;
   pending: number;
+  sufficient: boolean;
+  min_sample: number;
+  window_months: number;
+  provenance: Provenance;
+  provenance_note: string | null;
   p25: number | null;
   p50: number | null;
   p75: number | null;
@@ -99,6 +143,15 @@ export interface WaitCheckOut {
   official_p50_days: number | null;
   official_p90_days: number | null;
   official_updated: string | null;
+  official: OfficialFigures;
+  room: CommunityDurationStats;
+}
+
+export interface SaveWaitCheckPayload {
+  subclass_slug: string;
+  lodged_on: string; // YYYY-MM-DD
+  note?: string;
+  milestones?: MilestonePayload[];
 }
 
 export interface SubmitTimelinePayload {
@@ -166,6 +219,77 @@ export function useWaitCheck(
         { params: { subclass: subclassSlug, lodged_on: lodgedOn } }
       );
       return data;
+    },
+  });
+}
+
+/**
+ * Keep a wait check as your own timeline — privately.
+ *
+ * Creates an unpublished journey. It is absent from the feed and from every
+ * public statistic until `usePublishJourney` is called with explicit consent.
+ * Deliberately does NOT invalidate the processing/stats queries: nothing public
+ * changed, and refetching them here would suggest otherwise.
+ */
+export function useSaveWaitCheck() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: SaveWaitCheckPayload) => {
+      const { data } = await apiClient.post<JourneyDetailOut>(
+        "/community/public/wait-check/save",
+        payload
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.community.identity() });
+    },
+  });
+}
+
+/**
+ * Share a saved timeline with the room.
+ *
+ * The second consent, and a separate call on purpose — saving privately and
+ * publishing publicly are different decisions. The backend rejects this without
+ * `consent_public: true`, so the flag is sent from the one place a member has
+ * actually agreed.
+ */
+export function usePublishJourney() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (journeyId: string) => {
+      const { data } = await apiClient.post<JourneyDetailOut>(
+        `/community/public/journeys/${journeyId}/publish`,
+        { consent_public: true }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.community.processing() });
+      qc.invalidateQueries({ queryKey: queryKeys.community.all });
+    },
+  });
+}
+
+/** Add later steps — medical, s56, the grant — to a timeline you own. */
+export function useAddMilestones() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      journey_id: string;
+      milestones: MilestonePayload[];
+      outcome?: TimelineOutcome;
+    }) => {
+      const { data } = await apiClient.post<JourneyDetailOut>(
+        `/community/public/journeys/${payload.journey_id}/milestones`,
+        { milestones: payload.milestones, outcome: payload.outcome }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.community.processing() });
+      qc.invalidateQueries({ queryKey: queryKeys.community.all });
     },
   });
 }
@@ -298,6 +422,8 @@ export interface JourneyOut {
   upvotes: number;
   comment_count: number;
   is_sample: boolean;
+  /** False = a private draft. Only its owner ever receives one. */
+  is_published: boolean;
   is_mine: boolean;
   viewer_voted: boolean;
   processing_days?: number | null;
