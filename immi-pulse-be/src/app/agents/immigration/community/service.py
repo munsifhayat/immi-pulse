@@ -14,7 +14,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.immigration.community import identity as identity_gen
-from app.agents.immigration.community import processing, tiers
+from app.agents.immigration.community import notifications, processing, tiers
 from app.agents.immigration.community.models import (
     AnonIdentity,
     CommunityComment,
@@ -549,6 +549,14 @@ class CommunityService:
                         .where(CommunityTimeline.journey_id == report.target_id)
                         .values(status=new_status)
                     )
+                # ...and it must stop sitting in anyone's inbox. Moderating
+                # abuse away while leaving "AbusiveHandle replied to you" in the
+                # victim's notifications would defeat the point of moderating it.
+                await notifications.hide_for_target(
+                    db,
+                    target_type=report.target_type,
+                    target_id=report.target_id,
+                )
 
         report.status = "dismissed" if action == "dismiss" else "actioned"
         report.resolved_at = datetime.now(timezone.utc)
@@ -1351,6 +1359,14 @@ class CommunityService:
         db.add(comment)
         journey.comment_count = (journey.comment_count or 0) + 1
         await db.flush()
+
+        # Tell whoever was answered. Runs inside this transaction, so a reply
+        # that fails to save cannot leave a notification pointing at nothing.
+        # The *email* for it is sent by the router after the commit, for the
+        # mirror-image reason — see notifications.deliver_reply_emails.
+        await notifications.fan_out_reply(
+            db, journey=journey, comment=comment, author=identity
+        )
         return comment
 
     @staticmethod

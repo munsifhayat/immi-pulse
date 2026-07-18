@@ -24,6 +24,7 @@ from app.agents.immigration.community.accounts import (
     send_recovery_email,
     set_device_cookie,
 )
+from app.agents.immigration.community import notifications
 from app.agents.immigration.community.identity import initials_of
 from app.agents.immigration.community.models import AnonIdentity, CommunityTimeline
 from app.agents.immigration.community.schemas import (
@@ -41,10 +42,17 @@ from app.agents.immigration.community.schemas import (
     CreateJourneyRequest,
     FeedSummaryOut,
     IdentityOut,
+    InboxOut,
     JourneyCommentOut,
     JourneyDetailOut,
     JourneyOut,
+    MarkReadOut,
+    MarkReadRequest,
     ModerationActionRequest,
+    MyCommentOut,
+    NotificationOut,
+    NotificationPreferencesOut,
+    NotificationPreferencesRequest,
     ProcessingStatOut,
     ReportOut,
     ReportRequest,
@@ -485,6 +493,11 @@ async def create_journey_comment(
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err)) from err
     await db.commit()
+    # After the commit, deliberately: an email must never describe a reply that
+    # then failed to save. Best-effort and batched — no address, no Resend key,
+    # or a second reply on the same thread today all end in "the inbox has it",
+    # which is why the inbox is the primary channel and this is the extra.
+    await notifications.deliver_reply_emails(db, comment_id=comment.id)
     return JourneyCommentOut(
         id=comment.id,
         journey_id=comment.journey_id,
@@ -540,6 +553,103 @@ async def report_journey(
         raise HTTPException(status_code=429, detail=str(err)) from err
     await db.commit()
     return ReportOut.model_validate(report)
+
+
+# --- Me: inbox & profile ("You") --------------------------------------------
+#
+# These sit under /community/me/ rather than /community/public/, so they carry
+# the X-API-Key like every other non-public route AND require a community
+# session. There is nothing public about someone's notifications.
+
+
+@router.get("/me/inbox", response_model=InboxOut)
+async def get_my_inbox(
+    limit: int = Query(30, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    unread_only: bool = Query(False),
+    account: AnonIdentity = Depends(require_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """Replies to your posts and your comments, newest first, plus the badge."""
+    inbox = await notifications.list_inbox(
+        db, account=account, limit=limit, offset=offset, unread_only=unread_only
+    )
+    return InboxOut(
+        items=[NotificationOut(**i) for i in inbox["items"]],
+        unread_count=inbox["unread_count"],
+    )
+
+
+@router.post("/me/inbox/read", response_model=MarkReadOut)
+async def mark_inbox_read(
+    payload: MarkReadRequest,
+    account: AnonIdentity = Depends(require_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark notifications read. Idempotent: re-marking returns ``marked: 0``
+    rather than an error, because a client retrying a request it already made
+    is not a mistake worth surfacing."""
+    marked = await notifications.mark_read(db, account=account, ids=payload.ids)
+    await db.commit()
+    return MarkReadOut(
+        marked=marked,
+        unread_count=await notifications.unread_count(db, account=account),
+    )
+
+
+@router.get("/me/posts", response_model=list[JourneyOut])
+async def get_my_posts(
+    limit: int = Query(30, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    account: AnonIdentity = Depends(require_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """The Posts tab of the "You" profile."""
+    journeys = await notifications.list_my_posts(
+        db, account=account, limit=limit, offset=offset
+    )
+    outs = await CommunityService.build_journey_outs(db, journeys, identity=account)
+    return [JourneyOut(**o) for o in outs]
+
+
+@router.get("/me/comments", response_model=list[MyCommentOut])
+async def get_my_comments(
+    limit: int = Query(30, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    account: AnonIdentity = Depends(require_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """The Comments tab of the "You" profile."""
+    rows = await notifications.list_my_comments(
+        db, account=account, limit=limit, offset=offset
+    )
+    return [MyCommentOut(**r) for r in rows]
+
+
+@router.get("/me/notification-preferences", response_model=NotificationPreferencesOut)
+async def get_notification_preferences(
+    account: AnonIdentity = Depends(require_community_account),
+):
+    return NotificationPreferencesOut(
+        email_replies=bool(account.notify_replies_email),
+        email_available=bool(account.email),
+    )
+
+
+@router.post("/me/notification-preferences", response_model=NotificationPreferencesOut)
+async def set_notification_preferences(
+    payload: NotificationPreferencesRequest,
+    account: AnonIdentity = Depends(require_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """Turn reply emails off (or back on). The inbox has no off-switch — it is
+    the primary channel, and losing replies silently is not a preference."""
+    account.notify_replies_email = payload.email_replies
+    await db.commit()
+    return NotificationPreferencesOut(
+        email_replies=bool(account.notify_replies_email),
+        email_available=bool(account.email),
+    )
 
 
 # --- Public: spaces ---------------------------------------------------------

@@ -8,6 +8,7 @@ from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.agents.immigration.community.models import (
     MILESTONE_TYPES,
+    NOTIFICATION_TYPES,
     POST_TYPES,
     REPORT_REASONS,
     REPORT_STATUSES,
@@ -26,6 +27,7 @@ TrendLiteral = Literal["faster", "slower", "steady"]
 WaitTierLiteral = Literal["on_track", "normal", "longer", "outlier", "unknown"]
 WaitBasisLiteral = Literal["community", "official", "none"]
 PostTypeLiteral = Literal["timeline", "question"]
+NotificationTypeLiteral = Literal["reply_to_post", "reply_to_comment"]
 
 assert set(THREAD_STATUSES) == set(ThreadStatusLiteral.__args__)
 assert set(REPORT_TARGET_TYPES) == set(ReportTargetLiteral.__args__)
@@ -33,6 +35,7 @@ assert set(REPORT_REASONS) == set(ReportReasonLiteral.__args__)
 assert set(REPORT_STATUSES) == set(ReportStatusLiteral.__args__)
 assert set(TIMELINE_OUTCOMES) == set(TimelineOutcomeLiteral.__args__)
 assert set(POST_TYPES) == set(PostTypeLiteral.__args__)
+assert set(NOTIFICATION_TYPES) == set(NotificationTypeLiteral.__args__)
 
 
 # --- Spaces ------------------------------------------------------------------
@@ -512,6 +515,79 @@ class VoteResultOut(BaseModel):
     target_id: UUID
     upvotes: int
     voted: bool
+
+
+# --- Inbox & profile ("You") -------------------------------------------------
+
+
+class NotificationOut(BaseModel):
+    """One inbox row. Carries no email address and no tier — see the leak sweep."""
+
+    id: UUID
+    type: NotificationTypeLiteral
+    journey_id: UUID
+    comment_id: UUID
+    parent_comment_id: Optional[UUID] = None
+
+    actor_handle: str
+    actor_color: str
+    actor_initials: str
+
+    preview: Optional[str] = None
+    context_title: Optional[str] = None
+    post_type: PostTypeLiteral
+
+    is_read: bool
+    read_at: Optional[datetime] = None
+    created_at: datetime
+
+
+class InboxOut(BaseModel):
+    """The inbox page plus the badge. ``unread_count`` is always the total
+    unread, not the unread on this page — a badge that moves when you paginate
+    is a badge nobody believes."""
+
+    items: list[NotificationOut] = []
+    unread_count: int
+
+
+class MarkReadRequest(BaseModel):
+    """``ids`` omitted means "mark everything read"."""
+
+    ids: Optional[list[UUID]] = None
+
+
+class MarkReadOut(BaseModel):
+    marked: int
+    unread_count: int
+
+
+class MyCommentOut(BaseModel):
+    """A reply of mine, with enough of its post attached to be findable."""
+
+    id: UUID
+    journey_id: UUID
+    journey_title: Optional[str] = None
+    journey_post_type: PostTypeLiteral
+    parent_comment_id: Optional[UUID] = None
+    body: str
+    upvotes: int
+    created_at: datetime
+
+
+class NotificationPreferencesRequest(BaseModel):
+    """The off-switch for reply emails. The inbox itself cannot be switched off —
+    it is the primary channel, and silently losing replies is not a preference
+    anyone means to express."""
+
+    email_replies: bool
+
+
+class NotificationPreferencesOut(BaseModel):
+    email_replies: bool
+    # False when no address is on file: the preference is inert without one, and
+    # saying so beats a toggle that appears to work and does nothing.
+    email_available: bool
 
 
 class FeedSummaryOut(BaseModel):
