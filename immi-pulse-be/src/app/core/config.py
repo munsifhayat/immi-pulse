@@ -133,6 +133,11 @@ class Settings(BaseSettings):
     resend_api_key: str | None = None
     resend_from_email: str = "IMMI-PULSE <onboarding@resend.dev>"
     resend_reply_to: str | None = None
+    # Where unattended failures go. Scheduled jobs swallow their exceptions by
+    # design (a raising job is removed from the scheduler), so without an
+    # address the entire failure surface is a log line nobody reads. Falls back
+    # to ``resend_reply_to`` when unset.
+    ops_alert_email: str | None = None
 
     @property
     def resend_configured(self) -> bool:

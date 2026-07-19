@@ -192,9 +192,102 @@ async def _run_community_tier_recompute():
         logger.error(f"Community tier recompute failed: {e}", exc_info=True)
 
 
+async def _run_taxonomy_refresh():
+    """Job: re-fetch the DHA visa taxonomy and re-seed ``visa_subclasses``.
+
+    Monthly, because the department republishes its processing times roughly
+    monthly and the taxonomy itself moves a few times a year. Without this the
+    "official" figure beside every community median keeps citing a date that
+    recedes into the past while still being presented as current — the most
+    quietly dishonest thing this product could do.
+
+    Same broad try/except as its siblings, plus an alert: a refresh that fails
+    silently every month is indistinguishable from one that works.
+    """
+    try:
+        from app.agents.immigration.community.refresh import (
+            check_cohort_integrity,
+            refresh_taxonomy,
+        )
+
+        result = await refresh_taxonomy()
+        logger.info("Taxonomy refresh complete: %s", result)
+
+        # A taxonomy change is exactly what strands mirror rows, so check right
+        # after rather than waiting for someone to notice a cohort went quiet.
+        problem = await check_cohort_integrity()
+        if problem:
+            from app.agents.immigration.community.refresh import _alert
+
+            await _alert("Cohort integrity after taxonomy refresh", problem)
+    except Exception as e:
+        logger.error(f"Taxonomy refresh failed: {e}", exc_info=True)
+        try:
+            from app.agents.immigration.community.refresh import _alert
+
+            await _alert(
+                "Visa taxonomy refresh failed",
+                f"{e}\n\nThe visa list and official processing times are now "
+                f"stale. Last good data is untouched — the drift guard keeps it. "
+                f"Re-run manually:\n"
+                f"  heroku run --app immi-pulse-be "
+                f'"PYTHONPATH=src python scripts/fetch_dha_taxonomy.py"\n'
+                f"  heroku run --app immi-pulse-be "
+                f'"PYTHONPATH=src python scripts/seed_visa_taxonomy.py"',
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
+
+async def _run_occupation_refresh():
+    """Job: re-fetch the DHA skilled occupation list and re-seed ``occupations``.
+
+    Quarterly — the list changes with legislative instruments, not continuously.
+    A stale list is worse than an old one here: an occupation removed from the
+    CSOL that we still offer sends someone down a path they are no longer
+    eligible for.
+    """
+    try:
+        from app.agents.immigration.community.refresh import refresh_occupations
+
+        result = await refresh_occupations()
+        logger.info("Occupation refresh complete: %s", result)
+    except Exception as e:
+        logger.error(f"Occupation refresh failed: {e}", exc_info=True)
+        try:
+            from app.agents.immigration.community.refresh import _alert
+
+            await _alert(
+                "Skilled occupation refresh failed",
+                f"{e}\n\nThe occupation picker is serving the last good list, "
+                f"which is safe but ageing. Re-run manually:\n"
+                f"  heroku run --app immi-pulse-be "
+                f'"PYTHONPATH=src python scripts/fetch_dha_occupations.py"\n'
+                f"  heroku run --app immi-pulse-be "
+                f'"PYTHONPATH=src python scripts/seed_occupations.py"',
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
+
 def start_scheduler() -> AsyncIOScheduler:
-    """Configure and start scheduled jobs."""
+    """Configure and start scheduled jobs.
+
+    Registration is gated on :func:`should_run_scheduled_jobs`. Every job here
+    used to be registered unconditionally on every dyno — survivable for a
+    five-minute retry loop, not survivable for a rate-limited fetch against a
+    government API, where two replicas means two racing requests.
+    """
+    from app.agents.immigration.community.refresh import should_run_scheduled_jobs
+
     scheduler = get_scheduler()
+
+    if not should_run_scheduled_jobs():
+        logger.info(
+            "Scheduler: this process is not the designated job runner "
+            "(RUN_SCHEDULED_JOBS / DYNO); no jobs registered."
+        )
+        return scheduler
 
     scheduler.add_job(
         _run_email_poll,
@@ -232,11 +325,41 @@ def start_scheduler() -> AsyncIOScheduler:
         replace_existing=True,
     )
 
+    # Monthly, on the 3rd. Home Affairs republishes processing times in the
+    # first days of a month; the 3rd gives their pipeline room to land rather
+    # than fetching the previous month's numbers a few hours early.
+    #
+    # coalesce + misfire_grace_time because this is the first job here whose
+    # schedule is long enough for a dyno restart to skip it entirely — the
+    # default would silently drop a missed month.
+    scheduler.add_job(
+        _run_taxonomy_refresh,
+        trigger=CronTrigger(day=3, hour=4, minute=10),
+        id="community_taxonomy_refresh",
+        name="DHA Visa Taxonomy Refresh (monthly)",
+        replace_existing=True,
+        coalesce=True,
+        misfire_grace_time=6 * 60 * 60,
+    )
+
+    # Quarterly, a day later so the two never contend for the same window and a
+    # taxonomy failure is legible on its own before this runs.
+    scheduler.add_job(
+        _run_occupation_refresh,
+        trigger=CronTrigger(month="1,4,7,10", day=4, hour=4, minute=40),
+        id="community_occupation_refresh",
+        name="DHA Skilled Occupation List Refresh (quarterly)",
+        replace_existing=True,
+        coalesce=True,
+        misfire_grace_time=6 * 60 * 60,
+    )
+
     scheduler.start()
     logger.info(
         f"Scheduler started: polling every {settings.polling_interval_minutes}min, "
         "webhook renewal at midnight, triage retry every 5min, "
-        "community tier recompute at 03:20"
+        "community tier recompute at 03:20, taxonomy refresh monthly on the 3rd, "
+        "occupation refresh quarterly on the 4th"
     )
     return scheduler
 

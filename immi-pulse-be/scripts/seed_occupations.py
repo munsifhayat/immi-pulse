@@ -32,10 +32,22 @@ from app.db.session import get_async_session
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "dha_occupations.json")
 
+# See ``seed_visa_taxonomy.MAX_RETIRE_SHARE``. The occupation list moves with
+# legislative instruments — a handful at a time, not a third of it at once.
+MAX_RETIRE_SHARE = 0.30
 
-async def run(dry_run: bool) -> int:
+
+class SeedDriftError(RuntimeError):
+    """The snapshot looks wrong enough that applying it would lose good data."""
+
+
+
+async def run(dry_run: bool, force: bool = False) -> dict:
     with open(DATA_PATH) as fh:
         snap = json.load(fh)
+
+    if not snap.get("occupations"):
+        raise SeedDriftError("refusing to apply: the snapshot contains no occupations")
 
     requires = set(snap["requires_occupation_subclasses"])
     version_2022 = set(snap["anzsco_2022_subclasses"])
@@ -74,7 +86,7 @@ async def run(dry_run: bool) -> int:
                 f" 2022={r['anzsco_2022_code'] or '—':<8}"
                 f" {','.join(r['eligible_subclasses'])}"
             )
-        return 0
+        return {"created": 0, "updated": 0, "retired": 0, "dry_run": True}
 
     created = updated = retired = 0
     async with get_async_session() as db:
@@ -93,6 +105,23 @@ async def run(dry_run: bool) -> int:
                 for k, v in r.items():
                     setattr(row, k, v)
                 updated += 1
+
+        # Drift guard — see ``seed_visa_taxonomy``. A truncated snapshot is a
+        # valid snapshot, and applying one would retire most of the occupation
+        # list, silently disabling the picker on every skilled visa.
+        active_before = sum(1 for o in existing.values() if o.is_active)
+        would_retire = sum(
+            1
+            for slug, row in existing.items()
+            if slug not in {r["slug"] for r in rows} and row.is_active
+        )
+        if not force and active_before and would_retire > active_before * MAX_RETIRE_SHARE:
+            raise SeedDriftError(
+                f"refusing to apply: would retire {would_retire} of "
+                f"{active_before} active occupations "
+                f"(>{int(MAX_RETIRE_SHARE * 100)}%). Re-run the fetcher and "
+                "check its record count. Pass force=True to override."
+            )
 
         # Retire, never delete.
         for slug, row in existing.items():
@@ -126,12 +155,22 @@ async def run(dry_run: bool) -> int:
 
     print(f"created {created} · updated {updated} · retired {retired}")
     print(f"visa_subclasses re-flagged: {flagged}")
-    return 0
+    return {
+        "created": created,
+        "updated": updated,
+        "retired": retired,
+        "flagged": flagged,
+    }
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument(
+        "--force",
+        action="store_true",
+        help="apply even if the run would retire an implausible share of rows",
+    )
     args = ap.parse_args()
     if not os.path.exists(DATA_PATH):
         print(
@@ -139,7 +178,12 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
-    return asyncio.run(run(args.dry_run))
+    try:
+        asyncio.run(run(args.dry_run, force=args.force))
+    except SeedDriftError as err:
+        print(f"drift guard: {err}", file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
