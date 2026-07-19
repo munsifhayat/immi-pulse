@@ -50,12 +50,28 @@ export type TimelineOutcome = "waiting" | "granted" | "refused";
 export type Trend = "faster" | "slower" | "steady";
 export type WaitTier = "on_track" | "normal" | "longer" | "outlier" | "unknown";
 
+/**
+ * One selectable visa: a subclass **+ stream** pair, as Home Affairs publishes
+ * them. 43 programs across 76 rows.
+ *
+ * Group on `group_key`, never on `code`. Subclass 858 is two different programs
+ * — legacy Global Talent and the current National Innovation visa — whose waits
+ * differ by 3.5x, and both are streamless, so grouping on "858" would merge them
+ * into one entry a member could not tell apart.
+ */
 export interface VisaSubclassOut {
   slug: string;
   code: string;
   name: string;
+  /** Home Affairs' program discriminator: "189", "482-1", "858-3". Not a number. */
+  group_key: string;
   stream?: string | null;
   category_slug?: string | null;
+  /** 482/870 nomination + sponsorship: lodgement stages, never offered as streams. */
+  is_stage?: boolean;
+  official_p50_days?: number | null;
+  official_p90_days?: number | null;
+  official_updated?: string | null;
 }
 
 /**
@@ -92,14 +108,22 @@ export interface CommunityDurationStats {
 /**
  * The Department of Home Affairs published bands.
  *
- * `as_at` is hand-seeded and `is_live` is always false — nothing ingests these
- * figures on a schedule, so no surface may imply they are checked daily. Render
- * the date with the number, every time.
+ * Ingested from the department's own processing-times feed, so `as_at` and
+ * `counted_to` are their labels — and they differ: a figure published on
+ * 26 June 2026 counts finalisations only to 31 May 2026. Render the date with
+ * the number, every time.
+ *
+ * `is_live` means "this row came from the feed", not "this row has a date" —
+ * a hand-seeded fixture can carry a date too.
  */
 export interface OfficialFigures {
+  p25_days: number | null;
   p50_days: number | null;
+  p75_days: number | null;
   p90_days: number | null;
   as_at: string | null;
+  /** Finalisations are counted only up to this date, which trails `as_at`. */
+  counted_to: string | null;
   source: string;
   is_live: boolean;
 }
@@ -709,9 +733,12 @@ export interface CommunitySessionOut {
 
 export interface SignupPayload {
   password: string;
-  email?: string;
-  /** Required when no email is given. The "this cannot be recovered" tick. */
-  accepted_no_recovery?: boolean;
+  /**
+   * Required. Deliberately unverified — the member is signed in immediately and
+   * there is no confirmation link. The client retypes it as a typo guard, which
+   * is the only protection an unverified address gets.
+   */
+  email: string;
 }
 
 export type NotificationType = "reply_to_post" | "reply_to_comment";

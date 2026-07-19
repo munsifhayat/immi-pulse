@@ -27,22 +27,26 @@ function SignupPanel({ onSwitch }: { onSwitch: () => void }) {
 
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
-  const [acceptedNoRecovery, setAcceptedNoRecovery] = useState(false);
+  const [confirmEmail, setConfirmEmail] = useState("");
 
-  const wantsEmail = email.trim().length > 0;
-  // Without an email the account cannot be recovered, so the acknowledgement is
-  // a hard gate rather than fine print under the button.
+  const clean = email.trim().toLowerCase();
+  const cleanConfirm = confirmEmail.trim().toLowerCase();
+  // A plausible address, not a valid one — the browser's own type=email check
+  // plus a shape test. Real validation is impossible without sending mail, and
+  // we deliberately do not send any.
+  const looksLikeEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean);
+  const emailsMatch = clean.length > 0 && clean === cleanConfirm;
+  // The mismatch only counts as an error once they have actually started
+  // typing the second field — nagging from the first keystroke reads as broken.
+  const showMismatch = cleanConfirm.length > 0 && !emailsMatch;
+
   const ready =
-    password.length > 0 && (wantsEmail || acceptedNoRecovery) && !signup.isPending;
+    password.length > 0 && looksLikeEmail && emailsMatch && !signup.isPending;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!ready) return;
-    await signup.mutateAsync({
-      password,
-      email: wantsEmail ? email.trim() : undefined,
-      accepted_no_recovery: !wantsEmail,
-    });
+    await signup.mutateAsync({ password, email: clean });
     closeAccount();
   }
 
@@ -96,48 +100,52 @@ function SignupPanel({ onSwitch }: { onSwitch: () => void }) {
       </div>
 
       {/*
-        Email is offered with both of its reasons attached, not as a bare
-        optional field. For this audience an address is often a real name and a
-        real risk, so it has to earn its place every time it is asked for.
+        Email is required and never verified — no link to click, no inbox to
+        go and find. That makes the retype the only thing standing between a
+        typo and an account nobody can ever recover, which is why it is a
+        second field rather than fine print.
       */}
       <div>
-        <label className="c-eyebrow mb-2 block">Email · optional</label>
+        <label className="c-eyebrow mb-2 block">Email</label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
           autoComplete="email"
+          required
           className={fieldCls}
         />
-        <p className="mt-2 text-[11.5px] leading-relaxed text-ink-soft">
-          Two reasons only: so we can tell you when someone replies, and so you
-          can recover your password. It is never shown to anyone, never public,
-          and never required to take part.
-        </p>
       </div>
 
-      {!wantsEmail && (
-        <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-[#C77D18]/35 bg-[#C77D18]/[0.05] px-4 py-3">
-          <input
-            type="checkbox"
-            checked={acceptedNoRecovery}
-            onChange={(e) => setAcceptedNoRecovery(e.target.checked)}
-            className="mt-0.5 h-4 w-4 shrink-0 accent-[#B4700F]"
-          />
-          <span className="text-[12.5px] leading-relaxed text-ink">
+      <div>
+        <label className="c-eyebrow mb-2 block">Confirm email</label>
+        <input
+          type="email"
+          value={confirmEmail}
+          onChange={(e) => setConfirmEmail(e.target.value)}
+          placeholder="you@example.com"
+          autoComplete="off"
+          onPaste={(e) => e.preventDefault()}
+          required
+          className={fieldCls}
+        />
+        {showMismatch ? (
+          <p className="mt-2 text-[12.5px] leading-relaxed text-[#C23A50]">
             <AlertTriangle
-              className="mr-1 inline h-3.5 w-3.5 -translate-y-px text-[#B4700F]"
+              className="mr-1 inline h-3.5 w-3.5 -translate-y-px"
               strokeWidth={2}
             />
-            <b className="font-semibold">
-              Without an email, this account cannot be recovered.
-            </b>{" "}
-            If you forget the password, the handle and everything posted under it
-            are gone for good.
-          </span>
-        </label>
-      )}
+            These two addresses don&apos;t match.
+          </p>
+        ) : (
+          <p className="mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+            Two reasons only: so we can tell you when someone replies, and so you
+            can recover your password. It is never shown to anyone and never
+            public. There is no confirmation email to go and click.
+          </p>
+        )}
+      </div>
 
       {signup.isError && (
         <p className="text-[12.5px] leading-relaxed text-[#C23A50]">

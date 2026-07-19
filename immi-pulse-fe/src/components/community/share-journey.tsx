@@ -34,19 +34,13 @@ import {
 import { shortDate } from "@/lib/community/format";
 import { milestoneMeta } from "./milestone-meta";
 import { TimelineGlyph } from "./timeline-glyph";
+import { VisaPicker } from "./visa-picker";
 
 const fieldCls =
   "w-full rounded-xl border border-hair bg-white px-3.5 py-2.5 text-[14px] text-ink outline-none transition-all focus:border-purple/50 focus:ring-4 focus:ring-purple/10";
 const labelCls =
   "mb-1.5 block c-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-soft";
 
-const STREAMS = [
-  "Direct Entry (DE)",
-  "Temporary Residence Transition (TRT)",
-  "Labour Agreement",
-  "Points-tested",
-  "Not sure",
-];
 const STATES = ["NSW", "VIC", "QLD", "WA", "SA", "ACT", "TAS", "NT", "Offshore"];
 
 function Seg<T extends string>({
@@ -108,7 +102,6 @@ export function ShareJourney({
     canPostTimeline ? "timeline" : "question"
   );
   const [subclass, setSubclass] = useState(defaultSubclass ?? "");
-  const [stream, setStream] = useState(STREAMS[0]);
   const [occupation, setOccupation] = useState("");
   const [stateVal, setStateVal] = useState(STATES[0]);
   const [area, setArea] = useState<"metro" | "regional">("metro");
@@ -136,7 +129,6 @@ export function ShareJourney({
     setError(null);
     setPostType(canPostTimeline ? "timeline" : "question");
     setSubclass(defaultSubclass ?? "");
-    setStream(STREAMS[0]);
     setOccupation("");
     setStateVal(STATES[0]);
     setArea("metro");
@@ -190,7 +182,6 @@ export function ShareJourney({
         post_type: postType,
         subclass_slug: subclass || null,
         category_slug: selected?.category_slug ?? null,
-        stream: postType === "timeline" ? stream : null,
         occupation: postType === "timeline" ? occupation || null : null,
         state: postType === "timeline" ? stateVal : null,
         area: postType === "timeline" ? area : null,
@@ -352,43 +343,23 @@ export function ShareJourney({
               <div className="space-y-5">
                 {/* visa */}
                 <div>
-                  <label className={labelCls}>
-                    Visa subclass{" "}
-                    {postType === "question" && (
-                      <span className="font-normal text-gray-text">(optional)</span>
-                    )}
-                  </label>
-                  <select
+                  <VisaPicker
                     value={subclass}
-                    onChange={(e) => setSubclass(e.target.value)}
-                    className={fieldCls}
-                  >
-                    <option value="">Select a visa…</option>
-                    {subclasses.map((s) => (
-                      <option key={s.slug} value={s.slug}>
-                        {s.code} · {s.name}
-                        {s.stream ? ` (${s.stream})` : ""}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSubclass}
+                    size="md"
+                    visaLabel={
+                      postType === "question"
+                        ? "Visa subclass (optional)"
+                        : "Visa subclass"
+                    }
+                    required={postType === "timeline"}
+                  />
                 </div>
 
                 {postType === "timeline" ? (
                   <>
                     {/* profile */}
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div>
-                        <label className={labelCls}>Stream / pathway</label>
-                        <select
-                          value={stream}
-                          onChange={(e) => setStream(e.target.value)}
-                          className={fieldCls}
-                        >
-                          {STREAMS.map((s) => (
-                            <option key={s}>{s}</option>
-                          ))}
-                        </select>
-                      </div>
                       <div>
                         <label className={labelCls}>
                           Occupation{" "}

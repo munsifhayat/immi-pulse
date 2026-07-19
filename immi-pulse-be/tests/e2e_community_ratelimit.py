@@ -102,7 +102,7 @@ async def _signup(client, svc, suffix):
     r = await client.post(
         "/community/public/auth/signup",
         headers={**svc, "X-Device-Token": device},
-        json={"password": PASSWORD, "accepted_no_recovery": True},
+        json={"password": PASSWORD, "email": f"ratelimit-{uuid.uuid4().hex[:8]}@example.com"},
     )
     body = r.json()
     return body.get("token"), body.get("account", {}).get("handle"), device

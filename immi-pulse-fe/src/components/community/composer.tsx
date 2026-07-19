@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { HelpCircle, Loader2, Lock } from "lucide-react";
 import {
+  JourneyCapError,
   useCreateJourney,
-  useVisaSubclasses,
   type MilestonePayload,
   type PostType,
   type TimelineOutcome,
@@ -12,6 +12,7 @@ import {
 import { useCommunity } from "./community-context";
 import type { NavIcon } from "./left-rail";
 import { TimelineGlyph } from "./timeline-glyph";
+import { VisaPicker } from "./visa-picker";
 
 const ASK_HINTS = [
   "What do you want to ask the community?",
@@ -35,7 +36,6 @@ const fieldCls =
 export function Composer({ onPosted }: { onPosted?: () => void }) {
   const { account, identity, openAccount, canWrite, writeBlock, openShare } =
     useCommunity();
-  const { data: subclasses = [] } = useVisaSubclasses();
   const create = useCreateJourney();
 
   const [mode, setMode] = useState<PostType>("question");
@@ -81,27 +81,38 @@ export function Composer({ onPosted }: { onPosted?: () => void }) {
     // they have finished writing.
     if (!canWrite("post") || !ready || create.isPending) return;
 
-    if (mode === "question") {
-      await create.mutateAsync({
-        post_type: "question",
-        title: question.trim().slice(0, 200),
-        note: detail.trim(),
-        subclass_slug: askSubclass || null,
-      });
-    } else {
-      const milestones: MilestonePayload[] = [
-        { milestone_type: "Visa Lodged", occurred_on: lodgedOn },
-      ];
-      if (outcome === "granted" && decidedOn) {
-        milestones.push({ milestone_type: "Visa Granted", occurred_on: decidedOn });
+    try {
+      if (mode === "question") {
+        await create.mutateAsync({
+          post_type: "question",
+          title: question.trim().slice(0, 200),
+          note: detail.trim(),
+          subclass_slug: askSubclass || null,
+        });
+      } else {
+        const milestones: MilestonePayload[] = [
+          { milestone_type: "Visa Lodged", occurred_on: lodgedOn },
+        ];
+        if (outcome === "granted" && decidedOn) {
+          milestones.push({ milestone_type: "Visa Granted", occurred_on: decidedOn });
+        }
+        await create.mutateAsync({
+          post_type: "timeline",
+          subclass_slug: tlSubclass,
+          outcome,
+          note: tlNote.trim() || null,
+          milestones,
+        });
       }
-      await create.mutateAsync({
-        post_type: "timeline",
-        subclass_slug: tlSubclass,
-        outcome,
-        note: tlNote.trim() || null,
-        milestones,
-      });
+    } catch (err) {
+      // The cap is a door, not a failure — send them to signup the way the
+      // full builder does, rather than leaving raw error text under the form.
+      if (err instanceof JourneyCapError) {
+        create.reset();
+        openAccount("signup");
+        return;
+      }
+      return; // anything else stays visible via create.isError below
     }
     reset();
     onPosted?.();
@@ -163,38 +174,24 @@ export function Composer({ onPosted }: { onPosted?: () => void }) {
                   className="mt-1 w-full resize-y rounded-lg border border-hair bg-white px-3 py-2 text-[13.5px] leading-relaxed text-ink outline-none transition-all focus:border-purple/50 focus:ring-4 focus:ring-purple/10"
                 />
               )}
-              <select
-                value={askSubclass}
-                onChange={(e) => setAskSubclass(e.target.value)}
-                aria-label="Which visa is this about?"
-                className={`${fieldCls} mt-2`}
-              >
-                <option value="">Which visa? (optional)</option>
-                {subclasses.map((s) => (
-                  <option key={s.slug} value={s.slug}>
-                    {s.code} · {s.name}
-                    {s.stream ? ` (${s.stream})` : ""}
-                  </option>
-                ))}
-              </select>
+              <div className="mt-2">
+                <VisaPicker
+                  value={askSubclass}
+                  onChange={setAskSubclass}
+                  size="sm"
+                  labels={false}
+                />
+              </div>
             </>
           ) : (
             <div className="pt-1">
               <div className="grid gap-2 sm:grid-cols-2">
-                <select
+                <VisaPicker
                   value={tlSubclass}
-                  onChange={(e) => setTlSubclass(e.target.value)}
-                  aria-label="Visa subclass"
-                  className={fieldCls}
-                >
-                  <option value="">Which visa?</option>
-                  {subclasses.map((s) => (
-                    <option key={s.slug} value={s.slug}>
-                      {s.code} · {s.name}
-                      {s.stream ? ` (${s.stream})` : ""}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setTlSubclass}
+                  size="sm"
+                  labels={false}
+                />
                 <input
                   type="date"
                   max={today}

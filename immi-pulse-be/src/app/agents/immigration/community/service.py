@@ -967,35 +967,68 @@ class CommunityService:
         return "steady"
 
     @staticmethod
+    def cohort_key_of(sc: VisaSubclass) -> str:
+        """The statistics cohort a subclass row contributes to.
+
+        Falls back to the slug so a row seeded before ``cohort_key`` existed
+        still keys on something real rather than on NULL.
+        """
+        return sc.cohort_key or sc.slug
+
+    @staticmethod
     def _official_block(sc: VisaSubclass) -> dict:
         """The department's published bands, always with their as-at date.
 
-        ``as_at`` is hand-seeded (``VisaSubclass.official_updated``) — nothing in
-        this product ingests Home Affairs figures on a schedule, so nothing in it
-        may imply it does. Shipping the date beside the number is what keeps the
-        claim honest: a reader can see for themselves how stale it is.
+        These are now ingested from Home Affairs' own processing-times API
+        (``scripts/fetch_dha_taxonomy.py``) rather than hand-seeded, so ``as_at``
+        and ``counted_to`` are the department's own labels. Shipping them beside
+        the number is what keeps the claim honest: a reader can see for
+        themselves how stale it is.
+
+        ``is_live`` keys off ``dha_subclass_code`` — set only by the ingestion
+        script — rather than off the presence of a date. A hand-seeded row can
+        carry a date label too, and "live" has to mean "this came from the
+        department's feed", not "somebody typed a month".
         """
         return {
+            "p25_days": sc.official_p25_days,
             "p50_days": sc.official_p50_days,
+            "p75_days": sc.official_p75_days,
             "p90_days": sc.official_p90_days,
             "as_at": sc.official_updated,
+            "counted_to": sc.official_end_date,
             "source": "Department of Home Affairs",
-            "is_live": False,
+            "is_live": bool(sc.dha_subclass_code),
         }
 
     @staticmethod
     async def processing_board(db: AsyncSession) -> list[dict]:
-        """Official-vs-community board: one entry per active subclass."""
+        """Official-vs-community board: one entry per active subclass+stream.
+
+        Cohort samples are memoised by cohort key. The taxonomy went from 8 rows
+        to 76, and every pooled subclass (186's three streams, 485's two) shares
+        one cohort — recomputing it per row would run 152 queries to produce the
+        same handful of distinct answers.
+        """
         subclasses = await CommunityService.list_subclasses(db)
         board: list[dict] = []
+        by_cohort: dict[str, tuple[dict, str]] = {}
         for sc in subclasses:
-            cohort = await CommunityService._cohort_sample(db, sc.slug)
-            stats = CommunityService._stats_from_cohort(cohort)
-            trend = (
-                await CommunityService._trend_for(db, sc.slug)
-                if stats["sample_size"] >= 8
-                else "steady"
-            )
+            # Nomination/sponsorship stages are not visas anyone "waits on" in
+            # the sense this board means; they have their own clocks.
+            if sc.is_stage:
+                continue
+            key = CommunityService.cohort_key_of(sc)
+            if key not in by_cohort:
+                cohort = await CommunityService._cohort_sample(db, key)
+                stats = CommunityService._stats_from_cohort(cohort)
+                trend = (
+                    await CommunityService._trend_for(db, key)
+                    if stats["sample_size"] >= 8
+                    else "steady"
+                )
+                by_cohort[key] = (stats, trend)
+            stats, trend = by_cohort[key]
             board.append(
                 {
                     "slug": sc.slug,
@@ -1052,13 +1085,21 @@ class CommunityService:
     ) -> Optional[dict]:
         """Where an in-progress wait sits in the community distribution."""
         subclass = await CommunityService.get_subclass(db, subclass_slug)
-        if subclass is None:
+        # Nomination and sponsorship are lodgement stages, not visas a person
+        # waits on in the sense this question means. Treated as unknown so the
+        # read path agrees with the write path, which refuses them outright.
+        if subclass is None or subclass.is_stage:
             return None
 
         settings = get_settings()
         label = subclass.code + (f" {subclass.stream}" if subclass.stream else "")
         elapsed_days = max(0, (date.today() - lodged_on).days)
-        cohort = await CommunityService._cohort_sample(db, subclass_slug)
+        # Statistics pool on the cohort key, not the picked slug: a 186 Direct
+        # Entry member is answered from all three 186 streams (they sit within
+        # 10% of each other), while a 500 VET member is answered from VET alone
+        # (the sectors span 35x). Official figures below stay row-specific.
+        cohort_key = CommunityService.cohort_key_of(subclass)
+        cohort = await CommunityService._cohort_sample(db, cohort_key)
         room = CommunityService._stats_from_cohort(cohort)
 
         verdict = processing.wait_verdict(
@@ -1244,7 +1285,13 @@ class CommunityService:
             identity=identity,
         )
 
-        if is_timeline and identity.user_id is None:
+        # "Claimed" must mean the same thing here as it does in ``identity_out``
+        # — a community account (password set) lifts the cap exactly like a
+        # portal account does. Gating on ``user_id`` alone let the serializer
+        # promise ``can_post_timeline: true`` to a signed-up member and then
+        # 409 them after they had filled in the whole builder.
+        is_claimed = identity.user_id is not None or bool(identity.password_hash)
+        if is_timeline and not is_claimed:
             if (identity.journeys_posted or 0) >= 1:
                 raise JourneyCapError(
                     "You've already shared a timeline. Sign in to add or edit more."
@@ -1267,14 +1314,25 @@ class CommunityService:
                 )
 
         category_slug = payload.category_slug
+        stream = payload.stream.strip() if payload.stream else None
         if payload.subclass_slug:
             subclass = await CommunityService.get_subclass(db, payload.subclass_slug)
             if subclass is None:
                 raise ValueError(
                     f"Unknown visa subclass '{payload.subclass_slug}'"
                 )
+            if subclass.is_stage:
+                raise ValueError(
+                    f"'{payload.subclass_slug}' is a lodgement stage, not a visa "
+                    "stream — pick the visa you applied for."
+                )
             if not category_slug:
                 category_slug = subclass.category_slug
+            # The stream is implied by the subclass row the member chose, so
+            # snapshot it from reference data rather than trusting the client.
+            # The old form defaulted a free-text stream to "Direct Entry (DE)"
+            # for *every* visa, which quietly mislabelled most timelines.
+            stream = subclass.stream
 
         title = payload.title.strip() if payload.title else None
         note = payload.note.strip() if payload.note else None
@@ -1296,7 +1354,7 @@ class CommunityService:
             post_type=payload.post_type,
             subclass_slug=payload.subclass_slug,
             category_slug=category_slug,
-            stream=payload.stream,
+            stream=stream,
             occupation=(payload.occupation.strip() if payload.occupation else None),
             state=payload.state,
             area=payload.area,
@@ -1397,11 +1455,19 @@ class CommunityService:
                 await db.flush()
             return None
 
+        # The spine stores the **cohort key**, not the slug the member picked.
+        # Keeping the resolution here means every statistics query stays a plain
+        # equality filter, and "which rows answer this question?" has one owner.
+        sc = await CommunityService.get_subclass(db, journey.subclass_slug)
+        cohort_key = (
+            CommunityService.cohort_key_of(sc) if sc else journey.subclass_slug
+        )
+
         source = TIMELINE_SOURCE_FORUM if journey.is_sample else TIMELINE_SOURCE_MEMBER
         if existing is None:
             existing = CommunityTimeline(
                 id=uuid.uuid4(),
-                subclass_slug=journey.subclass_slug,
+                subclass_slug=cohort_key,
                 journey_id=journey.id,
                 lodged_on=journey.lodged_on,
                 decided_on=journey.decided_on,
@@ -1412,7 +1478,7 @@ class CommunityService:
             )
             db.add(existing)
         else:
-            existing.subclass_slug = journey.subclass_slug
+            existing.subclass_slug = cohort_key
             existing.lodged_on = journey.lodged_on
             existing.decided_on = journey.decided_on
             existing.outcome = journey.outcome

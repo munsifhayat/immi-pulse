@@ -36,7 +36,8 @@ def _account(**kw) -> AnonIdentity:
         handle="BoldLagoon7745",
         color="#7A5AF8",
         password_hash="$2b$12$fakefakefakefakefakefake",
-        email=None,
+        email_pending=None,
+        email_verified=None,
         email_verified_at=None,
         last_login_at=None,
         created_at=datetime.now(timezone.utc),
@@ -144,28 +145,52 @@ def test_normalize_email(raw, expected):
 def test_account_out_never_carries_the_email_address():
     """The member knows what they typed; a serializer that never carries the
     value cannot leak it."""
-    out = CommunityAccountService.account_out(_account(email="secret@example.com"))
+    out = CommunityAccountService.account_out(
+        _account(email_pending="secret@example.com")
+    )
     assert "secret@example.com" not in str(out)
     assert "email" not in out  # only has_email / email_verified / can_recover
     assert out["has_email"] is True
 
 
 def test_account_out_states_recovery_honestly():
-    """No email means no recovery — the serializer has to say so plainly."""
-    assert CommunityAccountService.account_out(_account(email=None))["can_recover"] is False
+    """No email means no recovery — the serializer has to say so plainly.
+
+    Signup now requires an email, so this is the legacy-row case: identities
+    claimed before the requirement landed.
+    """
     assert (
-        CommunityAccountService.account_out(_account(email="a@b.com"))["can_recover"]
+        CommunityAccountService.account_out(_account())["can_recover"] is False
+    )
+    assert (
+        CommunityAccountService.account_out(_account(email_pending="a@b.com"))[
+            "can_recover"
+        ]
         is True
     )
 
 
 def test_unverified_email_still_allows_recovery():
     """Verification shortens probation later; it is not a recovery gate."""
-    out = CommunityAccountService.account_out(
-        _account(email="a@b.com", email_verified_at=None)
-    )
+    out = CommunityAccountService.account_out(_account(email_pending="a@b.com"))
     assert out["email_verified"] is False
     assert out["can_recover"] is True
+
+
+def test_pending_email_is_not_treated_as_verified():
+    """The whole point of the split: a typed address is a claim, not proof.
+
+    Only ``email_verified`` may report verified, because only it carries the
+    unique constraint that makes "this address is mine" enforceable.
+    """
+    pending = CommunityAccountService.account_out(
+        _account(email_pending="claimed@example.com")
+    )
+    proven = CommunityAccountService.account_out(
+        _account(email_verified="proven@example.com")
+    )
+    assert pending["email_verified"] is False
+    assert proven["email_verified"] is True
 
 
 def test_is_account_tracks_the_password():

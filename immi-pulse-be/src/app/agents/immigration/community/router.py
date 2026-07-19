@@ -413,7 +413,6 @@ async def community_signup(
             identity=identity,
             password=payload.password,
             email=payload.email,
-            accepted_no_recovery=payload.accepted_no_recovery,
         )
     except AccountError as err:
         raise HTTPException(status_code=err.status_code, detail=str(err)) from err
@@ -464,9 +463,13 @@ async def community_recover(
     if token:
         account = await CommunityAccountService.get_by_email(db, payload.email)
         if account is not None:
+            # Send to the address actually on the account, preferring the
+            # verified one. Never echo back what the caller typed — that would
+            # forward a recovery link to whatever a stranger asked us to.
+            destination = account.email_verified or account.email_pending
             try:
                 await send_recovery_email(
-                    to=account.email, handle=account.handle, token=token
+                    to=destination, handle=account.handle, token=token
                 )
             except Exception:  # never leak send failures back to the caller
                 logger.exception("Community recovery email failed to send")
@@ -797,7 +800,7 @@ async def get_notification_preferences(
 ):
     return NotificationPreferencesOut(
         email_replies=bool(account.notify_replies_email),
-        email_available=bool(account.email),
+        email_available=bool(account.email_verified or account.email_pending),
     )
 
 
@@ -813,7 +816,7 @@ async def set_notification_preferences(
     await db.commit()
     return NotificationPreferencesOut(
         email_replies=bool(account.notify_replies_email),
-        email_available=bool(account.email),
+        email_available=bool(account.email_verified or account.email_pending),
     )
 
 

@@ -177,13 +177,33 @@ class CommunityStatsOut(BaseModel):
 
 
 class VisaSubclassOut(BaseModel):
-    """Lightweight subclass reference for selectors."""
+    """One selectable visa: a subclass **+ stream** pair, as Home Affairs
+    publishes them.
+
+    The client builds its two-step picker by grouping on ``group_key`` — 43
+    groups across 76 rows. Group on ``code`` instead and you get 42, because
+    subclass 858 answers to two different programs: legacy Global Talent
+    (lodged before 6 Dec 2024, p50 426 days) and the current National Innovation
+    visa (p50 122 days). Both are streamless, so a member could not tell them
+    apart in a stream dropdown — they have to be separate groups.
+
+    ``is_stage`` rows (482/870 nomination and sponsorship) are lodgement stages
+    rather than answers to "which stream are you on?", so the picker filters
+    them out.
+    """
 
     slug: str
     code: str
     name: str
+    # Home Affairs' own program discriminator: "189", "482-1", "858-3", "858-4".
+    # Not an integer — never parse it as one.
+    group_key: str
     stream: Optional[str] = None
     category_slug: Optional[str] = None
+    is_stage: bool = False
+    official_p50_days: Optional[int] = None
+    official_p90_days: Optional[int] = None
+    official_updated: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -228,15 +248,22 @@ class CommunityDurationStats(BaseModel):
 class OfficialFiguresOut(BaseModel):
     """The Department of Home Affairs published bands, with their as-at date.
 
-    ``as_at`` is hand-seeded and ``is_live`` is hard-coded false: nothing in this
-    product ingests official figures on a schedule, so no surface may imply they
-    are checked daily. The date is what makes the figure honest, and it is a
-    required part of rendering one.
+    These are ingested from the department's own processing-times API, so
+    ``as_at`` and ``counted_to`` are their labels, not ours: "26 June 2026" and
+    "31 May 2026" respectively — a figure published in late June counts
+    finalisations only to the end of May, and saying so is what makes it honest.
+    ``is_live`` is true once a row carries a real as-at date.
+
+    All four percentiles travel because Home Affairs publishes all four, and the
+    25th/75th are what make a distribution legible rather than two lonely points.
     """
 
+    p25_days: Optional[int] = None
     p50_days: Optional[int] = None
+    p75_days: Optional[int] = None
     p90_days: Optional[int] = None
     as_at: Optional[str] = None
+    counted_to: Optional[str] = None
     source: str = "Department of Home Affairs"
     is_live: bool = False
 
@@ -417,13 +444,16 @@ class CommunitySignupRequest(BaseModel):
 
     One password field, no confirm-password — a show-password toggle is the
     better affordance and confirmation fields add friction for no real gain.
-    Email is optional; skipping it requires acknowledging the consequence.
+
+    Email is **required** and deliberately unverified: the member types it and
+    is signed in immediately. The address is confirmed by retyping it on the
+    client (a typo guard, not a verification step), because an unverified
+    address that is also mistyped is silently unrecoverable. It lands in
+    ``email_pending`` until ownership is actually proven.
     """
 
     password: str = Field(min_length=8, max_length=128)
-    email: Optional[EmailStr] = None
-    # Must be True when no email is supplied: no email means no recovery.
-    accepted_no_recovery: bool = False
+    email: EmailStr
 
 
 class CommunityLoginRequest(BaseModel):

@@ -149,35 +149,30 @@ async def main():
         check("anonymous question posted", r.status_code == 201)
         journey_id = r.json()["id"]
 
-        # ══ 2. Claim that identity as an account — no email ══
+        # ══ 2. Claim that identity as an account — email is now required ══
         r = await c.post(
             "/community/public/auth/signup",
             headers=h1,
             json={"password": "correct-horse-battery-7"},
         )
         check(
-            "signup without email is refused until no-recovery is acknowledged",
-            r.status_code == 400,
-        )
-        check(
-            "the refusal says recovery is impossible",
-            "recover" in r.text.lower(),
+            "signup without an email is refused outright",
+            r.status_code in (400, 422),
         )
 
+        email1 = f"claim-{suffix}@example.com"
         r = await c.post(
             "/community/public/auth/signup",
             headers=h1,
-            json={
-                "password": "correct-horse-battery-7",
-                "accepted_no_recovery": True,
-            },
+            json={"password": "correct-horse-battery-7", "email": email1},
         )
-        check("signup succeeds once acknowledged", r.status_code == 201)
+        check("signup succeeds with an email", r.status_code == 201)
         body = r.json()
         session_token = body["token"]
         check("session token issued", bool(session_token))
         check("account keeps its pre-signup handle", body["account"]["handle"] == handle1)
-        check("account reports no recovery path", body["account"]["can_recover"] is False)
+        check("account can recover — email is mandatory now", body["account"]["can_recover"] is True)
+        check("but the address is not treated as verified", body["account"]["email_verified"] is False)
         check("account serializer carries no email address", "email" not in str(body["account"]).replace("has_email", "").replace("email_verified", ""))
 
         # Weak passwords are rejected by the existing policy.
@@ -186,7 +181,7 @@ async def main():
         r = await c.post(
             "/community/public/auth/signup",
             headers={**svc, "X-Device-Token": weak_dev},
-            json={"password": "1234567", "accepted_no_recovery": True},
+            json={"password": "1234567", "email": f"weak-{suffix}@example.com"},
         )
         check("short password rejected", r.status_code in (400, 422))
 
@@ -194,7 +189,7 @@ async def main():
         r = await c.post(
             "/community/public/auth/signup",
             headers=h1,
-            json={"password": "another-password-99", "accepted_no_recovery": True},
+            json={"password": "another-password-99", "email": f"dupe-{suffix}@example.com"},
         )
         check("second signup on a claimed device conflicts", r.status_code == 409)
         check("...and points at logging in", "log in" in r.text.lower())
@@ -296,7 +291,7 @@ async def main():
         r = await c.post(
             "/community/public/auth/signup",
             headers=h_thr,
-            json={"password": "throttle-me-please-42", "accepted_no_recovery": True},
+            json={"password": "throttle-me-please-42", "email": f"throttle-{suffix}@example.com"},
         )
         thr_handle = r.json()["account"]["handle"]
         statuses = []
@@ -331,7 +326,10 @@ async def main():
         check("account with an email can recover", r.json()["account"]["can_recover"] is True)
         check("signup response still hides the address", member_email not in r.text)
 
-        # The same email cannot back two accounts.
+        # An UNVERIFIED duplicate is deliberately allowed. Refusing it is what
+        # turns a required-but-unverified email into a denial-of-service: type a
+        # stranger's address first and they can never attach their own. Only a
+        # verified address takes the unique slot.
         r = await c.post("/community/public/identity", headers=svc)
         dupe_dev = r.json()["device_token"]
         r = await c.post(
@@ -339,7 +337,36 @@ async def main():
             headers={**svc, "X-Device-Token": dupe_dev},
             json={"password": "yet-another-password-9", "email": member_email},
         )
-        check("duplicate email refused", r.status_code == 409)
+        check(
+            "an unverified duplicate email is allowed (no pre-hijacking)",
+            r.status_code == 201,
+        )
+
+        # ...and the cost of allowing it is that the address is now ambiguous,
+        # so recovery must refuse to guess which account it belongs to.
+        sent_emails.clear()
+        r = await c.post(
+            "/community/public/auth/recover",
+            headers=svc,
+            json={"email": member_email},
+        )
+        check("recovery on an ambiguous address still 200s", r.status_code == 200)
+        check(
+            "...but sends nothing — it will not guess between two claimants",
+            len(sent_emails) == 0,
+        )
+
+        # A sole claimant recovers normally.
+        member_email = f"solo.{suffix}@example.com"
+        r = await c.post("/community/public/identity", headers=svc)
+        solo_dev = r.json()["device_token"]
+        r = await c.post(
+            "/community/public/auth/signup",
+            headers={**svc, "X-Device-Token": solo_dev},
+            json={"password": "sole-claimant-pass-31", "email": member_email},
+        )
+        check("sole-claimant signup succeeds", r.status_code == 201)
+        handle2 = r.json()["account"]["handle"]
 
         sent_emails.clear()
         r = await c.post(

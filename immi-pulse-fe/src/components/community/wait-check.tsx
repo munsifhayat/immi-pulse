@@ -6,13 +6,13 @@ import { Check, Loader2, Lock } from "lucide-react";
 import {
   usePublishJourney,
   useSaveWaitCheck,
-  useVisaSubclasses,
   useWaitCheck,
   type CommunityDurationStats,
   type OfficialFigures,
   type WaitTier,
 } from "@/lib/api/hooks/community";
 import { formatDays } from "@/lib/community/format";
+import { VisaPicker } from "./visa-picker";
 
 /* Tier → the one accent colour that the "you" marker + headline borrow. */
 const TIER_COLOR: Record<WaitTier, string> = {
@@ -438,7 +438,6 @@ function SaveAndShare({
 }
 
 export function WaitCheck() {
-  const { data: subclasses = [] } = useVisaSubclasses();
   const [subclass, setSubclass] = useState("");
   const [lodgedOn, setLodgedOn] = useState("");
   const today = new Date().toISOString().slice(0, 10);
@@ -460,20 +459,15 @@ export function WaitCheck() {
         </h3>
 
         <div className="mt-4 grid gap-2.5 sm:grid-cols-[1fr_168px]">
-          <select
+          {/* Two steps when the visa has streams — a 500 Non-Award wait and a
+              500 Vocational Education wait are 35x apart, so "500" alone cannot
+              answer the question this box asks. */}
+          <VisaPicker
             value={subclass}
-            onChange={(e) => setSubclass(e.target.value)}
-            className={fieldCls}
-            aria-label="Visa subclass"
-          >
-            <option value="">Select your visa…</option>
-            {subclasses.map((s) => (
-              <option key={s.slug} value={s.slug}>
-                {s.code} · {s.name}
-                {s.stream ? ` (${s.stream})` : ""}
-              </option>
-            ))}
-          </select>
+            onChange={setSubclass}
+            size="lg"
+            labels={false}
+          />
           <input
             type="date"
             max={today}

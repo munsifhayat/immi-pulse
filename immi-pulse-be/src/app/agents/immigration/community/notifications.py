@@ -453,7 +453,11 @@ async def deliver_reply_emails(db: AsyncSession, *, comment_id: UUID) -> int:
     settings = get_settings()
     sent = 0
     for notification, recipient in rows:
-        if not recipient.email or not recipient.notify_replies_email:
+        # Verified first, then the pending claim. Reply notifications are
+        # content-free, so mailing an unverified address is low-risk — but it
+        # is still only ever the address on the account, never a caller's input.
+        destination = recipient.email_verified or recipient.email_pending
+        if not destination or not recipient.notify_replies_email:
             continue
         if not settings.resend_configured:
             # Not an error: local and CI runs have no Resend key, and the inbox
@@ -467,7 +471,7 @@ async def deliver_reply_emails(db: AsyncSession, *, comment_id: UUID) -> int:
             continue
 
         try:
-            await send_reply_notification_email(to=recipient.email)
+            await send_reply_notification_email(to=destination)
         except Exception:  # never let a mail failure surface on the reply path
             logger.exception("Community reply notification failed to send")
             continue

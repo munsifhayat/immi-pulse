@@ -236,10 +236,39 @@ class CommunityAccountService:
 
     @staticmethod
     async def get_by_email(db: AsyncSession, email: str) -> Optional[AnonIdentity]:
-        result = await db.execute(
-            select(AnonIdentity).where(AnonIdentity.email == normalize_email(email))
+        """Find the account that owns an address, if that is unambiguous.
+
+        Verified wins outright — it is unique, so at most one row can hold it.
+        Otherwise fall back to a pending claim, but only when exactly one
+        account has claimed it. Pending addresses are deliberately not unique
+        (see the model), so "two people typed the same address" is a state that
+        can happen; resolving it by picking one would hand a stranger's account
+        to whoever guessed the address. Ambiguity resolves to nobody.
+        """
+        clean = normalize_email(email)
+        if not clean:
+            return None
+
+        verified = (
+            await db.execute(
+                select(AnonIdentity).where(AnonIdentity.email_verified == clean)
+            )
+        ).scalar_one_or_none()
+        if verified is not None:
+            return verified
+
+        pending = (
+            (
+                await db.execute(
+                    select(AnonIdentity)
+                    .where(AnonIdentity.email_pending == clean)
+                    .limit(2)
+                )
+            )
+            .scalars()
+            .all()
         )
-        return result.scalar_one_or_none()
+        return pending[0] if len(pending) == 1 else None
 
     @staticmethod
     async def signup(
@@ -247,8 +276,7 @@ class CommunityAccountService:
         *,
         identity: AnonIdentity,
         password: str,
-        email: Optional[str] = None,
-        accepted_no_recovery: bool = False,
+        email: str,
     ) -> AnonIdentity:
         """Claim ``identity`` as an account by setting a password on it.
 
@@ -256,9 +284,11 @@ class CommunityAccountService:
         posts already made under it carry straight over — that is the whole
         reason the account lives on this table.
 
-        Skipping email requires ``accepted_no_recovery``: losing the password
-        then means losing the account outright, and that has to be an explicit
-        acknowledgement rather than a silently-skipped field.
+        Email is **required and unverified**: the member types it, we take it,
+        and they are signed in immediately. Verification is a later, optional
+        step that upgrades ``email_pending`` to ``email_verified`` and unlocks
+        recovery. The address is stored as pending precisely so that requiring
+        it cannot be turned into a denial-of-service against the real owner.
         """
         if identity.password_hash:
             raise AccountError(
@@ -267,33 +297,34 @@ class CommunityAccountService:
             )
 
         clean_email = normalize_email(email)
-        if not clean_email and not accepted_no_recovery:
+        if not clean_email:
             raise AccountError(
-                "Without an email this account cannot be recovered. "
-                "Confirm you understand, or add an email.",
-                status.HTTP_400_BAD_REQUEST,
+                "An email address is required.", status.HTTP_400_BAD_REQUEST
             )
 
         # Never let the password contain the handle or the email local-part.
-        compare = [identity.handle]
-        if clean_email:
-            compare.append(clean_email.split("@", 1)[0])
+        compare = [identity.handle, clean_email.split("@", 1)[0]]
         try:
             await assert_password_acceptable(password, also_compare=compare)
         except PasswordPolicyError as err:
             raise AccountError(str(err), status.HTTP_400_BAD_REQUEST) from err
 
-        if clean_email:
-            existing = await CommunityAccountService.get_by_email(db, clean_email)
-            if existing is not None:
-                raise AccountError(
-                    "That email is already linked to an account. "
-                    "Log in, or use password recovery.",
-                    status.HTTP_409_CONFLICT,
-                )
+        # Only a *verified* address blocks reuse. Refusing on a pending one
+        # would rebuild the pre-hijacking hole this split exists to close.
+        taken = (
+            await db.execute(
+                select(AnonIdentity).where(AnonIdentity.email_verified == clean_email)
+            )
+        ).scalar_one_or_none()
+        if taken is not None:
+            raise AccountError(
+                "That email is already linked to an account. "
+                "Log in, or use password recovery.",
+                status.HTTP_409_CONFLICT,
+            )
 
         identity.password_hash = hash_password(password)
-        identity.email = clean_email
+        identity.email_pending = clean_email
         identity.last_login_at = datetime.now(timezone.utc)
         identity.failed_login_count = 0
         identity.locked_until = None
@@ -416,9 +447,9 @@ class CommunityAccountService:
         return {
             "handle": account.handle,
             "color": account.color,
-            "has_email": bool(account.email),
-            "email_verified": account.email_verified_at is not None,
-            "can_recover": bool(account.email),
+            "has_email": bool(account.email_verified or account.email_pending),
+            "email_verified": bool(account.email_verified),
+            "can_recover": bool(account.email_verified or account.email_pending),
             "created_at": account.created_at,
             "last_login_at": account.last_login_at,
         }

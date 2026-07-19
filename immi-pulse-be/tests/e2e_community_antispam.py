@@ -59,7 +59,7 @@ async def _signup(client, svc):
     r = await client.post(
         "/community/public/auth/signup",
         headers={**svc, "X-Device-Token": device},
-        json={"password": PASSWORD, "accepted_no_recovery": True},
+        json={"password": PASSWORD, "email": f"antispam-{uuid.uuid4().hex[:8]}@example.com"},
     )
     client.cookies.clear()
     payload = r.json()

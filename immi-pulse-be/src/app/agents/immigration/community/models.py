@@ -132,8 +132,21 @@ class AnonIdentity(Base):
     # into a durable, cross-device account. bcrypt-over-HMAC, same primitive as
     # the consultant console (core/jwt_auth.hash_password).
     password_hash = Column(String, nullable=True)
-    # Nullable + unique-when-present. Lowercased on write.
-    email = Column(String, nullable=True, unique=True, index=True)
+    # Email is split in two on purpose, and the difference is a security
+    # boundary rather than bookkeeping.
+    #
+    # ``email_pending`` is what a member typed. It is NOT unique, because we do
+    # not verify it: with one shared unique column, anyone could type a
+    # stranger's address at signup and permanently occupy it, locking the real
+    # owner out of ever attaching their own (account pre-hijacking —
+    # Sudhodanan & Paverd, USENIX Security 2022, found this in 35 of 75 popular
+    # services). An unverified claim must never be able to deny service.
+    #
+    # ``email_verified`` is proven ownership, and only it takes the unique slot.
+    # Recovery keys off it; a pending address can recover only while exactly one
+    # account claims it.
+    email_pending = Column(String, nullable=True, index=True)
+    email_verified = Column(String, nullable=True, unique=True, index=True)
     email_verified_at = Column(DateTime(timezone=True), nullable=True)
     last_login_at = Column(DateTime(timezone=True), nullable=True)
     # Login throttling — reset on success, checked before verifying a password.
@@ -672,18 +685,30 @@ class CommunityReport(Base):
 
 
 class VisaSubclass(Base):
-    """Reference data for a visa subclass (+ stream), with official DHA bands.
+    """One row per visa subclass **+ stream** — the unit Home Affairs publishes.
 
-    Official percentile days come from the Department of Home Affairs global
-    processing-times publication (75th/90th percentile, updated monthly). They
-    are reference figures only; the community medians are computed live from
-    ``CommunityTimeline`` rows.
+    Home Affairs publishes processing times per (subclass, stream) pair, and so
+    do we: 43 subclasses expand to 76 rows. A member picks a subclass, then a
+    stream, and lands on exactly one row here. Rows are refreshed from the
+    department's own JSON API — see ``scripts/fetch_dha_taxonomy.py`` and
+    ``scripts/seed_visa_taxonomy.py``.
+
+    Two keys, and the difference matters:
+
+    ``slug``       what the member picked, e.g. ``186-direct-entry``. Stored on
+                   ``Journey.subclass_slug``. Selects the official figures.
+    ``cohort_key`` what the community statistics pool on. For 500 (7 streams
+                   spanning 35x) it equals ``slug`` — merging them would be
+                   malpractice. For 186 (3 streams within 10%) every stream
+                   shares ``186``, because splitting a scarce sample for no
+                   signal is the more expensive mistake. This is the value
+                   written to ``CommunityTimeline.subclass_slug``.
     """
 
     __tablename__ = "visa_subclasses"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    # Stable identifier used in URLs/queries, e.g. "189" or "482-core-skills".
+    # Stable identifier used in URLs/queries, e.g. "189-points-tested".
     slug = Column(String, nullable=False, unique=True, index=True)
     code = Column(String, nullable=False, index=True)  # e.g. "189", "482"
     name = Column(String, nullable=False)
@@ -691,15 +716,41 @@ class VisaSubclass(Base):
     # Links a subclass to its discussion space (community_spaces.slug).
     category_slug = Column(String, nullable=True, index=True)
 
+    # The statistics cohort this row contributes to (see class docstring).
+    cohort_key = Column(String, nullable=True, index=True)
+    # Home Affairs' own identifiers. ``dha_subclass_code`` is NOT an integer:
+    # "482-1", "858-3" (legacy Global Talent) and "858-4" (National Innovation)
+    # are all real, and 858 answers to two different programs.
+    dha_subclass_code = Column(String, nullable=True, index=True)
+    dha_stream_code = Column(String, nullable=True)
+    # 482/870 publish "Nomination" and "Sponsorship" as pseudo-streams. They are
+    # lodgement stages with their own clocks, never a "which stream are you on?"
+    # answer, so they are excluded from the picker.
+    is_stage = Column(Boolean, nullable=False, default=False, server_default="false")
+
+    official_p25_days = Column(Integer, nullable=True)
     official_p50_days = Column(Integer, nullable=True)
+    official_p75_days = Column(Integer, nullable=True)
     official_p90_days = Column(Integer, nullable=True)
-    official_updated = Column(String, nullable=True)  # human label, e.g. "Mar 2026"
+    official_updated = Column(String, nullable=True)  # human label, e.g. "26 June 2026"
+    official_end_date = Column(String, nullable=True)  # finalisations counted to
 
     sort_order = Column(Integer, nullable=False, default=100)
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+
+    @property
+    def group_key(self) -> str:
+        """What a picker groups streams under — one entry per *program*.
+
+        Not ``code``: subclass 858 covers both the legacy Global Talent visa and
+        the current National Innovation visa, and both are streamless, so
+        grouping on "858" would merge two programs whose waits differ by 3.5x
+        into one indistinguishable entry.
+        """
+        return self.dha_subclass_code or self.code
 
 
 class CommunityTimeline(Base):
