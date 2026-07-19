@@ -25,6 +25,16 @@ from app.db.session import get_async_session
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "dha_taxonomy.json")
 
+# The most a single run may retire before it is treated as a bad snapshot rather
+# than a real change from Home Affairs. The department retires a stream or two a
+# year; it does not retire a third of the programme overnight.
+MAX_RETIRE_SHARE = 0.30
+
+
+class SeedDriftError(RuntimeError):
+    """The snapshot looks wrong enough that applying it would lose good data."""
+
+
 # Order the picker follows: the visas our members actually hold come first,
 # then the long tail alphabetically. Anything unlisted sorts after these.
 CATEGORY_ORDER = [
@@ -79,9 +89,12 @@ def cohort_key_for(subclass: dict, stream: dict) -> str:
     return subclass["subclass_number"]
 
 
-async def run(dry_run: bool) -> int:
+async def run(dry_run: bool, force: bool = False) -> dict:
     with open(DATA_PATH) as fh:
         snap = json.load(fh)
+
+    if not snap.get("subclasses"):
+        raise SeedDriftError("refusing to apply: the snapshot contains no visas")
 
     print(
         f"snapshot: {snap['subclass_count']} subclasses / {snap['stream_count']} streams"
@@ -132,7 +145,7 @@ async def run(dry_run: bool) -> int:
         print(f"would upsert {len(rows)} rows; first 5:")
         for r in rows[:5]:
             print(f"  {r['slug']:<44} cohort={r['cohort_key']:<28} p50={r['official_p50_days']}")
-        return 0
+        return {"created": 0, "updated": 0, "retired": 0, "dry_run": True}
 
     created = updated = retired = 0
     async with get_async_session() as db:
@@ -140,6 +153,30 @@ async def run(dry_run: bool) -> int:
             s.slug: s for s in (await db.execute(select(VisaSubclass))).scalars().all()
         }
         seen: set[str] = set()
+
+        # Drift guard. A blocked or half-answered fetch produces a *valid*
+        # snapshot with too few rows in it, and an unguarded seeder would then
+        # dutifully retire most of the taxonomy — every wait check falls back to
+        # official figures and nothing raises. Refuse instead, and keep the last
+        # good data.
+        #
+        # Lives here rather than in the scheduled job so the CLI is protected
+        # too: the run most likely to do this damage is a human re-seeding after
+        # a fetch they did not check.
+        active_before = sum(1 for s in existing.values() if s.is_active)
+        would_retire = sum(
+            1
+            for slug, row in existing.items()
+            if slug not in {r["slug"] for r in rows} and row.is_active
+        )
+        if not force and active_before and would_retire > active_before * MAX_RETIRE_SHARE:
+            raise SeedDriftError(
+                f"refusing to apply: would retire {would_retire} of "
+                f"{active_before} active rows "
+                f"(>{int(MAX_RETIRE_SHARE * 100)}%). The snapshot is probably "
+                "truncated — re-run the fetcher and check its row count. "
+                "Pass force=True if the department really did retire this much."
+            )
 
         for r in rows:
             seen.add(r["slug"])
@@ -162,12 +199,17 @@ async def run(dry_run: bool) -> int:
         await db.commit()
 
     print(f"created {created} · updated {updated} · retired {retired}")
-    return 0
+    return {"created": created, "updated": updated, "retired": retired}
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument(
+        "--force",
+        action="store_true",
+        help="apply even if the run would retire an implausible share of rows",
+    )
     args = ap.parse_args()
     if not os.path.exists(DATA_PATH):
         print(
@@ -175,7 +217,12 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
-    return asyncio.run(run(args.dry_run))
+    try:
+        asyncio.run(run(args.dry_run, force=args.force))
+    except SeedDriftError as err:
+        print(f"drift guard: {err}", file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

@@ -6,7 +6,8 @@ Integration branch: `feat/share-timeline`
 Base: `main`
 Baseline: `31bad77` (source plan phases 0, 1, 3 — built and verified before this epic)
 
-Phase status: [done] p1 · [done] p2 · [done] p3 · [done] p4 · [pending] p5
+Phase status: [done] p1 · [done] p2 · [done] p3 · [done] p4 · [done] p5
+**Epic complete** — final PR into `main` is the human gate.
 
 <!--
 Legend: pending → in_progress → done  (or blocked)
@@ -475,3 +476,71 @@ integrity script now makes that checkable rather than assumed.
   619 journeys, no row loss
 - Production audit: 0 stranded mirror rows, 0 orphan journeys
 - `tsc --noEmit` clean · `build` clean · lint unchanged at the 5 pre-existing errors
+
+
+---
+
+## Handoff — p5: refresh jobs and drift alerting   [done]
+
+Branch `feat/share-timeline-p5-refresh-jobs` → PR into `feat/share-timeline`.
+
+### What shipped
+
+- **Monthly taxonomy refresh** (3rd, 04:10) and **quarterly occupation refresh**
+  (Jan/Apr/Jul/Oct 4th, 04:40), both `coalesce=True` with a 6-hour
+  `misfire_grace_time` — the first jobs here whose schedule is long enough that
+  a dyno restart would otherwise silently drop a whole month.
+- **A replica gate.** `should_run_scheduled_jobs()` (`refresh.py:60-80`) now
+  gates *all* job registration, not just the new ones. Every job in this app was
+  registered unconditionally on every dyno — survivable for a five-minute retry
+  loop, not survivable for an Akamai-rate-limited fetch against a government
+  API. Defaults to true so single-dyno deployments are unaffected; falls back to
+  the Heroku `DYNO` index so scaling past one web dyno is safe *by default*
+  rather than safe only if someone remembered.
+- **A drift guard, inside the seeders.** `MAX_RETIRE_SHARE = 0.30` plus an
+  empty-snapshot check. Deliberately in the seeders and not in the job, so the
+  CLI is protected too — the run most likely to do this damage is a human
+  re-seeding after a fetch they did not check. Both seeders now return count
+  dicts and accept `force=`.
+- **Alerting, where there was none.** The entire failure surface was
+  `logger.error` to stdout. `refresh._alert` emails `ops_alert_email` (new
+  setting, falls back to `resend_reply_to`) and is best-effort by construction:
+  an alert that raised would take the job out of the scheduler, which is the
+  exact failure it exists to report.
+- The taxonomy job runs `check_cohort_integrity()` afterwards, because a
+  taxonomy change is precisely what strands mirror rows.
+
+### Key decisions and why
+
+1. **Scripts are loaded by path** (`refresh._load`) rather than duplicating ~600
+   lines of HTML/JSON parsing into the package. The better long-term shape is to
+   move the fetch/seed cores into `app.agents.immigration.community` and leave
+   thin CLIs behind; that is a refactor, not this phase's work, and the comment
+   says so.
+2. **The drift ceiling is a share, not a count.** The department retires a stream
+   or two a year; a snapshot that would retire a third of the table is a
+   truncated fetch, not news.
+3. **Failure keeps the last good data.** The guard refuses rather than applying,
+   so a blocked month degrades to "slightly stale" instead of "empty".
+
+### Gotchas
+
+- `RUN_SCHEDULED_JOBS=false` on every dyno but one **before** scaling past one
+  web dyno. Without it, two replicas fetch from Home Affairs simultaneously.
+- Set `OPS_ALERT_EMAIL` in production or failures stay silent — the alert
+  degrades to a log line when Resend is unconfigured.
+- The fetchers still need a browser User-Agent + Referer against DHA. WebFetch
+  gets 403; curl and the scripts work.
+
+### Verified
+
+- `pytest tests/ -q` → **234 passed** (216 + 18 new in
+  `tests/agents/immigration/test_community_refresh.py`)
+- All eleven community e2e suites pass
+- Scheduler smoke: gate on → 6 jobs registered; gate off → 0; next runs
+  2026-08-03 and 2026-10-04; `coalesce=True`, grace 21600s
+- Refresh exercised end to end with `fetch=False`: taxonomy 76 updated,
+  occupations 714 updated, integrity clean
+- **Drift guard proven against a truncated snapshot**: 3-of-43 programmes was
+  refused ("would retire 73 of 76 active rows"), and all 76 rows survived
+- Alembic single head `e8b2d4f6a0c1` (p5 adds no migration)
