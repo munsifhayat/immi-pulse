@@ -34,6 +34,7 @@ def check(label, cond):
 
 
 async def main():
+    from app.agents.immigration.community.service import hash_ip, reset_rate_counters
     from app.agents.immigration.orgs.models import Organization, Seat
     from app.agents.immigration.users.models import User
     from app.core.config import get_settings
@@ -43,6 +44,15 @@ async def main():
 
     settings = get_settings()
     suffix = uuid.uuid4().hex[:8]
+
+    # ── Clear this machine's IP write-allowance buckets ──
+    # Rate counters are durable now (Phase 2), and every ASGITransport request
+    # reports as 127.0.0.1 — so without this, a handful of runs in one UTC day
+    # would exhaust the network ceiling and this script would start failing on
+    # its own history rather than on anything it tests.
+    async with get_async_session() as db:
+        await reset_rate_counters(db, scope_type="ip", scope_key=hash_ip("127.0.0.1"))
+        await db.commit()
 
     # ── Seed an owner user/seat/org so we can call the admin endpoints ──
     async with get_async_session() as db:
@@ -81,13 +91,19 @@ async def main():
         base_sample = community_sample(r.json(), slug)
 
         # ── 1. Bootstrap two anonymous identities (two devices) ──
+        # Bootstrap now also sets a durable HttpOnly ``ip_device`` cookie, and one
+        # httpx client keeps one cookie jar — so without clearing it the second
+        # call would correctly return the *same* identity (one browser, one
+        # device) and this would stop simulating two devices at all.
         r = await c.post("/community/public/identity", headers=svc)
         dev1 = r.json()["device_token"]
         check("identity 1 issued", bool(dev1))
+        c.cookies.clear()
 
         r = await c.post("/community/public/identity", headers=svc)
         dev2 = r.json()["device_token"]
         check("identity 2 issued", bool(dev2) and dev2 != dev1)
+        c.cookies.clear()
 
         h1 = {**svc, "X-Device-Token": dev1}
         h2 = {**svc, "X-Device-Token": dev2}

@@ -18,10 +18,25 @@ from sqlalchemy.dialects.postgresql import UUID
 
 from app.db.base import Base
 
-THREAD_STATUSES = ("active", "hidden", "removed")
+# Content lifecycle. "held" is p6's addition and it is deliberately NOT a
+# moderation verdict: it means an automatic check thought this needed a human
+# before it went out. It sits between active and hidden — the author still sees
+# it, the feed does not, the stats do not, and a moderator dismissing the report
+# puts it straight back. Because every public query filters on "active", adding
+# the value excludes held content everywhere by default, which is the safe
+# direction for a status nobody has audited every call site for.
+CONTENT_ACTIVE = "active"
+CONTENT_HELD = "held"
+THREAD_STATUSES = ("active", "held", "hidden", "removed")
 REPORT_TARGET_TYPES = ("thread", "comment", "journey", "journey_comment")
 REPORT_REASONS = ("spam", "harassment", "misleading_advice", "other")
 REPORT_STATUSES = ("open", "actioned", "dismissed")
+
+# Who filed a report. "auto" rows come from the anti-spam screen; they carry a
+# reason string naming the pattern that fired, so the queue can explain itself.
+REPORT_SOURCES = ("member", "auto")
+REPORT_SOURCE_MEMBER = "member"
+REPORT_SOURCE_AUTO = "auto"
 
 # Community-submitted visa timeline outcomes. "waiting" = lodged, no decision
 # yet (the survivorship-bias denominator); "granted"/"refused" are decided.
@@ -57,15 +72,50 @@ MILESTONE_TYPES = (
 # What a journey's votes/comments can hang off.
 VOTE_TARGET_TYPES = ("journey", "comment")
 
+# Rate-counter scopes. "account" caps one member's day; "ip" is the network
+# backstop that keeps free account creation from defeating the account cap.
+RATE_SCOPE_TYPES = ("account", "ip")
+
+# What put a notification in someone's inbox. Deliberately only two kinds: this
+# is a reply inbox, not an activity firehose. Votes are not notified — a room
+# where a number going up pings you trains people to post for the number.
+NOTIFICATION_TYPES = ("reply_to_post", "reply_to_comment")
+
+# "hidden" is what moderation leaves behind: the row stays for audit, the member
+# never sees it again and it stops counting toward unread.
+NOTIFICATION_STATUSES = ("active", "hidden")
+
+# Where a stats-bearing timeline row came from. This is a *provenance* label, not
+# a quality label: "member" is first-party — someone told us about their own
+# application; "forum" was collected from public immigration forums, anonymised
+# and normalised (see scripts/seed_community_scraped.py). Both feed the public
+# numbers, and every figure they feed states its composition in the open. The
+# label exists so that sentence can be written truthfully.
+TIMELINE_SOURCES = ("member", "forum")
+TIMELINE_SOURCE_MEMBER = "member"
+TIMELINE_SOURCE_FORUM = "forum"
+
 
 class AnonIdentity(Base):
-    """One anonymous identity per device — the spine of the guardrail layer.
+    """A pseudonymous community member — device identity AND account, one row.
 
-    The device holds an opaque ``device_token`` (issued at bootstrap, persisted
-    client-side) and is shown a generated, unique ``handle`` + ``color``. While
-    anonymous, an identity may post a single timeline (``journeys_posted`` is
-    capped at 1); after that the Share CTA flips to a sign-in gate. Signing in
-    sets ``user_id`` and lifts the cap. No PII is ever stored here.
+    NAMING DEBT (accepted deliberately): the table is still called
+    ``anon_identities`` because every ``Journey``/``JourneyComment``/
+    ``CommunityVote`` already FKs to ``identity_id``. Renaming it would touch
+    far more than the clarity is worth, so the table grew into the account
+    instead of a parallel ``community_accounts`` table being added beside it.
+    Read "identity" as "community account" throughout.
+
+    Lifecycle, in one line: a visitor arrives → a row is minted against their
+    ``device_token`` with a generated unique ``handle`` + ``color`` → they read
+    freely → when they want to write they set a ``password_hash``, which claims
+    that same row as an account, keeping the handle and every prior post.
+
+    ``email`` is **optional** and exists for exactly two reasons: password
+    recovery and reply notifications. It is never displayed, never public, and
+    never required to participate — for this audience an email address is often
+    a real name and a real risk. No email means no recovery, stated plainly at
+    signup. It must never appear in any public or consultant-facing serializer.
     """
 
     __tablename__ = "anon_identities"
@@ -76,6 +126,55 @@ class AnonIdentity(Base):
     color = Column(String, nullable=False)
 
     journeys_posted = Column(Integer, nullable=False, default=0)
+
+    # --- Account columns (NULL while the row is still an unclaimed device) ---
+    # Set once the member chooses a password; this is what turns the identity
+    # into a durable, cross-device account. bcrypt-over-HMAC, same primitive as
+    # the consultant console (core/jwt_auth.hash_password).
+    password_hash = Column(String, nullable=True)
+    # Nullable + unique-when-present. Lowercased on write.
+    email = Column(String, nullable=True, unique=True, index=True)
+    email_verified_at = Column(DateTime(timezone=True), nullable=True)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+    # Login throttling — reset on success, checked before verifying a password.
+    failed_login_count = Column(Integer, nullable=False, default=0)
+    locked_until = Column(DateTime(timezone=True), nullable=True)
+    # Single-use, hashed password-recovery token (only usable when email is set).
+    recovery_token_hash = Column(String, nullable=True, index=True)
+    recovery_expires_at = Column(DateTime(timezone=True), nullable=True)
+
+    # --- Trust ladder --------------------------------------------------------
+    # Computed, never member-facing: no score, no leaderboard, no badge except
+    # the registered-professional one (T4), which is a disclosure obligation
+    # rather than a reward. Defaults to T1 because the column only means
+    # anything once a password exists — a row with no password is read as T0
+    # regardless of what is stored here (``tiers.effective_tier``).
+    trust_tier = Column(Integer, nullable=False, default=1, server_default="1")
+    # When the nightly recompute last looked at this row (that job is p6).
+    tier_computed_at = Column(DateTime(timezone=True), nullable=True)
+    # Reports against this member that a moderator upheld — the demotion signal.
+    upheld_reports = Column(Integer, nullable=False, default=0, server_default="0")
+    # When the most recent one landed. The recency clock: an upheld report keeps
+    # an account out of T2/T3 for 90 days rather than for ever, so moderation is
+    # a setback and not a permanent record.
+    last_upheld_report_at = Column(DateTime(timezone=True), nullable=True)
+    # Shadow limiting: the author still sees their own content, the feed does
+    # not. Enforcement is p6; the column exists here so the ladder has somewhere
+    # to write its conclusion.
+    shadow_limited = Column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+
+    # --- Notification preference ---------------------------------------------
+    # Whether reply notifications may also go out by email. Defaults to true
+    # because supplying an email at signup is *itself* the opt-in — the field is
+    # offered with "so we can tell you when someone replies" attached, so a
+    # second consent step would contradict what the member was just told. With
+    # no email this column is inert: the send path requires an address first.
+    # It exists so there is a real off-switch to hang an unsubscribe on.
+    notify_replies_email = Column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
 
     # Set when the device is claimed by a real (portal) account → uncaps posting
     # and lets the portal stitch the prior anonymous activity to the account.
@@ -96,6 +195,147 @@ class AnonIdentity(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
+    @property
+    def is_account(self) -> bool:
+        """True once a password has been set — i.e. this row is a real account."""
+        return bool(self.password_hash)
+
+
+class RateCounter(Base):
+    """One write-allowance bucket: (scope, action, day) → how many so far.
+
+    This replaces a module-level dict. The dict was wrong in two ways that only
+    show up in production: counters vanished on every dyno restart, and each
+    dyno kept its own tally, so the effective limit was silently multiplied by
+    the number of dynos. A member could exhaust their day, get a restart, and
+    start over. Putting the count in Postgres makes the limit mean one thing
+    across every process.
+
+    Fixed daily buckets (``window_start`` = UTC midnight) rather than a rolling
+    window, so an increment is a single ``INSERT … ON CONFLICT DO UPDATE``
+    returning the new value: atomic, race-free, one round trip. A rolling window
+    would need read-filter-write, which two concurrent requests can interleave.
+
+    ``scope_type`` is ``account`` or ``ip``; both are checked on every write.
+    The account scope shapes an individual's day, the IP scope is the backstop
+    that stops free account creation from making the account cap meaningless.
+    Rows are disposable — old windows can be swept at any time without loss.
+    """
+
+    __tablename__ = "rate_counters"
+    __table_args__ = (
+        UniqueConstraint(
+            "scope_type",
+            "scope_key",
+            "action",
+            "window_start",
+            name="uq_rate_counter_scope_action_window",
+        ),
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    scope_type = Column(String, nullable=False, index=True)  # account | ip
+    scope_key = Column(String, nullable=False, index=True)  # identity id | ip hash
+    action = Column(String, nullable=False)  # post | reply | report
+    window_start = Column(DateTime(timezone=True), nullable=False, index=True)
+    count = Column(Integer, nullable=False, default=0, server_default="0")
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class CommunityNotification(Base):
+    """One "someone answered you" entry in a member's inbox.
+
+    This is the loop the room lives or dies on: without it a person asks
+    something, gets no signal that anyone replied, and never comes back. The
+    in-app inbox is the *primary* channel — that is precisely what makes an
+    optional email address workable, because there is always somewhere to see
+    your replies even if we can never mail you.
+
+    Recipient is an ``anon_identities`` row rather than an account specifically,
+    because that table is both. A reply to a visitor who has not set a password
+    yet still banks a notification against the row they already are, and it is
+    waiting for them the moment they claim it — no backfill, no stitching.
+
+    ``actor_handle``/``actor_color`` are snapshots, mirroring what ``Journey``
+    and ``JourneyComment`` already do: the inbox must render without joining
+    back to a row that may since have been deleted.
+
+    Moderation: when the source comment or post is hidden or removed, the
+    notification is hidden too (:func:`notifications.hide_for_target`). Reads
+    *also* re-check the source rows' status, so content moderated by a path that
+    forgets to call it still cannot be read out of an inbox. Two mechanisms on
+    purpose — the explicit one keeps unread counts honest, the join is the one
+    that cannot be forgotten.
+    """
+
+    __tablename__ = "community_notifications"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    recipient_identity_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("anon_identities.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    # reply_to_post | reply_to_comment
+    type = Column(String, nullable=False)
+
+    # Source content. Both cascade: a deleted post takes its inbox entries with
+    # it, since an inbox row pointing at nothing is worse than no row at all.
+    journey_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("community_journeys.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    comment_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("community_journey_comments.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    # The comment that was replied to, for ``reply_to_comment``. NULL when the
+    # reply landed on the post itself.
+    parent_comment_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("community_journey_comments.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    actor_identity_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("anon_identities.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    actor_handle = Column(String, nullable=False)
+    actor_color = Column(String, nullable=False)
+
+    # Short snippet of the reply + the post's title, so the inbox renders in one
+    # query. Never the whole body — an inbox is a pointer, not a mirror.
+    preview = Column(String, nullable=True)
+    context_title = Column(String, nullable=True)
+
+    status = Column(String, nullable=False, default="active", index=True)
+    read_at = Column(DateTime(timezone=True), nullable=True)
+
+    # When an email went out for this notification. The batching key: at most one
+    # send per (recipient, journey, UTC day), so a question that catches fire
+    # sends one email, not twenty. NULL means no email was sent for this row —
+    # either it was batched away, the member has no address, or sending is off.
+    email_sent_at = Column(DateTime(timezone=True), nullable=True)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
+
 
 class Journey(Base):
     """A single feed post — a shared milestone timeline OR a question.
@@ -104,8 +344,15 @@ class Journey(Base):
     a coarse profile (stream/occupation/state/sponsor). Question posts carry a
     title + body. The lodged/decided span is *derived* from the milestones and
     mirrored into ``community_timelines`` so the existing percentile engine
-    keeps working untouched. Seeded sample posts (``is_sample``) populate the
-    feed but never feed the stats — keeping the wait-check honest.
+    keeps working untouched.
+
+    Seeded sample posts (``is_sample``) populate the feed and, since Phase 4,
+    also feed the public statistics — but only under the condition that made
+    including them defensible: every figure they contribute to states its
+    composition in the open ("N reported by members, M collected from public
+    forums"). Their mirror rows carry ``source="forum"`` so that sentence can be
+    written from the data rather than asserted. Reversible with one setting —
+    ``settings.community_stats_include_forum``.
     """
 
     __tablename__ = "community_journeys"
@@ -145,6 +392,24 @@ class Journey(Base):
     comment_count = Column(Integer, nullable=False, default=0)
     is_sample = Column(Boolean, nullable=False, default=False, index=True)
     status = Column(String, nullable=False, default="active", index=True)
+
+    # Normalised hash of the body, for spotting the same text broadcast across
+    # several threads (``antispam.fingerprint``). NULL when the body is too
+    # short to fingerprint — short repeated replies ("any update?") are the
+    # normal texture of a waiting room, not duplicate spam.
+    content_fingerprint = Column(String, nullable=True, index=True)
+
+    # Draft vs public. ``status`` is moderation's axis (active/hidden/removed);
+    # this is the *author's* axis and the two are independent — a saved wait
+    # check is a perfectly healthy row that its owner has simply not published.
+    #
+    # Defaults to True so every pre-existing row, and every post made through
+    # the composer, behaves exactly as it did before drafts existed. Only the
+    # wait-check save path mints an unpublished row. Publishing is a separate,
+    # explicit act (``CommunityService.publish_journey``) — saving privately and
+    # sharing publicly are different decisions and must stay different calls.
+    is_published = Column(Boolean, nullable=False, default=True, index=True)
+    published_at = Column(DateTime(timezone=True), nullable=True)
 
     # Derived span for the stats engine (recomputed from milestones)
     lodged_on = Column(Date, nullable=True)
@@ -223,6 +488,8 @@ class JourneyComment(Base):
     body = Column(Text, nullable=False)
     upvotes = Column(Integer, nullable=False, default=0)
     status = Column(String, nullable=False, default="active", index=True)
+    # See Journey.content_fingerprint.
+    content_fingerprint = Column(String, nullable=True, index=True)
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -368,11 +635,31 @@ class CommunityReport(Base):
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
     )
+    # Which community member reported it, when one is resolvable. Needed to
+    # weight the report by their trust tier — an established member's report is
+    # a stronger signal than an anonymous one, and that is the difference
+    # between a moderation queue that surfaces real problems and one that
+    # surfaces whoever is angriest.
+    reporter_identity_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("anon_identities.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     reporter_ip_hash = Column(String, nullable=True)
 
     reason = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     status = Column(String, nullable=False, default="open", index=True)
+    # member | auto — auto rows are the anti-spam screen's holds.
+    source = Column(
+        String, nullable=False, default="member", server_default="member", index=True
+    )
+    # What this report counts for against the auto-hold threshold. Snapshotted
+    # at report time rather than derived at read time, so a member's later
+    # promotion or demotion cannot retroactively change what their old reports
+    # were worth.
+    weight = Column(Integer, nullable=False, default=1, server_default="1")
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     resolved_at = Column(DateTime(timezone=True), nullable=True)
@@ -442,6 +729,13 @@ class CommunityTimeline(Base):
     lodged_on = Column(Date, nullable=False)
     decided_on = Column(Date, nullable=True)  # grant/refusal date; NULL = waiting
     outcome = Column(String, nullable=False, default="waiting", index=True)
+
+    # Provenance — "member" (first-party) or "forum" (collected from public
+    # forums, anonymised). Both feed the public numbers; the API always reports
+    # the split alongside the number so a reader can judge it for themselves.
+    source = Column(
+        String, nullable=False, default="member", server_default="member", index=True
+    )
 
     country = Column(String, nullable=True)  # applicant country (optional, coarse)
     note = Column(String, nullable=True)  # short, optional free text

@@ -38,6 +38,11 @@ export const queryKeys = {
       [...queryKeys.community.all, "journeys", filters ?? {}] as const,
     journey: (id: string) =>
       [...queryKeys.community.all, "journey", id] as const,
+    account: () => [...queryKeys.community.all, "account"] as const,
+    inbox: () => [...queryKeys.community.all, "inbox"] as const,
+    myPosts: () => [...queryKeys.community.all, "my-posts"] as const,
+    myComments: () => [...queryKeys.community.all, "my-comments"] as const,
+    allowance: () => [...queryKeys.community.all, "allowance"] as const,
   },
   portal: {
     all: ["portal"] as const,

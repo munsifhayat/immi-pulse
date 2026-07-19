@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>immi360 — Community Platform Plan · identity, trust, anti-spam, dual-source data</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:#FBFAF8; --paper-deep:#F4F2ED; --ink:#16181D; --ink-soft:#5B6270;
+    --hair:#E7E4DE; --navy:#0F1117; --purple:#7C5CFC; --purple-deep:#5B3ADB;
+    --teal:#1B7B6F; --teal-light:#2DD4BF; --warning:#F59E0B; --danger:#B91C1C;
+    --serif:"Instrument Serif",Georgia,serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+    --sans:"Inter",-apple-system,sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body {
+    font-family:var(--sans); background:var(--paper); color:var(--ink);
+    -webkit-font-smoothing:antialiased; font-size:15px; line-height:1.68;
+    background-image:
+      radial-gradient(100% 60% at 88% -8%, color-mix(in srgb,var(--purple) 5%,transparent), transparent 60%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  }
+  a { color:var(--purple-deep); text-decoration:none; }
+  a:hover { text-decoration:underline; text-underline-offset:3px; }
+  .wrap { max-width:1000px; margin:0 auto; padding:0 40px; }
+  .eyebrow { font-family:var(--mono); font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--ink-soft); }
+  .mono { font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  code { font-family:var(--mono); font-size:.88em; background:var(--paper-deep); border:1px solid var(--hair); border-radius:5px; padding:1px 5px; }
+
+  /* Masthead */
+  header.doc { padding:64px 0 40px; border-bottom:1px solid var(--hair); }
+  header.doc .brand { font-weight:700; letter-spacing:-.02em; font-size:15px; }
+  header.doc .brand sup { font-family:var(--mono); font-size:8px; color:var(--purple); letter-spacing:.1em; position:relative; top:-6px; }
+  header.doc h1 { font-family:var(--serif); font-weight:400; font-size:clamp(38px,5vw,60px); line-height:1.02; letter-spacing:-.01em; margin:22px 0 16px; }
+  header.doc h1 em { font-style:italic; color:var(--purple-deep); }
+  header.doc .deck { font-size:16.5px; color:var(--ink-soft); max-width:62ch; }
+  header.doc .stamp { display:flex; gap:26px; margin-top:26px; flex-wrap:wrap; }
+  header.doc .stamp span { font-family:var(--mono); font-size:10px; letter-spacing:.1em; color:var(--ink-soft); }
+
+  /* TOC */
+  nav.toc { padding:26px 0 0; }
+  nav.toc ol { list-style:none; counter-reset:s; display:grid; grid-template-columns:repeat(2,1fr); gap:2px 32px; }
+  nav.toc li { counter-increment:s; border-bottom:1px dashed var(--hair); }
+  nav.toc a { display:flex; gap:12px; padding:8px 0; color:var(--ink-soft); font-size:13.5px; }
+  nav.toc a::before { content:counter(s,decimal-leading-zero); font-family:var(--mono); font-size:10px; color:var(--purple-deep); padding-top:4px; }
+  nav.toc a:hover { color:var(--ink); text-decoration:none; }
+
+  section { padding:56px 0 8px; }
+  h2 { font-family:var(--serif); font-weight:400; font-size:clamp(27px,3.2vw,38px); line-height:1.1; letter-spacing:-.005em; margin-bottom:6px; }
+  h2 em { font-style:italic; color:var(--purple-deep); }
+  h2 .num { font-family:var(--mono); font-size:11px; letter-spacing:.2em; color:var(--ink-soft); display:block; margin-bottom:12px; }
+  h3 { font-size:16px; font-weight:700; letter-spacing:-.01em; margin:30px 0 8px; }
+  h4 { font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft); margin:22px 0 8px; }
+  p { margin-bottom:14px; max-width:74ch; }
+  ul, ol.body { margin:0 0 16px 20px; max-width:74ch; }
+  li { margin-bottom:7px; }
+  hr.rule { height:1px; background:var(--hair); border:0; margin:16px 0 0; }
+
+  /* Tables */
+  table { width:100%; border-collapse:collapse; margin:16px 0 20px; font-size:13.5px; }
+  th { text-align:left; font-family:var(--mono); font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft); font-weight:500; padding:0 12px 8px 0; border-bottom:1px solid var(--ink); vertical-align:bottom; }
+  td { padding:11px 12px 11px 0; border-bottom:1px solid var(--hair); vertical-align:top; }
+  td:last-child, th:last-child { padding-right:0; }
+  .tier-name { font-weight:700; white-space:nowrap; }
+  .tier-num { font-family:var(--mono); font-size:9.5px; color:var(--purple-deep); display:block; letter-spacing:.1em; font-weight:400; }
+  td.num { font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+  /* Callouts */
+  .call { border-left:2px solid var(--ink); padding:2px 0 2px 18px; margin:20px 0; max-width:74ch; }
+  .call .lbl { font-family:var(--mono); font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; display:block; margin-bottom:6px; }
+  .call p:last-child { margin-bottom:0; }
+  .call.warn { border-color:var(--warning); }
+  .call.warn .lbl { color:#B45309; }
+  .call.legal { border-color:var(--danger); }
+  .call.legal .lbl { color:var(--danger); }
+  .call.win { border-color:var(--teal); }
+  .call.win .lbl { color:var(--teal); }
+  .call.built { border-color:var(--purple); }
+  .call.built .lbl { color:var(--purple-deep); }
+
+  /* Phase cards */
+  .phase { border:1px solid var(--hair); border-radius:14px; background:#fff; padding:20px 22px; margin-bottom:14px; }
+  .phase .top { display:flex; align-items:baseline; gap:14px; margin-bottom:10px; flex-wrap:wrap; }
+  .phase .pid { font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--paper); background:var(--ink); border-radius:5px; padding:4px 8px; }
+  .phase h3 { margin:0; font-size:16.5px; }
+  .phase .size { font-family:var(--mono); font-size:9.5px; letter-spacing:.08em; color:var(--ink-soft); margin-left:auto; }
+  .phase ul { margin:0 0 0 18px; font-size:13.5px; }
+  .phase .gate { font-family:var(--mono); font-size:10px; letter-spacing:.05em; color:var(--teal); border-top:1px dashed var(--hair); padding-top:10px; margin-top:12px; }
+
+  /* Decision blocks */
+  .dec { border:1px dashed var(--warning); background:#FFFBEB; border-radius:12px; padding:16px 18px; margin-bottom:12px; }
+  .dec .q { font-weight:700; font-size:14.5px; margin-bottom:6px; }
+  .dec p { font-size:13.5px; margin-bottom:6px; color:#78350F; }
+  .dec .rec { font-family:var(--mono); font-size:10.5px; letter-spacing:.05em; color:#B45309; }
+
+  footer.doc { border-top:1px solid var(--hair); margin-top:60px; padding:30px 0 60px; }
+  footer.doc p { font-family:var(--mono); font-size:9.5px; letter-spacing:.06em; color:var(--ink-soft); line-height:1.9; }
+
+  @media (max-width:760px) {
+    .wrap { padding:0 22px; }
+    nav.toc ol { grid-template-columns:1fr; }
+    table { font-size:12.5px; }
+  }
+  @media print {
+    body { background:none; }
+    section { page-break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+
+<header class="doc">
+  <div class="wrap">
+    <span class="brand">IMMI360<sup>AU</sup></span> &nbsp;·&nbsp; <span class="eyebrow">The Waiting Room</span>
+    <h1>Community platform: <em>identity, trust,<br/>and two sources of truth</em></h1>
+    <p class="deck">The implementation plan for the community-first pivot — how anonymous people become accountable members without ever losing anonymity, how we keep spam out while the room is still small, and how we publish a wait number that is honest enough to be trusted.</p>
+    <div class="stamp">
+      <span>DRAFTED · 18 JUL 2026</span>
+      <span>STATUS · FOR BUILD</span>
+      <span>SUPERSEDES · C2 APPLICANT-ACCOUNTS DECISION</span>
+      <span>MOCKUP · home-app-shell-mockup.html</span>
+    </div>
+    <nav class="toc">
+      <ol>
+        <li><a href="#s1">Locked decisions</a></li>
+        <li><a href="#s2">The six-tier ladder</a></li>
+        <li><a href="#s3">Anti-spam architecture</a></li>
+        <li><a href="#s4">The s276 framing rules</a></li>
+        <li><a href="#s5">Two sources: Official vs Room</a></li>
+        <li><a href="#s6">Data model &amp; migrations</a></li>
+        <li><a href="#s7">API surface</a></li>
+        <li><a href="#s8">Frontend: the app shell</a></li>
+        <li><a href="#s9">Build sequence</a></li>
+        <li><a href="#s10">Open decisions</a></li>
+      </ol>
+    </nav>
+  </div>
+</header>
+
+<!-- ═══ 1 ═══ -->
+<section id="s1"><div class="wrap">
+  <h2><span class="num">SECTION 01</span>Locked <em>decisions</em></h2>
+  <p>Everything below follows from these. They came out of the design discussion and are not re-litigated in this document.</p>
+  <table>
+    <thead><tr><th style="width:30%">Decision</th><th>What it means</th></tr></thead>
+    <tbody>
+      <tr><td><b>App shell, not website</b></td><td>The homepage <em>is</em> the feed. Three columns, X-familiar. No hero, no marketing sections, no pricing. The SaaS product survives as one footer link.</td></tr>
+      <tr><td><b>Six trust tiers</b></td><td>Visitor → Anonymous → Verified → Established → Trusted → Professional. Detailed in §2.</td></tr>
+      <tr><td><b>Permissive start</b></td><td>Anonymous tier gets 5 posts and 20 comments per day. Deliberately loose to seed the room; tightened once traffic is real.</td></tr>
+      <tr><td><b>Three post actions</b></td><td><code>helpful</code> · <code>replies</code> · <code>share</code>. No separate like, no repost. Fewer signals, less noise.</td></tr>
+      <tr><td><b>Two data sources</b></td><td>Every wait number shows <b>Official</b> (Home Affairs) beside <b>Room</b> (our community estimate). Never one without the other.</td></tr>
+      <tr><td><b>Nav trimmed</b></td><td><s>My cohort</s> and <s>Find a consultant</s> removed for now. Marketplace returns later as its own module.</td></tr>
+      <tr><td><b>Experience, not advice</b></td><td>The product never positions itself between an applicant and a decision. Framing rules in §4.</td></tr>
+    </tbody>
+  </table>
+</div></section>
+
+<!-- ═══ 2 ═══ -->
+<section id="s2"><div class="wrap">
+  <h2><span class="num">SECTION 02</span>The six-tier <em>ladder</em></h2>
+  <p>Numbered <b>T0–T5</b> so the six tiers run contiguously. The substance matches the discussion exactly — the "90-day" tier is T4 and the professional tier is T5.</p>
+  <p>The organising principle: <b>anonymity is permanent and public; accountability is private and earned.</b> An email address is collected so a person can be banned, never so they can be displayed. No handle is ever linked to an identity in any public surface.</p>
+
+  <table>
+    <thead>
+      <tr><th style="width:15%">Tier</th><th style="width:24%">How you get in</th><th>What it unlocks</th><th style="width:16%">Daily caps</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="tier-name">Visitor<span class="tier-num">T0</span></td>
+        <td>Nothing. Just arrive.</td>
+        <td>Read everything, search, run Wait Check, view all timelines. The entire SEO surface.</td>
+        <td class="num">—<br/><span style="color:var(--ink-soft);font-size:10px">read only</span></td>
+      </tr>
+      <tr>
+        <td class="tier-name">Anonymous<span class="tier-num">T1</span></td>
+        <td>Auto-minted device token on first write. Handle + colour assigned.</td>
+        <td>Post, reply, vote. <b>No outbound links.</b> No image uploads. This is the "try it before you commit" tier.</td>
+        <td class="num">5 posts<br/>20 replies</td>
+      </tr>
+      <tr>
+        <td class="tier-name">Verified<span class="tier-num">T2</span></td>
+        <td>Email + password, confirmed by magic link. Nothing else asked.</td>
+        <td>Everything in T1, uncapped timelines, edit window on own posts, notifications, activity survives device loss.</td>
+        <td class="num">15 posts<br/>60 replies</td>
+      </tr>
+      <tr>
+        <td class="tier-name">Established<span class="tier-num">T3</span></td>
+        <td><b>Automatic.</b> 7+ days old · 5+ surviving contributions · net-positive helpful votes · no upheld reports.</td>
+        <td><b>Outbound links.</b> Image uploads. Weighted reports (their flag counts ~3×). Longer edit window.</td>
+        <td class="num">30 posts<br/>150 replies</td>
+      </tr>
+      <tr>
+        <td class="tier-name">Trusted<span class="tier-num">T4</span></td>
+        <td><b>Automatic.</b> 90+ days old · 25+ contributions · <b>at least one completed timeline</b> · zero upheld reports in 90 days.</td>
+        <td>Front-line moderation: their flags auto-hide content pending review. Can mark a reply as the helpful one on questions in queues they've completed. Surfaced as "been through this queue" to askers.</td>
+        <td class="num">effectively<br/>unlimited</td>
+      </tr>
+      <tr>
+        <td class="tier-name">Professional<span class="tier-num">T5</span></td>
+        <td><b>Manual.</b> MARN checked against the public OMARA register. Identity confirmed off-platform.</td>
+        <td>Registered-agent badge. Mandatory disclosure on every reply. Eligible for the marketplace when it ships. Subject to stricter conduct rules, not looser ones.</td>
+        <td class="num">unlimited<br/>+ audited</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="call win">
+    <span class="lbl">Why T4 requires a completed timeline</span>
+    <p>Tenure alone can be farmed. Requiring that someone has actually been through a visa queue end-to-end ties trust to lived experience, which is the thing this community is uniquely able to verify and the thing a generic forum can never replicate. It also produces the single most valuable feed interaction we can offer: pointing an anxious asker at someone who has finished the exact queue they are sitting in.</p>
+  </div>
+
+  <h3>Promotion mechanics</h3>
+  <p>Tiers are computed, not granted. A nightly job recalculates <code>trust_tier</code> for every account from the criteria above and writes it to the identity row; promotions are silent and immediate on next request. Demotion happens on upheld reports and is also automatic. Nothing about tier is shown as a score, a badge, or a leaderboard — the only visible tier is <b>T5</b>, and that is a disclosure requirement rather than a reward. This keeps the ladder from becoming a game to farm, consistent with the "cohorts, not leaderboards" principle.</p>
+</div></section>
+
+<!-- ═══ 3 ═══ -->
+<section id="s3"><div class="wrap">
+  <h2><span class="num">SECTION 03</span>Anti-spam <em>architecture</em></h2>
+
+  <div class="call warn">
+    <span class="lbl">Read this before setting any T1 number</span>
+    <p>For anonymous users, <b>per-identity caps are decorative.</b> A device token is free and infinite — clearing localStorage mints a brand-new identity with a fresh counter. So "5 posts and 20 replies per day" is a UX guardrail, not a security control. The only real backstop on T1 is the <b>per-IP-hash cap</b>, which persists across token resets. If we want anonymous writes to be genuinely bounded, the IP cap is the dial that matters, and it must be set deliberately rather than inherited.</p>
+  </div>
+
+  <p>That gives us the layered model below. Each layer catches what the one above it misses.</p>
+
+  <table>
+    <thead><tr><th style="width:22%">Layer</th><th>Mechanism</th><th style="width:22%">Catches</th></tr></thead>
+    <tbody>
+      <tr><td><b>1 · Per-IP caps</b></td><td>Durable counters keyed on <code>ip_hash</code>. Proposed: 25 posts / 60 replies per IP per day at T1. Signing in lifts the cap, which is the conversion incentive.</td><td>Token-cycling, casual flooding</td></tr>
+      <tr><td><b>2 · Link gating</b></td><td>No outbound links, phone numbers, or messaging handles below T3. Pattern-matched, not just URL-parsed.</td><td><b>Agent touting, scam links</b> — the dominant real-world spam here</td></tr>
+      <tr><td><b>3 · Velocity &amp; similarity</b></td><td>Same body across 3+ threads, or N writes inside 60s, auto-holds into the existing moderation queue.</td><td>Automated posting, copy-paste campaigns</td></tr>
+      <tr><td><b>4 · Identity cost</b></td><td>Disposable-domain blocklist at signup. One account per email. Bans key on email hash + device token + IP cluster together.</td><td>Ban evasion at T2+</td></tr>
+      <tr><td><b>5 · Weighted reports</b></td><td>T3 flags count ~3×; T4 flags auto-hide pending review. Feeds the admin queue already shipped.</td><td>Everything human judgement catches</td></tr>
+      <tr><td><b>6 · Shadow-limiting</b></td><td>Borderline accounts keep seeing their own content; the feed does not. No signal that a ban occurred.</td><td>Whack-a-mole re-registration</td></tr>
+    </tbody>
+  </table>
+
+  <div class="call warn">
+    <span class="lbl">Blocking defect — fix before anything else ships</span>
+    <p>The current limiter is an in-process Python dict (<code>_rate_state</code> in <code>community/service.py:56</code>). Every counter resets when the Heroku dyno restarts, and the moment a second web dyno exists each dyno keeps its own tally — so the effective limit silently multiplies by dyno count. Every control in the table above assumes this layer is real. <b>Move it to Postgres (or Redis) first.</b> The code comment already anticipates this; it simply hasn't happened yet.</p>
+  </div>
+
+  <div class="call">
+    <span class="lbl">A real tension worth naming</span>
+    <p>This audience shares IP addresses more than most — university campuses, share houses, migrant accommodation, and mobile carrier CGNAT all put many legitimate users behind one hash. Aggressive IP caps therefore produce false positives on exactly the people we most want. The resolution is to keep IP caps moderate, make signing in always lift them, and lean on velocity/similarity detection (layer 3) which targets behaviour rather than location. Never hard-ban an IP; throttle it and offer the sign-in path.</p>
+  </div>
+
+  <h3>Deliberately not doing</h3>
+  <ul>
+    <li><b>No SMS verification at launch.</b> It costs money, adds real friction, and for people mid-migration with changing numbers it is actively hostile. Hold it in reserve as an escalation for repeat abusers.</li>
+    <li><b>No direct messages at launch.</b> Once the feed is policed, touting migrates to DMs where moderation cannot see it. Do not build the channel until there is a reason.</li>
+    <li><b>No visible karma or leaderboards.</b> Visible points invite farming and contradict the cohort principle.</li>
+    <li><b>Never gate participation on visa status.</b> No document, no proof, no case number is ever required to take part.</li>
+  </ul>
+</div></section>
+
+<!-- ═══ 4 ═══ -->
+<section id="s4"><div class="wrap">
+  <h2><span class="num">SECTION 04</span>The s276 <em>framing rules</em></h2>
+
+  <div class="call legal">
+    <span class="lbl">The exposure, stated plainly</span>
+    <p>Under the Migration Act, giving <em>immigration assistance</em> while unregistered is an offence. The risk to us is not that members share experiences — it is that the <b>product shape</b> makes peer experience look like professional advice. A layout that reads "question in, authoritative answer out" is advice-shaped. A layout that reads "here is what happened to people in your queue" is not. This is an information-architecture decision before it is a legal one, which is why it belongs in the build plan rather than the terms of service.</p>
+  </div>
+
+  <h3>Rules that bind the interface</h3>
+  <table>
+    <thead><tr><th style="width:34%">Rule</th><th>Implementation</th></tr></thead>
+    <tbody>
+      <tr><td><b>Never the word "advice"</b></td><td>Replies are <code>replies</code>, not answers. The helpful signal marks "this was useful experience", not "this is correct". No "expert", no "verified answer", no "solution".</td></tr>
+      <tr><td><b>Composer framing</b></td><td>Modes are <b>Ask the room</b> and <b>Share your story</b>. Placeholder copy invites what happened to <em>you</em>, not what someone else should do. Persistent line: <span class="mono" style="font-size:11px">EXPERIENCES, NOT ADVICE</span>.</td></tr>
+      <tr><td><b>No brokered engagements</b></td><td>Below T5 nobody may offer paid help. Touting patterns (fee offers, WhatsApp/DM solicitation, "I can lodge for you") auto-hold into the queue — this is simultaneously the top spam vector and the top legal vector, so it gets one shared control.</td></tr>
+      <tr><td><b>T5 disclosure is mandatory</b></td><td>Registered agents carry a persistent badge and MARN. Their replies remain general information; anything further moves to a formal engagement off-platform.</td></tr>
+      <tr><td><b>Platform voice never instructs</b></td><td>Wait Check reports where someone sits in a distribution. It never says what to do about it. "One in three people waits longer than you" is a fact; "you should follow up with the department" is advice.</td></tr>
+      <tr><td><b>Footer line stays everywhere</b></td><td>General information shared between community members — not migration advice. Already live; keep it on every surface including the app shell rail.</td></tr>
+    </tbody>
+  </table>
+</div></section>
+
+<!-- ═══ 5 ═══ -->
+<section id="s5"><div class="wrap">
+  <h2><span class="num">SECTION 05</span>Two sources: <em>Official vs Room</em></h2>
+
+  <div class="call built">
+    <span class="lbl">Already built — more than expected</span>
+    <p>The dual-source concept is roughly 70% implemented. <code>VisaReference</code> already carries <code>official_p50_days</code>, <code>official_p90_days</code> and <code>official_updated</code>; <code>processing.py</code> has <code>wait_verdict_official()</code> alongside the community verdict; and the frontend <code>official-times.tsx</code> already computes a delta between community p50 and the official figure. The work here is less "build it" than "make the community half statistically honest, and be clear about where the official half comes from".</p>
+  </div>
+
+  <h3>The censoring problem — the one thing that must be right</h3>
+  <p>Community percentiles are currently computed from <em>decided</em> cases only. This systematically understates waits, because fast grants leave the queue first while slow cases are still sitting in it — the classic right-censoring bias. If we publish a median of finished cases and call it "the community wait", it will read low, and the people it reads low for are precisely the long-waiting members whose trust we cannot afford to lose.</p>
+  <p>The engine already has the right instinct: <code>compute_stats()</code> carries a <code>pending</code> count beside the percentiles, and the module docstring calls this "honest denominators". The fix is to finish that thought.</p>
+
+  <table>
+    <thead><tr><th style="width:22%">Stage</th><th>Approach</th></tr></thead>
+    <tbody>
+      <tr><td><b>v1 — honest</b></td><td>Keep decided-only percentiles, but never display one without its pending count and an explicit label: <span class="mono" style="font-size:11px">MEDIAN OF 387 DECIDED · 214 STILL WAITING</span>. Cheap, shippable now, and not misleading.</td></tr>
+      <tr><td><b>v2 — correct</b></td><td>Kaplan–Meier survival estimate using still-waiting cases as censored observations. Produces a median that accounts for people who haven't finished. This is a genuine differentiator: <em>we count the people still waiting; the official number does not.</em></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Cohorting and thresholds</h3>
+  <ul>
+    <li><b>Cohort key:</b> subclass → then stream, onshore/offshore, and state where sample size allows. Fall back to the broader cohort rather than publish a thin number.</li>
+    <li><b>Minimum sample:</b> below <b>n = 20</b> decided cases, show "not enough data yet" instead of a figure. The current <code>unknown</code> verdict tier already exists for this.</li>
+    <li><b>Recency window:</b> lodgements within the last 12 months. Policy changes shift queues, and a five-year median describes a queue that no longer exists.</li>
+    <li><b>Sample isolation:</b> scraped seed timelines are flagged <code>is_sample</code> and excluded from stats today. See the open decision in §10 — with them excluded, most cohorts have no publishable number at launch.</li>
+  </ul>
+
+  <h3>The official half</h3>
+  <p>Official figures live in <code>VisaReference</code> and are seeded by hand — <code>official_updated</code> is a human label like "Mar 2026". The mockup's earlier "checked daily" claim was wrong and has been corrected. Either automate ingestion from the Home Affairs published tool, or keep it manual and always display the as-at date. Manual with an honest date is perfectly acceptable at this stage; a stale figure presented as live is not.</p>
+</div></section>
+
+<!-- ═══ 6 ═══ -->
+<section id="s6"><div class="wrap">
+  <h2><span class="num">SECTION 06</span>Data model &amp; <em>migrations</em></h2>
+
+  <h4>Migration 1 — identity becomes tier-aware</h4>
+  <table>
+    <thead><tr><th style="width:30%">Change</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td><code>anon_identities</code> +cols</td><td><code>trust_tier</code> (int, default 1), <code>tier_computed_at</code>, <code>posts_used_today</code>, <code>replies_used_today</code>, <code>usage_reset_on</code> (date), <code>upheld_reports</code> (int), <code>shadow_limited</code> (bool)</td></tr>
+      <tr><td><code>journeys_posted</code></td><td>Retained but no longer the gate. Generalised counters above replace the single-timeline cap.</td></tr>
+      <tr><td>New <code>rate_counters</code></td><td><code>(scope_type, scope_key, action, window_start)</code> → <code>count</code>. Scope type is <code>ip</code> or <code>identity</code>. Replaces the in-memory dict; survives restarts and works across dynos.</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Migration 2 — community accounts</h4>
+  <table>
+    <thead><tr><th style="width:30%">Change</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td><code>users</code> +role</td><td>New role <code>community_member</code>. Reuses the existing <code>password_hash</code>, <code>hash_password()</code>, <code>verify_password()</code> and JWT stack — no fourth auth system.</td></tr>
+      <tr><td><code>users</code> +cols</td><td><code>email_verified_at</code>, <code>verification_token</code>, <code>banned_at</code>, <code>ban_reason</code></td></tr>
+      <tr><td><code>anon_identities.user_id</code></td><td>Already exists as a nullable FK. The claim flow stitches prior anonymous activity to the new account — no data loss on signup, which matters because someone's first post is often their best one.</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Migration 3 — professional verification</h4>
+  <p>New <code>professional_verifications</code>: <code>user_id</code>, <code>marn</code>, <code>legal_name</code>, <code>register_checked_at</code>, <code>checked_by</code>, <code>status</code>, <code>expires_on</code>. Deliberately separate from <code>users</code> so real-name data lives in one auditable place and never leaks into community responses.</p>
+
+  <div class="call legal">
+    <span class="lbl">Privacy rule — cheap now, painful later</span>
+    <p>If a community member later becomes a client of a consultant on the SaaS side, that consultant must never be able to discover their community handle. Same <code>users</code> row, but <code>handle</code> must be excluded from every consultant-facing serializer by default. Write this as a test, not a convention — the failure mode is a migrant discovering their agent can read their anonymous posts about that agent.</p>
+  </div>
+</div></section>
+
+<!-- ═══ 7 ═══ -->
+<section id="s7"><div class="wrap">
+  <h2><span class="num">SECTION 07</span>API <em>surface</em></h2>
+  <table>
+    <thead><tr><th style="width:38%">Endpoint</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>POST /community/auth/signup</code></td><td>Email + password. Creates <code>users</code> row with <code>community_member</code>, sends magic link. Rejects disposable domains.</td></tr>
+      <tr><td><code>POST /community/auth/verify</code></td><td>Consumes token, sets <code>email_verified_at</code>, promotes identity to T2.</td></tr>
+      <tr><td><code>POST /community/auth/login</code></td><td>Returns JWT. Binds current device token to the account.</td></tr>
+      <tr><td><code>POST /community/identity/claim</code></td><td>Stitches anonymous activity to the account. Exists in concept already.</td></tr>
+      <tr><td><code>GET /community/me</code></td><td>Returns handle, tier, remaining daily allowance, and what the next tier unlocks. Drives the composer's gate state.</td></tr>
+      <tr><td><code>GET /community/stats/{subclass}</code></td><td>Dual payload: <code>official</code> block and <code>room</code> block with <code>sample_size</code>, <code>pending</code>, percentiles, and an explicit <code>sufficient</code> flag.</td></tr>
+    </tbody>
+  </table>
+  <p>Existing write endpoints stay, with the tier check moved into a shared dependency so caps, link gating, and shadow-limiting are enforced in one place rather than per-route.</p>
+</div></section>
+
+<!-- ═══ 8 ═══ -->
+<section id="s8"><div class="wrap">
+  <h2><span class="num">SECTION 08</span>Frontend: the <em>app shell</em></h2>
+  <p>Reference implementation is <code>context/community/home-app-shell-mockup.html</code> (v3, finalised). It is a working prototype, not a picture — composer modes, tab filtering, queue filtering, the "/" search shortcut, and the Wait Check page swap all function.</p>
+  <table>
+    <thead><tr><th style="width:26%">Surface</th><th>Build note</th></tr></thead>
+    <tbody>
+      <tr><td><b>Route</b></td><td><code>(public)/page.tsx</code> becomes the shell. The existing <code>/community</code> route redirects to it — one room, one address.</td></tr>
+      <tr><td><b>Left rail</b></td><td>Home · Questions · Timelines · Wait Check · Notifications, then the queue filter, the share button, and the identity chip. Static; does not scroll with the feed.</td></tr>
+      <tr><td><b>Composer</b></td><td>Two modes. Ask is a textarea; Share swaps in structured timeline fields. Gate state comes from <code>/community/me</code> — when the allowance is spent, the CTA becomes the sign-in prompt rather than erroring after the fact.</td></tr>
+      <tr><td><b>Feed</b></td><td>Flat hairline-divided rows, not cards. Three actions only. Timeline rows keep the proportional milestone strip.</td></tr>
+      <tr><td><b>Right rail</b></td><td>Search, Wait Check teaser, dual-source processing table, today's digest, footer links. Static.</td></tr>
+      <tr><td><b>Wait Check</b></td><td>Its own route, reachable from nav and the teaser. Keeps the feed clean and gives the wedge a shareable URL — it is the SEO magnet.</td></tr>
+      <tr><td><b>Retired pages</b></td><td>Pricing, features, get-started: redirect and <code>noindex</code> rather than delete. They return when the SaaS module does.</td></tr>
+    </tbody>
+  </table>
+</div></section>
+
+<!-- ═══ 9 ═══ -->
+<section id="s9"><div class="wrap">
+  <h2><span class="num">SECTION 09</span>Build <em>sequence</em></h2>
+  <p>Ordered so that each phase is independently shippable and nothing depends on a control that isn't real yet.</p>
+
+  <div class="phase">
+    <div class="top"><span class="pid">PHASE A</span><h3>Rate-limiting foundation</h3><span class="size">SMALL · BLOCKING</span></div>
+    <ul>
+      <li>Move <code>_rate_state</code> from the in-process dict to a <code>rate_counters</code> table</li>
+      <li>Add per-IP and per-identity scopes; make caps configurable per tier</li>
+      <li>Generalise <code>journeys_posted</code> into per-action daily counters</li>
+    </ul>
+    <p class="gate">GATE · Limits survive a dyno restart and hold across two dynos. Everything downstream assumes this.</p>
+  </div>
+
+  <div class="phase">
+    <div class="top"><span class="pid">PHASE B</span><h3>Community accounts (T2)</h3><span class="size">MEDIUM</span></div>
+    <ul>
+      <li><code>community_member</code> role, signup / verify / login on the existing auth stack</li>
+      <li>Magic-link verification, disposable-domain blocking</li>
+      <li>Claim flow stitching anonymous activity to the account</li>
+      <li>Consultant-facing serializer test proving <code>handle</code> never leaks</li>
+    </ul>
+    <p class="gate">GATE · A person can sign up, keep their handle, and keep their earlier posts.</p>
+  </div>
+
+  <div class="phase">
+    <div class="top"><span class="pid">PHASE C</span><h3>The app shell</h3><span class="size">MEDIUM · VISIBLE</span></div>
+    <ul>
+      <li>Homepage becomes the three-column shell; <code>/community</code> redirects in</li>
+      <li>Composer with two modes and a real gate state from <code>/community/me</code></li>
+      <li>Feed reduced to three actions; nav trimmed</li>
+      <li>Wait Check moved to its own route; pricing/features/get-started redirected and noindexed</li>
+    </ul>
+    <p class="gate">GATE · Landing on immi360.com.au puts you inside the room, not in front of a pitch.</p>
+  </div>
+
+  <div class="phase">
+    <div class="top"><span class="pid">PHASE D</span><h3>Two sources, honestly</h3><span class="size">MEDIUM</span></div>
+    <ul>
+      <li>Dual payload on the stats endpoint; never render one source alone</li>
+      <li>v1 honest denominators — every median carries its pending count and as-at date</li>
+      <li>Sample-size floor and cohort fallback</li>
+      <li>Then Kaplan–Meier for the censoring-corrected median</li>
+    </ul>
+    <p class="gate">GATE · A long-waiting member reads our number and recognises their own experience in it.</p>
+  </div>
+
+  <div class="phase">
+    <div class="top"><span class="pid">PHASE E</span><h3>Trust &amp; moderation</h3><span class="size">MEDIUM</span></div>
+    <ul>
+      <li>Nightly tier computation for T3 and T4; automatic demotion on upheld reports</li>
+      <li>Link gating below T3; touting-pattern detection into the existing queue</li>
+      <li>Velocity and similarity checks; shadow-limiting</li>
+      <li>Weighted reports; T4 auto-hide</li>
+    </ul>
+    <p class="gate">GATE · Moderation load per thousand posts is falling, not rising.</p>
+  </div>
+
+  <div class="phase">
+    <div class="top"><span class="pid">PHASE F</span><h3>Professional verification (T5)</h3><span class="size">SMALL · LATER</span></div>
+    <ul>
+      <li>MARN capture, manual OMARA register check, badge and mandatory disclosure</li>
+      <li>Foundation for the consultant marketplace — same verification, second surface</li>
+    </ul>
+    <p class="gate">GATE · Not needed for launch. Do it when the first genuine agent asks to take part.</p>
+  </div>
+</div></section>
+
+<!-- ═══ 10 ═══ -->
+<section id="s10"><div class="wrap">
+  <h2><span class="num">SECTION 10</span>Open <em>decisions</em></h2>
+  <p>Four things this plan cannot settle on its own.</p>
+
+  <div class="dec">
+    <div class="q">1 · Do the 141 scraped timelines feed the public numbers?</div>
+    <p>They are flagged <code>is_sample</code> and excluded from stats today. Excluded, most cohorts have no publishable community median at launch — the dual-source table would show "Official" beside a dash. Included, the numbers work immediately but rest partly on forum-scraped data rather than first-party reports.</p>
+    <p class="rec">RECOMMENDATION · Include them, but label the provenance in the open — "based on 141 reported timelines, 66 collected from public forums". Transparency about where a number comes from is more defensible than a dash, and it is on-brand.</p>
+  </div>
+
+  <div class="dec">
+    <div class="q">2 · What is the real per-IP cap for anonymous writes?</div>
+    <p>The agreed 5 posts / 20 replies is per identity, which anonymous users can reset at will. The IP cap is the control that actually binds. Set it too low and share houses and campuses get blocked; too high and the T1 tier is effectively uncapped.</p>
+    <p class="rec">RECOMMENDATION · Start at 25 posts / 60 replies per IP per day, log every rejection, and tune from the first fortnight of real traffic rather than guessing now.</p>
+  </div>
+
+  <div class="dec">
+    <div class="q">3 · Is Wait Check usable without an account?</div>
+    <p>It is the strongest acquisition hook and the most shareable artefact, which argues for leaving it fully open. But it is also the natural moment to ask someone to contribute their own timeline.</p>
+    <p class="rec">RECOMMENDATION · Fully open, no account, no gate. Ask for the timeline <em>after</em> showing the result, when the value is already delivered.</p>
+  </div>
+
+  <div class="dec">
+    <div class="q">4 · Does an anonymous member keep their handle when they sign up?</div>
+    <p>Keeping it preserves continuity and the small reputation they've built. Rotating it on signup severs any link between pre- and post-account activity, which is marginally better for privacy.</p>
+    <p class="rec">RECOMMENDATION · Keep the handle, and say so at the gate. Losing your identity is a reason not to sign up, and the privacy gain is theoretical since the account was already pseudonymous.</p>
+  </div>
+</div></section>
+
+<footer class="doc"><div class="wrap">
+  <p>IMMI360 · COMMUNITY PLATFORM PLAN · DRAFTED 18 JUL 2026<br/>
+  COMPANION MOCKUP · context/community/home-app-shell-mockup.html (v3)<br/>
+  SUPERSEDES THE BLOCKED C2 APPLICANT-ACCOUNTS DECISION FROM COMMUNITY LAUNCH SPRINT 1</p>
+</div></footer>
+
+</body>
+</html>

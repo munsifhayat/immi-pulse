@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, MessageCircle, ShieldCheck } from "lucide-react";
 import type { JourneyDetailOut } from "@/lib/api/hooks/community";
 import { API_URL, SITE_URL } from "@/lib/site";
-import { formatDays, shortDate } from "../../_lib/format";
-import { milestoneMeta, dayGap, gapLabel } from "../../_components/milestone-meta";
+import { formatDays, shortDate } from "@/lib/room/format";
+import { milestoneMeta, dayGap, gapLabel } from "@/components/room/milestone-meta";
 
 // Cache each timeline page for 5 minutes; new milestones/comments refresh on
 // the next request. Individual timelines change rarely, so this keeps the pages
@@ -149,10 +149,10 @@ export default async function JourneyPage({
 
       <div className="mx-auto max-w-[720px] px-6 py-10 lg:py-16">
         <Link
-          href="/community"
+          href="/"
           className="c-mono inline-flex items-center gap-1.5 text-[12px] uppercase tracking-[0.12em] text-ink-soft transition-colors hover:text-purple"
         >
-          <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} /> Community
+          <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} /> The room
         </Link>
 
         {/* header */}
@@ -295,7 +295,7 @@ export default async function JourneyPage({
             subclass. No sign-in to check, or to share your first timeline.
           </p>
           <Link
-            href="/community"
+            href="/wait-check"
             className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-ink px-5 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-ink/90"
           >
             Check your wait <ArrowRight className="h-4 w-4" strokeWidth={2} />

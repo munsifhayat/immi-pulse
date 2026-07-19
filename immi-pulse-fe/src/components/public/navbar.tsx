@@ -7,11 +7,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// This navbar now only appears on the remaining editorial pages (About, News,
+// legal, the two audience pages). The room itself has no navbar — its nav is
+// the left rail. Links to the retired marketing routes are gone rather than
+// left pointing at a redirect.
 const navLinks = [
-  { label: "Platform", href: "/features" },
-  { label: "Community", href: "/community" },
+  { label: "The Room", href: "/" },
+  { label: "Wait Check", href: "/wait-check" },
+  { label: "For Applicants", href: "/for-applicants" },
   { label: "For Consultants", href: "/for-consultants" },
-  { label: "Pricing", href: "/pricing" },
   { label: "About", href: "/about" },
 ];
 

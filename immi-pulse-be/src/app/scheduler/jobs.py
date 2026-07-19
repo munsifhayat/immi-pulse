@@ -158,6 +158,40 @@ async def _retry_stuck_triages():
         logger.error(f"Stuck triage retry failed: {e}", exc_info=True)
 
 
+async def _run_community_tier_recompute():
+    """Job: recompute every community account's trust tier.
+
+    Nightly rather than on every write, because promotion is a function of
+    tenure and accumulated behaviour — nothing here changes meaningfully within
+    a day, and recomputing on the write path would put four aggregate queries in
+    front of every post to answer a question whose answer almost never changes.
+
+    Demotion does not wait for this job: an upheld report recomputes the tier on
+    the spot (``trust.record_upheld_report``), because that is the one direction
+    where a day's delay has a real cost. This job is the promotion half, plus
+    the safety net that catches anything the write paths missed.
+
+    Wrapped in the same broad try/except as its siblings: a scheduler job that
+    raises takes the job out of the scheduler, and a trust ladder that silently
+    stops recomputing is far worse than one that logs a failure and tries again
+    tomorrow.
+    """
+    try:
+        from app.agents.immigration.community.trust import recompute_all_tiers
+        from app.db.session import get_async_session
+
+        async with get_async_session() as db:
+            result = await recompute_all_tiers(db)
+        logger.info(
+            "Community tier recompute: %s scanned, %s changed, by_tier=%s",
+            result["scanned"],
+            result["changed"],
+            result["by_tier"],
+        )
+    except Exception as e:
+        logger.error(f"Community tier recompute failed: {e}", exc_info=True)
+
+
 def start_scheduler() -> AsyncIOScheduler:
     """Configure and start scheduled jobs."""
     scheduler = get_scheduler()
@@ -186,10 +220,23 @@ def start_scheduler() -> AsyncIOScheduler:
         replace_existing=True,
     )
 
+    # 03:20 rather than on the hour: midnight already has the webhook renewal on
+    # it, and two jobs starting together on a single dyno is a self-inflicted
+    # contention spike for no benefit. Nothing about a trust ladder cares which
+    # hour it runs in.
+    scheduler.add_job(
+        _run_community_tier_recompute,
+        trigger=CronTrigger(hour=3, minute=20),
+        id="community_tier_recompute",
+        name="Community Trust Tier Recompute",
+        replace_existing=True,
+    )
+
     scheduler.start()
     logger.info(
         f"Scheduler started: polling every {settings.polling_interval_minutes}min, "
-        "webhook renewal at midnight, triage retry every 5min"
+        "webhook renewal at midnight, triage retry every 5min, "
+        "community tier recompute at 03:20"
     )
     return scheduler
 

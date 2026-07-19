@@ -7,16 +7,37 @@ Admin:         /community/admin/*      (X-API-Key — add admin role later)
 """
 
 import logging
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.immigration.community.accounts import (
+    AccountError,
+    CommunityAccountService,
+    device_token_from_request,
+    issue_community_session_jwt,
+    optional_community_account,
+    require_community_account,
+    send_recovery_email,
+    set_device_cookie,
+)
+from app.agents.immigration.community import notifications
 from app.agents.immigration.community.identity import initials_of
-from app.agents.immigration.community.models import CommunityTimeline
+from app.agents.immigration.community.models import AnonIdentity, CommunityTimeline
 from app.agents.immigration.community.schemas import (
+    AddMilestonesRequest,
+    AllowanceActionOut,
+    AllowanceOut,
+    CommunityAccountOut,
+    CommunityLoginRequest,
+    CommunityRecoverAcceptedOut,
+    CommunityRecoverRequest,
+    CommunityResetPasswordRequest,
+    CommunitySessionOut,
+    CommunitySignupRequest,
     CommunitySpaceOut,
     CommunityStatsOut,
     CreateCommunitySpaceRequest,
@@ -24,13 +45,22 @@ from app.agents.immigration.community.schemas import (
     CreateJourneyRequest,
     FeedSummaryOut,
     IdentityOut,
+    InboxOut,
     JourneyCommentOut,
     JourneyDetailOut,
     JourneyOut,
+    MarkReadOut,
+    MarkReadRequest,
     ModerationActionRequest,
+    MyCommentOut,
+    NotificationOut,
+    NotificationPreferencesOut,
+    NotificationPreferencesRequest,
     ProcessingStatOut,
+    PublishJourneyRequest,
     ReportOut,
     ReportRequest,
+    SaveWaitCheckRequest,
     SubmitTimelineRequest,
     TimelineOut,
     VisaSubclassOut,
@@ -40,8 +70,10 @@ from app.agents.immigration.community.schemas import (
 from app.agents.immigration.community.service import (
     CommunityRateLimitError,
     CommunityService,
+    ContentGateError,
     JourneyCapError,
     hash_ip,
+    remaining_allowance,
 )
 from app.core.jwt_auth import get_current_owner_or_admin
 from app.db.session import get_db
@@ -64,9 +96,50 @@ def _client_ip_hash(request: Request) -> str:
 
 
 def _device_token(request: Request) -> Optional[str]:
-    """The per-device anonymous identity token (set client-side at bootstrap)."""
-    token = request.headers.get("x-device-token")
-    return token.strip() if token and token.strip() else None
+    """The per-device identity token — ``X-Device-Token`` header, then cookie.
+
+    The header path is the original localStorage client; the HttpOnly cookie is
+    the durable copy that survives Safari's seven-day ITP eviction. Both are
+    honoured so the transition needs no flag day.
+    """
+    return device_token_from_request(request)
+
+
+async def _viewer_identity(
+    request: Request, db: AsyncSession, account: Optional[AnonIdentity]
+) -> Optional[AnonIdentity]:
+    """Who is reading — the signed-in account first, the device token second.
+
+    Session beats device: someone who logs in on a borrowed or brand-new device
+    must still see their own posts marked as theirs, and that is precisely the
+    thing an account is for. Falls back to the device token so signed-out
+    readers keep the ownership cues they had before accounts existed.
+    """
+    if account is not None:
+        return account
+    return await CommunityService.get_identity_by_token(db, _device_token(request))
+
+
+async def _writer_identity(
+    request: Request,
+    db: AsyncSession,
+    account: Optional[AnonIdentity],
+    *,
+    ip_hash: str,
+) -> AnonIdentity:
+    """Who is writing — the signed-in account, else this device's identity.
+
+    Same precedence as :func:`_viewer_identity`, but this one always yields a
+    row: an anonymous writer still gets a device identity minted for them, as
+    before. Attribution follows the session so a member posting from a new
+    device writes as themselves rather than as a stranger.
+    """
+    if account is not None:
+        account.last_seen_at = datetime.now(timezone.utc)
+        return account
+    return await CommunityService.get_or_create_identity(
+        db, token=_device_token(request), ip_hash=ip_hash
+    )
 
 
 def _timeline_out(timeline: CommunityTimeline) -> TimelineOut:
@@ -105,6 +178,14 @@ async def wait_check(
     lodged_on: date = Query(...),
     db: AsyncSession = Depends(get_db),
 ):
+    """"Is my wait normal?" — open to everyone, always.
+
+    No account, no session, no device token, no API key. This is the acquisition
+    hook and the SEO surface, and gating it would cost far more than the data it
+    would collect. Its contract is deliberately frozen: Phase 4 only *added*
+    fields (``sufficient``, ``provenance``, ``official``, ``room``). Nothing was
+    removed or renamed.
+    """
     if lodged_on > date.today():
         raise HTTPException(
             status_code=422, detail="Lodgement date cannot be in the future."
@@ -115,6 +196,115 @@ async def wait_check(
     if result is None:
         raise HTTPException(status_code=404, detail="Unknown visa subclass")
     return WaitCheckOut(**result)
+
+
+@router.post(
+    "/public/wait-check/save",
+    response_model=JourneyDetailOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def save_wait_check(
+    payload: SaveWaitCheckRequest,
+    request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """Keep this wait check as your own timeline — **privately**.
+
+    Creates an unpublished journey owned by the caller (their account, or the
+    device identity standing in for one). It is absent from the feed, absent
+    from every public statistic, and unreadable by anyone else until they
+    publish it — which is a different call, ``POST /journeys/{id}/publish``,
+    carrying its own explicit consent.
+    """
+    ip_hash = _client_ip_hash(request)
+    identity = await _writer_identity(request, db, account, ip_hash=ip_hash)
+    try:
+        journey = await CommunityService.save_wait_check(
+            db,
+            identity=identity,
+            ip_hash=ip_hash,
+            subclass_slug=payload.subclass_slug,
+            lodged_on=payload.lodged_on,
+            milestones=payload.milestones or None,
+            note=payload.note,
+        )
+    except JourneyCapError as err:
+        raise HTTPException(status_code=409, detail=str(err)) from err
+    except CommunityRateLimitError as err:
+        raise HTTPException(status_code=429, detail=str(err)) from err
+    except ContentGateError as err:
+        # 400, and the message is shown verbatim: this is the one refusal the
+        # member can fix themselves, so telling them how is the whole point.
+        raise HTTPException(status_code=400, detail=str(err)) from err
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
+    await db.commit()
+    detail = await CommunityService.get_journey_detail(db, journey, identity=identity)
+    return JourneyDetailOut(**detail)
+
+
+@router.post("/public/journeys/{journey_id}/publish", response_model=JourneyDetailOut)
+async def publish_journey(
+    journey_id: UUID,
+    payload: PublishJourneyRequest,
+    request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """Share a saved timeline with the room — the second, explicit consent.
+
+    Separate endpoint, separate payload, separate decision. Saving privately and
+    publishing publicly are not two settings of one action; conflating them is
+    how people end up having shared something they thought they were only
+    keeping.
+    """
+    ip_hash = _client_ip_hash(request)
+    identity = await _writer_identity(request, db, account, ip_hash=ip_hash)
+    journey = await CommunityService.get_owned_journey(db, journey_id, identity)
+    if journey is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    await CommunityService.publish_journey(db, journey, ip_hash=ip_hash)
+    await db.commit()
+    detail = await CommunityService.get_journey_detail(db, journey, identity=identity)
+    return JourneyDetailOut(**detail)
+
+
+@router.post(
+    "/public/journeys/{journey_id}/milestones", response_model=JourneyDetailOut
+)
+async def add_journey_milestones(
+    journey_id: UUID,
+    payload: AddMilestonesRequest,
+    request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """Add later steps to a timeline you own — medical, s56, the grant.
+
+    Works on drafts and on published timelines alike. A published one updates
+    its contribution to the public numbers immediately, which is the mechanism
+    that stops the community median drifting toward whatever people reported on
+    the day they signed up.
+    """
+    ip_hash = _client_ip_hash(request)
+    identity = await _writer_identity(request, db, account, ip_hash=ip_hash)
+    journey = await CommunityService.get_owned_journey(db, journey_id, identity)
+    if journey is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    try:
+        await CommunityService.append_milestones(
+            db,
+            journey,
+            payload.milestones,
+            outcome=payload.outcome,
+            ip_hash=ip_hash,
+        )
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
+    await db.commit()
+    detail = await CommunityService.get_journey_detail(db, journey, identity=identity)
+    return JourneyDetailOut(**detail)
 
 
 @router.post(
@@ -133,6 +323,8 @@ async def submit_timeline(
         )
     except CommunityRateLimitError as err:
         raise HTTPException(status_code=429, detail=str(err)) from err
+    except ContentGateError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err)) from err
     await db.commit()
@@ -144,12 +336,18 @@ async def submit_timeline(
 
 
 @router.post("/public/identity", response_model=IdentityOut)
-async def bootstrap_identity(request: Request, db: AsyncSession = Depends(get_db)):
+async def bootstrap_identity(
+    request: Request, response: Response, db: AsyncSession = Depends(get_db)
+):
     """Issue or return this device's anonymous handle + colour + device token."""
     identity = await CommunityService.get_or_create_identity(
         db, token=_device_token(request), ip_hash=_client_ip_hash(request)
     )
     await db.commit()
+    # Durable, XSS-safe copy of the device token. Safari's ITP evicts
+    # script-writable storage after seven days idle; a server-set cookie is
+    # exempt, which matters for people who check back once a month.
+    set_device_cookie(response, identity.device_token)
     return IdentityOut(**CommunityService.identity_out(identity, include_token=True))
 
 
@@ -165,6 +363,135 @@ async def reroll_identity(request: Request, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=409, detail=str(err)) from err
     await db.commit()
     return IdentityOut(**CommunityService.identity_out(identity, include_token=True))
+
+
+# --- Community accounts: signup / login / recovery --------------------------
+#
+# All public (no X-API-Key) — they must stay under /community/public/ for the
+# middleware to exempt them (middleware/api_key_auth.py PUBLIC_PREFIXES).
+
+
+def _session_out(
+    account: AnonIdentity, response: Response, *, include_device_token: bool = True
+) -> CommunitySessionOut:
+    token, expires_at = issue_community_session_jwt(account)
+    # Refresh the durable device cookie on every session issue, so a returning
+    # member's device stays bound even if their localStorage was cleared.
+    set_device_cookie(response, account.device_token)
+    return CommunitySessionOut(
+        token=token,
+        expires_at=expires_at,
+        account=CommunityAccountOut(**CommunityAccountService.account_out(account)),
+        device_token=account.device_token if include_device_token else None,
+    )
+
+
+@router.post(
+    "/public/auth/signup",
+    response_model=CommunitySessionOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def community_signup(
+    payload: CommunitySignupRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    """Claim this device's identity as an account by setting a password.
+
+    Never show an empty signup form ahead of this call: the member does the
+    thing first — runs a wait check, writes a timeline — and claims it after,
+    which is why signup resolves the *existing* device identity rather than
+    creating a fresh one. The handle and any prior posts carry over untouched.
+    """
+    identity = await CommunityService.get_or_create_identity(
+        db, token=_device_token(request), ip_hash=_client_ip_hash(request)
+    )
+    try:
+        account = await CommunityAccountService.signup(
+            db,
+            identity=identity,
+            password=payload.password,
+            email=payload.email,
+            accepted_no_recovery=payload.accepted_no_recovery,
+        )
+    except AccountError as err:
+        raise HTTPException(status_code=err.status_code, detail=str(err)) from err
+    await db.commit()
+    await db.refresh(account)
+    return _session_out(account, response)
+
+
+@router.post("/public/auth/login", response_model=CommunitySessionOut)
+async def community_login(
+    payload: CommunityLoginRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    """Handle + password. Deliberately ignores the device token — logging in
+    from a second device is the whole point, and it re-binds the cookie to the
+    account's original device token so both devices resolve the same identity."""
+    try:
+        account = await CommunityAccountService.login(
+            db, handle=payload.handle, password=payload.password
+        )
+    except AccountError as err:
+        await db.commit()  # persist the failed-attempt counter
+        raise HTTPException(status_code=err.status_code, detail=str(err)) from err
+    await db.commit()
+    await db.refresh(account)
+    return _session_out(account, response)
+
+
+@router.get("/public/auth/me", response_model=CommunityAccountOut)
+async def community_me(account: AnonIdentity = Depends(require_community_account)):
+    return CommunityAccountOut(**CommunityAccountService.account_out(account))
+
+
+@router.post("/public/auth/recover", response_model=CommunityRecoverAcceptedOut)
+async def community_recover(
+    payload: CommunityRecoverRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Start password recovery. Only works when an email was supplied at signup.
+
+    Responds identically whether or not the address is known — a differing
+    response would let anyone test which emails hold accounts, which for this
+    audience is a genuine safety problem, not a theoretical one.
+    """
+    token = await CommunityAccountService.begin_recovery(db, email=payload.email)
+    await db.commit()
+    if token:
+        account = await CommunityAccountService.get_by_email(db, payload.email)
+        if account is not None:
+            try:
+                await send_recovery_email(
+                    to=account.email, handle=account.handle, token=token
+                )
+            except Exception:  # never leak send failures back to the caller
+                logger.exception("Community recovery email failed to send")
+    return CommunityRecoverAcceptedOut(
+        detail="If that email has an account, a recovery link is on its way."
+    )
+
+
+@router.post("/public/auth/reset", response_model=CommunitySessionOut)
+async def community_reset_password(
+    payload: CommunityResetPasswordRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    """Consume a recovery token and set a new password."""
+    try:
+        account = await CommunityAccountService.complete_recovery(
+            db, token=payload.token, new_password=payload.password
+        )
+    except AccountError as err:
+        await db.commit()
+        raise HTTPException(status_code=err.status_code, detail=str(err)) from err
+    await db.commit()
+    await db.refresh(account)
+    return _session_out(account, response)
 
 
 # --- Community feed v2: journeys (reads) ------------------------------------
@@ -187,9 +514,10 @@ async def list_journeys(
     sort: str = Query("new", pattern="^(new|top|trending)$"),
     limit: int = Query(30, ge=1, le=100),
     offset: int = Query(0, ge=0),
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
     db: AsyncSession = Depends(get_db),
 ):
-    identity = await CommunityService.get_identity_by_token(db, _device_token(request))
+    identity = await _viewer_identity(request, db, account)
     journeys = await CommunityService.list_journeys(
         db,
         post_type=type,
@@ -199,6 +527,7 @@ async def list_journeys(
         sort=sort,
         limit=limit,
         offset=offset,
+        viewer=identity,
     )
     outs = await CommunityService.build_journey_outs(db, journeys, identity=identity)
     return [JourneyOut(**o) for o in outs]
@@ -206,12 +535,17 @@ async def list_journeys(
 
 @router.get("/public/journeys/{journey_id}", response_model=JourneyDetailOut)
 async def get_journey_detail(
-    journey_id: UUID, request: Request, db: AsyncSession = Depends(get_db)
+    journey_id: UUID,
+    request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
+    db: AsyncSession = Depends(get_db),
 ):
-    journey = await CommunityService.get_journey(db, journey_id)
+    identity = await _viewer_identity(request, db, account)
+    # Viewer first: a draft is readable by its owner and by nobody else, and
+    # "nobody else" must include "cannot tell it exists" — hence the same 404.
+    journey = await CommunityService.get_journey(db, journey_id, viewer=identity)
     if journey is None:
         raise HTTPException(status_code=404, detail="Post not found")
-    identity = await CommunityService.get_identity_by_token(db, _device_token(request))
     detail = await CommunityService.get_journey_detail(db, journey, identity=identity)
     return JourneyDetailOut(**detail)
 
@@ -225,12 +559,11 @@ async def get_journey_detail(
 async def create_journey(
     payload: CreateJourneyRequest,
     request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
     db: AsyncSession = Depends(get_db),
 ):
     ip_hash = _client_ip_hash(request)
-    identity = await CommunityService.get_or_create_identity(
-        db, token=_device_token(request), ip_hash=ip_hash
-    )
+    identity = await _writer_identity(request, db, account, ip_hash=ip_hash)
     try:
         journey = await CommunityService.create_journey(
             db, payload, identity=identity, ip_hash=ip_hash
@@ -240,6 +573,10 @@ async def create_journey(
         raise HTTPException(status_code=409, detail=str(err)) from err
     except CommunityRateLimitError as err:
         raise HTTPException(status_code=429, detail=str(err)) from err
+    except ContentGateError as err:
+        # 400, and the message is shown verbatim: this is the one refusal the
+        # member can fix themselves, so telling them how is the whole point.
+        raise HTTPException(status_code=400, detail=str(err)) from err
     except ValueError as err:
         raise HTTPException(status_code=400, detail=str(err)) from err
     await db.commit()
@@ -249,10 +586,13 @@ async def create_journey(
 
 @router.post("/journeys/{journey_id}/upvote", response_model=VoteResultOut)
 async def upvote_journey(
-    journey_id: UUID, request: Request, db: AsyncSession = Depends(get_db)
+    journey_id: UUID,
+    request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
+    db: AsyncSession = Depends(get_db),
 ):
-    identity = await CommunityService.get_or_create_identity(
-        db, token=_device_token(request), ip_hash=_client_ip_hash(request)
+    identity = await _writer_identity(
+        request, db, account, ip_hash=_client_ip_hash(request)
     )
     result = await CommunityService.toggle_vote(
         db, target_type="journey", target_id=journey_id, identity=identity
@@ -272,21 +612,27 @@ async def create_journey_comment(
     journey_id: UUID,
     payload: CreateJourneyCommentRequest,
     request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
     db: AsyncSession = Depends(get_db),
 ):
     ip_hash = _client_ip_hash(request)
-    identity = await CommunityService.get_or_create_identity(
-        db, token=_device_token(request), ip_hash=ip_hash
-    )
+    identity = await _writer_identity(request, db, account, ip_hash=ip_hash)
     try:
         comment = await CommunityService.create_journey_comment(
             db, journey_id, payload, identity=identity, ip_hash=ip_hash
         )
     except CommunityRateLimitError as err:
         raise HTTPException(status_code=429, detail=str(err)) from err
+    except ContentGateError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err)) from err
     await db.commit()
+    # After the commit, deliberately: an email must never describe a reply that
+    # then failed to save. Best-effort and batched — no address, no Resend key,
+    # or a second reply on the same thread today all end in "the inbox has it",
+    # which is why the inbox is the primary channel and this is the extra.
+    await notifications.deliver_reply_emails(db, comment_id=comment.id)
     return JourneyCommentOut(
         id=comment.id,
         journey_id=comment.journey_id,
@@ -302,10 +648,13 @@ async def create_journey_comment(
 
 @router.post("/comments/{comment_id}/upvote", response_model=VoteResultOut)
 async def upvote_journey_comment(
-    comment_id: UUID, request: Request, db: AsyncSession = Depends(get_db)
+    comment_id: UUID,
+    request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
+    db: AsyncSession = Depends(get_db),
 ):
-    identity = await CommunityService.get_or_create_identity(
-        db, token=_device_token(request), ip_hash=_client_ip_hash(request)
+    identity = await _writer_identity(
+        request, db, account, ip_hash=_client_ip_hash(request)
     )
     result = await CommunityService.toggle_vote(
         db, target_type="comment", target_id=comment_id, identity=identity
@@ -325,8 +674,12 @@ async def report_journey(
     journey_id: UUID,
     payload: ReportRequest,
     request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
     db: AsyncSession = Depends(get_db),
 ):
+    # Reporting stays open to signed-out readers — the person best placed to
+    # notice a tout is often someone who has not signed up yet — but resolving
+    # who reported lets the report be weighted by their standing.
     try:
         report = await CommunityService.report_target(
             db,
@@ -334,11 +687,134 @@ async def report_journey(
             target_id=journey_id,
             payload=payload,
             ip_hash=_client_ip_hash(request),
+            reporter=await _viewer_identity(request, db, account),
         )
     except CommunityRateLimitError as err:
         raise HTTPException(status_code=429, detail=str(err)) from err
     await db.commit()
     return ReportOut.model_validate(report)
+
+
+# --- Me: inbox & profile ("You") --------------------------------------------
+#
+# These sit under /community/me/ rather than /community/public/, so they carry
+# the X-API-Key like every other non-public route AND require a community
+# session. There is nothing public about someone's notifications.
+
+
+@router.get("/me/inbox", response_model=InboxOut)
+async def get_my_inbox(
+    limit: int = Query(30, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    unread_only: bool = Query(False),
+    account: AnonIdentity = Depends(require_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """Replies to your posts and your comments, newest first, plus the badge."""
+    inbox = await notifications.list_inbox(
+        db, account=account, limit=limit, offset=offset, unread_only=unread_only
+    )
+    return InboxOut(
+        items=[NotificationOut(**i) for i in inbox["items"]],
+        unread_count=inbox["unread_count"],
+    )
+
+
+@router.post("/me/inbox/read", response_model=MarkReadOut)
+async def mark_inbox_read(
+    payload: MarkReadRequest,
+    account: AnonIdentity = Depends(require_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark notifications read. Idempotent: re-marking returns ``marked: 0``
+    rather than an error, because a client retrying a request it already made
+    is not a mistake worth surfacing."""
+    marked = await notifications.mark_read(db, account=account, ids=payload.ids)
+    await db.commit()
+    return MarkReadOut(
+        marked=marked,
+        unread_count=await notifications.unread_count(db, account=account),
+    )
+
+
+@router.get("/me/posts", response_model=list[JourneyOut])
+async def get_my_posts(
+    limit: int = Query(30, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    account: AnonIdentity = Depends(require_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """The Posts tab of the "You" profile."""
+    journeys = await notifications.list_my_posts(
+        db, account=account, limit=limit, offset=offset
+    )
+    outs = await CommunityService.build_journey_outs(db, journeys, identity=account)
+    return [JourneyOut(**o) for o in outs]
+
+
+@router.get("/me/comments", response_model=list[MyCommentOut])
+async def get_my_comments(
+    limit: int = Query(30, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    account: AnonIdentity = Depends(require_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """The Comments tab of the "You" profile."""
+    rows = await notifications.list_my_comments(
+        db, account=account, limit=limit, offset=offset
+    )
+    return [MyCommentOut(**r) for r in rows]
+
+
+@router.get("/me/allowance", response_model=AllowanceOut)
+async def get_my_allowance(
+    request: Request,
+    account: AnonIdentity = Depends(require_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """What this member can still write today, without spending any of it.
+
+    The composer reads this so it can say "you've written a lot today" *before*
+    the member types a reply, rather than throwing a 429 at them after. p2 built
+    the read-only service function for exactly this and left the route to p5.
+    """
+    allowance = await remaining_allowance(
+        db, ip_hash=_client_ip_hash(request), identity=account
+    )
+    return AllowanceOut(
+        tier=allowance["tier"],
+        tier_name=allowance["tier_name"],
+        actions={
+            family: AllowanceActionOut(**vals)
+            for family, vals in allowance["actions"].items()
+        },
+    )
+
+
+@router.get("/me/notification-preferences", response_model=NotificationPreferencesOut)
+async def get_notification_preferences(
+    account: AnonIdentity = Depends(require_community_account),
+):
+    return NotificationPreferencesOut(
+        email_replies=bool(account.notify_replies_email),
+        email_available=bool(account.email),
+    )
+
+
+@router.post("/me/notification-preferences", response_model=NotificationPreferencesOut)
+async def set_notification_preferences(
+    payload: NotificationPreferencesRequest,
+    account: AnonIdentity = Depends(require_community_account),
+    db: AsyncSession = Depends(get_db),
+):
+    """Turn reply emails off (or back on). The inbox has no off-switch — it is
+    the primary channel, and losing replies silently is not a preference."""
+    account.notify_replies_email = payload.email_replies
+    await db.commit()
+    return NotificationPreferencesOut(
+        email_replies=bool(account.notify_replies_email),
+        email_available=bool(account.email),
+    )
 
 
 # --- Public: spaces ---------------------------------------------------------
@@ -369,6 +845,7 @@ async def report_comment(
     comment_id: UUID,
     payload: ReportRequest,
     request: Request,
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
     db: AsyncSession = Depends(get_db),
 ):
     """Report a live-feed journey comment. target_type ``journey_comment`` is
@@ -380,6 +857,7 @@ async def report_comment(
             target_id=comment_id,
             payload=payload,
             ip_hash=_client_ip_hash(request),
+            reporter=await _viewer_identity(request, db, account),
         )
     except CommunityRateLimitError as err:
         raise HTTPException(status_code=429, detail=str(err)) from err
