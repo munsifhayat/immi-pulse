@@ -8,11 +8,11 @@ import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // This navbar now only appears on the remaining editorial pages (About, News,
-// legal, the two audience pages). The room itself has no navbar — its nav is
+// legal, the two audience pages). The community itself has no navbar — its nav is
 // the left rail. Links to the retired marketing routes are gone rather than
 // left pointing at a redirect.
 const navLinks = [
-  { label: "The Room", href: "/" },
+  { label: "Community", href: "/" },
   { label: "Wait Check", href: "/wait-check" },
   { label: "For Applicants", href: "/for-applicants" },
   { label: "For Consultants", href: "/for-consultants" },

@@ -12,7 +12,7 @@ import {
   clearCommunityToken,
   getCommunityToken,
   setCommunityToken,
-} from "@/lib/room/session";
+} from "@/lib/community/session";
 
 export type ContentStatus = "active" | "hidden" | "removed";
 // The live feed's two reportable surfaces. Legacy forum threads/comments are
@@ -61,10 +61,10 @@ export interface VisaSubclassOut {
 /**
  * What a community figure is made of.
  *
- * Ships with every Room number and must be rendered beside it. Timelines
+ * Ships with every community number and must be rendered beside it. Timelines
  * collected from public forums count toward the published statistics on exactly
  * one condition — that the split is always visible — so this is not optional
- * metadata to drop when space is tight. A bare Room number is a bug.
+ * metadata to drop when space is tight. A bare community number is a bug.
  */
 export interface Provenance {
   member_reported: number;
@@ -113,11 +113,11 @@ export interface ProcessingStatOut {
   official_p50_days: number | null;
   official_p90_days: number | null;
   official_updated: string | null;
-  /** Render `official` and `room` together — never one without the other. */
+  /** Render `official` and `community` together — never one without the other. */
   official: OfficialFigures;
-  room: CommunityDurationStats;
-  /** Pre-Phase-4 alias of `room`. */
   community: CommunityDurationStats;
+  /** Superseded name of `community`. Still emitted; do not read it. */
+  room?: CommunityDurationStats;
   trend: Trend;
 }
 
@@ -149,7 +149,9 @@ export interface WaitCheckOut {
   official_p90_days: number | null;
   official_updated: string | null;
   official: OfficialFigures;
-  room: CommunityDurationStats;
+  community: CommunityDurationStats;
+  /** Superseded name of `community`. Still emitted; do not read it. */
+  room?: CommunityDurationStats;
 }
 
 export interface SaveWaitCheckPayload {
@@ -253,7 +255,7 @@ export function useSaveWaitCheck() {
 }
 
 /**
- * Share a saved timeline with the room.
+ * Share a saved timeline with the community.
  *
  * The second consent, and a separate call on purpose — saving privately and
  * publishing publicly are different decisions. The backend rejects this without
@@ -678,7 +680,7 @@ export function usePostJourneyComment(journeyId: string) {
   });
 }
 
-// --- The room's pseudonymous account: signup, login, inbox, profile ---------
+// --- The community's pseudonymous account: signup, login, inbox, profile ---------
 
 /**
  * The member's own view of their account.
@@ -896,7 +898,7 @@ export function useCommunityResetPassword() {
 }
 
 /**
- * Sign out of the room.
+ * Sign out of the community.
  *
  * Clears the session but deliberately leaves the device token alone: the
  * browser is still the same browser, and wiping it would strand any drafts

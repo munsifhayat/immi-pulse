@@ -1,8 +1,8 @@
 import axios from "axios";
 
 const TOKEN_KEY = "ip_token";
-// The room's pseudonymous member session. Separate from the console's token on
-// purpose — see src/lib/room/session.ts.
+// The community's pseudonymous member session. Separate from the console's token on
+// purpose — see src/lib/community/session.ts.
 const COMMUNITY_TOKEN_KEY = "ip_community_token";
 // Per-device anonymous community identity (the "temporary user"). Lives only in
 // the browser; the server issues it at bootstrap and resolves every community

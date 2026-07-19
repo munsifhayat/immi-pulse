@@ -1,0 +1,301 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { HelpCircle, Loader2, Lock } from "lucide-react";
+import {
+  useCreateJourney,
+  useVisaSubclasses,
+  type MilestonePayload,
+  type PostType,
+  type TimelineOutcome,
+} from "@/lib/api/hooks/community";
+import { useCommunity } from "./community-context";
+import type { NavIcon } from "./left-rail";
+import { TimelineGlyph } from "./timeline-glyph";
+
+const ASK_HINTS = [
+  "What do you want to ask the community?",
+  "“Is a 5-month wait normal for a 500?”",
+  "“Can I travel while my 820 is processing?”",
+  "“What does an s56 request actually mean?”",
+  "“189 vs 190 — which queue moves faster right now?”",
+];
+
+const fieldCls =
+  "w-full rounded-lg border border-hair bg-white px-3 py-2 text-[13px] text-ink outline-none transition-all focus:border-purple/50 focus:ring-4 focus:ring-purple/10";
+
+/**
+ * The composer that replaces the marketing hero.
+ *
+ * Exactly two modes. "Ask the community" is the default because a question is the
+ * cheapest thing a frightened person can contribute, and "Share your story" is
+ * the one that feeds the numbers. Anything else — polls, links, articles — is a
+ * different product.
+ */
+export function Composer({ onPosted }: { onPosted?: () => void }) {
+  const { account, identity, openAccount, canWrite, writeBlock, openShare } =
+    useCommunity();
+  const { data: subclasses = [] } = useVisaSubclasses();
+  const create = useCreateJourney();
+
+  const [mode, setMode] = useState<PostType>("question");
+  const [hint, setHint] = useState(0);
+
+  // Ask mode
+  const [question, setQuestion] = useState("");
+  const [detail, setDetail] = useState("");
+  const [askSubclass, setAskSubclass] = useState("");
+
+  // Timeline mode
+  const [tlSubclass, setTlSubclass] = useState("");
+  const [lodgedOn, setLodgedOn] = useState("");
+  const [outcome, setOutcome] = useState<TimelineOutcome>("waiting");
+  const [decidedOn, setDecidedOn] = useState("");
+  const [tlNote, setTlNote] = useState("");
+
+  const today = new Date().toISOString().slice(0, 10);
+  const block = writeBlock("post");
+
+  useEffect(() => {
+    const t = setInterval(() => setHint((h) => (h + 1) % ASK_HINTS.length), 3600);
+    return () => clearInterval(t);
+  }, []);
+
+  const askReady = question.trim().length > 0 && detail.trim().length > 0;
+  const tlReady = !!tlSubclass && !!lodgedOn;
+  const ready = mode === "question" ? askReady : tlReady;
+
+  function reset() {
+    setQuestion("");
+    setDetail("");
+    setTlSubclass("");
+    setLodgedOn("");
+    setDecidedOn("");
+    setTlNote("");
+    setOutcome("waiting");
+  }
+
+  async function submit() {
+    // The gate runs *before* the request. A member who is signed out, or who
+    // has spent today's allowance, is told so now — not handed a 429 after
+    // they have finished writing.
+    if (!canWrite("post") || !ready || create.isPending) return;
+
+    if (mode === "question") {
+      await create.mutateAsync({
+        post_type: "question",
+        title: question.trim().slice(0, 200),
+        note: detail.trim(),
+        subclass_slug: askSubclass || null,
+      });
+    } else {
+      const milestones: MilestonePayload[] = [
+        { milestone_type: "Visa Lodged", occurred_on: lodgedOn },
+      ];
+      if (outcome === "granted" && decidedOn) {
+        milestones.push({ milestone_type: "Visa Granted", occurred_on: decidedOn });
+      }
+      await create.mutateAsync({
+        post_type: "timeline",
+        subclass_slug: tlSubclass,
+        outcome,
+        note: tlNote.trim() || null,
+        milestones,
+      });
+    }
+    reset();
+    onPosted?.();
+  }
+
+  return (
+    <div className="border-b border-hair px-5 pb-4 pt-4">
+      {/* Mode switch — two, and only two. */}
+      <div className="mb-3.5 inline-flex gap-1 rounded-full border border-hair bg-white p-[3px]">
+        {(
+          [
+            { id: "question", label: "Ask the community", Icon: HelpCircle },
+            { id: "timeline", label: "Share your timeline", Icon: TimelineGlyph },
+          ] as { id: PostType; label: string; Icon: NavIcon }[]
+        ).map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            onClick={() => setMode(id)}
+            className={`c-mono inline-flex items-center gap-1.5 rounded-full px-3.5 py-[7px] text-[10.5px] uppercase tracking-[0.07em] transition-colors ${
+              mode === id
+                ? "bg-ink text-paper"
+                : "text-ink-soft hover:text-ink"
+            }`}
+          >
+            <Icon className="h-3 w-3" strokeWidth={2} />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex gap-3">
+        <span
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[13px] font-semibold text-white"
+          style={{ backgroundColor: account?.color ?? identity?.color ?? "#7C5CFC" }}
+        >
+          {account
+            ? account.handle.slice(0, 2).toUpperCase()
+            : identity?.initials ?? "··"}
+        </span>
+
+        <div className="min-w-0 flex-1">
+          {mode === "question" ? (
+            <>
+              <textarea
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder={ASK_HINTS[hint]}
+                rows={2}
+                maxLength={200}
+                className="w-full resize-none border-0 bg-transparent pt-1.5 text-[16.5px] leading-snug text-ink outline-none placeholder:text-ink-soft"
+              />
+              {question.trim() && (
+                <textarea
+                  value={detail}
+                  onChange={(e) => setDetail(e.target.value)}
+                  placeholder="Add the detail that makes it answerable — your dates, what you've already tried…"
+                  rows={3}
+                  maxLength={2000}
+                  className="mt-1 w-full resize-y rounded-lg border border-hair bg-white px-3 py-2 text-[13.5px] leading-relaxed text-ink outline-none transition-all focus:border-purple/50 focus:ring-4 focus:ring-purple/10"
+                />
+              )}
+              <select
+                value={askSubclass}
+                onChange={(e) => setAskSubclass(e.target.value)}
+                aria-label="Which visa is this about?"
+                className={`${fieldCls} mt-2`}
+              >
+                <option value="">Which visa? (optional)</option>
+                {subclasses.map((s) => (
+                  <option key={s.slug} value={s.slug}>
+                    {s.code} · {s.name}
+                    {s.stream ? ` (${s.stream})` : ""}
+                  </option>
+                ))}
+              </select>
+            </>
+          ) : (
+            <div className="pt-1">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <select
+                  value={tlSubclass}
+                  onChange={(e) => setTlSubclass(e.target.value)}
+                  aria-label="Visa subclass"
+                  className={fieldCls}
+                >
+                  <option value="">Which visa?</option>
+                  {subclasses.map((s) => (
+                    <option key={s.slug} value={s.slug}>
+                      {s.code} · {s.name}
+                      {s.stream ? ` (${s.stream})` : ""}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="date"
+                  max={today}
+                  value={lodgedOn}
+                  onChange={(e) => setLodgedOn(e.target.value)}
+                  aria-label="Lodgement date"
+                  className={`${fieldCls} c-mono`}
+                />
+                <select
+                  value={outcome}
+                  onChange={(e) => setOutcome(e.target.value as TimelineOutcome)}
+                  aria-label="Where you are now"
+                  className={fieldCls}
+                >
+                  <option value="waiting">Still waiting</option>
+                  <option value="granted">Granted</option>
+                  <option value="refused">Decided — refused</option>
+                </select>
+                {outcome === "granted" && (
+                  <input
+                    type="date"
+                    max={today}
+                    value={decidedOn}
+                    onChange={(e) => setDecidedOn(e.target.value)}
+                    aria-label="Grant date"
+                    className={`${fieldCls} c-mono`}
+                  />
+                )}
+              </div>
+              <textarea
+                value={tlNote}
+                onChange={(e) => setTlNote(e.target.value)}
+                placeholder="Anything worth knowing — CO contact, medicals, the silence…"
+                rows={2}
+                maxLength={2000}
+                className="mt-2 w-full resize-y rounded-lg border border-hair bg-white px-3 py-2 text-[13.5px] leading-relaxed text-ink outline-none transition-all focus:border-purple/50 focus:ring-4 focus:ring-purple/10"
+              />
+              {/*
+                The quick form covers lodged → granted, which is what most
+                people have. The full builder — every milestone, stream,
+                occupation, state — is one click away rather than the default,
+                because asking for all of it up front is how you get nothing.
+              */}
+              <button
+                type="button"
+                onClick={() => openShare({ subclass: tlSubclass || undefined })}
+                className="c-mono mt-2 inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.07em] text-ink-soft transition-colors hover:text-ink"
+              >
+                <TimelineGlyph className="h-3.5 w-3.5" strokeWidth={2} />
+                Add medicals, s56 and the rest
+              </button>
+            </div>
+          )}
+
+          {create.isError && (
+            <p className="mt-2 text-[12px] text-[#C23A50]">
+              {(create.error as Error).message}
+            </p>
+          )}
+
+          <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
+            <span className="c-mono mr-auto text-[9.5px] uppercase tracking-[0.05em] text-ink-soft">
+              {account ? (
+                <>Posting as {account.handle} · anonymous · experiences, not advice</>
+              ) : (
+                <>Reading is open · writing needs a handle</>
+              )}
+            </span>
+
+            {/*
+              The prompt is here, before the write. `block` is resolved from the
+              account and the read-only allowance, so this never becomes a 429
+              the member discovers after typing.
+            */}
+            {block === "no-account" ? (
+              <button
+                onClick={() => openAccount("signup")}
+                className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[13px] font-semibold text-paper transition-opacity hover:opacity-90"
+              >
+                <Lock className="h-3.5 w-3.5" strokeWidth={2} />
+                Get a handle to post
+              </button>
+            ) : block === "spent" ? (
+              <span className="c-mono rounded-full border border-[#C77D18]/35 bg-[#C77D18]/[0.06] px-3.5 py-2 text-[11px] text-[#B4700F]">
+                You&apos;ve written a lot today. Back tomorrow.
+              </span>
+            ) : (
+              <button
+                onClick={submit}
+                disabled={!ready || create.isPending}
+                className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2 text-[13px] font-semibold text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
+              >
+                {create.isPending && (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
+                )}
+                {mode === "question" ? "Ask the community" : "Share timeline"}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { RecoverView } from "@/components/room/recover-view";
+import { RecoverView } from "@/components/community/recover-view";
 
 /**
  * Password recovery.

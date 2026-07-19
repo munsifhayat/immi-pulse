@@ -1098,6 +1098,7 @@ class CommunityService:
                 "official_updated": subclass.official_updated,
                 # The two blocks that must be rendered together.
                 "official": CommunityService._official_block(subclass),
+                "community": room,
                 "room": room,
             }
         )
