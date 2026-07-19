@@ -27,6 +27,11 @@ TrendLiteral = Literal["faster", "slower", "steady"]
 WaitTierLiteral = Literal["on_track", "normal", "longer", "outlier", "unknown"]
 WaitBasisLiteral = Literal["community", "official", "none"]
 PostTypeLiteral = Literal["timeline", "question"]
+# Where the applicant was when they lodged — not where they are now, and not
+# which state nominated them. "Offshore" used to be smuggled into the state
+# enum, which made those three facts one field.
+LodgementLocationLiteral = Literal["onshore", "offshore"]
+LodgedViaLiteral = Literal["self", "agent"]
 NotificationTypeLiteral = Literal["reply_to_post", "reply_to_comment"]
 
 assert set(THREAD_STATUSES) == set(ThreadStatusLiteral.__args__)
@@ -210,6 +215,11 @@ class VisaSubclassOut(BaseModel):
     # do not resolve codes themselves — the occupations endpoint returns the
     # already-resolved ``anzsco_code`` — but this makes the choice visible.
     anzsco_version: Optional[str] = None
+    # The rest of the adaptive-form contract. The client asks a question only
+    # when the visa says it applies — false means "do not ask", not "optional".
+    requires_state_nomination: bool = False
+    requires_region: bool = False
+    requires_sponsor_type: bool = False
     official_p50_days: Optional[int] = None
     official_p90_days: Optional[int] = None
     official_updated: Optional[str] = None
@@ -441,6 +451,11 @@ class PublishJourneyRequest(BaseModel):
     """
 
     consent_public: bool = False
+    # Supplied here when the draft does not already carry one and the visa
+    # nominates an occupation. A wait check is saved from a subclass and a date
+    # alone — that save must stay frictionless — so the question is asked at the
+    # point it starts to matter, which is publication.
+    occupation_slug: Optional[str] = Field(default=None, max_length=120)
 
     @model_validator(mode="after")
     def _check(self) -> "PublishJourneyRequest":
@@ -456,6 +471,16 @@ class AddMilestonesRequest(BaseModel):
 
     milestones: list["MilestoneIn"] = Field(..., min_length=1)
     outcome: Optional[TimelineOutcomeLiteral] = None
+
+    @model_validator(mode="after")
+    def _check(self) -> "AddMilestonesRequest":
+        # Within this batch only, and deliberately so. Appending is how someone
+        # records a medical they forgot to add two months ago, so a new
+        # milestone dated *before* a stored one is legitimate —
+        # ``append_milestones`` re-sorts the merged set by date. What is never
+        # legitimate is one submission that contradicts itself.
+        _assert_monotonic(self.milestones)
+        return self
 
 
 # --- Community feed v2: identity, journeys, milestones, comments, votes ------
@@ -566,6 +591,29 @@ SaveWaitCheckRequest.model_rebuild()
 AddMilestonesRequest.model_rebuild()
 
 
+def _assert_monotonic(milestones: list["MilestoneIn"]) -> None:
+    """A timeline must move forwards.
+
+    Real posts contain "EOI submitted: 06 Nov 2026" against a July 2026 grant,
+    and "RFI submitted 08/07/2027" — a transposed year or a mistyped month is
+    the single most common error in hand-written timelines, and unlike most
+    dirty data it is *observable*: a milestone dated before the one above it
+    is either a typo or a misordered entry, never a real sequence.
+
+    Checked in submission order rather than after sorting, because the order
+    the author entered them in is itself the claim being made. Equal dates pass
+    — several things genuinely happen on one day (lodged and acknowledged), and
+    rejecting that would push authors into inventing offsets.
+    """
+    for prev, cur in zip(milestones, milestones[1:]):
+        if cur.occurred_on < prev.occurred_on:
+            raise ValueError(
+                f"'{cur.milestone_type}' ({cur.occurred_on}) comes before "
+                f"'{prev.milestone_type}' ({prev.occurred_on}). "
+                "Check the dates — timelines run forwards."
+            )
+
+
 class MilestoneOut(BaseModel):
     id: UUID
     milestone_type: str
@@ -602,12 +650,36 @@ class CreateJourneyRequest(BaseModel):
     area: Optional[str] = Field(default=None, max_length=20)
     sponsor_type: Optional[str] = Field(default=None, max_length=40)
 
+    lodgement_location: Optional[LodgementLocationLiteral] = None
+    # Free text with a length cap rather than an enum: a country list is a
+    # political artefact we would then own, and members describe themselves in
+    # ways a dropdown loses. It is never published, so it does not have to
+    # normalise for display — only for cohort matching, done downstream.
+    nationality: Optional[str] = Field(default=None, max_length=60)
+    lodged_via: Optional[LodgedViaLiteral] = None
+    # Tri-state on purpose: None = "not stated", False = "there was contact",
+    # True = "no CO contact". Collapsing the first two loses the assertion.
+    direct_grant: Optional[bool] = None
+
     outcome: TimelineOutcomeLiteral = "waiting"
 
     title: Optional[str] = Field(default=None, max_length=200)
     note: Optional[str] = Field(default=None, max_length=2000)
 
     milestones: list[MilestoneIn] = Field(default_factory=list)
+
+    # Consent is stated, never inferred. This used to be a service-layer default
+    # of ``publish=True``, which meant a caller that simply forgot the argument
+    # published someone's visa timeline to a public feed. Two of the three entry
+    # points did exactly that while the third asked first — the same object with
+    # two different consent stories.
+    #
+    # Required, with no default: a client cannot publish by omission. The
+    # wait-check passes False and publishes later as a separate act; the
+    # composer and the builder pass True because their submit button *is* the
+    # consent, and making them round-trip twice would add a failure mode without
+    # adding a decision.
+    publish: bool
 
     @model_validator(mode="after")
     def _check(self) -> "CreateJourneyRequest":
@@ -629,6 +701,7 @@ class CreateJourneyRequest(BaseModel):
                 # Tolerant: the derived span uses the last milestone as the
                 # decision date if no explicit "Visa Granted" was added.
                 pass
+            _assert_monotonic(self.milestones)
         return self
 
 
@@ -653,6 +726,18 @@ class JourneyOut(BaseModel):
     state: Optional[str] = None
     area: Optional[str] = None
     sponsor_type: Optional[str] = None
+    lodgement_location: Optional[LodgementLocationLiteral] = None
+    lodged_via: Optional[LodgedViaLiteral] = None
+    # True = the author asserted "no CO contact / direct grant". None = they did
+    # not say, which is not the same claim and must not render as a denial.
+    direct_grant: Optional[bool] = None
+    # NOTE: ``nationality`` is deliberately absent and must stay absent. It is
+    # collected for cohort matching only. A pseudonymous timeline plus a
+    # nationality plus a lodgement date re-identifies people in a small cohort,
+    # and this community is full of members whose visa status is not safe to
+    # attach to that. ``tests/e2e_community_privacy.py`` asserts it never
+    # appears in any public payload — if you add it here, that test fails, and
+    # it is right and you are wrong.
     outcome: TimelineOutcomeLiteral
 
     title: Optional[str] = None

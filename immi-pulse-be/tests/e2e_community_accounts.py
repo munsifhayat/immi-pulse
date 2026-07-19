@@ -141,6 +141,7 @@ async def main():
             "/community/journeys",
             headers=h1,
             json={
+                "publish": True,
                 "post_type": "question",
                 "title": f"Is my wait normal? {marker}",
                 "note": "Asked anonymously, before I made an account.",

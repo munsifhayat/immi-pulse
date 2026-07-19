@@ -113,6 +113,7 @@ async def _post_question(client, headers, label):
         "/community/journeys",
         headers=headers,
         json={
+            "publish": True,
             "post_type": "question",
             "title": f"Rate-limit probe {label}",
             "note": "Posted by tests/e2e_community_ratelimit.py",

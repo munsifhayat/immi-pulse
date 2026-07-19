@@ -81,6 +81,15 @@ export interface VisaSubclassOut {
   requires_occupation?: boolean;
   /** "2013" | "2022" | null — which ANZSCO edition this subclass reads. */
   anzsco_version?: string | null;
+  /**
+   * The rest of the adaptive-form contract, same rule as `requires_occupation`:
+   * false means **do not ask**, not "optional".
+   */
+  requires_state_nomination?: boolean;
+  /** Metro vs regional — only the regional visas (190, 491, 494). */
+  requires_region?: boolean;
+  /** Accredited sponsorship — only 482 and 186. */
+  requires_sponsor_type?: boolean;
   official_p50_days?: number | null;
   official_p90_days?: number | null;
   official_updated?: string | null;
@@ -354,10 +363,18 @@ export function useSaveWaitCheck() {
 export function usePublishJourney() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (journeyId: string) => {
+    mutationFn: async (
+      arg: string | { journeyId: string; occupationSlug?: string | null }
+    ) => {
+      // Accepts a bare id for the callers that have nothing to add, or an
+      // object when the draft still needs its occupation — a wait check is
+      // saved from a subclass and a date alone, so a timeline on a visa that
+      // nominates an occupation reaches this point uncoded.
+      const journeyId = typeof arg === "string" ? arg : arg.journeyId;
+      const occupationSlug = typeof arg === "string" ? null : arg.occupationSlug;
       const { data } = await apiClient.post<JourneyDetailOut>(
         `/community/public/journeys/${journeyId}/publish`,
-        { consent_public: true }
+        { consent_public: true, occupation_slug: occupationSlug ?? null }
       );
       return data;
     },
@@ -606,10 +623,30 @@ export interface CreateJourneyPayload {
   state?: string | null;
   area?: string | null;
   sponsor_type?: string | null;
+  /** Where they were when they lodged — asked of everyone. */
+  lodgement_location?: "onshore" | "offshore" | null;
+  /**
+   * Collected for cohort matching and **never rendered**. It is absent from
+   * every read type on purpose — the server does not return it.
+   */
+  nationality?: string | null;
+  lodged_via?: "self" | "agent" | null;
+  /**
+   * `true` asserts "no case officer contact". Send `null`, never `false`, when
+   * the member did not say — the two are different claims.
+   */
+  direct_grant?: boolean | null;
   outcome?: TimelineOutcome;
   title?: string | null;
   note?: string | null;
   milestones?: MilestonePayload[];
+  /**
+   * Required, with no default, and the server rejects a payload without it.
+   * Consent to publish is stated, never inferred: this used to default to true
+   * server-side, so a caller that simply forgot the field published someone's
+   * visa timeline to a public feed.
+   */
+  publish: boolean;
 }
 
 export interface JourneyFeedParams {

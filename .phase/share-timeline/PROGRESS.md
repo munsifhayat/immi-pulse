@@ -6,7 +6,7 @@ Integration branch: `feat/share-timeline`
 Base: `main`
 Baseline: `31bad77` (source plan phases 0, 1, 3 — built and verified before this epic)
 
-Phase status: [done] p1 · [done] p2 · [pending] p3 · [pending] p4 · [pending] p5
+Phase status: [done] p1 · [done] p2 · [done] p3 · [pending] p4 · [pending] p5
 
 <!--
 Legend: pending → in_progress → done  (or blocked)
@@ -307,3 +307,96 @@ Everything in the phase spec. The shape is one rule, stated on `Occupation`
   (2013) where a 186 stamps **224713** (2022).
 - `bunx tsc --noEmit` clean · `bun run build` clean · `bun run lint` back to
   exactly the 5 pre-existing errors, none in `src/components/community/` or `src/lib/`.
+
+
+---
+
+## Handoff — p3: adaptive form, context fields and unified consent   [done]
+
+Branch `feat/share-timeline-p3-adaptive-form` → squash-merged into `feat/share-timeline`.
+
+### What shipped vs planned
+
+Everything in the spec, plus p2's deferred gap, plus one hole p2 opened that nobody
+had noticed.
+
+- **Field visibility is reference data.** `visa_subclasses` gains
+  `requires_state_nomination`, `requires_region`, `requires_sponsor_type`
+  (`models.py:778-805`), populated by `seed_visa_taxonomy.py` from three small
+  policy sets (`STATE_NOMINATION`, `REGION_RELEVANT`, `SPONSOR_TYPE_RELEVANT`).
+  Extend that pattern; do not add `if (subclass === ...)` anywhere.
+- **Hidden means not stored.** The client hides the field *and* the server drops
+  it (`service.py:1512-1521`). A stale tab or a direct API call cannot write
+  "Regional" onto a partner visa any more.
+- **`Journey`** gains `lodgement_location`, `nationality`, `lodged_via`,
+  `direct_grant`. `state` no longer carries `'Offshore'` — the migration rewrites
+  those rows.
+- **Nationality is stored and never served.** Absent from `JourneyOut` entirely
+  (`schemas.py:719-726`) and from `_journey_out_dict` (`service.py:2005-2010`).
+- **`direct_grant` is tri-state.** None = "didn't say", False = "there was
+  contact", True = "no CO contact". Collapsing the first two would lose the
+  assertion the field exists for.
+- **The composer no longer offers a Post button that cannot work.** p2 made
+  occupation required for 17 subclasses but the quick composer has no picker, so
+  picking a 189 there filled in a form and collected a 400. It now hands over to
+  the full builder (`composer.tsx:59-66`, `:244-272`).
+
+### Key decisions and why
+
+1. **`publish` is a required field with no default**, rather than converting the
+   builder and composer to a two-step draft→publish. The spec asked all three
+   entry points to "unify on draft→publish"; the *bug* was that
+   `create_journey(publish=True)` defaulted, so a caller that forgot the argument
+   published a stranger's timeline. Requiring the field fixes exactly that
+   without making the builder round-trip twice — its submit button already *is*
+   the consent, and a second click would add a failure window, not a decision.
+   The wait-check keeps its genuine two-step.
+   **This is a breaking API change**: the schema now rejects a payload without
+   `publish`. 17 e2e payloads and 3 seeder calls were updated.
+2. **The occupation is asked at publish time for wait-check drafts**, not at
+   save time. `PublishJourneyRequest.occupation_slug` (`schemas.py:453-458`) and
+   `publish_journey(occupation_slug=...)` (`service.py:1740-1765`). Saving a wait
+   check must stay frictionless — a subclass and a date, nothing else.
+3. **Monotonic milestones are checked per submission, not against stored rows.**
+   `append_milestones` re-sorts the merged set, so back-filling a forgotten
+   medical is legitimate; a single submission that contradicts itself is not.
+
+### Interfaces produced (what p4 will call)
+
+| Thing | Where |
+| --- | --- |
+| `VisaSubclass.requires_state_nomination/_region/_sponsor_type` | `models.py:778-805` |
+| `Journey.lodgement_location/nationality/lodged_via/direct_grant` | `models.py:399-430` |
+| `CreateJourneyRequest.publish` (**required**) | `schemas.py:655-666` |
+| `_assert_monotonic(milestones)` | `schemas.py:596-616` |
+| `publish_journey(..., occupation_slug=)` | `service.py:1728` |
+| `PublishJourneyRequest.occupation_slug` | `schemas.py:453` |
+
+### Gotchas for p4
+
+- **Run `alembic upgrade head` then BOTH seeders**, taxonomy first. The new flags
+  live on `visa_subclasses` and a downgrade/upgrade cycle resets them to false —
+  the form then silently asks nobody for anything.
+- `create_journey` no longer has a `publish` default. Any new caller must pass it.
+- `_resolve_occupation` now takes `occupation_slug=` rather than `payload=`, so it
+  can serve both create and publish.
+- The publish route now catches `ValueError` → 400 (`router.py:301-310`). It did
+  not before, so a service-layer refusal there used to surface as a 500.
+- `nationality` is on the model and in no serializer. p4 may pool cohorts on it;
+  it must not emit it. `tests/e2e_community_adaptive_form.py` greps whole response
+  bodies, not named keys.
+
+### Verified
+
+- `pytest tests/ -q` → **216 passed** (202 baseline + 14 new in
+  `tests/agents/immigration/test_community_adaptive_form.py`)
+- New `tests/e2e_community_adaptive_form.py` → **29/29**
+- All ten community e2e suites pass
+- `alembic heads` → one (`d6f0b4c8e2a9`); downgrade→upgrade round-tripped against
+  584 local journeys with no row loss and no `state='Offshore'` left behind
+- `bunx tsc --noEmit` clean · `bun run build` clean · lint back to exactly the 5
+  pre-existing errors
+- Driven in a real browser (BE :8001, FE :3000): 189 → stream + required
+  occupation, no state/sponsor; 190 → occupation + state + area; 482 Labour
+  Agreement → occupation + state + sponsor; 820 partner → neither; 600 Tourist →
+  no occupation; composer hands a 189 to the full builder and leaves a 600 alone.

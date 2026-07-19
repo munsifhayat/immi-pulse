@@ -41,6 +41,30 @@ CATEGORY_ORDER = [
 ]
 
 
+# Which questions each visa actually needs answering — the data behind the
+# adaptive form. Keyed on the bare subclass number so every stream of a
+# programme inherits the same answer.
+#
+# These are policy facts, not figures, so they live here rather than in the
+# fetcher: no Home Affairs endpoint publishes "190 requires a nominating
+# state". Each set is deliberately small — the default is *not to ask*, because
+# a field shown to someone it does not apply to collects a guess, and a guess
+# pools their timeline into a cohort it does not belong to.
+
+# A state or territory is part of the story: the points-tested nomination
+# visas, plus employer-sponsored visas where the question means "which state is
+# the job in".
+STATE_NOMINATION = {"190", "491", "186", "187", "482", "494"}
+
+# Metro vs regional only means something on the regional visas. It is the whole
+# point of 491 and 494, and it is noise everywhere else.
+REGION_RELEVANT = {"190", "491", "494"}
+
+# Accredited sponsorship is a priority-processing arrangement that exists only
+# on these two. Asking anyone else produces an answer with no referent.
+SPONSOR_TYPE_RELEVANT = {"482", "186"}
+
+
 def cohort_key_for(subclass: dict, stream: dict) -> str:
     """Which statistics cohort this row contributes to.
 
@@ -66,6 +90,7 @@ async def run(dry_run: bool) -> int:
 
     rows: list[dict] = []
     for sub in snap["subclasses"]:
+        num = sub["subclass_number"]
         cat = sub.get("category_slug") or "general"
         cat_rank = (
             CATEGORY_ORDER.index(cat) if cat in CATEGORY_ORDER else len(CATEGORY_ORDER)
@@ -88,6 +113,9 @@ async def run(dry_run: bool) -> int:
                     "official_p90_days": st["official_p90_days"],
                     "official_updated": st["official_updated"],
                     "official_end_date": st["official_end_date"],
+                    "requires_state_nomination": num in STATE_NOMINATION,
+                    "requires_region": num in REGION_RELEVANT,
+                    "requires_sponsor_type": num in SPONSOR_TYPE_RELEVANT,
                     "sort_order": cat_rank * 1000
                     + int(sub["subclass_number"]) % 1000
                     + idx,

@@ -1349,7 +1349,7 @@ class CommunityService:
     async def _resolve_occupation(
         db: AsyncSession,
         *,
-        payload: CreateJourneyRequest,
+        occupation_slug: Optional[str],
         subclass: Optional[VisaSubclass],
         is_timeline: bool,
         publish: bool,
@@ -1384,7 +1384,7 @@ class CommunityService:
         if not is_timeline or subclass is None or not subclass.requires_occupation:
             return None, None
 
-        if not payload.occupation_slug:
+        if not occupation_slug:
             if publish:
                 raise ValueError(
                     f"Pick your nominated occupation — subclass {subclass.code} "
@@ -1392,9 +1392,9 @@ class CommunityService:
                 )
             return None, None
 
-        occ = await CommunityService.get_occupation(db, payload.occupation_slug)
+        occ = await CommunityService.get_occupation(db, occupation_slug)
         if occ is None:
-            raise ValueError(f"Unknown occupation '{payload.occupation_slug}'")
+            raise ValueError(f"Unknown occupation '{occupation_slug}'")
         # Eligibility is re-checked here rather than trusted from the picker.
         # The picker filters by subclass, but the subclass can be changed after
         # the occupation is chosen, and a 189 timeline carrying an occupation
@@ -1413,7 +1413,7 @@ class CommunityService:
         *,
         identity: AnonIdentity,
         ip_hash: str,
-        publish: bool = True,
+        publish: bool,
     ) -> Journey:
         """Create a feed post.
 
@@ -1423,6 +1423,12 @@ class CommunityService:
         here, at row creation, rather than at publication — so drafting cannot be
         used to hoard free writes, and publishing something already paid for
         costs nothing extra.
+
+        ``publish`` has **no default**. It used to default to True, which meant
+        every caller that did not think about consent published a member's visa
+        timeline to a public feed — and two of the three entry points did
+        exactly that while the third asked first. Making it a required argument
+        is what stops the next caller inheriting that mistake silently.
         """
         is_timeline = payload.post_type == "timeline"
         await consume_rate(
@@ -1484,7 +1490,7 @@ class CommunityService:
 
         occupation, occupation_code = await CommunityService._resolve_occupation(
             db,
-            payload=payload,
+            occupation_slug=payload.occupation_slug,
             subclass=subclass,
             is_timeline=is_timeline,
             publish=publish,
@@ -1504,6 +1510,18 @@ class CommunityService:
         if screen.rejected:
             raise ContentGateError(trust.CONTACT_GATE_MESSAGE)
 
+        # Same contract as the occupation above: a field the visa does not ask
+        # for is *dropped*, not stored. The client already hides these, but the
+        # client is not the authority — a stale tab, an old build or a direct
+        # API call would otherwise write "Regional" onto a partner visa and pool
+        # that timeline into a distinction that does not exist for it.
+        applies = is_timeline and subclass is not None
+        state = payload.state if applies and subclass.requires_state_nomination else None
+        area = payload.area if applies and subclass.requires_region else None
+        sponsor_type = (
+            payload.sponsor_type if applies and subclass.requires_sponsor_type else None
+        )
+
         journey = Journey(
             id=uuid.uuid4(),
             identity_id=identity.id,
@@ -1513,9 +1531,15 @@ class CommunityService:
             stream=stream,
             occupation=occupation,
             occupation_code=occupation_code,
-            state=payload.state,
-            area=payload.area,
-            sponsor_type=payload.sponsor_type,
+            state=state,
+            area=area,
+            sponsor_type=sponsor_type,
+            # Asked of everyone on a timeline: every visa is lodged from
+            # somewhere, and nationality/agent apply regardless of subclass.
+            lodgement_location=payload.lodgement_location if is_timeline else None,
+            nationality=payload.nationality if is_timeline else None,
+            lodged_via=payload.lodged_via if is_timeline else None,
+            direct_grant=payload.direct_grant if is_timeline else None,
             outcome=payload.outcome,
             title=title,
             note=note,
@@ -1675,6 +1699,9 @@ class CommunityService:
             note=note,
             milestones=milestones
             or [MilestoneIn(milestone_type="Visa Lodged", occurred_on=lodged_on)],
+            # A saved wait check is private by definition — the member came to
+            # ask a question, not to post. Publishing is a separate decision.
+            publish=False,
         )
         return await CommunityService.create_journey(
             db, payload, identity=identity, ip_hash=ip_hash, publish=False
@@ -1701,15 +1728,53 @@ class CommunityService:
 
     @staticmethod
     async def publish_journey(
-        db: AsyncSession, journey: Journey, *, ip_hash: Optional[str] = None
+        db: AsyncSession,
+        journey: Journey,
+        *,
+        ip_hash: Optional[str] = None,
+        occupation_slug: Optional[str] = None,
     ) -> Journey:
         """Publish a draft to the feed — the second, explicit consent.
 
         Idempotent: publishing an already-public post is a no-op rather than an
         error, so a double-tapped button cannot produce a confusing failure.
+
+        The occupation requirement is enforced **here as well as at creation**.
+        A draft is allowed to be incomplete — that is what a draft is, and the
+        wait check mints one from nothing but a subclass and a date. But
+        publishing is the moment it starts counting toward a public statistic,
+        and an uncoded timeline on a visa that has a nominated occupation pools
+        into a cohort it cannot be matched within. Without this check the draft
+        route was a way in through the back door.
         """
         if journey.is_published:
             return journey
+
+        if journey.post_type == "timeline" and journey.subclass_slug:
+            subclass = await CommunityService.get_subclass(db, journey.subclass_slug)
+            if subclass is not None and subclass.requires_occupation:
+                # The member can supply it *at* publication. A wait check is
+                # saved from nothing but a subclass and a date — asking for an
+                # occupation to save something privately would put a question in
+                # front of the one action that should be frictionless. It
+                # belongs here instead, where it first starts to matter.
+                if occupation_slug and not journey.occupation_code:
+                    name, code = await CommunityService._resolve_occupation(
+                        db,
+                        occupation_slug=occupation_slug,
+                        subclass=subclass,
+                        is_timeline=True,
+                        publish=True,
+                    )
+                    journey.occupation = name
+                    journey.occupation_code = code
+
+                if not journey.occupation_code:
+                    raise ValueError(
+                        f"Add your nominated occupation before sharing — subclass "
+                        f"{subclass.code} timelines are grouped by it."
+                    )
+
         journey.is_published = True
         journey.published_at = datetime.now(timezone.utc)
         await db.flush()
@@ -1957,6 +2022,12 @@ class CommunityService:
             "state": j.state,
             "area": j.area,
             "sponsor_type": j.sponsor_type,
+            "lodgement_location": j.lodgement_location,
+            "lodged_via": j.lodged_via,
+            "direct_grant": j.direct_grant,
+            # ``j.nationality`` is deliberately NOT emitted, here or anywhere
+            # else. It exists for cohort matching only. See the note on
+            # ``JourneyOut`` and ``tests/e2e_community_privacy.py``.
             "outcome": j.outcome,
             "title": j.title,
             "note": j.note,

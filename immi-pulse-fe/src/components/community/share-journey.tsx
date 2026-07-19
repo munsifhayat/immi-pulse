@@ -111,6 +111,18 @@ export function ShareJourney({
   const [sponsor, setSponsor] = useState<"accredited" | "non_accredited">(
     "accredited"
   );
+  // Asked of everyone on a timeline — every visa is lodged from somewhere, and
+  // both of these apply regardless of subclass.
+  const [lodgedFrom, setLodgedFrom] = useState<"onshore" | "offshore">("onshore");
+  const [lodgedVia, setLodgedVia] = useState<"self" | "agent">("self");
+  // Never published. Collected because processing genuinely differs and members
+  // on the public trackers already self-organise this way; kept private because
+  // a pseudonym plus a nationality plus a date re-identifies people in a small
+  // cohort.
+  const [nationality, setNationality] = useState("");
+  // Tri-state, and the third state matters: unset means "didn't say", which is
+  // a different claim from "there was contact".
+  const [directGrant, setDirectGrant] = useState(false);
   const [outcome, setOutcome] = useState<TimelineOutcome>("waiting");
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
@@ -134,6 +146,14 @@ export function ShareJourney({
   // belong to.
   const needsOccupation =
     postType === "timeline" && !!selected?.requires_occupation;
+  // Same contract for the rest of the profile. Every one of these used to be
+  // shown to everybody, so a 600 Tourist applicant was asked whether their
+  // employer was an accredited sponsor — a question with no referent, whose
+  // answer we then stored.
+  const isTimeline = postType === "timeline";
+  const needsState = isTimeline && !!selected?.requires_state_nomination;
+  const needsRegion = isTimeline && !!selected?.requires_region;
+  const needsSponsor = isTimeline && !!selected?.requires_sponsor_type;
 
   // Changing the visa invalidates the occupation: the eligible list differs per
   // subclass, and the server refuses an occupation that is not on the chosen
@@ -154,6 +174,10 @@ export function ShareJourney({
     setStateVal(STATES[0]);
     setArea("metro");
     setSponsor("accredited");
+    setLodgedFrom("onshore");
+    setLodgedVia("self");
+    setNationality("");
+    setDirectGrant(false);
     setOutcome("waiting");
     setTitle("");
     setNote("");
@@ -210,9 +234,22 @@ export function ShareJourney({
         subclass_slug: subclass || null,
         category_slug: selected?.category_slug ?? null,
         occupation_slug: needsOccupation ? occupationSlug || null : null,
-        state: postType === "timeline" ? stateVal : null,
-        area: postType === "timeline" ? area : null,
-        sponsor_type: postType === "timeline" ? sponsor : null,
+        // Only send what this visa actually asks. The server drops the rest
+        // anyway, but sending a value we never showed is how a field nobody
+        // filled in ends up looking like an answer.
+        state: needsState ? stateVal : null,
+        area: needsRegion ? area : null,
+        sponsor_type: needsSponsor ? sponsor : null,
+        lodgement_location: isTimeline ? lodgedFrom : null,
+        nationality: isTimeline ? nationality.trim() || null : null,
+        lodged_via: isTimeline ? lodgedVia : null,
+        // Only ever sent as an assertion. Leaving the box unticked means "not
+        // stated", which is not the same as "there was contact" — so it sends
+        // null rather than false.
+        direct_grant: isTimeline && directGrant ? true : null,
+        // This dialog's submit button *is* the consent — the member came here
+        // to post. The wait-check saves privately and publishes separately.
+        publish: true,
         outcome,
         title: postType === "question" ? title : null,
         note: note || null,
@@ -401,40 +438,90 @@ export function ShareJourney({
                       />
                     )}
 
-                    {/* profile */}
+                    {/* profile — every field below is conditional on what the
+                        chosen visa actually needs, driven by reference data
+                        rather than a subclass check. Before this, a tourist
+                        applicant was asked for their ANZSCO occupation and
+                        whether their employer was an accredited sponsor. */}
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {needsState && (
+                        <div>
+                          <label className={labelCls}>State / territory</label>
+                          <select
+                            value={stateVal}
+                            onChange={(e) => setStateVal(e.target.value)}
+                            className={fieldCls}
+                          >
+                            {STATES.map((s) => (
+                              <option key={s}>{s}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      {needsRegion && (
+                        <div>
+                          <label className={labelCls}>Area</label>
+                          <Seg
+                            value={area}
+                            onChange={setArea}
+                            options={[
+                              { value: "metro", label: "Metro" },
+                              { value: "regional", label: "Regional" },
+                            ]}
+                          />
+                        </div>
+                      )}
+                      {needsSponsor && (
+                        <div>
+                          <label className={labelCls}>Sponsor type</label>
+                          <Seg
+                            value={sponsor}
+                            onChange={setSponsor}
+                            options={[
+                              { value: "accredited", label: "Accredited" },
+                              { value: "non_accredited", label: "Non-accred." },
+                            ]}
+                          />
+                        </div>
+                      )}
+                      {/* Asked of everyone: every visa is lodged from
+                          somewhere, and "Offshore" used to be smuggled into the
+                          state dropdown as if it were a state. */}
                       <div>
-                        <label className={labelCls}>State / territory</label>
-                        <select
-                          value={stateVal}
-                          onChange={(e) => setStateVal(e.target.value)}
-                          className={fieldCls}
-                        >
-                          {STATES.map((s) => (
-                            <option key={s}>{s}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className={labelCls}>Area</label>
+                        <label className={labelCls}>Lodged from</label>
                         <Seg
-                          value={area}
-                          onChange={setArea}
+                          value={lodgedFrom}
+                          onChange={setLodgedFrom}
                           options={[
-                            { value: "metro", label: "Metro" },
-                            { value: "regional", label: "Regional" },
+                            { value: "onshore", label: "Onshore" },
+                            { value: "offshore", label: "Offshore" },
                           ]}
                         />
                       </div>
                       <div>
-                        <label className={labelCls}>Sponsor type</label>
+                        <label className={labelCls}>Lodged by</label>
                         <Seg
-                          value={sponsor}
-                          onChange={setSponsor}
+                          value={lodgedVia}
+                          onChange={setLodgedVia}
                           options={[
-                            { value: "accredited", label: "Accredited" },
-                            { value: "non_accredited", label: "Non-accred." },
+                            { value: "self", label: "Myself" },
+                            { value: "agent", label: "Agent" },
                           ]}
+                        />
+                      </div>
+                      <div>
+                        <label className={labelCls}>
+                          Nationality{" "}
+                          <span className="font-normal text-gray-text">
+                            (optional, never shown)
+                          </span>
+                        </label>
+                        <input
+                          className={fieldCls}
+                          value={nationality}
+                          onChange={(e) => setNationality(e.target.value)}
+                          placeholder="e.g. Indian"
+                          maxLength={60}
                         />
                       </div>
                       <div>
@@ -537,6 +624,31 @@ export function ShareJourney({
                         </button>
                       </div>
                     </div>
+
+                    {/* A positive claim, not an absent milestone. Roughly one
+                        timeline post in five says some version of "no CO
+                        contact, direct from received to finalised" — it is the
+                        densest thing in a skilled timeline, and until now an
+                        empty milestone list and a confirmed-clean run looked
+                        identical to us. */}
+                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-hair bg-paper px-3.5 py-3">
+                      <input
+                        type="checkbox"
+                        checked={directGrant}
+                        onChange={(e) => setDirectGrant(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-purple"
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-[13.5px] font-semibold text-ink">
+                          Direct grant — no case officer contact
+                        </span>
+                        <span className="mt-0.5 block text-[11.5px] leading-relaxed text-gray-text">
+                          Tick only if it ran straight through with no s56, no
+                          Form 80 and no further requests. Leaving it unticked
+                          says nothing either way.
+                        </span>
+                      </span>
+                    </label>
 
                     <div>
                       <label className={labelCls}>

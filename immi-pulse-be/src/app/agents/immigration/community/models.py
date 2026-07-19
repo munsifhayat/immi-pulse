@@ -412,9 +412,41 @@ class Journey(Base):
     # text here and a NULL code — that is history, not a bug to backfill, since
     # "Nurse" cannot be resolved to one of the eleven coded nursing occupations.
     occupation = Column(String, nullable=True)
-    state = Column(String, nullable=True)         # NSW… | Offshore
+    # A state or territory only — "Offshore" used to live in here too, which
+    # conflated *where the applicant is* with *which state nominated them*. It
+    # moved to ``lodgement_location``; the migration rewrites the old rows.
+    state = Column(String, nullable=True)         # NSW | VIC | QLD…
     area = Column(String, nullable=True)          # metro | regional
     sponsor_type = Column(String, nullable=True)  # accredited | non_accredited | null
+
+    # Were they in Australia when they lodged? The single most-requested field
+    # on the competitor trackers, where members currently cram it into free
+    # text. It splits waits sharply on several subclasses and is asked of
+    # everyone, because every visa is lodged from somewhere.
+    lodgement_location = Column(String, nullable=True)  # onshore | offshore
+
+    # Nationality is collected for cohort matching and **never published**.
+    # Members on the public trackers self-organise into national sub-groups
+    # because processing genuinely differs, but a pseudonymous timeline plus a
+    # nationality plus a lodgement date is a re-identifying triple in a small
+    # cohort. It is excluded from every public serializer — see
+    # ``CommunityService.journey_out`` and the test that asserts its absence.
+    nationality = Column(String, nullable=True)
+
+    # Self-lodged or through a registered agent. A distinct column on the
+    # competitor's tracker, and the plausible explanation for a chunk of the
+    # variance we cannot otherwise account for.
+    lodged_via = Column(String, nullable=True)  # self | agent
+
+    # "No CO contact. Direct from received to finalised." Roughly one timeline
+    # post in five asserts an absence like this, and it is the densest claim in
+    # a skilled timeline — it says the case ran clean.
+    #
+    # This is a *positive assertion*, not an absent milestone: without it, a
+    # confirmed-clean run and a half-filled form are the same empty list. NULL
+    # means "not stated", which is different again from False ("there was
+    # contact") — hence a nullable Boolean rather than a default-false flag.
+    direct_grant = Column(Boolean, nullable=True)
 
     outcome = Column(String, nullable=False, default="waiting", index=True)
 
@@ -776,6 +808,33 @@ class VisaSubclass(Base):
     # a wrong edition is invisible in testing and permanently wrong in the data.
     # See ``Occupation.code_for_version``.
     anzsco_version = Column(String, nullable=True)
+
+    # The rest of the "what does this visa actually need?" set. Same contract as
+    # ``requires_occupation`` above: false means the form does not ask, not that
+    # the answer is optional. Populated by ``scripts/seed_visa_taxonomy.py``.
+    #
+    # These are policy facts about the visa, not figures from the department's
+    # feed, which is why the seeder carries them rather than the fetcher — there
+    # is no DHA endpoint that says "190 needs a nominating state".
+    #
+    # Does a state or territory nominate this applicant? True for the points-
+    # tested nomination visas (190, 491) and for employer-sponsored visas, where
+    # the question means "which state is the job in".
+    requires_state_nomination = Column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    # Is metro-vs-regional a real distinction for this visa? Only the regional
+    # visas (190, 491, 494) turn on it. Asking a 482 applicant whether their
+    # employer is regional collects an answer that predicts nothing.
+    requires_region = Column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    # Does an accredited-sponsor status change the wait? Only 482 and 186 —
+    # accredited sponsorship is a priority-processing arrangement, and it exists
+    # nowhere else in the programme.
+    requires_sponsor_type = Column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
 
     official_p25_days = Column(Integer, nullable=True)
     official_p50_days = Column(Integer, nullable=True)

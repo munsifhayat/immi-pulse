@@ -180,6 +180,7 @@ async def main():
         r = await b.post(
             "/community/journeys",
             json={
+                "publish": True,
                 "post_type": "question",
                 "title": f"Is my wait normal? {suffix}",
                 "note": "Asked before I had an account.",
@@ -237,6 +238,7 @@ async def main():
             "/community/journeys",
             anon=True,
             json={
+                "publish": True,
                 "post_type": "question",
                 "title": f"Second question, signed out {suffix}",
                 "note": "Posted by whoever sat down next.",

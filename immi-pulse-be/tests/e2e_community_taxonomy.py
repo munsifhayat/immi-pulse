@@ -184,6 +184,7 @@ async def main():
             "/community/journeys",
             headers=auth,
             json={
+                "publish": True,
                 "post_type": "timeline",
                 "subclass_slug": "482-nomination",
                 "milestones": [
@@ -212,6 +213,7 @@ async def main():
             "/community/journeys",
             headers=auth,
             json={
+                "publish": True,
                 "post_type": "timeline",
                 "subclass_slug": "186-temporary-residence-transition",
                 "occupation_slug": occ[0]["slug"],
