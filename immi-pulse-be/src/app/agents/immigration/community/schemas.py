@@ -484,13 +484,18 @@ class CommunityAccountOut(BaseModel):
 
 
 class CommunitySessionOut(BaseModel):
-    """Issued on signup and login. ``device_token`` is echoed so a client that
-    cannot rely on the cookie (dev over http, cross-origin) still has it."""
+    """Issued on signup, login and password reset — a session, and nothing else.
+
+    Carries **no** device token on purpose. Echoing one made every client
+    overwrite the browser's identity with the account's, which merged two
+    browsers into one identity and left a signed-out visitor still writing as
+    the last member to use the machine. The browser's identity is now that
+    browser's own business (``/community/public/identity``).
+    """
 
     token: str
     expires_at: datetime
     account: CommunityAccountOut
-    device_token: Optional[str] = None
 
 
 class CommunityRecoverAcceptedOut(BaseModel):

@@ -1,8 +1,13 @@
 // The anonymous, per-device community identity — the "temporary user" a visitor
 // gets the moment they arrive. The server issues a handle + colour + device
 // token at bootstrap; we persist the token in localStorage so every later visit
-// (and every write) maps back to the same identity. When the visitor later
-// creates a real portal account, the device token is what links the two.
+// (and every write) maps back to the same identity.
+//
+// This token addresses an *anonymous* identity and only ever that. It is never
+// an account's: signing up releases the account's token server-side, and no
+// session response carries one. So signing in does not overwrite what is stored
+// here, and signing out replaces it (see `useCommunityLogout`) rather than
+// leaving the browser pointed at the identity it just left.
 
 const DEVICE_TOKEN_KEY = "ip_device_token";
 

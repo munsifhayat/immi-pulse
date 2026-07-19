@@ -185,17 +185,33 @@ async def main():
         )
         check("short password rejected", r.status_code in (400, 422))
 
-        # Signing up twice on the same device is a conflict, not a duplicate.
+        # Signing up a second time on the same browser is a normal thing to do,
+        # not a 409. The first signup released this browser's device token, so
+        # the browser is a stranger again — and a stranger is entitled to their
+        # own account. This is the shared-computer case the old conflict made a
+        # dead end: the person at the keyboard is not the person who owns the
+        # first account, and has no password to "just log in" with.
         r = await c.post(
             "/community/public/auth/signup",
             headers=h1,
             json={"password": "another-password-99", "email": f"dupe-{suffix}@example.com"},
         )
-        check("second signup on a claimed device conflicts", r.status_code == 409)
-        check("...and points at logging in", "log in" in r.text.lower())
+        check("a second signup on the same browser succeeds", r.status_code == 201)
+        second_handle = r.json()["account"]["handle"]
+        check(
+            "...and mints a distinct account rather than returning the first",
+            bool(second_handle) and second_handle != handle1,
+        )
 
         # Handle locks once the account exists — it is the login identifier now.
-        r = await c.post("/community/public/identity/reroll", headers=h1)
+        # Asserted through the SESSION rather than the device token: a member's
+        # browser carries a throwaway anonymous row alongside their account, so
+        # a device-only reroll would happily reroll *that* and report success
+        # while the handle they actually log in with never moved.
+        r = await c.post(
+            "/community/public/identity/reroll",
+            headers={**svc, "Authorization": f"Bearer {session_token}"},
+        )
         check("handle locks after signup", r.status_code == 409)
 
         # ══ 3. Log in from a FRESH client — no device token, no cookie ══
@@ -341,9 +357,15 @@ async def main():
             "an unverified duplicate email is allowed (no pre-hijacking)",
             r.status_code == 201,
         )
+        dupe_handle = r.json()["account"]["handle"]
 
-        # ...and the cost of allowing it is that the address is now ambiguous,
-        # so recovery must refuse to guess which account it belongs to.
+        # ...and the cost of allowing it used to be paid by both members:
+        # recovery resolved a pending address only when exactly one account
+        # claimed it, so a duplicate locked BOTH of them out, permanently and
+        # silently. It now mails every claimant instead — each with its own
+        # single-use token and its own handle named in the body, so the member
+        # picks their account by opening the right mail. Nothing leaks, because
+        # only the person holding that inbox ever sees any of it.
         sent_emails.clear()
         r = await c.post(
             "/community/public/auth/recover",
@@ -352,9 +374,26 @@ async def main():
         )
         check("recovery on an ambiguous address still 200s", r.status_code == 200)
         check(
-            "...but sends nothing — it will not guess between two claimants",
-            len(sent_emails) == 0,
+            "...and mails BOTH claimants rather than locking them both out",
+            len(sent_emails) == 2,
         )
+        check(
+            "every mail goes to the claimed address and nowhere else",
+            all(e["to"] == member_email for e in sent_emails),
+        )
+        named = {
+            h
+            for h in (handle2, dupe_handle)
+            if any(h in e.get("body_html", "") for e in sent_emails)
+        }
+        check(
+            "each mail names its own handle, so they can be told apart",
+            named == {handle2, dupe_handle},
+        )
+        dupe_tokens = {
+            e.get("cta_url", "").split("token=", 1)[-1] for e in sent_emails
+        }
+        check("each claimant gets a distinct token", len(dupe_tokens) == 2)
 
         # A sole claimant recovers normally.
         member_email = f"solo.{suffix}@example.com"

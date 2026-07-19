@@ -352,9 +352,23 @@ async def bootstrap_identity(
 
 
 @router.post("/public/identity/reroll", response_model=IdentityOut)
-async def reroll_identity(request: Request, db: AsyncSession = Depends(get_db)):
-    """Generate a new handle (allowed only before the first timeline is shared)."""
-    identity = await CommunityService.get_or_create_identity(
+async def reroll_identity(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    account: Optional[AnonIdentity] = Depends(optional_community_account),
+):
+    """Generate a new handle (allowed only before the first timeline is shared).
+
+    Resolves the session before the device token, exactly like every other write
+    surface (:func:`_writer_identity`). That precedence is load-bearing *because*
+    of the account/device split: a signed-in member's browser now carries a
+    freshly minted anonymous row alongside their session, so a device-only
+    lookup would quietly reroll that throwaway row and report success — while
+    the member's real handle, the one they log in with, stayed put. Going
+    through the account instead lets ``reroll_identity`` refuse, which is the
+    guarantee the signup dialog makes: your handle locks when you join.
+    """
+    identity = account or await CommunityService.get_or_create_identity(
         db, token=_device_token(request), ip_hash=_client_ip_hash(request)
     )
     try:
@@ -371,18 +385,20 @@ async def reroll_identity(request: Request, db: AsyncSession = Depends(get_db)):
 # middleware to exempt them (middleware/api_key_auth.py PUBLIC_PREFIXES).
 
 
-def _session_out(
-    account: AnonIdentity, response: Response, *, include_device_token: bool = True
-) -> CommunitySessionOut:
+def _session_out(account: AnonIdentity) -> CommunitySessionOut:
+    """A session, and nothing else.
+
+    Deliberately does not touch the device cookie. It used to rebind the browser
+    to ``account.device_token`` on every issue — signup, login and password
+    reset alike — which is what made a second browser converge onto the first
+    one's identity and made a signed-out visitor keep writing as the member who
+    last used the machine. An account is now addressed by this token only.
+    """
     token, expires_at = issue_community_session_jwt(account)
-    # Refresh the durable device cookie on every session issue, so a returning
-    # member's device stays bound even if their localStorage was cleared.
-    set_device_cookie(response, account.device_token)
     return CommunitySessionOut(
         token=token,
         expires_at=expires_at,
         account=CommunityAccountOut(**CommunityAccountService.account_out(account)),
-        device_token=account.device_token if include_device_token else None,
     )
 
 
@@ -394,15 +410,17 @@ def _session_out(
 async def community_signup(
     payload: CommunitySignupRequest,
     request: Request,
-    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
-    """Claim this device's identity as an account by setting a password.
+    """Turn this browser's identity into an account.
 
     Never show an empty signup form ahead of this call: the member does the
-    thing first — runs a wait check, writes a timeline — and claims it after,
-    which is why signup resolves the *existing* device identity rather than
-    creating a fresh one. The handle and any prior posts carry over untouched.
+    thing first — runs a wait check, writes a timeline — and signs up after,
+    which is why this resolves the *existing* browser identity rather than
+    creating a fresh one. If that identity is unclaimed it is adopted and the
+    handle and prior posts carry over untouched; if it already belongs to
+    somebody else, a new account is minted beside it. Signing up on a shared
+    computer is a normal thing to do, not a 409.
     """
     identity = await CommunityService.get_or_create_identity(
         db, token=_device_token(request), ip_hash=_client_ip_hash(request)
@@ -418,18 +436,22 @@ async def community_signup(
         raise HTTPException(status_code=err.status_code, detail=str(err)) from err
     await db.commit()
     await db.refresh(account)
-    return _session_out(account, response)
+    return _session_out(account)
 
 
 @router.post("/public/auth/login", response_model=CommunitySessionOut)
 async def community_login(
     payload: CommunityLoginRequest,
-    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
-    """Handle + password. Deliberately ignores the device token — logging in
-    from a second device is the whole point, and it re-binds the cookie to the
-    account's original device token so both devices resolve the same identity."""
+    """Handle + password.
+
+    Touches nothing on the browser: not the device cookie, not the device
+    token. Logging in from a second device is the whole point, and rebinding
+    that device to the account's token — which is what this used to do — merged
+    the two browsers into one identity and left the second one writing as the
+    account long after it signed out.
+    """
     try:
         account = await CommunityAccountService.login(
             db, handle=payload.handle, password=payload.password
@@ -439,7 +461,31 @@ async def community_login(
         raise HTTPException(status_code=err.status_code, detail=str(err)) from err
     await db.commit()
     await db.refresh(account)
-    return _session_out(account, response)
+    return _session_out(account)
+
+
+@router.post("/public/auth/logout", response_model=IdentityOut)
+async def community_logout(
+    request: Request, response: Response, db: AsyncSession = Depends(get_db)
+):
+    """Sign out, and hand this browser a brand-new anonymous identity.
+
+    The session JWT is stateless, so signing out is really about the *browser*:
+    the ``ip_device`` cookie is HttpOnly and no client code can clear it, which
+    is why this endpoint has to exist at all. Without it a signed-out visitor
+    kept resolving to whatever identity the cookie named.
+
+    It deliberately ignores the incoming device token and mints a fresh row
+    rather than clearing the cookie and letting the client re-bootstrap: the
+    server then decides who this browser is, so a client that fails to clear its
+    localStorage copy still ends up somewhere new instead of back where it was.
+    """
+    identity = await CommunityService.get_or_create_identity(
+        db, token=None, ip_hash=_client_ip_hash(request)
+    )
+    await db.commit()
+    set_device_cookie(response, identity.device_token)
+    return IdentityOut(**CommunityService.identity_out(identity, include_token=True))
 
 
 @router.get("/public/auth/me", response_model=CommunityAccountOut)
@@ -457,22 +503,26 @@ async def community_recover(
     Responds identically whether or not the address is known — a differing
     response would let anyone test which emails hold accounts, which for this
     audience is a genuine safety problem, not a theoretical one.
+
+    When several accounts claim the same unverified address, every one of them
+    gets its own link. Pending addresses are non-unique by design (that is what
+    closes the pre-hijacking hole), so the alternative — refusing to guess —
+    left all of those members permanently locked out. Each mail names the handle
+    it belongs to, and only the person holding the inbox ever sees any of them.
     """
-    token = await CommunityAccountService.begin_recovery(db, email=payload.email)
+    grants = await CommunityAccountService.begin_recovery(db, email=payload.email)
     await db.commit()
-    if token:
-        account = await CommunityAccountService.get_by_email(db, payload.email)
-        if account is not None:
-            # Send to the address actually on the account, preferring the
-            # verified one. Never echo back what the caller typed — that would
-            # forward a recovery link to whatever a stranger asked us to.
-            destination = account.email_verified or account.email_pending
-            try:
-                await send_recovery_email(
-                    to=destination, handle=account.handle, token=token
-                )
-            except Exception:  # never leak send failures back to the caller
-                logger.exception("Community recovery email failed to send")
+    for account, token in grants:
+        # Send to the address actually on the account, preferring the verified
+        # one. Never echo back what the caller typed — that would forward a
+        # recovery link to whatever a stranger asked us to.
+        destination = account.email_verified or account.email_pending
+        try:
+            await send_recovery_email(
+                to=destination, handle=account.handle, token=token
+            )
+        except Exception:  # never leak send failures back to the caller
+            logger.exception("Community recovery email failed to send")
     return CommunityRecoverAcceptedOut(
         detail="If that email has an account, a recovery link is on its way."
     )
@@ -481,7 +531,6 @@ async def community_recover(
 @router.post("/public/auth/reset", response_model=CommunitySessionOut)
 async def community_reset_password(
     payload: CommunityResetPasswordRequest,
-    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
     """Consume a recovery token and set a new password."""
@@ -494,7 +543,7 @@ async def community_reset_password(
         raise HTTPException(status_code=err.status_code, detail=str(err)) from err
     await db.commit()
     await db.refresh(account)
-    return _session_out(account, response)
+    return _session_out(account)
 
 
 # --- Community feed v2: journeys (reads) ------------------------------------

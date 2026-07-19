@@ -29,10 +29,16 @@ from app.core.config import get_settings
 
 
 def _account(**kw) -> AnonIdentity:
-    """An in-memory account row — never added to a session."""
+    """An in-memory account row — never added to a session.
+
+    ``device_token`` defaults to None because that is the shape of every
+    account: signup releases the browser's token, so an account is reached by
+    handle + password and never by a device. See the invariant on
+    :class:`AnonIdentity`.
+    """
     defaults = dict(
         id=uuid.uuid4(),
-        device_token="dev-" + uuid.uuid4().hex,
+        device_token=None,
         handle="BoldLagoon7745",
         color="#7A5AF8",
         password_hash="$2b$12$fakefakefakefakefakefake",
@@ -196,3 +202,46 @@ def test_pending_email_is_not_treated_as_verified():
 def test_is_account_tracks_the_password():
     assert _account().is_account is True
     assert _account(password_hash=None).is_account is False
+
+
+# --- The account/device split -------------------------------------------------
+#
+# One row used to be both the browser and the account, welded by
+# ``device_token NOT NULL UNIQUE``. Everything below guards the seam that
+# separated them; each assertion maps to a bug that shipped because it did not
+# hold.
+
+
+def test_device_token_is_nullable_but_still_unique():
+    """NULL is now a legal device token, and it must stay uniquely constrained.
+
+    Nullable is what lets an account exist with no browser attached. Unique is
+    what still stops two browsers sharing one anonymous row — Postgres permits
+    any number of NULLs under a UNIQUE index, so both properties hold at once
+    and ``uq_anon_identity_device_token`` did not have to be dropped.
+    """
+    column = AnonIdentity.__table__.c.device_token
+    assert column.nullable is True
+    assert column.unique is True
+
+
+def test_session_response_carries_no_device_token():
+    """A session says who you are, never whose browser this is.
+
+    Echoing the account's token here is precisely how two browsers logging into
+    one account collapsed onto a single identity, and how a browser that later
+    signed out kept writing under the member's pseudonym. The field is gone, so
+    no client can reintroduce the behaviour by reading it.
+    """
+    from app.agents.immigration.community.schemas import CommunitySessionOut
+
+    assert "device_token" not in CommunitySessionOut.model_fields
+
+
+def test_identity_serializer_reports_no_device_token_for_an_account():
+    """Even asked directly for it, an account has no browser to name."""
+    from app.agents.immigration.community.service import CommunityService
+
+    out = CommunityService.identity_out(_account(), include_token=True)
+    assert out["device_token"] is None
+    assert out["has_account"] is True
