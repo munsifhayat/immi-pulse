@@ -104,6 +104,11 @@ async def run(dry_run: bool) -> int:
                     "stream": st["display_name"] or None,
                     "category_slug": cat,
                     "cohort_key": cohort_key_for(sub, st),
+                    # Persist the premise beside the conclusion. Without it the
+                    # cohort key is an unexplainable string and the pooling
+                    # decision can only be changed by re-fetching from Home
+                    # Affairs.
+                    "cohort_split_by_stream": bool(sub["cohort_split_by_stream"]),
                     "dha_subclass_code": sub["subclass_code"],
                     "dha_stream_code": st["dha_stream_code"] or None,
                     "is_stage": bool(st["is_stage"]),

@@ -90,6 +90,11 @@ export interface VisaSubclassOut {
   requires_region?: boolean;
   /** Accredited sponsorship — only 482 and 186. */
   requires_sponsor_type?: boolean;
+  /**
+   * Are this programme's streams counted separately, or pooled? Lets the UI
+   * explain a cohort instead of only presenting it.
+   */
+  cohort_split_by_stream?: boolean;
   official_p50_days?: number | null;
   official_p90_days?: number | null;
   official_updated?: string | null;
