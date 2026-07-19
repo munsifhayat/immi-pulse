@@ -181,6 +181,7 @@ async def main():
             "/community/journeys",
             headers=A,
             json={
+                "publish": True,
                 "post_type": "question",
                 "title": f"820 partner visa onshore — how long after medical? {suffix}",
                 "note": "Lodged a while back and still waiting on a decision.",
@@ -404,6 +405,7 @@ async def main():
             "/community/journeys",
             headers=D,
             json={
+                "publish": True,
                 "post_type": "question",
                 "title": f"820 partner visa — bridging while onshore? {suffix}",
                 "note": "Sponsor lodged in March, still no medical request.",
@@ -539,6 +541,7 @@ async def main():
             "/community/journeys",
             headers=E,
             json={
+                "publish": True,
                 "post_type": "question",
                 "title": f"Question from someone who opted out {suffix}",
                 "note": "Should never generate an email.",
@@ -568,6 +571,7 @@ async def main():
             "/community/journeys",
             headers=V,
             json={
+                "publish": True,
                 "post_type": "question",
                 "title": f"Asked before signing up {suffix}",
                 "note": "Posted from a device with no account yet.",

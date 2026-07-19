@@ -128,6 +128,7 @@ async def main():
         lodged = (date.today() - timedelta(days=200)).isoformat()
         granted = (date.today() - timedelta(days=20)).isoformat()
         payload = {
+            "publish": True,
             "post_type": "timeline",
             "subclass_slug": slug,
             "occupation_slug": occupation_slug,

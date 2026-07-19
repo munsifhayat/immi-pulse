@@ -298,7 +298,18 @@ async def publish_journey(
     journey = await CommunityService.get_owned_journey(db, journey_id, identity)
     if journey is None:
         raise HTTPException(status_code=404, detail="Post not found")
-    await CommunityService.publish_journey(db, journey, ip_hash=ip_hash)
+    try:
+        await CommunityService.publish_journey(
+            db,
+            journey,
+            ip_hash=ip_hash,
+            occupation_slug=payload.occupation_slug,
+        )
+    except ValueError as err:
+        # A draft is allowed to be incomplete; publishing it is not. The message
+        # names what is missing, because this is a refusal the member can act on
+        # — they go back and add the occupation.
+        raise HTTPException(status_code=400, detail=str(err)) from err
     await db.commit()
     detail = await CommunityService.get_journey_detail(db, journey, identity=identity)
     return JourneyDetailOut(**detail)
@@ -652,7 +663,15 @@ async def create_journey(
     identity = await _writer_identity(request, db, account, ip_hash=ip_hash)
     try:
         journey = await CommunityService.create_journey(
-            db, payload, identity=identity, ip_hash=ip_hash
+            db,
+            payload,
+            identity=identity,
+            ip_hash=ip_hash,
+            # The client states its intent; the server never assumes it. The
+            # builder and composer send true (their submit button is the
+            # consent); a client that saves privately sends false and publishes
+            # later through ``/journeys/{id}/publish``.
+            publish=payload.publish,
         )
     except JourneyCapError as err:
         # 409 → frontend shows the "sign in to do more" gate.

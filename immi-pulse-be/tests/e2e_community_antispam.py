@@ -155,7 +155,12 @@ async def main():
             return await c.post(
                 "/community/journeys",
                 headers=headers,
-                json={"post_type": "question", "title": title, "note": note},
+                json={
+                    "publish": True,
+                    "post_type": "question",
+                    "title": title,
+                    "note": note,
+                },
             )
 
         # ═══ 1. Link gating below T2 ═══

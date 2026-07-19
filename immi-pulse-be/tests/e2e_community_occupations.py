@@ -341,6 +341,7 @@ async def main():
             "/community/journeys",
             headers=auth,
             json={
+                "publish": True,
                 "post_type": "timeline",
                 "subclass_slug": "189-points-tested",
                 "milestones": [
@@ -364,6 +365,7 @@ async def main():
             "/community/journeys",
             headers=auth,
             json={
+                "publish": True,
                 "post_type": "timeline",
                 "subclass_slug": "189-points-tested",
                 "occupation_slug": software_eng["slug"],
@@ -404,6 +406,7 @@ async def main():
                 "/community/journeys",
                 headers=auth,
                 json={
+                    "publish": True,
                     "post_type": "timeline",
                     "subclass_slug": "189-points-tested",
                     "occupation_slug": only_186["slug"],
@@ -422,6 +425,7 @@ async def main():
             "/community/journeys",
             headers=auth,
             json={
+                "publish": True,
                 "post_type": "timeline",
                 "subclass_slug": "189-points-tested",
                 "occupation_slug": "not-a-real-occupation",
@@ -438,6 +442,7 @@ async def main():
             "/community/journeys",
             headers=auth,
             json={
+                "publish": True,
                 "post_type": "timeline",
                 "subclass_slug": visitor["slug"],
                 "milestones": [
@@ -453,6 +458,7 @@ async def main():
             "/community/journeys",
             headers=auth,
             json={
+                "publish": True,
                 "post_type": "timeline",
                 "subclass_slug": visitor["slug"],
                 "occupation_slug": software_eng["slug"],
@@ -475,6 +481,7 @@ async def main():
             "/community/journeys",
             headers=auth,
             json={
+                "publish": True,
                 "post_type": "question",
                 "subclass_slug": "189-points-tested",
                 "title": "Does the 189 queue move in December?",
