@@ -41,7 +41,15 @@ Alembic stays on a single head (`a3c5e7b9d1f4` at baseline), new no-API-key rout
 - **Email is required at signup and unverified**, with a retype as the typo guard. Session
   is issued immediately. (Source plan decisions 1 and 2 — already built in the baseline.)
 
-## Open — must be settled before p1 writes code
+- **Email conflicts get a generic message; recovery is fixed instead.** Confirmed
+  2026-07-19. Pending addresses stay non-unique, so a stranger's address can never be
+  burned. Signup neither confirms nor denies that an address is in use. Recovery stops
+  breaking on duplicates — key on handle + email, or mail every matching account (only the
+  real inbox owner ever sees that list). This rules out making `email_pending` unique, and
+  defers the email-verification flow out of this epic. **Consequence: we cannot show "that
+  email already exists", by design.** See the reasoning below.
+
+## Settled — the email uniqueness question (resolved above; kept for the why)
 
 **Email uniqueness on signup.** The baseline deliberately made `email_pending` **non-unique**
 (`models.py:136-148`) to close the account pre-hijacking hole documented in the source plan
@@ -57,6 +65,6 @@ recovery, permanently and silently. This directly undercuts the source plan's de
 which promises "recovery, which finally works for everyone".
 
 The requested behaviour — showing "that email already exists" — is only enforceable if
-pending addresses are unique, which is exactly what reintroduces pre-hijacking.
-
-Record the resolution here before p1 starts.
+pending addresses are unique, which is exactly what reintroduces pre-hijacking. Resolved in
+favour of the security property: p1 fixes recovery so duplicates stop causing a silent
+mutual lockout, and signup stays deliberately uninformative.
