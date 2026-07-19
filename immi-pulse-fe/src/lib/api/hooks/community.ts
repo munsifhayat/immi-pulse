@@ -70,9 +70,47 @@ export interface VisaSubclassOut {
   category_slug?: string | null;
   /** 482/870 nomination + sponsorship: lodgement stages, never offered as streams. */
   is_stage?: boolean;
+  /**
+   * Does this visa have a nominated occupation?
+   *
+   * Drives whether the occupation picker renders at all. False means **hidden**,
+   * not optional — a 600 Tourist or partner-visa applicant has no ANZSCO
+   * occupation, and a field they have to guess at pools their timeline into a
+   * cohort it does not belong to.
+   */
+  requires_occupation?: boolean;
+  /** "2013" | "2022" | null — which ANZSCO edition this subclass reads. */
+  anzsco_version?: string | null;
   official_p50_days?: number | null;
   official_p90_days?: number | null;
   official_updated?: string | null;
+}
+
+/**
+ * One ANZSCO occupation from the Home Affairs skilled occupation list.
+ *
+ * `anzsco_code` is already resolved server-side for the subclass it was
+ * requested with — Home Affairs runs ANZSCO 2022 for subclass 186/482 and
+ * ANZSCO 2013 for every other skilled subclass. Never pick between
+ * `anzsco_2013_code` and `anzsco_2022_code` here: 416 occupations carry both,
+ * only 7 differ, so a client-side guess is right 98% of the time and silently
+ * wrong forever on the rest.
+ */
+export interface OccupationOut {
+  slug: string;
+  name: string;
+  anzsco_code?: string | null;
+  anzsco_version?: string | null;
+  anzsco_2013_code?: string | null;
+  anzsco_2022_code?: string | null;
+  /** First digit of the code — the picker groups on this. */
+  major_group_code?: string | null;
+  major_group_name?: string | null;
+  /** MLTSSL / STSOL / ROL / CSOL. */
+  lists: string[];
+  eligible_subclasses: string[];
+  assessing_authority?: string | null;
+  authority_url?: string | null;
 }
 
 /**
@@ -218,6 +256,32 @@ export function useVisaSubclasses() {
       );
       return data;
     },
+    staleTime: 1000 * 60 * 30,
+  });
+}
+
+/**
+ * The skilled occupation list, filtered to one visa.
+ *
+ * Fetches the whole filtered set once (457 rows for subclass 186, 212 for 189)
+ * and lets the picker filter it locally as the member types. The endpoint also
+ * takes a `q`, but round-tripping every keystroke to Akamai-fronted data that
+ * changes quarterly would be slower and no more correct.
+ *
+ * Disabled until a subclass is chosen: the unfiltered list is all 714, which is
+ * exactly the flat catalogue this feature exists to replace.
+ */
+export function useOccupations(subclass?: string | null) {
+  return useQuery({
+    queryKey: queryKeys.community.occupations(subclass),
+    queryFn: async () => {
+      const { data } = await apiClient.get<OccupationOut[]>(
+        "/community/public/occupations",
+        { params: { subclass } }
+      );
+      return data;
+    },
+    enabled: !!subclass,
     staleTime: 1000 * 60 * 30,
   });
 }
@@ -441,7 +505,10 @@ export interface JourneyOut {
   subclass_name?: string | null;
   category_name?: string | null;
   stream?: string | null;
+  /** Display name, snapshotted at posting time. */
   occupation?: string | null;
+  /** The 6-digit ANZSCO code — the cohort-matching key. */
+  occupation_code?: string | null;
   state?: string | null;
   area?: string | null;
   sponsor_type?: string | null;
@@ -528,7 +595,14 @@ export interface CreateJourneyPayload {
   subclass_slug?: string | null;
   category_slug?: string | null;
   stream?: string | null;
-  occupation?: string | null;
+  /**
+   * The occupation's slug from `useOccupations`. Required for every subclass
+   * whose `requires_occupation` is true; the server resolves the display name
+   * and the ANZSCO code from it. There is deliberately no free-text
+   * `occupation` field any more — it made "Nurse", "nurse" and "RN" three
+   * cohorts of one.
+   */
+  occupation_slug?: string | null;
   state?: string | null;
   area?: string | null;
   sponsor_type?: string | null;

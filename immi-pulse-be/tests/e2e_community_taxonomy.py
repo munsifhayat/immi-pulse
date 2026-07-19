@@ -193,6 +193,19 @@ async def main():
         )
         check("posting a timeline against a stage is rejected", r.status_code >= 400)
 
+        # 186 is employer-sponsored, so its timelines carry a coded occupation.
+        # Resolved through the API rather than hardcoded — 186 reads the ANZSCO
+        # 2022 edition and hardcoding a code here would encode that choice in
+        # the wrong place.
+        occ = (
+            await client.get(
+                "/community/public/occupations",
+                params={"subclass": "186-temporary-residence-transition", "limit": 1},
+                headers=svc,
+            )
+        ).json()
+        check("186 offers occupations to nominate", len(occ) == 1)
+
         # A client that lies about its stream must be corrected from reference
         # data, not obeyed — this is the "every timeline says Direct Entry" bug.
         r = await client.post(
@@ -201,6 +214,7 @@ async def main():
             json={
                 "post_type": "timeline",
                 "subclass_slug": "186-temporary-residence-transition",
+                "occupation_slug": occ[0]["slug"],
                 "stream": "Direct Entry (DE)",
                 "outcome": "granted",
                 "milestones": [

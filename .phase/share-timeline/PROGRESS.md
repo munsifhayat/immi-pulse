@@ -6,7 +6,7 @@ Integration branch: `feat/share-timeline`
 Base: `main`
 Baseline: `31bad77` (source plan phases 0, 1, 3 — built and verified before this epic)
 
-Phase status: [done] p1 · [pending] p2 · [pending] p3 · [pending] p4 · [pending] p5
+Phase status: [done] p1 · [done] p2 · [pending] p3 · [pending] p4 · [pending] p5
 
 <!--
 Legend: pending → in_progress → done  (or blocked)
@@ -174,3 +174,136 @@ patched individually.
 - `e2e_community_{inbox,antispam,ratelimit,waitcheck_save,taxonomy,moderation}.py` → all pass.
 - `bunx tsc --noEmit` clean · `bun run build` clean · `bun run lint` still exactly the 5
   pre-existing errors, none in `src/components/community/` or `src/lib/`.
+
+---
+
+## Handoff — p2: DHA occupation dataset and filtered picker   [done]
+
+Branch `feat/share-timeline-p2-occupations` → squash-merged into `feat/share-timeline`.
+Dashed name again, per p1's note.
+
+### What shipped vs planned
+
+Everything in the phase spec. The shape is one rule, stated on `Occupation`
+(`models.py:805-866`):
+
+> **Two codes, not one.** Resolve with `code_for_version` against
+> `VisaSubclass.anzsco_version`; never read a code column directly.
+
+- New `scripts/fetch_dha_occupations.py` → committed `scripts/dha_occupations.json`
+  (714 records). Browser UA + Referer, 3-attempt backoff, `--dry-run`, and a
+  `MIN_RECORDS = 600` floor so a blocked page can never be mistaken for "the
+  department retired 700 occupations".
+- New `scripts/seed_occupations.py`. Matched on `slug`, absent rows go
+  `is_active=False`, prints `created / updated / retired`. Also stamps
+  `requires_occupation` + `anzsco_version` onto `visa_subclasses`.
+- Migration `c4e8a2b6d0f7` (down_revision `b7d9f1a3c5e2`): `occupations` table,
+  `visa_subclasses.requires_occupation` + `.anzsco_version`,
+  `community_journeys.occupation_code`. Purely additive.
+- `GET /community/public/occupations?subclass=&q=&limit=` — subclass filter
+  (slug **or** bare number) and typeahead over name and both codes.
+- `occupation-picker.tsx`: grouped by ANZSCO major group, searchable, filtered
+  to the subclass, shows the resolved code + edition + assessing authority.
+- Occupation is **required** where `requires_occupation`, **hidden** where not.
+- Form layout: occupation now owns a full-width row; state/territory dropped to
+  the second row's first cell.
+
+### Key decisions and why
+
+1. **Free text is gone from the write path entirely** — `CreateJourneyRequest`
+   has no `occupation` field any more, only `occupation_slug`
+   (`schemas.py:586-598`). Keeping free text as a fallback would have kept
+   "Nurse"/"nurse"/"RN" alive on exactly the visas the coded list matters most
+   for. `Journey.occupation` survives as the *display snapshot* (server-resolved
+   from the picked occupation) and as history on pre-picker rows.
+2. **`anzsco_version` is a column on `visa_subclasses`, not a constant.** It is
+   Home Affairs' rule, it will move, and the fetcher reads it out of their own
+   markup ("ANZSCO 2022 - Subclass 186 and 482 visas") rather than hardcoding it.
+   Same for `requires_occupation`: derived from which subclasses any occupation
+   is eligible for, so nobody curates a list by hand.
+3. **The requirement is enforced at create-time-with-publish, not on publish.**
+   `_resolve_occupation` (`service.py:1349-1408`). The draft path
+   (`publish=False`, i.e. `save_wait_check`) is exempt because it collects a
+   subclass and a date and has no field to put an occupation in. **This leaves a
+   real gap — see gotchas.**
+4. **Eligibility is re-checked server-side** even though the picker filters.
+   The subclass can be changed after the occupation is picked, and a 189 timeline
+   carrying a 482-only occupation is a cohort that means nothing.
+5. **`ARRAY(String)` + GIN for `eligible_subclasses`**, not JSONB. The hot query
+   is a containment test; `.any(code)` reads as what it is and the index serves it.
+6. **489 is dropped, 187 is added.** 489 was repealed in 2019 and has no taxonomy
+   row. The 23 `RSMS ROL` rows carry an *empty* `visas` field, so they are mapped
+   to 187 explicitly — without it, 187 would come out needing no occupation.
+
+### Interfaces produced (what p3+ will call)
+
+| Thing | Where |
+| --- | --- |
+| `GET /api/v1/community/public/occupations` → `list[OccupationOut]` | `router.py:171` |
+| `CommunityService.list_occupations(db, *, subclass, q, limit)` → `(rows, version)` | `service.py:842` |
+| `CommunityService.occupation_out(occ, version)` | `service.py:902` |
+| `CommunityService.get_occupation(db, slug)` | `service.py:919` |
+| `CommunityService._resolve_occupation(...)` → `(name, code)` | `service.py:1349` |
+| `Occupation.code_for_version(version)` | `models.py:867` |
+| `VisaSubclass.requires_occupation` / `.anzsco_version` | `models.py:766` / `models.py:778` |
+| `Journey.occupation_code` | `models.py:407` |
+| `CreateJourneyRequest.occupation_slug` (no `occupation`) | `schemas.py:592` |
+| `VisaSubclassOut.requires_occupation` / `.anzsco_version` | `schemas.py:208` / `schemas.py:212` |
+| `OccupationOut` | `schemas.py:220` |
+| `useOccupations(subclass)` | `hooks/community.ts:274` |
+| `<OccupationPicker subclass value onChange required error />` | `occupation-picker.tsx:41` |
+
+### Gotchas for the next phase
+
+- **Run `alembic upgrade head` then BOTH seeders, in order**: `seed_visa_taxonomy.py`
+  *then* `seed_occupations.py`. The second reads `visa_subclasses` to stamp the
+  flags; run it first and every subclass stays `requires_occupation = false`,
+  which silently disables the whole feature. New head `c4e8a2b6d0f7`, single head
+  confirmed, downgrade→upgrade round-tripped against 478 live local journeys with
+  no row loss. Note the downgrade **drops** `occupations` — reseed after.
+- **The draft hole is p3's to close.** A wait-check draft on a skilled subclass
+  saves with no occupation and `publish_journey` does not check, so it can reach
+  the feed uncoded. p3 unifies all three entry points on draft→publish and owns
+  `wait-check.tsx`; add the picker there and move the check into `publish_journey`.
+- **The brief said 6 divergent occupations; there are 7.** Arborist is the extra,
+  and it was silently dropped on the first fetch because that one row uses an **en
+  dash** after the edition year while every other row uses a hyphen. `_DASH`
+  (`fetch_dha_occupations.py:119`) covers seven dash codepoints. If a future
+  refresh reports 713 records, this is why.
+- **Only 6 of the 8 ANZSCO major groups appear.** No Machinery Operators and no
+  Labourers are on any skilled list. `MAJOR_GROUPS` lists all eight; a test
+  asserts six and no `"Other"`.
+- **`requires_occupation` is false for lodgement stages** even though 482 requires
+  one — the seeder zeroes `is_stage` rows, because a stage is never selectable in
+  the picker and a required field behind an unreachable visa is a trap.
+- **Clearing a dependent field belongs to the parent, on the event.** The picker
+  deliberately does *not* clear a stale selection in an effect —
+  `bun run lint`'s "setState synchronously within an effect" rule fires on it.
+  `share-journey.tsx`'s `pickSubclass` does it instead. Same trap awaits any p3
+  field that depends on the subclass.
+- **Two e2e files were updated, not just added.** `e2e_community_taxonomy.py` and
+  `e2e_community_moderation.py` both post skilled timelines and now resolve an
+  occupation through the API first, rather than hardcoding one — moderation picks
+  `subclasses[0]`, so a change in sort order must not turn it into an occupation test.
+- No TODOs left.
+
+### Verify result — all green
+
+- `pytest tests/ -q` → **202 passed** (183 baseline + 19 new parser/resolver tests).
+- `alembic heads` → exactly one (`c4e8a2b6d0f7`); downgrade→upgrade round-trip
+  verified, 478 journeys intact.
+- New `tests/e2e_community_occupations.py` → **60/60**: filter-by-subclass (slug
+  and bare number), typeahead over name *and* code, all **7** divergent
+  occupations asserted in both editions on a 186 vs a 189, required-refused /
+  coded-accepted / off-list-refused / unknown-slug-refused, and a 600 Tourist
+  needing and storing nothing.
+- `seed_occupations.py` run twice → second run `created 0 · updated 714 ·
+  retired 0`, `visa_subclasses re-flagged: 0`. Idempotent.
+- `e2e_community_{taxonomy,waitcheck_save,accounts,inbox,antispam,ratelimit,`
+  `moderation,identity_swap}.py` → all pass.
+- Real HTTP round-trip on `:8001`: a 189 without an occupation returns 400 with
+  "Pick your nominated occupation — subclass 189 timelines are grouped by it";
+  with `occupation_slug=management-consultant` it returns 201 stamping **224711**
+  (2013) where a 186 stamps **224713** (2022).
+- `bunx tsc --noEmit` clean · `bun run build` clean · `bun run lint` back to
+  exactly the 5 pre-existing errors, none in `src/components/community/` or `src/lib/`.

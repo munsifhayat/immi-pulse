@@ -32,6 +32,7 @@ from app.agents.immigration.community.models import (
     Journey,
     JourneyComment,
     JourneyMilestone,
+    Occupation,
     RateCounter,
     VisaSubclass,
 )
@@ -42,6 +43,7 @@ from app.agents.immigration.community.schemas import (
     CreateJourneyRequest,
     CreateThreadRequest,
     MilestoneIn,
+    OccupationOut,
     ReportRequest,
     SubmitTimelineRequest,
 )
@@ -834,6 +836,92 @@ class CommunityService:
         )
         return result.scalar_one_or_none()
 
+    # --- Occupations ---------------------------------------------------------
+
+    @staticmethod
+    async def list_occupations(
+        db: AsyncSession,
+        *,
+        subclass: Optional[str] = None,
+        q: Optional[str] = None,
+        limit: int = 1000,
+    ) -> tuple[list[Occupation], Optional[str]]:
+        """Occupations for a visa, optionally narrowed by a typeahead query.
+
+        Returns ``(rows, anzsco_version)``. The version is the caller's answer to
+        "which of the two codes do I store?" and is resolved here, from the
+        subclass row, because it is the one place that knows: 416 occupations
+        carry both a 2013 and a 2022 code, only 7 disagree, and a client that
+        guesses will be right 98% of the time and silently wrong forever on the
+        rest.
+
+        ``subclass`` accepts either a subclass slug (``186-direct-entry``) or a
+        bare subclass number (``186``). Both are in circulation — ``slug`` is
+        what the picker holds, ``cohort_key`` is often the bare number — and
+        rejecting one of them would be a trap rather than a contract.
+
+        Unfiltered, this returns all 714. That is deliberate: the client fetches
+        one subclass-filtered set and filters it locally as the member types, so
+        the typeahead never round-trips. ``q`` exists for callers that cannot
+        hold the list, and matches the name *or* either ANZSCO code — members
+        who know their code know it better than the department's phrasing of
+        their job title.
+        """
+        version: Optional[str] = None
+        stmt = select(Occupation).where(Occupation.is_active.is_(True))
+
+        if subclass:
+            row = await CommunityService.get_subclass(db, subclass)
+            code = row.code if row else subclass
+            if row is not None:
+                version = row.anzsco_version
+            if version is None:
+                # A bare number, or a subclass the occupation seeder has not
+                # flagged. Fall back to 2013 — the wider edition, and the one
+                # every subclass except 186/482 reads.
+                version = "2013"
+            stmt = stmt.where(Occupation.eligible_subclasses.any(code))
+
+        if q:
+            needle = f"%{q.strip()}%"
+            stmt = stmt.where(
+                or_(
+                    Occupation.name.ilike(needle),
+                    Occupation.anzsco_2013_code.ilike(needle),
+                    Occupation.anzsco_2022_code.ilike(needle),
+                )
+            )
+
+        stmt = stmt.order_by(
+            Occupation.major_group_code.asc(), Occupation.name.asc()
+        ).limit(limit)
+        result = await db.execute(stmt)
+        return list(result.scalars().all()), version
+
+    @staticmethod
+    def occupation_out(occ: Occupation, version: Optional[str]) -> OccupationOut:
+        return OccupationOut(
+            slug=occ.slug,
+            name=occ.name,
+            anzsco_code=occ.code_for_version(version),
+            anzsco_version=version,
+            anzsco_2013_code=occ.anzsco_2013_code,
+            anzsco_2022_code=occ.anzsco_2022_code,
+            major_group_code=occ.major_group_code,
+            major_group_name=occ.major_group_name,
+            lists=list(occ.lists or []),
+            eligible_subclasses=list(occ.eligible_subclasses or []),
+            assessing_authority=occ.assessing_authority,
+            authority_url=occ.authority_url,
+        )
+
+    @staticmethod
+    async def get_occupation(db: AsyncSession, slug: str) -> Optional[Occupation]:
+        result = await db.execute(
+            select(Occupation).where(Occupation.slug == slug)
+        )
+        return result.scalar_one_or_none()
+
     @staticmethod
     async def _cohort_sample(db: AsyncSession, subclass_slug: str) -> dict:
         """The publishable cohort for one visa: durations, pending, provenance.
@@ -1258,6 +1346,67 @@ class CommunityService:
         return {s.slug: s for s in result.scalars().all()}
 
     @staticmethod
+    async def _resolve_occupation(
+        db: AsyncSession,
+        *,
+        payload: CreateJourneyRequest,
+        subclass: Optional[VisaSubclass],
+        is_timeline: bool,
+        publish: bool,
+    ) -> tuple[Optional[str], Optional[str]]:
+        """-> (display name, ANZSCO code) for a new journey.
+
+        Three rules, in order:
+
+        1. **Not a timeline, or a visa with no nominated occupation: store
+           nothing.** ``requires_occupation`` false means *hidden*, not
+           optional. A 600 Tourist applicant has no ANZSCO occupation, and a
+           free-text guess pools their timeline into a cohort it does not belong
+           to — so an occupation sent for such a visa is dropped rather than
+           kept.
+
+        2. **A visa that does have one: the coded occupation is required**, and
+           only on the path that publishes. Occupation is what makes cohort
+           matching work, and free text made "Nurse", "nurse", "RN" and
+           "Registered Nurse (Medical)" four cohorts of one.
+
+           The draft path (``publish=False``, i.e. a saved wait check) is exempt
+           because it collects a subclass and a lodgement date and nothing else
+           — it has no field to put an occupation in. That leaves a real gap:
+           a draft saved that way can later be published without one. Closing it
+           needs the wait check to ask, which is the adaptive-form work, not
+           this phase's.
+
+        3. **The code is resolved server-side**, from the occupation's slug and
+           the subclass's ANZSCO edition. Clients send a slug, never a code, and
+           never choose between the two editions themselves.
+        """
+        if not is_timeline or subclass is None or not subclass.requires_occupation:
+            return None, None
+
+        if not payload.occupation_slug:
+            if publish:
+                raise ValueError(
+                    f"Pick your nominated occupation — subclass {subclass.code} "
+                    "timelines are grouped by it."
+                )
+            return None, None
+
+        occ = await CommunityService.get_occupation(db, payload.occupation_slug)
+        if occ is None:
+            raise ValueError(f"Unknown occupation '{payload.occupation_slug}'")
+        # Eligibility is re-checked here rather than trusted from the picker.
+        # The picker filters by subclass, but the subclass can be changed after
+        # the occupation is chosen, and a 189 timeline carrying an occupation
+        # only a 482 can nominate is a cohort that means nothing.
+        if subclass.code not in (occ.eligible_subclasses or []):
+            raise ValueError(
+                f"'{occ.name}' is not on the skilled occupation list for "
+                f"subclass {subclass.code}."
+            )
+        return occ.name, occ.code_for_version(subclass.anzsco_version)
+
+    @staticmethod
     async def create_journey(
         db: AsyncSession,
         payload: CreateJourneyRequest,
@@ -1313,6 +1462,7 @@ class CommunityService:
 
         category_slug = payload.category_slug
         stream = payload.stream.strip() if payload.stream else None
+        subclass: Optional[VisaSubclass] = None
         if payload.subclass_slug:
             subclass = await CommunityService.get_subclass(db, payload.subclass_slug)
             if subclass is None:
@@ -1331,6 +1481,14 @@ class CommunityService:
             # The old form defaulted a free-text stream to "Direct Entry (DE)"
             # for *every* visa, which quietly mislabelled most timelines.
             stream = subclass.stream
+
+        occupation, occupation_code = await CommunityService._resolve_occupation(
+            db,
+            payload=payload,
+            subclass=subclass,
+            is_timeline=is_timeline,
+            publish=publish,
+        )
 
         title = payload.title.strip() if payload.title else None
         note = payload.note.strip() if payload.note else None
@@ -1353,7 +1511,8 @@ class CommunityService:
             subclass_slug=payload.subclass_slug,
             category_slug=category_slug,
             stream=stream,
-            occupation=(payload.occupation.strip() if payload.occupation else None),
+            occupation=occupation,
+            occupation_code=occupation_code,
             state=payload.state,
             area=payload.area,
             sponsor_type=payload.sponsor_type,
@@ -1794,6 +1953,7 @@ class CommunityService:
             "category_name": sp.name if sp else None,
             "stream": j.stream,
             "occupation": j.occupation,
+            "occupation_code": j.occupation_code,
             "state": j.state,
             "area": j.area,
             "sponsor_type": j.sponsor_type,

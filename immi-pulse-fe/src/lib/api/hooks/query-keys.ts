@@ -29,6 +29,8 @@ export const queryKeys = {
     thread: (id: string) => [...queryKeys.community.all, "thread", id] as const,
     reports: () => [...queryKeys.community.all, "reports"] as const,
     subclasses: () => [...queryKeys.community.all, "subclasses"] as const,
+    occupations: (subclass?: string | null) =>
+      [...queryKeys.community.all, "occupations", subclass ?? "all"] as const,
     processing: () => [...queryKeys.community.all, "processing"] as const,
     waitCheck: (subclass: string, lodgedOn: string) =>
       [...queryKeys.community.all, "wait-check", subclass, lodgedOn] as const,

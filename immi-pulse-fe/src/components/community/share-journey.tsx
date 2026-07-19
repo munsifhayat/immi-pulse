@@ -33,6 +33,7 @@ import {
 } from "@/lib/api/hooks/community";
 import { shortDate } from "@/lib/community/format";
 import { milestoneMeta } from "./milestone-meta";
+import { OccupationPicker } from "./occupation-picker";
 import { TimelineGlyph } from "./timeline-glyph";
 import { VisaPicker } from "./visa-picker";
 
@@ -102,7 +103,9 @@ export function ShareJourney({
     canPostTimeline ? "timeline" : "question"
   );
   const [subclass, setSubclass] = useState(defaultSubclass ?? "");
-  const [occupation, setOccupation] = useState("");
+  // The occupation *slug*, not free text — the picker's value and the API's
+  // `occupation_slug`. The ANZSCO code is resolved server-side.
+  const [occupationSlug, setOccupationSlug] = useState("");
   const [stateVal, setStateVal] = useState(STATES[0]);
   const [area, setArea] = useState<"metro" | "regional">("metro");
   const [sponsor, setSponsor] = useState<"accredited" | "non_accredited">(
@@ -124,12 +127,30 @@ export function ShareJourney({
     [subclasses, subclass]
   );
 
+  // Whether to ask for an occupation at all — driven by reference data, never
+  // by `if (subclass === "186")`. False means hidden, not optional: a 600
+  // Tourist or partner-visa applicant has no ANZSCO occupation, and a field
+  // they have to guess at would pool their timeline into a cohort it does not
+  // belong to.
+  const needsOccupation =
+    postType === "timeline" && !!selected?.requires_occupation;
+
+  // Changing the visa invalidates the occupation: the eligible list differs per
+  // subclass, and the server refuses an occupation that is not on the chosen
+  // visa's list. Clearing it here — on the event, not in an effect — means the
+  // member finds out by seeing the field empty rather than by being rejected at
+  // submit time.
+  function pickSubclass(slug: string) {
+    setSubclass(slug);
+    setOccupationSlug("");
+  }
+
   function reset() {
     setDone(false);
     setError(null);
     setPostType(canPostTimeline ? "timeline" : "question");
     setSubclass(defaultSubclass ?? "");
-    setOccupation("");
+    setOccupationSlug("");
     setStateVal(STATES[0]);
     setArea("metro");
     setSponsor("accredited");
@@ -171,6 +192,12 @@ export function ShareJourney({
     setError(null);
     if (postType === "timeline") {
       if (!subclass) return setError("Pick your visa subclass.");
+      // Required, not optional. Occupation is what lets us tell this member
+      // how long people *like them* waited rather than how long everyone did.
+      if (needsOccupation && !occupationSlug)
+        return setError(
+          "Pick your nominated occupation — timelines for this visa are grouped by it."
+        );
       if (milestones.length === 0)
         return setError("Add at least one milestone — start with what you've lodged.");
     } else {
@@ -182,7 +209,7 @@ export function ShareJourney({
         post_type: postType,
         subclass_slug: subclass || null,
         category_slug: selected?.category_slug ?? null,
-        occupation: postType === "timeline" ? occupation || null : null,
+        occupation_slug: needsOccupation ? occupationSlug || null : null,
         state: postType === "timeline" ? stateVal : null,
         area: postType === "timeline" ? area : null,
         sponsor_type: postType === "timeline" ? sponsor : null,
@@ -345,7 +372,7 @@ export function ShareJourney({
                 <div>
                   <VisaPicker
                     value={subclass}
-                    onChange={setSubclass}
+                    onChange={pickSubclass}
                     size="md"
                     visaLabel={
                       postType === "question"
@@ -358,23 +385,24 @@ export function ShareJourney({
 
                 {postType === "timeline" ? (
                   <>
+                    {/* Occupation gets the full width to itself. It is a
+                        searchable picker over 700+ grouped rows, and it was
+                        previously sharing a two-column grid with the state
+                        dropdown — half a row is not enough for a field this
+                        dense, and it is the field that makes cohort matching
+                        possible. */}
+                    {needsOccupation && (
+                      <OccupationPicker
+                        subclass={subclass}
+                        value={occupationSlug}
+                        onChange={setOccupationSlug}
+                        required
+                        error={!!error && !occupationSlug}
+                      />
+                    )}
+
                     {/* profile */}
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div>
-                        <label className={labelCls}>
-                          Occupation{" "}
-                          <span className="font-normal text-gray-text">
-                            (optional)
-                          </span>
-                        </label>
-                        <input
-                          className={fieldCls}
-                          value={occupation}
-                          onChange={(e) => setOccupation(e.target.value)}
-                          placeholder="e.g. Nurse, Developer"
-                          maxLength={80}
-                        />
-                      </div>
                       <div>
                         <label className={labelCls}>State / territory</label>
                         <select
