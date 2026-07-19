@@ -6,7 +6,7 @@ Integration branch: `feat/share-timeline`
 Base: `main`
 Baseline: `31bad77` (source plan phases 0, 1, 3 — built and verified before this epic)
 
-Phase status: [done] p1 · [done] p2 · [done] p3 · [pending] p4 · [pending] p5
+Phase status: [done] p1 · [done] p2 · [done] p3 · [done] p4 · [pending] p5
 
 <!--
 Legend: pending → in_progress → done  (or blocked)
@@ -400,3 +400,78 @@ had noticed.
   occupation, no state/sponsor; 190 → occupation + state + area; 482 Labour
   Agreement → occupation + state + sponsor; 820 partner → neither; 600 Tourist →
   no occupation; composer hands a 189 to the full builder and leaves a 600 alone.
+
+
+---
+
+## Handoff — p4: stream-level cohorts and honest official figures   [done]
+
+Branch `feat/share-timeline-p4-cohort-stats` → PR into `feat/share-timeline`.
+
+### What shipped vs planned
+
+The spec's framing was right but its emphasis was wrong: the plan expected
+"make the stats honour `cohort_split_by_stream`", and that was already true via
+`cohort_key`. The real find was a **correctness bug in the trend arrow**.
+
+- **`_trend_for` was computing over a different population than the percentiles
+  printed beside it.** It selected every active granted row ever — no window, no
+  publication check, no provenance filter — while `_cohort_sample` applied all
+  three. So the arrow and the median described different groups of people, and a
+  member saving a *private, unpublished* draft could move a public arrow.
+  Both now draw from one extracted predicate,
+  `CommunityService._publishable_conditions` (`service.py:922-957`).
+- **`cohort_split_by_stream` is a column** (`models.py:807-822`), backfilled from
+  the shape of `cohort_key` rather than from the snapshot file, so it agrees with
+  the data already in the table. Served on `VisaSubclassOut` so a cohort can be
+  *explained* rather than only presented.
+- **`is_live` and its documentation now agree.** The implementation
+  (`service.py:1115`, keyed off the ingestion-only `dha_subclass_code`) was
+  right and well-argued; the schema docstring claiming it keys off an as-at date
+  was the stale one. Fixed the doc, not the behaviour — a hand-seeded row can
+  carry a date, so a date is not evidence of provenance.
+- **New `scripts/check_cohort_integrity.py`** — the audit nobody had.
+  `community_timelines.subclass_slug` holds a *cohort key* despite its name, and
+  a one-shot migration cannot maintain a set that moves. Read-only by default,
+  `--fix` repoints repairable rows.
+
+### The stranded-row question, answered
+
+The plan flagged that migration `f2a4c6e8b0d3`'s `SLUG_REMAP` documents the split
+set as `189, 491, 482, 500` while the committed snapshot splits **nine**, adding
+`188, 403, 408, 600, 888`.
+
+**Checked against production: no rows were stranded.** 111 mirror rows across 8
+cohorts, 134 journeys across 8 slugs, all live. The eight pre-existing slugs all
+survived the reshape (the seeder reported `retired 0`), so the gap never bit. The
+integrity script now makes that checkable rather than assumed.
+
+### Interfaces produced (what p5 will call)
+
+| Thing | Where |
+| --- | --- |
+| `CommunityService._publishable_conditions(subclass_slug)` | `service.py:922` |
+| `VisaSubclass.cohort_split_by_stream` | `models.py:807` |
+| `VisaSubclassOut.cohort_split_by_stream` | `schemas.py` |
+| `scripts/check_cohort_integrity.py [--fix]` | new |
+
+### Gotchas for p5
+
+- **Any new query that feeds a public figure must use `_publishable_conditions`.**
+  That is the whole point of extracting it — two copies had already drifted.
+- A downgrade/upgrade cycle resets `cohort_split_by_stream` to false; re-run
+  `seed_visa_taxonomy.py` after. Same trap as p3's flags.
+- `check_cohort_integrity.py` is the natural thing for p5's refresh job to run
+  after a re-seed — a taxonomy refresh that changes pooling is exactly what
+  strands mirror rows.
+
+### Verified
+
+- `pytest tests/ -q` → **216 passed**
+- New `tests/e2e_community_cohort_stats.py` → **15/15**, including that a private
+  draft moves neither the sample, the median, nor the arrow
+- All eleven community e2e suites pass
+- `alembic heads` → one (`e8b2d4f6a0c1`); downgrade→upgrade round-tripped against
+  619 journeys, no row loss
+- Production audit: 0 stranded mirror rows, 0 orphan journeys
+- `tsc --noEmit` clean · `build` clean · lint unchanged at the 5 pre-existing errors

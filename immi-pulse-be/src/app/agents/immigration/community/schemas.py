@@ -220,6 +220,11 @@ class VisaSubclassOut(BaseModel):
     requires_state_nomination: bool = False
     requires_region: bool = False
     requires_sponsor_type: bool = False
+    # Whether this programme's streams are counted separately or pooled. Shipped
+    # so the client can *explain* a cohort rather than just present it — "500's
+    # sectors are counted apart because their waits range from 6 days to 7
+    # months" is a very different sentence from an unexplained number.
+    cohort_split_by_stream: bool = False
     official_p50_days: Optional[int] = None
     official_p90_days: Optional[int] = None
     official_updated: Optional[str] = None
@@ -303,7 +308,10 @@ class OfficialFiguresOut(BaseModel):
     ``as_at`` and ``counted_to`` are their labels, not ours: "26 June 2026" and
     "31 May 2026" respectively — a figure published in late June counts
     finalisations only to the end of May, and saying so is what makes it honest.
-    ``is_live`` is true once a row carries a real as-at date.
+    ``is_live`` means "this row came from the department's feed", not "this row
+    has a date on it" — it keys off the ingestion-only ``dha_subclass_code``. A
+    hand-seeded row can carry a date label too, so a date is not evidence of
+    provenance.
 
     All four percentiles travel because Home Affairs publishes all four, and the
     25th/75th are what make a distribution legible rather than two lonely points.

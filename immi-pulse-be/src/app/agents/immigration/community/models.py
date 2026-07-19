@@ -836,6 +836,23 @@ class VisaSubclass(Base):
         Boolean, nullable=False, default=False, server_default="false"
     )
 
+    # Does this programme's stream predict a materially different wait?
+    #
+    # This is the *reason* behind ``cohort_key``, and it used to exist only
+    # inside the fetch script — computed at fetch time, consumed once by the
+    # seeder, then thrown away. The conclusion (``cohort_key``) survived; the
+    # premise did not. That made the decision impossible to inspect and
+    # impossible to change without a network round-trip to Home Affairs.
+    #
+    # Stored per row so the pooling can be explained ("500's seven sectors range
+    # from 6 days to 7 months, so they are counted separately") and re-derived
+    # offline. Computed from the live spread at fetch time: a ≥1.5x range across
+    # the programme's non-stage streams at the 75th percentile, with a small
+    # pinned override list for the three where the spread is real but tiny.
+    cohort_split_by_stream = Column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+
     official_p25_days = Column(Integer, nullable=True)
     official_p50_days = Column(Integer, nullable=True)
     official_p75_days = Column(Integer, nullable=True)

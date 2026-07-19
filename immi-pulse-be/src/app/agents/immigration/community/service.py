@@ -923,6 +923,44 @@ class CommunityService:
         return result.scalar_one_or_none()
 
     @staticmethod
+    def _publishable_conditions(subclass_slug: str) -> list:
+        """The WHERE clause that defines "counts toward a public figure".
+
+        Extracted so that every statistic drawn for a cohort is drawn from the
+        *same* population. It was duplicated before, and the copies had drifted:
+        the trend arrow was computed over every active granted row ever — no
+        window, no publication check, no provenance filter — while the
+        percentiles printed beside it honoured all three. That put an arrow
+        saying "getting faster" next to a median it disagreed with, built from
+        people who never published and from forum rows the operator had switched
+        off.
+
+        Callers still need the outer join to ``Journey`` themselves, because a
+        join belongs to the query, not to its predicate.
+        """
+        settings = get_settings()
+        window_start = date.today() - timedelta(
+            days=int(settings.community_stats_window_months * 30.44)
+        )
+        conditions = [
+            CommunityTimeline.subclass_slug == subclass_slug,
+            CommunityTimeline.status == "active",
+            CommunityTimeline.lodged_on >= window_start,
+            # NULL journey_id = a legacy direct submission with no feed post
+            # behind it; those have no publication state to respect.
+            or_(
+                CommunityTimeline.journey_id.is_(None),
+                and_(
+                    Journey.is_published.is_(True),
+                    Journey.status == "active",
+                ),
+            ),
+        ]
+        if not settings.community_stats_include_forum:
+            conditions.append(CommunityTimeline.source == TIMELINE_SOURCE_MEMBER)
+        return conditions
+
+    @staticmethod
     async def _cohort_sample(db: AsyncSession, subclass_slug: str) -> dict:
         """The publishable cohort for one visa: durations, pending, provenance.
 
@@ -946,11 +984,6 @@ class CommunityService:
         Returns the counts split by provenance so every figure built from this
         can state what it is made of.
         """
-        settings = get_settings()
-        window_start = date.today() - timedelta(
-            days=int(settings.community_stats_window_months * 30.44)
-        )
-
         q = (
             select(
                 CommunityTimeline.lodged_on,
@@ -959,23 +992,8 @@ class CommunityService:
                 CommunityTimeline.source,
             )
             .outerjoin(Journey, Journey.id == CommunityTimeline.journey_id)
-            .where(
-                CommunityTimeline.subclass_slug == subclass_slug,
-                CommunityTimeline.status == "active",
-                CommunityTimeline.lodged_on >= window_start,
-                # NULL journey_id = a legacy direct submission with no feed post
-                # behind it; those have no publication state to respect.
-                or_(
-                    CommunityTimeline.journey_id.is_(None),
-                    and_(
-                        Journey.is_published.is_(True),
-                        Journey.status == "active",
-                    ),
-                ),
-            )
+            .where(*CommunityService._publishable_conditions(subclass_slug))
         )
-        if not settings.community_stats_include_forum:
-            q = q.where(CommunityTimeline.source == TIMELINE_SOURCE_MEMBER)
 
         result = await db.execute(q)
 
@@ -1023,15 +1041,23 @@ class CommunityService:
 
     @staticmethod
     async def _trend_for(db: AsyncSession, subclass_slug: str) -> str:
-        """Compare recent grant medians to older ones → faster / slower / steady."""
+        """Compare recent grant medians to older ones → faster / slower / steady.
+
+        Drawn from exactly the population the percentiles are drawn from
+        (:meth:`_publishable_conditions`). It used to select every active
+        granted row regardless of window, publication state or provenance, so
+        the arrow and the median beside it described different groups of people
+        — and the arrow could move because somebody saved a private draft.
+        """
         result = await db.execute(
             select(
                 CommunityTimeline.lodged_on,
                 CommunityTimeline.decided_on,
                 CommunityTimeline.created_at,
-            ).where(
-                CommunityTimeline.subclass_slug == subclass_slug,
-                CommunityTimeline.status == "active",
+            )
+            .outerjoin(Journey, Journey.id == CommunityTimeline.journey_id)
+            .where(
+                *CommunityService._publishable_conditions(subclass_slug),
                 CommunityTimeline.outcome == "granted",
                 CommunityTimeline.decided_on.isnot(None),
             )
