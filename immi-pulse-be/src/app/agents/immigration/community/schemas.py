@@ -201,11 +201,52 @@ class VisaSubclassOut(BaseModel):
     stream: Optional[str] = None
     category_slug: Optional[str] = None
     is_stage: bool = False
+    # Does this visa have a nominated occupation? Drives whether the share form
+    # shows the occupation picker *at all*. False means hidden, not optional —
+    # a 600 Tourist applicant has no ANZSCO occupation, and a field they must
+    # guess at pools their timeline into a cohort it does not belong to.
+    requires_occupation: bool = False
+    # "2013" | "2022" | null. Which ANZSCO edition this subclass reads. Clients
+    # do not resolve codes themselves — the occupations endpoint returns the
+    # already-resolved ``anzsco_code`` — but this makes the choice visible.
+    anzsco_version: Optional[str] = None
     official_p50_days: Optional[int] = None
     official_p90_days: Optional[int] = None
     official_updated: Optional[str] = None
 
     model_config = {"from_attributes": True}
+
+
+class OccupationOut(BaseModel):
+    """One ANZSCO occupation, resolved against the visa that asked for it.
+
+    ``anzsco_code`` is the field to store and compare on. It is resolved
+    server-side from the subclass's ANZSCO edition — 2022 for subclass 186 and
+    482, 2013 for every other skilled subclass — because both editions travel
+    in the payload and picking the wrong one is silent: 416 occupations carry
+    both codes and only 7 disagree. Clients must never choose between the two
+    columns themselves.
+
+    Group on ``major_group_code`` when rendering. A flat list of 714 (457 for
+    subclass 186 alone) is the pattern the competing trackers ship and the one
+    to beat.
+    """
+
+    slug: str
+    name: str
+    # Already resolved for the requested subclass. Store this.
+    anzsco_code: Optional[str] = None
+    anzsco_version: Optional[str] = None
+    # Both editions travel so a client can show "221111 (2013) / 221111 (2022)"
+    # on the seven divergent occupations without a second request.
+    anzsco_2013_code: Optional[str] = None
+    anzsco_2022_code: Optional[str] = None
+    major_group_code: Optional[str] = None
+    major_group_name: Optional[str] = None
+    lists: list[str] = Field(default_factory=list)
+    eligible_subclasses: list[str] = Field(default_factory=list)
+    assessing_authority: Optional[str] = None
+    authority_url: Optional[str] = None
 
 
 class ProvenanceOut(BaseModel):
@@ -543,7 +584,20 @@ class CreateJourneyRequest(BaseModel):
 
     # Coarse profile (timeline posts)
     stream: Optional[str] = Field(default=None, max_length=60)
-    occupation: Optional[str] = Field(default=None, max_length=80)
+    # The occupation's slug from ``GET /public/occupations``. Required for every
+    # subclass whose ``requires_occupation`` is true — enforced in
+    # ``CommunityService.create_journey``, which is the only layer that can see
+    # the subclass row. The name and ANZSCO code are resolved server-side; a
+    # client cannot name its own occupation.
+    occupation_slug: Optional[str] = Field(default=None, max_length=120)
+    # NOTE: there is deliberately no free-text ``occupation`` field here any
+    # more. It was an 80-character box placeheld "e.g. Nurse, Developer", and
+    # it made "Nurse", "nurse", "RN" and "Registered Nurse (Medical)" four
+    # cohorts of one. Keeping it as a fallback would have kept the problem
+    # alive on exactly the visas the coded list matters most for.
+    # ``Journey.occupation`` still exists — as the display snapshot of the
+    # picked occupation's name, and as history on rows written before the
+    # picker.
     state: Optional[str] = Field(default=None, max_length=40)
     area: Optional[str] = Field(default=None, max_length=20)
     sponsor_type: Optional[str] = Field(default=None, max_length=40)
@@ -590,7 +644,12 @@ class JourneyOut(BaseModel):
     category_name: Optional[str] = None
 
     stream: Optional[str] = None
+    # Display name, as snapshotted at posting time. Rows written before the
+    # coded picker carry free text here with a null ``occupation_code``.
     occupation: Optional[str] = None
+    # The 6-digit ANZSCO code, in the edition the subclass reads. This is the
+    # cohort-matching key; ``occupation`` is for display only.
+    occupation_code: Optional[str] = None
     state: Optional[str] = None
     area: Optional[str] = None
     sponsor_type: Optional[str] = None

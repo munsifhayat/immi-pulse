@@ -56,6 +56,7 @@ from app.agents.immigration.community.schemas import (
     NotificationOut,
     NotificationPreferencesOut,
     NotificationPreferencesRequest,
+    OccupationOut,
     ProcessingStatOut,
     PublishJourneyRequest,
     ReportOut,
@@ -165,6 +166,39 @@ async def get_community_stats(db: AsyncSession = Depends(get_db)):
 @router.get("/public/subclasses", response_model=list[VisaSubclassOut])
 async def list_visa_subclasses(db: AsyncSession = Depends(get_db)):
     return await CommunityService.list_subclasses(db)
+
+
+@router.get("/public/occupations", response_model=list[OccupationOut])
+async def list_occupations(
+    subclass: Optional[str] = Query(
+        default=None,
+        description="Visa subclass slug (186-direct-entry) or bare number (186).",
+    ),
+    q: Optional[str] = Query(
+        default=None, description="Typeahead over occupation name and ANZSCO code."
+    ),
+    limit: int = Query(default=1000, ge=1, le=1000),
+    db: AsyncSession = Depends(get_db),
+):
+    """The ANZSCO skilled occupation list, filtered to a visa.
+
+    Public and unauthenticated like the rest of ``/public`` — this feeds the
+    share form, which anonymous members use before they have any identity at all.
+
+    Two things this does that the competing trackers do not. It **filters by
+    subclass**, so a 189 applicant sees the 212 occupations they can actually
+    nominate rather than all 714. And it returns ``major_group_code``, so the
+    client can group under the eight ANZSCO major groups instead of shipping a
+    flat alphabetical list that opens on "Aboriginal and Torres Strait Islander
+    Education Worker".
+
+    ``anzsco_code`` is resolved server-side against the subclass's ANZSCO
+    edition. Do not derive it client-side from the two code columns.
+    """
+    rows, version = await CommunityService.list_occupations(
+        db, subclass=subclass, q=q, limit=limit
+    )
+    return [CommunityService.occupation_out(o, version) for o in rows]
 
 
 @router.get("/public/processing", response_model=list[ProcessingStatOut])

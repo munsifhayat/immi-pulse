@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import datetime, timezone
+from typing import Optional
 
 from sqlalchemy import (
     Boolean,
@@ -14,7 +15,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 
 from app.db.base import Base
 
@@ -399,7 +400,18 @@ class Journey(Base):
 
     # Coarse, non-identifying profile (timeline posts)
     stream = Column(String, nullable=True)        # DE | TRT | Labour Agreement | PT…
-    occupation = Column(String, nullable=True)    # free text, optional
+    # The coded occupation — a 6-digit ANZSCO code from ``occupations``, in the
+    # edition the subclass reads (``VisaSubclass.anzsco_version``). This is what
+    # cohort matching uses; it is required for every subclass that has a
+    # nominated occupation and NULL for those that do not.
+    occupation_code = Column(String, nullable=True, index=True)
+    # Display snapshot of the occupation's name at the time of posting. Kept
+    # beside the code, not replaced by it, for two reasons: the feed renders it
+    # without a join, and it stays truthful if the department later renames or
+    # retires the occupation. Rows written before the picker existed carry free
+    # text here and a NULL code — that is history, not a bug to backfill, since
+    # "Nurse" cannot be resolved to one of the eleven coded nursing occupations.
+    occupation = Column(String, nullable=True)
     state = Column(String, nullable=True)         # NSW… | Offshore
     area = Column(String, nullable=True)          # metro | regional
     sponsor_type = Column(String, nullable=True)  # accredited | non_accredited | null
@@ -741,6 +753,30 @@ class VisaSubclass(Base):
     # answer, so they are excluded from the picker.
     is_stage = Column(Boolean, nullable=False, default=False, server_default="false")
 
+    # Does this visa have a *nominated occupation*? Populated by
+    # ``scripts/seed_occupations.py`` from the department's own skilled
+    # occupation list — a subclass no occupation is eligible for has no
+    # occupation to nominate.
+    #
+    # This drives whether the share form asks for one at all, and "no" means
+    # **hidden**, not "optional". A 600 Tourist or a partner-visa applicant has
+    # no ANZSCO occupation; offering the field anyway invites a guess, and a
+    # guessed occupation is worse than a null one because it pools that timeline
+    # into a cohort it does not belong to.
+    requires_occupation = Column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    # Which ANZSCO edition this subclass reads: "2022" for 186 and 482 (all of
+    # CSOL), "2013" for every other skilled subclass, NULL where no occupation
+    # applies. Home Affairs states this split verbatim on the occupation list
+    # page and runs both editions concurrently.
+    #
+    # It is a column rather than a constant because it is *their* rule and it
+    # will move: 416 occupations carry both codes and only 7 of them differ, so
+    # a wrong edition is invisible in testing and permanently wrong in the data.
+    # See ``Occupation.code_for_version``.
+    anzsco_version = Column(String, nullable=True)
+
     official_p25_days = Column(Integer, nullable=True)
     official_p50_days = Column(Integer, nullable=True)
     official_p75_days = Column(Integer, nullable=True)
@@ -764,6 +800,82 @@ class VisaSubclass(Base):
         into one indistinguishable entry.
         """
         return self.dha_subclass_code or self.code
+
+
+class Occupation(Base):
+    """One ANZSCO occupation from the Home Affairs skilled occupation list.
+
+    714 rows, refreshed from the department's own page — see
+    ``scripts/fetch_dha_occupations.py`` and ``scripts/seed_occupations.py``.
+
+    This table exists to kill free text. Before it, ``Journey.occupation`` was an
+    80-character box with the placeholder "e.g. Nurse, Developer", which made
+    "Nurse", "nurse", "RN" and "Registered Nurse (Medical)" four separate
+    cohorts — four samples of one where there should have been one sample of
+    four. Occupation is the strongest predictor of a skilled-visa wait after the
+    subclass itself, and it is worthless unless it is coded.
+
+    **Two codes, not one.** Home Affairs runs two ANZSCO editions at once:
+    2022 for subclass 186 and 482, 2013 for every other skilled subclass. 416
+    occupations carry both and 409 of those agree, so storing one edition looks
+    correct right up until one of the seven that disagree — Arborist, Flower
+    Grower, Landscape Gardener, Management Consultant, Plumber (General),
+    Statistician, Zoologist — silently lands in the wrong cohort. Resolve with
+    ``code_for_version`` against ``VisaSubclass.anzsco_version``; never reach for
+    one of the columns directly.
+    """
+
+    __tablename__ = "occupations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # Natural key for the seeder, derived from the name. Occupation names are
+    # unique across all 714 rows, and unlike the ANZSCO codes they exist for
+    # every row — 255 occupations carry only a 2013 code and 43 only a 2022 one,
+    # so neither code column can serve as the match key on its own.
+    slug = Column(String, nullable=False, unique=True, index=True)
+    name = Column(String, nullable=False, index=True)
+
+    anzsco_2013_code = Column(String, nullable=True, index=True)
+    anzsco_2022_code = Column(String, nullable=True, index=True)
+
+    # First digit of the ANZSCO code. The picker groups on this: 714 rows (457
+    # of them eligible for subclass 186 alone) is an unreadable flat list, and
+    # the competing trackers ship exactly that, tagging every row "Other"
+    # because they never extracted the group.
+    major_group_code = Column(String, nullable=True, index=True)
+    major_group_name = Column(String, nullable=True)
+
+    # MLTSSL / STSOL / ROL / CSOL / "RSMS ROL" — an occupation is usually on
+    # more than one.
+    lists = Column(ARRAY(String), nullable=False, server_default="{}")
+    # Bare subclass numbers ("186", "482", "491"). The picker filters on this so
+    # a 189 applicant is never offered an occupation only a 482 can nominate.
+    eligible_subclasses = Column(ARRAY(String), nullable=False, server_default="{}")
+
+    # Stored, not yet surfaced. Whose positive skills assessment this occupation
+    # needs — "VETASSESS", "ACS", "Engineers Australia". 24 rows name none.
+    assessing_authority = Column(String, nullable=True)
+    authority_url = Column(String, nullable=True)
+
+    # Retired, never deleted — same contract as ``VisaSubclass``. A member's
+    # timeline must not lose its occupation because the department pruned a list.
+    is_active = Column(Boolean, nullable=False, default=True, server_default="true")
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    def code_for_version(self, version: Optional[str]) -> Optional[str]:
+        """The ANZSCO code this occupation answers to under a given edition.
+
+        Falls back to the other edition rather than returning NULL: 298 of 714
+        occupations are single-edition, and a 189 applicant picking one of the
+        43 that exist only under 2022 should still get a code stamped on their
+        timeline. A code from the wrong edition is recoverable — the pair is
+        stored — while a NULL is the free-text problem all over again.
+        """
+        if version == "2022":
+            return self.anzsco_2022_code or self.anzsco_2013_code
+        return self.anzsco_2013_code or self.anzsco_2022_code
 
 
 class CommunityTimeline(Base):
