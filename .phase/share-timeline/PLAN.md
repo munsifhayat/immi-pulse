@@ -177,6 +177,14 @@ with a coded ANZSCO picker filtered to the selected subclass. Source plan §4 Pi
 - [ ] Picker groups by the 8 major groups and filters to the selected subclass. The
       competitor's flat unfiltered alphabetical list is the pattern to beat.
 - [ ] `Journey.occupation_code` added; `Journey.occupation` retained as a display snapshot.
+- [ ] **Occupation is required, not optional**, for every subclass with
+      `requires_occupation`. It is the field that makes cohort matching possible, and
+      `models.py:402` currently reads "free text, optional". It stays *hidden* (not
+      optional) for subclasses that do not require it — a 600 Tourist or a partner-visa
+      applicant has no ANZSCO occupation and forcing one would poison the data.
+- [ ] **Form layout:** occupation gets its own full-width row with the picker; state /
+      territory moves down to the second row. Today they share a two-column grid
+      (`share-journey.tsx:362-386`), which cramps a searchable picker into half a row.
 
 **Verify by:** `PYTHONPATH=src pytest tests/ -q`; a new `tests/e2e_community_occupations.py`
 covering filter-by-subclass and typeahead; `python scripts/seed_occupations.py` run twice
