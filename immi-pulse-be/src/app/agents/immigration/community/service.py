@@ -2,7 +2,6 @@
 
 import hashlib
 import logging
-import secrets
 import uuid
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
@@ -16,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.agents.immigration.community import antispam
 from app.agents.immigration.community import identity as identity_gen
 from app.agents.immigration.community import notifications, processing, tiers, trust
+from app.agents.immigration.community.accounts import unique_handle
 from app.agents.immigration.community.models import (
     CONTENT_ACTIVE,
     CONTENT_HELD,
@@ -1151,23 +1151,19 @@ class CommunityService:
     async def get_identity_by_token(
         db: AsyncSession, token: Optional[str]
     ) -> Optional[AnonIdentity]:
+        """The anonymous row a device token addresses, if any.
+
+        Cannot return an account: signup releases the account's device token
+        (see ``AnonIdentity``), so no row with a password is reachable this way.
+        That is the property the signed-out surfaces lean on — a visitor who
+        logged out is a stranger again rather than the previous member.
+        """
         if not token:
             return None
         result = await db.execute(
             select(AnonIdentity).where(AnonIdentity.device_token == token)
         )
         return result.scalar_one_or_none()
-
-    @staticmethod
-    async def _unique_handle(db: AsyncSession) -> str:
-        for _ in range(12):
-            handle = identity_gen.generate_handle()
-            taken = await db.scalar(
-                select(AnonIdentity.id).where(AnonIdentity.handle == handle)
-            )
-            if not taken:
-                return handle
-        return identity_gen.generate_handle() + secrets.token_hex(2)
 
     @staticmethod
     async def get_or_create_identity(
@@ -1177,7 +1173,9 @@ class CommunityService:
 
         Accepts a client-supplied ``token`` (the device id) — unknown tokens
         mint a fresh identity bound to that token, so a write never fails just
-        because the bootstrap call was skipped.
+        because the bootstrap call was skipped. This is also what makes signup's
+        token release self-healing: the browser keeps sending the token it
+        already had, and gets a brand-new anonymous row for it.
         """
         identity = await CommunityService.get_identity_by_token(db, token)
         if identity is not None:
@@ -1190,7 +1188,7 @@ class CommunityService:
         identity = AnonIdentity(
             id=uuid.uuid4(),
             device_token=token or identity_gen.generate_device_token(),
-            handle=await CommunityService._unique_handle(db),
+            handle=await unique_handle(db),
             color=identity_gen.generate_color(),
             ip_hash=ip_hash,
         )
@@ -1208,7 +1206,7 @@ class CommunityService:
             raise ValueError("Your handle locks once you've created an account.")
         if identity.user_id is not None or (identity.journeys_posted or 0) > 0:
             raise ValueError("Your handle locks once you've shared a timeline.")
-        identity.handle = await CommunityService._unique_handle(db)
+        identity.handle = await unique_handle(db)
         identity.color = identity_gen.generate_color()
         await db.flush()
         return identity

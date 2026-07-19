@@ -97,7 +97,7 @@ TIMELINE_SOURCE_FORUM = "forum"
 
 
 class AnonIdentity(Base):
-    """A pseudonymous community member — device identity AND account, one row.
+    """A pseudonymous community member — a browser's anonymous identity, or an account.
 
     NAMING DEBT (accepted deliberately): the table is still called
     ``anon_identities`` because every ``Journey``/``JourneyComment``/
@@ -106,10 +106,19 @@ class AnonIdentity(Base):
     instead of a parallel ``community_accounts`` table being added beside it.
     Read "identity" as "community account" throughout.
 
-    Lifecycle, in one line: a visitor arrives → a row is minted against their
+    Lifecycle: a visitor arrives → a row is minted against their
     ``device_token`` with a generated unique ``handle`` + ``color`` → they read
-    freely → when they want to write they set a ``password_hash``, which claims
-    that same row as an account, keeping the handle and every prior post.
+    and write freely → when they sign up, that row is *adopted* as an account
+    (keeping the handle and every prior post) and its ``device_token`` is
+    released.
+
+    **A row is addressed by a device token OR by a session, never both.** The
+    invariant is: an account row never holds a ``device_token``. That is what
+    stops a browser resolving to somebody else's account after they log out —
+    the bug this split exists to close, where a signed-out visitor on a shared
+    computer wrote timelines under the previous member's pseudonym. Signup
+    releases the token; the browser re-bootstraps a fresh anonymous row on its
+    next call, and login touches neither.
 
     ``email`` is **optional** and exists for exactly two reasons: password
     recovery and reply notifications. It is never displayed, never public, and
@@ -121,7 +130,11 @@ class AnonIdentity(Base):
     __tablename__ = "anon_identities"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    device_token = Column(String, nullable=False, unique=True, index=True)
+    # Nullable since the account/device split: NULL means "no browser speaks for
+    # this row", which is the steady state of every account. Postgres permits
+    # any number of NULLs under a UNIQUE index, so uniqueness still holds for
+    # the rows that do carry one and ``uq_anon_identity_device_token`` stays.
+    device_token = Column(String, nullable=True, unique=True, index=True)
     handle = Column(String, nullable=False, unique=True, index=True)
     color = Column(String, nullable=False)
 

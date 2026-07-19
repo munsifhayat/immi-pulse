@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/lib/api/client";
 import { queryKeys } from "@/lib/api/hooks/query-keys";
 import {
+  clearDeviceToken,
   getDeviceToken,
   setDeviceToken,
   type CommunityIdentity,
@@ -724,11 +725,20 @@ export interface CommunityAccount {
   last_login_at?: string | null;
 }
 
+/**
+ * A session, and nothing else.
+ *
+ * There is deliberately no `device_token` here any more. Every session issue
+ * used to echo the account's token and every caller wrote it to localStorage,
+ * which meant signing in *rebound the browser to the account* — two browsers
+ * logging into one account collapsed onto a single identity, and a browser that
+ * later signed out kept writing under the member's pseudonym. The browser's
+ * anonymous identity is now its own concern (`useIdentity`).
+ */
 export interface CommunitySessionOut {
   token: string;
   expires_at: string;
   account: CommunityAccount;
-  device_token?: string | null;
 }
 
 export interface SignupPayload {
@@ -820,10 +830,17 @@ export function useCommunityAccount() {
 }
 
 /**
- * Claim this device's existing identity as an account.
+ * Turn this browser's identity into an account.
  *
- * Claiming, not creating: the handle and every post already made on this device
- * carry straight over, which is why the signup form never asks for a username.
+ * Where the browser's identity is unclaimed the server *adopts* it, so the
+ * handle and every post already made here carry straight over — which is why
+ * the signup form never asks for a username. Where it already belongs to
+ * somebody else a fresh account is minted beside it, so signing up on a shared
+ * computer works instead of returning the 409 it used to.
+ *
+ * Either way the browser's device token is left alone: the account has released
+ * its own, and the next `useIdentity` call re-bootstraps this browser as a
+ * fresh anonymous visitor behind the session.
  */
 export function useCommunitySignup() {
   const qc = useQueryClient();
@@ -841,7 +858,6 @@ export function useCommunitySignup() {
     },
     onSuccess: (session) => {
       setCommunityToken(session.token);
-      setDeviceToken(session.device_token);
       qc.setQueryData(queryKeys.community.account(), session.account);
       qc.invalidateQueries({ queryKey: queryKeys.community.all });
     },
@@ -864,7 +880,9 @@ export function useCommunityLogin() {
     },
     onSuccess: (session) => {
       setCommunityToken(session.token);
-      setDeviceToken(session.device_token);
+      // Deliberately does not touch the device token. Logging in says who you
+      // are, not whose browser this is; overwriting it here is what used to
+      // merge a second browser into the first one's identity.
       qc.setQueryData(queryKeys.community.account(), session.account);
       // Ownership cues (is_mine, viewer_voted) and the inbox all change the
       // moment the viewer does, so everything community-scoped is now stale.
@@ -917,7 +935,6 @@ export function useCommunityResetPassword() {
     },
     onSuccess: (session) => {
       setCommunityToken(session.token);
-      setDeviceToken(session.device_token);
       qc.setQueryData(queryKeys.community.account(), session.account);
       qc.invalidateQueries({ queryKey: queryKeys.community.all });
     },
@@ -925,16 +942,37 @@ export function useCommunityResetPassword() {
 }
 
 /**
- * Sign out of the community.
+ * Sign out, and become a stranger again.
  *
- * Clears the session but deliberately leaves the device token alone: the
- * browser is still the same browser, and wiping it would strand any drafts
- * held against it.
+ * This has to be a round-trip, which is why it is the one auth action that
+ * cannot be done client-side: the durable copy of the device token is an
+ * HttpOnly cookie that no script can reach, so clearing localStorage alone left
+ * the browser still resolving to the identity it just signed out of. On a
+ * shared computer that meant the next person's anonymous post was filed under
+ * the previous member's pseudonym.
+ *
+ * The server hands back a brand-new anonymous identity rather than nothing —
+ * signing out drops the account, it does not stop you reading and writing.
  */
 export function useCommunityLogout() {
   const qc = useQueryClient();
-  return () => {
+  return async () => {
+    // Local copies go first, so a failed round-trip still ends with this
+    // browser holding no session and no token of its own.
     clearCommunityToken();
+    clearDeviceToken();
+    try {
+      const { data } = await apiClient.post<CommunityIdentity>(
+        "/community/public/auth/logout"
+      );
+      setDeviceToken(data.device_token);
+      qc.setQueryData(queryKeys.community.identity(), data);
+    } catch {
+      // The cookie is the server's to clear, so if the call failed we cannot
+      // know who this browser now resolves to. Drop the cached identity so the
+      // next render bootstraps a fresh one instead of trusting a stale answer.
+      qc.removeQueries({ queryKey: queryKeys.community.identity() });
+    }
     qc.setQueryData(queryKeys.community.account(), null);
     qc.invalidateQueries({ queryKey: queryKeys.community.all });
   };
