@@ -86,7 +86,7 @@
   --teal: #1B7B6F;
   --teal-light: #2DD4BF;
 
-  /* ── Community "Waiting Room" editorial palette ── */
+  /* ── Community editorial palette ── */
   --paper: #FBFAF8;        /* warm off-white page well */
   --paper-deep: #F4F2ED;   /* one step down — rail hovers, inset wells */
   --ink: #16181D;          /* near-black body ink */
@@ -347,7 +347,7 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   COMMUNITY — "The Waiting Room" editorial data-journal system
+   COMMUNITY — editorial data-journal system
    Ink-on-paper, hairline rules, mono micro-labels, one serif accent.
    All classes are prefixed `c-` and only used under /community surfaces.
    ══════════════════════════════════════════════════════════════════════════ */

@@ -50,7 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: number;
     changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"];
   }[] = [
-    // The homepage is the room itself, so it changes daily now.
+    // The homepage is the community itself, so it changes daily now.
     { path: "", priority: 1, changeFrequency: "daily" },
     { path: "/wait-check", priority: 0.9, changeFrequency: "daily" },
     { path: "/questions", priority: 0.8, changeFrequency: "daily" },
@@ -74,7 +74,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: r.priority,
   }));
 
-  // The organic growth engine. `/community` itself redirects to the room now,
+  // The organic growth engine. `/community` itself redirects to the community now,
   // but `/community/journey/<id>` does NOT — every shared timeline is a
   // long-tail landing page for "is subclass X processing time normal", they are
   // already indexed, and breaking those URLs would throw away the traffic this

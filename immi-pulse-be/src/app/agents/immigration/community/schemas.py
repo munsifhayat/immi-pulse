@@ -335,9 +335,12 @@ class WaitCheckOut(BaseModel):
     official_updated: Optional[str] = None
 
     # Explicit blocks. A client renders both or neither: the official figure
-    # without the room's is a marketing claim, and the room's without the
-    # official one is a crowd-sourced number with nothing to check it against.
+    # without the community's is a marketing claim, and the community's without
+    # the official one is a crowd-sourced number with nothing to check it
+    # against. ``room`` is the superseded name of ``community``, still emitted
+    # so a client mid-deploy keeps working.
     official: OfficialFiguresOut = Field(default_factory=OfficialFiguresOut)
+    community: CommunityDurationStats
     room: CommunityDurationStats
 
 

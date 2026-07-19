@@ -1,7 +1,7 @@
 /**
  * Wrapper for the surviving `/community/journey/<id>` pages.
  *
- * `/community` itself now redirects to the room at `/`, but the per-journey
+ * `/community` itself now redirects to the community at `/`, but the per-journey
  * pages stay exactly where they are: they are indexed, they are in the sitemap,
  * and each one is a long-tail landing page for someone searching whether their
  * subclass is taking too long. Moving them would throw that away.

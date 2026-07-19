@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, MessageCircle, ShieldCheck } from "lucide-react";
 import type { JourneyDetailOut } from "@/lib/api/hooks/community";
 import { API_URL, SITE_URL } from "@/lib/site";
-import { formatDays, shortDate } from "@/lib/room/format";
-import { milestoneMeta, dayGap, gapLabel } from "@/components/room/milestone-meta";
+import { formatDays, shortDate } from "@/lib/community/format";
+import { milestoneMeta, dayGap, gapLabel } from "@/components/community/milestone-meta";
 
 // Cache each timeline page for 5 minutes; new milestones/comments refresh on
 // the next request. Individual timelines change rarely, so this keeps the pages
@@ -152,7 +152,7 @@ export default async function JourneyPage({
           href="/"
           className="c-mono inline-flex items-center gap-1.5 text-[12px] uppercase tracking-[0.12em] text-ink-soft transition-colors hover:text-purple"
         >
-          <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} /> The room
+          <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} /> The community
         </Link>
 
         {/* header */}
