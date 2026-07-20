@@ -1,0 +1,69 @@
+name: CI
+
+# Gates every PR and every push to main. Before this existed, nothing stopped a
+# red commit reaching main — and since the Vercel Root Directory fix, main
+# auto-deploys to immi360.com.au, so an ungated merge ships straight to users.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: immi-pulse-be
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # Hardcoded, not python-version-file: Heroku's runtime.txt uses a
+          # `python-3.12.7` prefix that setup-python cannot parse. Keep this in
+          # sync with immi-pulse-be/runtime.txt.
+          python-version: '3.12.7'
+          cache: pip
+          cache-dependency-path: immi-pulse-be/requirements/*.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements/base.txt -r requirements/dev.txt
+
+      # No .env and no database: every Settings field in src/app/core/config.py
+      # has a default, and the suite touches no DB. Verified by running the full
+      # suite with .env moved aside — 234 passed.
+      - name: Run tests
+        run: PYTHONPATH=src pytest tests/ -q
+
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: immi-pulse-fe
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Compile check only; the artifact is discarded. Both NEXT_PUBLIC_* vars
+      # have `||` fallbacks in src/lib/api/client.ts, so these are belt-and-braces
+      # — they exist so a CI build can never silently inherit a localhost default.
+      #
+      # `bun run lint` is deliberately NOT gated here: lint is already failing on
+      # main and a gate would go red on day one. Fix lint, then add it.
+      - name: Build
+        run: bun run build
+        env:
+          NEXT_PUBLIC_API_URL: https://ci.invalid/api/v1
+          NEXT_PUBLIC_API_KEY: ci-build-only

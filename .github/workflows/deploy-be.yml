@@ -1,0 +1,55 @@
+name: Deploy backend
+
+# Replaces the manual `git subtree push --prefix immi-pulse-be heroku main`.
+# That step was easy to forget, which let the backend drift behind the frontend —
+# dangerous while `publish` is a required field on CreateJourneyRequest, where a
+# mismatched pair 422s every journey post.
+#
+# The frontend needs no equivalent workflow: Vercel's git integration deploys it
+# on push to main (since Root Directory was set to immi-pulse-fe, 2026-07-20).
+#
+# Migrations ride along automatically — immi-pulse-be/Procfile declares
+#   release: PYTHONPATH=src alembic upgrade heads
+# which Heroku runs on every release, before the new web dyno takes traffic.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'immi-pulse-be/**'
+      - '.github/workflows/deploy-be.yml'
+  workflow_dispatch:
+
+# Never let two deploys race the Heroku remote. Do not cancel in progress: a
+# half-applied release phase is worse than a queued one.
+concurrency:
+  group: deploy-be
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Push subtree to Heroku
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      # subtree split walks the whole history, so a shallow clone will not do.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push immi-pulse-be subtree to Heroku
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${HEROKU_API_KEY}" ]; then
+            echo "::error::HEROKU_API_KEY secret is not set — add it in repo Settings > Secrets."
+            exit 1
+          fi
+          SUBTREE_SHA="$(git subtree split --prefix immi-pulse-be "${GITHUB_SHA}")"
+          echo "Deploying subtree ${SUBTREE_SHA} (from ${GITHUB_SHA})"
+          # --force because the Heroku remote is a deploy target, not a source of
+          # truth; its history is disposable and need not fast-forward.
+          git push --force \
+            "https://heroku:${HEROKU_API_KEY}@git.heroku.com/immi-pulse-be.git" \
+            "${SUBTREE_SHA}:refs/heads/main"
