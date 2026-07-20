@@ -141,6 +141,7 @@ async def main():
             "/community/journeys",
             headers=h1,
             json={
+                "publish": True,
                 "post_type": "question",
                 "title": f"Is my wait normal? {marker}",
                 "note": "Asked anonymously, before I made an account.",
@@ -149,35 +150,30 @@ async def main():
         check("anonymous question posted", r.status_code == 201)
         journey_id = r.json()["id"]
 
-        # ══ 2. Claim that identity as an account — no email ══
+        # ══ 2. Claim that identity as an account — email is now required ══
         r = await c.post(
             "/community/public/auth/signup",
             headers=h1,
             json={"password": "correct-horse-battery-7"},
         )
         check(
-            "signup without email is refused until no-recovery is acknowledged",
-            r.status_code == 400,
-        )
-        check(
-            "the refusal says recovery is impossible",
-            "recover" in r.text.lower(),
+            "signup without an email is refused outright",
+            r.status_code in (400, 422),
         )
 
+        email1 = f"claim-{suffix}@example.com"
         r = await c.post(
             "/community/public/auth/signup",
             headers=h1,
-            json={
-                "password": "correct-horse-battery-7",
-                "accepted_no_recovery": True,
-            },
+            json={"password": "correct-horse-battery-7", "email": email1},
         )
-        check("signup succeeds once acknowledged", r.status_code == 201)
+        check("signup succeeds with an email", r.status_code == 201)
         body = r.json()
         session_token = body["token"]
         check("session token issued", bool(session_token))
         check("account keeps its pre-signup handle", body["account"]["handle"] == handle1)
-        check("account reports no recovery path", body["account"]["can_recover"] is False)
+        check("account can recover — email is mandatory now", body["account"]["can_recover"] is True)
+        check("but the address is not treated as verified", body["account"]["email_verified"] is False)
         check("account serializer carries no email address", "email" not in str(body["account"]).replace("has_email", "").replace("email_verified", ""))
 
         # Weak passwords are rejected by the existing policy.
@@ -186,21 +182,37 @@ async def main():
         r = await c.post(
             "/community/public/auth/signup",
             headers={**svc, "X-Device-Token": weak_dev},
-            json={"password": "1234567", "accepted_no_recovery": True},
+            json={"password": "1234567", "email": f"weak-{suffix}@example.com"},
         )
         check("short password rejected", r.status_code in (400, 422))
 
-        # Signing up twice on the same device is a conflict, not a duplicate.
+        # Signing up a second time on the same browser is a normal thing to do,
+        # not a 409. The first signup released this browser's device token, so
+        # the browser is a stranger again — and a stranger is entitled to their
+        # own account. This is the shared-computer case the old conflict made a
+        # dead end: the person at the keyboard is not the person who owns the
+        # first account, and has no password to "just log in" with.
         r = await c.post(
             "/community/public/auth/signup",
             headers=h1,
-            json={"password": "another-password-99", "accepted_no_recovery": True},
+            json={"password": "another-password-99", "email": f"dupe-{suffix}@example.com"},
         )
-        check("second signup on a claimed device conflicts", r.status_code == 409)
-        check("...and points at logging in", "log in" in r.text.lower())
+        check("a second signup on the same browser succeeds", r.status_code == 201)
+        second_handle = r.json()["account"]["handle"]
+        check(
+            "...and mints a distinct account rather than returning the first",
+            bool(second_handle) and second_handle != handle1,
+        )
 
         # Handle locks once the account exists — it is the login identifier now.
-        r = await c.post("/community/public/identity/reroll", headers=h1)
+        # Asserted through the SESSION rather than the device token: a member's
+        # browser carries a throwaway anonymous row alongside their account, so
+        # a device-only reroll would happily reroll *that* and report success
+        # while the handle they actually log in with never moved.
+        r = await c.post(
+            "/community/public/identity/reroll",
+            headers={**svc, "Authorization": f"Bearer {session_token}"},
+        )
         check("handle locks after signup", r.status_code == 409)
 
         # ══ 3. Log in from a FRESH client — no device token, no cookie ══
@@ -296,7 +308,7 @@ async def main():
         r = await c.post(
             "/community/public/auth/signup",
             headers=h_thr,
-            json={"password": "throttle-me-please-42", "accepted_no_recovery": True},
+            json={"password": "throttle-me-please-42", "email": f"throttle-{suffix}@example.com"},
         )
         thr_handle = r.json()["account"]["handle"]
         statuses = []
@@ -331,7 +343,10 @@ async def main():
         check("account with an email can recover", r.json()["account"]["can_recover"] is True)
         check("signup response still hides the address", member_email not in r.text)
 
-        # The same email cannot back two accounts.
+        # An UNVERIFIED duplicate is deliberately allowed. Refusing it is what
+        # turns a required-but-unverified email into a denial-of-service: type a
+        # stranger's address first and they can never attach their own. Only a
+        # verified address takes the unique slot.
         r = await c.post("/community/public/identity", headers=svc)
         dupe_dev = r.json()["device_token"]
         r = await c.post(
@@ -339,7 +354,59 @@ async def main():
             headers={**svc, "X-Device-Token": dupe_dev},
             json={"password": "yet-another-password-9", "email": member_email},
         )
-        check("duplicate email refused", r.status_code == 409)
+        check(
+            "an unverified duplicate email is allowed (no pre-hijacking)",
+            r.status_code == 201,
+        )
+        dupe_handle = r.json()["account"]["handle"]
+
+        # ...and the cost of allowing it used to be paid by both members:
+        # recovery resolved a pending address only when exactly one account
+        # claimed it, so a duplicate locked BOTH of them out, permanently and
+        # silently. It now mails every claimant instead — each with its own
+        # single-use token and its own handle named in the body, so the member
+        # picks their account by opening the right mail. Nothing leaks, because
+        # only the person holding that inbox ever sees any of it.
+        sent_emails.clear()
+        r = await c.post(
+            "/community/public/auth/recover",
+            headers=svc,
+            json={"email": member_email},
+        )
+        check("recovery on an ambiguous address still 200s", r.status_code == 200)
+        check(
+            "...and mails BOTH claimants rather than locking them both out",
+            len(sent_emails) == 2,
+        )
+        check(
+            "every mail goes to the claimed address and nowhere else",
+            all(e["to"] == member_email for e in sent_emails),
+        )
+        named = {
+            h
+            for h in (handle2, dupe_handle)
+            if any(h in e.get("body_html", "") for e in sent_emails)
+        }
+        check(
+            "each mail names its own handle, so they can be told apart",
+            named == {handle2, dupe_handle},
+        )
+        dupe_tokens = {
+            e.get("cta_url", "").split("token=", 1)[-1] for e in sent_emails
+        }
+        check("each claimant gets a distinct token", len(dupe_tokens) == 2)
+
+        # A sole claimant recovers normally.
+        member_email = f"solo.{suffix}@example.com"
+        r = await c.post("/community/public/identity", headers=svc)
+        solo_dev = r.json()["device_token"]
+        r = await c.post(
+            "/community/public/auth/signup",
+            headers={**svc, "X-Device-Token": solo_dev},
+            json={"password": "sole-claimant-pass-31", "email": member_email},
+        )
+        check("sole-claimant signup succeeds", r.status_code == 201)
+        handle2 = r.json()["account"]["handle"]
 
         sent_emails.clear()
         r = await c.post(

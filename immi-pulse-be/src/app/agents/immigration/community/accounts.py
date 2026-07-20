@@ -4,10 +4,17 @@ One account, Reddit-style: an **assigned** handle (never chosen — chosen names
 leak identity), a member-set password, and an **optional** email used only for
 password recovery and reply notifications.
 
-The account IS the existing ``AnonIdentity`` row. A visitor's device already
-has one, carrying their handle and any posts they made before signing up, so
-"signing up" is really "claiming" — set a password on the row you already are.
-Nothing migrates, nothing is stitched, and the member keeps their history.
+An account is an ``AnonIdentity`` row that has a password. A visitor's browser
+already has such a row — carrying their handle and any posts they made before
+signing up — so signup *adopts* it where it can: set a password on the row you
+already are, nothing migrates, nothing is stitched, and the member keeps their
+history. Where it cannot (the row already belongs to someone else) it mints a
+new one beside it.
+
+The account then stops answering to the browser: signup releases the row's
+``device_token``, so an account is reached only by handle + password. That
+boundary is what makes logging out on a shared computer safe — see the
+invariant documented on :class:`AnonIdentity`.
 
 Session tokens use their own audience (``immi-pulse.community.session``) and
 resolve via :func:`require_community_account`, which deliberately does **not**
@@ -16,7 +23,10 @@ so the console's tenant-scoped dependency cannot be reused for them.
 
 Threat notes:
 - Recovery responds identically whether or not the address is known, so the
-  endpoint cannot be used to test which emails have accounts.
+  endpoint cannot be used to test which emails have accounts. When several
+  accounts claim one unverified address it mails every one of them rather than
+  refusing to guess — refusing locked all of them out permanently, and only the
+  inbox owner ever sees the resulting mail.
 - Login is throttled per account with a lockout window; the error message is
   the same for "no such handle" and "wrong password".
 - The breach check inside ``assert_password_acceptable`` already fails open on
@@ -28,6 +38,7 @@ from __future__ import annotations
 
 import hashlib
 import secrets
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Optional
@@ -38,6 +49,7 @@ from fastapi import Depends, Header, HTTPException, Request, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.immigration.community import identity as identity_gen
 from app.agents.immigration.community.models import AnonIdentity
 from app.core.config import get_settings
 from app.core.jwt_auth import hash_password, verify_password
@@ -58,6 +70,9 @@ DEVICE_COOKIE_MAX_AGE = 60 * 60 * 24 * 400  # ~13 months
 MAX_FAILED_LOGINS = 8
 LOCKOUT_MINUTES = 15
 RECOVERY_TTL_MINUTES = 60
+# How many accounts one recovery request may mail when several have claimed the
+# same unverified address. See :meth:`CommunityAccountService.find_by_email`.
+RECOVERY_FANOUT_MAX = 5
 
 # Deliberately identical for unknown handle and wrong password.
 _BAD_CREDENTIALS = "That handle and password don't match."
@@ -207,6 +222,27 @@ def normalize_email(email: Optional[str]) -> Optional[str]:
     return cleaned or None
 
 
+# --------------- Handles ------------------------------------------------------
+
+
+async def unique_handle(db: AsyncSession) -> str:
+    """A generated handle nobody holds yet.
+
+    ``generate_handle`` draws from 20×20×9000 combinations, so collisions are
+    rare but not impossible; after twelve tries, salt rather than loop forever.
+    Lives here rather than in ``identity.py`` because that module is
+    deliberately database-free so handle generation stays unit-testable.
+    """
+    for _ in range(12):
+        handle = identity_gen.generate_handle()
+        taken = await db.scalar(
+            select(AnonIdentity.id).where(AnonIdentity.handle == handle)
+        )
+        if not taken:
+            return handle
+    return identity_gen.generate_handle() + secrets.token_hex(2)
+
+
 # --------------- Errors -------------------------------------------------------
 
 
@@ -235,11 +271,53 @@ class CommunityAccountService:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def get_by_email(db: AsyncSession, email: str) -> Optional[AnonIdentity]:
-        result = await db.execute(
-            select(AnonIdentity).where(AnonIdentity.email == normalize_email(email))
+    async def find_by_email(db: AsyncSession, email: str) -> list[AnonIdentity]:
+        """Every account that could own an address, most recently seen first.
+
+        Returns a *list*, and that is the whole point. Pending addresses are
+        deliberately not unique (see the model), so two members typing the same
+        address is a state that can happen — and the previous "resolve only when
+        exactly one account claims it" rule turned that state into a permanent,
+        silent mutual lockout: neither member could ever recover. Refusing to
+        guess was right; refusing to act was not.
+
+        The resolution is to stop guessing and instead mail *all* of them, each
+        with its own single-use token and its own handle named in the body. Only
+        the person holding that inbox ever sees the list, so nothing leaks: an
+        attacker who types a stranger's address learns nothing, because the mail
+        goes to the stranger.
+
+        Verified still wins outright and alone — it is unique, so at most one row
+        can hold it, and proven ownership beats any number of unproven claims.
+        """
+        clean = normalize_email(email)
+        if not clean:
+            return []
+
+        verified = (
+            await db.execute(
+                select(AnonIdentity).where(AnonIdentity.email_verified == clean)
+            )
+        ).scalar_one_or_none()
+        if verified is not None:
+            return [verified]
+
+        # Capped because the caller sends one email per row inside a request:
+        # uncapped, N duplicate signups would turn one recovery request into N
+        # sequential Resend calls. The cap bounds the work, not the honesty —
+        # duplicates in the wild are two or three, never five.
+        return list(
+            (
+                await db.execute(
+                    select(AnonIdentity)
+                    .where(AnonIdentity.email_pending == clean)
+                    .order_by(AnonIdentity.created_at.asc())
+                    .limit(RECOVERY_FANOUT_MAX)
+                )
+            )
+            .scalars()
+            .all()
         )
-        return result.scalar_one_or_none()
 
     @staticmethod
     async def signup(
@@ -247,58 +325,91 @@ class CommunityAccountService:
         *,
         identity: AnonIdentity,
         password: str,
-        email: Optional[str] = None,
-        accepted_no_recovery: bool = False,
+        email: str,
     ) -> AnonIdentity:
-        """Claim ``identity`` as an account by setting a password on it.
+        """Turn this browser's identity into an account.
 
-        ``identity`` is the row this device already owns, so the handle and any
-        posts already made under it carry straight over — that is the whole
-        reason the account lives on this table.
+        ``identity`` is the row the browser currently resolves to, and what
+        happens to it depends on whether anyone already owns it:
 
-        Skipping email requires ``accepted_no_recovery``: losing the password
-        then means losing the account outright, and that has to be an explicit
-        acknowledgement rather than a silently-skipped field.
+        - **Unclaimed** → *adopt* it. The handle and every post already made
+          from this browser carry straight over, which is what the signup dialog
+          promises ("anything you have already posted from this browser stays
+          yours") and why the form never asks for a username.
+        - **Already claimed** → leave it completely alone and mint a *new*
+          account beside it. This used to be a 409 telling the member to log in,
+          which is a dead end on any shared or second-hand computer: the person
+          in front of the screen is not the person who owns that row and has no
+          password to log in with.
+
+        Either way the resulting account gives up its ``device_token``. An
+        account is reached by handle + password, never by a browser — see the
+        invariant on :class:`AnonIdentity`. Releasing it is what makes logging
+        out mean something: the browser stops resolving to the account, so a
+        later anonymous write can never be stamped with this member's pseudonym.
+
+        Email is **required and unverified**: the member types it, we take it,
+        and they are signed in immediately. Verification is a later, optional
+        step that upgrades ``email_pending`` to ``email_verified`` and unlocks
+        recovery. The address is stored as pending precisely so that requiring
+        it cannot be turned into a denial-of-service against the real owner.
         """
-        if identity.password_hash:
+        clean_email = normalize_email(email)
+        if not clean_email:
             raise AccountError(
-                "This device already has an account. Log in instead.",
-                status.HTTP_409_CONFLICT,
+                "An email address is required.", status.HTTP_400_BAD_REQUEST
             )
 
-        clean_email = normalize_email(email)
-        if not clean_email and not accepted_no_recovery:
-            raise AccountError(
-                "Without an email this account cannot be recovered. "
-                "Confirm you understand, or add an email.",
-                status.HTTP_400_BAD_REQUEST,
+        if identity.password_hash:
+            # Somebody else's row. Detach it from this browser so the browser
+            # stops resolving to it, then build a fresh account with a fresh
+            # handle — the new member inherits nothing, which is correct: they
+            # posted nothing from here.
+            identity.device_token = None
+            account = AnonIdentity(
+                id=uuid.uuid4(),
+                device_token=None,
+                handle=await unique_handle(db),
+                color=identity_gen.generate_color(),
+                ip_hash=identity.ip_hash,
             )
+            db.add(account)
+        else:
+            account = identity
+            account.device_token = None
 
         # Never let the password contain the handle or the email local-part.
-        compare = [identity.handle]
-        if clean_email:
-            compare.append(clean_email.split("@", 1)[0])
+        compare = [account.handle, clean_email.split("@", 1)[0]]
         try:
             await assert_password_acceptable(password, also_compare=compare)
         except PasswordPolicyError as err:
             raise AccountError(str(err), status.HTTP_400_BAD_REQUEST) from err
 
-        if clean_email:
-            existing = await CommunityAccountService.get_by_email(db, clean_email)
-            if existing is not None:
-                raise AccountError(
-                    "That email is already linked to an account. "
-                    "Log in, or use password recovery.",
-                    status.HTTP_409_CONFLICT,
-                )
+        # Only a *verified* address blocks reuse. Refusing on a pending one
+        # would rebuild the pre-hijacking hole this split exists to close, and
+        # signup deliberately never confirms that an address is already in use.
+        # Unreachable until a verification flow exists — it stays because
+        # ``email_verified`` is unique, so without it the INSERT would fail with
+        # a 500 rather than a sentence the member can act on.
+        taken = (
+            await db.execute(
+                select(AnonIdentity).where(AnonIdentity.email_verified == clean_email)
+            )
+        ).scalar_one_or_none()
+        if taken is not None:
+            raise AccountError(
+                "That email is already linked to an account. "
+                "Log in, or use password recovery.",
+                status.HTTP_409_CONFLICT,
+            )
 
-        identity.password_hash = hash_password(password)
-        identity.email = clean_email
-        identity.last_login_at = datetime.now(timezone.utc)
-        identity.failed_login_count = 0
-        identity.locked_until = None
+        account.password_hash = hash_password(password)
+        account.email_pending = clean_email
+        account.last_login_at = datetime.now(timezone.utc)
+        account.failed_login_count = 0
+        account.locked_until = None
         await db.flush()
-        return identity
+        return account
 
     @staticmethod
     async def login(
@@ -336,27 +447,39 @@ class CommunityAccountService:
         return account
 
     @staticmethod
-    async def begin_recovery(db: AsyncSession, *, email: str) -> Optional[str]:
-        """Mint a single-use recovery token, or return None if there's nothing to recover.
+    async def begin_recovery(
+        db: AsyncSession, *, email: str
+    ) -> list[tuple[AnonIdentity, str]]:
+        """Mint a single-use recovery token per account holding this address.
 
-        The caller must respond identically either way — a differing response
-        would turn this into an oracle for which emails hold accounts, and for
-        this audience that is a real-world risk, not a theoretical one.
+        Usually one pair, empty when there is nothing to recover, and more than
+        one only when several accounts claimed the same unverified address —
+        which used to mean *nobody* could recover. Each pair carries its own
+        token, so the member picks their account by opening the mail that names
+        their handle.
+
+        The caller must respond identically however many pairs come back — a
+        differing response would turn this into an oracle for which emails hold
+        accounts, and for this audience that is a real-world risk, not a
+        theoretical one.
         """
         clean = normalize_email(email)
         if not clean:
-            return None
-        account = await CommunityAccountService.get_by_email(db, clean)
-        if account is None or not account.password_hash:
-            return None
+            return []
 
-        token = secrets.token_urlsafe(32)
-        account.recovery_token_hash = _hash_recovery_token(token)
-        account.recovery_expires_at = datetime.now(timezone.utc) + timedelta(
+        expires_at = datetime.now(timezone.utc) + timedelta(
             minutes=RECOVERY_TTL_MINUTES
         )
+        grants: list[tuple[AnonIdentity, str]] = []
+        for account in await CommunityAccountService.find_by_email(db, clean):
+            if not account.password_hash:
+                continue
+            token = secrets.token_urlsafe(32)
+            account.recovery_token_hash = _hash_recovery_token(token)
+            account.recovery_expires_at = expires_at
+            grants.append((account, token))
         await db.flush()
-        return token
+        return grants
 
     @staticmethod
     async def complete_recovery(
@@ -416,9 +539,9 @@ class CommunityAccountService:
         return {
             "handle": account.handle,
             "color": account.color,
-            "has_email": bool(account.email),
-            "email_verified": account.email_verified_at is not None,
-            "can_recover": bool(account.email),
+            "has_email": bool(account.email_verified or account.email_pending),
+            "email_verified": bool(account.email_verified),
+            "can_recover": bool(account.email_verified or account.email_pending),
             "created_at": account.created_at,
             "last_login_at": account.last_login_at,
         }

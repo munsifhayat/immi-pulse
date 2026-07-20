@@ -30,6 +30,7 @@ import asyncio
 import uuid
 
 import httpx
+import sqlalchemy as sa
 from httpx import ASGITransport
 
 PASS = "\033[92m✓\033[0m"
@@ -103,7 +104,7 @@ async def _signup(client, svc, *, email=None):
     if email:
         body["email"] = email
     else:
-        body["accepted_no_recovery"] = True
+        body["email"] = f"inbox-{uuid.uuid4().hex[:8]}@example.com"
     r = await client.post(
         "/community/public/auth/signup",
         headers={**svc, "X-Device-Token": device},
@@ -180,6 +181,7 @@ async def main():
             "/community/journeys",
             headers=A,
             json={
+                "publish": True,
                 "post_type": "question",
                 "title": f"820 partner visa onshore — how long after medical? {suffix}",
                 "note": "Lodged a while back and still waiting on a decision.",
@@ -403,6 +405,7 @@ async def main():
             "/community/journeys",
             headers=D,
             json={
+                "publish": True,
                 "post_type": "question",
                 "title": f"820 partner visa — bridging while onshore? {suffix}",
                 "note": "Sponsor lodged in March, still no medical request.",
@@ -501,9 +504,22 @@ async def main():
         )
         check("preference saved", r.status_code == 200 and r.json()["email_replies"] is False)
 
+        # Signup now requires an email, so an address-less member can only be a
+        # legacy row — one claimed before the requirement landed. Build that
+        # state directly, because the endpoint still has to report it honestly.
+        async with get_async_session() as db:
+            await db.execute(
+                sa.text(
+                    "UPDATE anon_identities SET email_pending = NULL, "
+                    "email_verified = NULL WHERE handle = :h"
+                ),
+                {"h": a_handle},
+            )
+            await db.commit()
+
         r = await c.get("/community/me/notification-preferences", headers=A)
         check(
-            "a member with no address is told the preference is inert",
+            "a legacy member with no address is told the preference is inert",
             r.json()["email_available"] is False,
         )
 
@@ -525,6 +541,7 @@ async def main():
             "/community/journeys",
             headers=E,
             json={
+                "publish": True,
                 "post_type": "question",
                 "title": f"Question from someone who opted out {suffix}",
                 "note": "Should never generate an email.",
@@ -554,6 +571,7 @@ async def main():
             "/community/journeys",
             headers=V,
             json={
+                "publish": True,
                 "post_type": "question",
                 "title": f"Asked before signing up {suffix}",
                 "note": "Posted from a device with no account yet.",
@@ -572,7 +590,7 @@ async def main():
         r = await c.post(
             "/community/public/auth/signup",
             headers={**svc, "X-Device-Token": visitor_device},
-            json={"password": PASSWORD, "accepted_no_recovery": True},
+            json={"password": PASSWORD, "email": f"inbox-{uuid.uuid4().hex[:8]}@example.com"},
         )
         check("the visitor claims the account", r.status_code == 201)
         V_auth = {**svc, "Authorization": f"Bearer {r.json()['token']}"}

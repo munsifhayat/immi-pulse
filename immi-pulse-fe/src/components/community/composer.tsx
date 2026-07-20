@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { HelpCircle, Loader2, Lock } from "lucide-react";
 import {
+  JourneyCapError,
   useCreateJourney,
   useVisaSubclasses,
   type MilestonePayload,
@@ -12,6 +13,7 @@ import {
 import { useCommunity } from "./community-context";
 import type { NavIcon } from "./left-rail";
 import { TimelineGlyph } from "./timeline-glyph";
+import { VisaPicker } from "./visa-picker";
 
 const ASK_HINTS = [
   "What do you want to ask the community?",
@@ -35,7 +37,6 @@ const fieldCls =
 export function Composer({ onPosted }: { onPosted?: () => void }) {
   const { account, identity, openAccount, canWrite, writeBlock, openShare } =
     useCommunity();
-  const { data: subclasses = [] } = useVisaSubclasses();
   const create = useCreateJourney();
 
   const [mode, setMode] = useState<PostType>("question");
@@ -56,13 +57,23 @@ export function Composer({ onPosted }: { onPosted?: () => void }) {
   const today = new Date().toISOString().slice(0, 10);
   const block = writeBlock("post");
 
+  // The quick form has no occupation picker, and a timeline on a visa that
+  // nominates one is refused server-side. Rather than let someone fill the
+  // form and collect a 400, the visa itself decides: pick a 189 here and the
+  // composer hands over to the full builder instead of offering a Post button
+  // that cannot work.
+  const { data: subclasses = [] } = useVisaSubclasses();
+  const needsFullBuilder = !!subclasses.find(
+    (s) => s.slug === tlSubclass
+  )?.requires_occupation;
+
   useEffect(() => {
     const t = setInterval(() => setHint((h) => (h + 1) % ASK_HINTS.length), 3600);
     return () => clearInterval(t);
   }, []);
 
   const askReady = question.trim().length > 0 && detail.trim().length > 0;
-  const tlReady = !!tlSubclass && !!lodgedOn;
+  const tlReady = !!tlSubclass && !!lodgedOn && !needsFullBuilder;
   const ready = mode === "question" ? askReady : tlReady;
 
   function reset() {
@@ -81,27 +92,42 @@ export function Composer({ onPosted }: { onPosted?: () => void }) {
     // they have finished writing.
     if (!canWrite("post") || !ready || create.isPending) return;
 
-    if (mode === "question") {
-      await create.mutateAsync({
-        post_type: "question",
-        title: question.trim().slice(0, 200),
-        note: detail.trim(),
-        subclass_slug: askSubclass || null,
-      });
-    } else {
-      const milestones: MilestonePayload[] = [
-        { milestone_type: "Visa Lodged", occurred_on: lodgedOn },
-      ];
-      if (outcome === "granted" && decidedOn) {
-        milestones.push({ milestone_type: "Visa Granted", occurred_on: decidedOn });
+    try {
+      if (mode === "question") {
+        await create.mutateAsync({
+          post_type: "question",
+          title: question.trim().slice(0, 200),
+          note: detail.trim(),
+          subclass_slug: askSubclass || null,
+          // Posting to the feed is what this composer is for — the button is
+          // the consent. Stated rather than left to a server default.
+          publish: true,
+        });
+      } else {
+        const milestones: MilestonePayload[] = [
+          { milestone_type: "Visa Lodged", occurred_on: lodgedOn },
+        ];
+        if (outcome === "granted" && decidedOn) {
+          milestones.push({ milestone_type: "Visa Granted", occurred_on: decidedOn });
+        }
+        await create.mutateAsync({
+          post_type: "timeline",
+          subclass_slug: tlSubclass,
+          outcome,
+          note: tlNote.trim() || null,
+          milestones,
+          publish: true,
+        });
       }
-      await create.mutateAsync({
-        post_type: "timeline",
-        subclass_slug: tlSubclass,
-        outcome,
-        note: tlNote.trim() || null,
-        milestones,
-      });
+    } catch (err) {
+      // The cap is a door, not a failure — send them to signup the way the
+      // full builder does, rather than leaving raw error text under the form.
+      if (err instanceof JourneyCapError) {
+        create.reset();
+        openAccount("signup");
+        return;
+      }
+      return; // anything else stays visible via create.isError below
     }
     reset();
     onPosted?.();
@@ -163,38 +189,24 @@ export function Composer({ onPosted }: { onPosted?: () => void }) {
                   className="mt-1 w-full resize-y rounded-lg border border-hair bg-white px-3 py-2 text-[13.5px] leading-relaxed text-ink outline-none transition-all focus:border-purple/50 focus:ring-4 focus:ring-purple/10"
                 />
               )}
-              <select
-                value={askSubclass}
-                onChange={(e) => setAskSubclass(e.target.value)}
-                aria-label="Which visa is this about?"
-                className={`${fieldCls} mt-2`}
-              >
-                <option value="">Which visa? (optional)</option>
-                {subclasses.map((s) => (
-                  <option key={s.slug} value={s.slug}>
-                    {s.code} · {s.name}
-                    {s.stream ? ` (${s.stream})` : ""}
-                  </option>
-                ))}
-              </select>
+              <div className="mt-2">
+                <VisaPicker
+                  value={askSubclass}
+                  onChange={setAskSubclass}
+                  size="sm"
+                  labels={false}
+                />
+              </div>
             </>
           ) : (
             <div className="pt-1">
               <div className="grid gap-2 sm:grid-cols-2">
-                <select
+                <VisaPicker
                   value={tlSubclass}
-                  onChange={(e) => setTlSubclass(e.target.value)}
-                  aria-label="Visa subclass"
-                  className={fieldCls}
-                >
-                  <option value="">Which visa?</option>
-                  {subclasses.map((s) => (
-                    <option key={s.slug} value={s.slug}>
-                      {s.code} · {s.name}
-                      {s.stream ? ` (${s.stream})` : ""}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setTlSubclass}
+                  size="sm"
+                  labels={false}
+                />
                 <input
                   type="date"
                   max={today}
@@ -238,14 +250,36 @@ export function Composer({ onPosted }: { onPosted?: () => void }) {
                 occupation, state — is one click away rather than the default,
                 because asking for all of it up front is how you get nothing.
               */}
-              <button
-                type="button"
-                onClick={() => openShare({ subclass: tlSubclass || undefined })}
-                className="c-mono mt-2 inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.07em] text-ink-soft transition-colors hover:text-ink"
-              >
-                <TimelineGlyph className="h-3.5 w-3.5" strokeWidth={2} />
-                Add medicals, s56 and the rest
-              </button>
+              {needsFullBuilder ? (
+                <button
+                  type="button"
+                  onClick={() => openShare({ subclass: tlSubclass })}
+                  className="mt-2.5 flex w-full items-center gap-2.5 rounded-xl border border-purple-light bg-purple/[0.05] px-3.5 py-3 text-left transition-colors hover:bg-purple/[0.09]"
+                >
+                  <TimelineGlyph
+                    className="h-4 w-4 shrink-0 text-purple"
+                    strokeWidth={2}
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-[13px] font-semibold text-ink">
+                      This visa needs your nominated occupation
+                    </span>
+                    <span className="mt-0.5 block text-[11.5px] leading-relaxed text-gray-text">
+                      Timelines for it are grouped by occupation — continue in
+                      the full builder to pick yours.
+                    </span>
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => openShare({ subclass: tlSubclass || undefined })}
+                  className="c-mono mt-2 inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.07em] text-ink-soft transition-colors hover:text-ink"
+                >
+                  <TimelineGlyph className="h-3.5 w-3.5" strokeWidth={2} />
+                  Add medicals, s56 and the rest
+                </button>
+              )}
             </div>
           )}
 

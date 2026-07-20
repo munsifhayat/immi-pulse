@@ -33,20 +33,15 @@ import {
 } from "@/lib/api/hooks/community";
 import { shortDate } from "@/lib/community/format";
 import { milestoneMeta } from "./milestone-meta";
+import { OccupationPicker } from "./occupation-picker";
 import { TimelineGlyph } from "./timeline-glyph";
+import { VisaPicker } from "./visa-picker";
 
 const fieldCls =
   "w-full rounded-xl border border-hair bg-white px-3.5 py-2.5 text-[14px] text-ink outline-none transition-all focus:border-purple/50 focus:ring-4 focus:ring-purple/10";
 const labelCls =
   "mb-1.5 block c-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-soft";
 
-const STREAMS = [
-  "Direct Entry (DE)",
-  "Temporary Residence Transition (TRT)",
-  "Labour Agreement",
-  "Points-tested",
-  "Not sure",
-];
 const STATES = ["NSW", "VIC", "QLD", "WA", "SA", "ACT", "TAS", "NT", "Offshore"];
 
 function Seg<T extends string>({
@@ -108,13 +103,26 @@ export function ShareJourney({
     canPostTimeline ? "timeline" : "question"
   );
   const [subclass, setSubclass] = useState(defaultSubclass ?? "");
-  const [stream, setStream] = useState(STREAMS[0]);
-  const [occupation, setOccupation] = useState("");
+  // The occupation *slug*, not free text — the picker's value and the API's
+  // `occupation_slug`. The ANZSCO code is resolved server-side.
+  const [occupationSlug, setOccupationSlug] = useState("");
   const [stateVal, setStateVal] = useState(STATES[0]);
   const [area, setArea] = useState<"metro" | "regional">("metro");
   const [sponsor, setSponsor] = useState<"accredited" | "non_accredited">(
     "accredited"
   );
+  // Asked of everyone on a timeline — every visa is lodged from somewhere, and
+  // both of these apply regardless of subclass.
+  const [lodgedFrom, setLodgedFrom] = useState<"onshore" | "offshore">("onshore");
+  const [lodgedVia, setLodgedVia] = useState<"self" | "agent">("self");
+  // Never published. Collected because processing genuinely differs and members
+  // on the public trackers already self-organise this way; kept private because
+  // a pseudonym plus a nationality plus a date re-identifies people in a small
+  // cohort.
+  const [nationality, setNationality] = useState("");
+  // Tri-state, and the third state matters: unset means "didn't say", which is
+  // a different claim from "there was contact".
+  const [directGrant, setDirectGrant] = useState(false);
   const [outcome, setOutcome] = useState<TimelineOutcome>("waiting");
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
@@ -131,16 +139,45 @@ export function ShareJourney({
     [subclasses, subclass]
   );
 
+  // Whether to ask for an occupation at all — driven by reference data, never
+  // by `if (subclass === "186")`. False means hidden, not optional: a 600
+  // Tourist or partner-visa applicant has no ANZSCO occupation, and a field
+  // they have to guess at would pool their timeline into a cohort it does not
+  // belong to.
+  const needsOccupation =
+    postType === "timeline" && !!selected?.requires_occupation;
+  // Same contract for the rest of the profile. Every one of these used to be
+  // shown to everybody, so a 600 Tourist applicant was asked whether their
+  // employer was an accredited sponsor — a question with no referent, whose
+  // answer we then stored.
+  const isTimeline = postType === "timeline";
+  const needsState = isTimeline && !!selected?.requires_state_nomination;
+  const needsRegion = isTimeline && !!selected?.requires_region;
+  const needsSponsor = isTimeline && !!selected?.requires_sponsor_type;
+
+  // Changing the visa invalidates the occupation: the eligible list differs per
+  // subclass, and the server refuses an occupation that is not on the chosen
+  // visa's list. Clearing it here — on the event, not in an effect — means the
+  // member finds out by seeing the field empty rather than by being rejected at
+  // submit time.
+  function pickSubclass(slug: string) {
+    setSubclass(slug);
+    setOccupationSlug("");
+  }
+
   function reset() {
     setDone(false);
     setError(null);
     setPostType(canPostTimeline ? "timeline" : "question");
     setSubclass(defaultSubclass ?? "");
-    setStream(STREAMS[0]);
-    setOccupation("");
+    setOccupationSlug("");
     setStateVal(STATES[0]);
     setArea("metro");
     setSponsor("accredited");
+    setLodgedFrom("onshore");
+    setLodgedVia("self");
+    setNationality("");
+    setDirectGrant(false);
     setOutcome("waiting");
     setTitle("");
     setNote("");
@@ -179,6 +216,12 @@ export function ShareJourney({
     setError(null);
     if (postType === "timeline") {
       if (!subclass) return setError("Pick your visa subclass.");
+      // Required, not optional. Occupation is what lets us tell this member
+      // how long people *like them* waited rather than how long everyone did.
+      if (needsOccupation && !occupationSlug)
+        return setError(
+          "Pick your nominated occupation — timelines for this visa are grouped by it."
+        );
       if (milestones.length === 0)
         return setError("Add at least one milestone — start with what you've lodged.");
     } else {
@@ -190,11 +233,23 @@ export function ShareJourney({
         post_type: postType,
         subclass_slug: subclass || null,
         category_slug: selected?.category_slug ?? null,
-        stream: postType === "timeline" ? stream : null,
-        occupation: postType === "timeline" ? occupation || null : null,
-        state: postType === "timeline" ? stateVal : null,
-        area: postType === "timeline" ? area : null,
-        sponsor_type: postType === "timeline" ? sponsor : null,
+        occupation_slug: needsOccupation ? occupationSlug || null : null,
+        // Only send what this visa actually asks. The server drops the rest
+        // anyway, but sending a value we never showed is how a field nobody
+        // filled in ends up looking like an answer.
+        state: needsState ? stateVal : null,
+        area: needsRegion ? area : null,
+        sponsor_type: needsSponsor ? sponsor : null,
+        lodgement_location: isTimeline ? lodgedFrom : null,
+        nationality: isTimeline ? nationality.trim() || null : null,
+        lodged_via: isTimeline ? lodgedVia : null,
+        // Only ever sent as an assertion. Leaving the box unticked means "not
+        // stated", which is not the same as "there was contact" — so it sends
+        // null rather than false.
+        direct_grant: isTimeline && directGrant ? true : null,
+        // This dialog's submit button *is* the consent — the member came here
+        // to post. The wait-check saves privately and publishes separately.
+        publish: true,
         outcome,
         title: postType === "question" ? title : null,
         note: note || null,
@@ -352,90 +407,121 @@ export function ShareJourney({
               <div className="space-y-5">
                 {/* visa */}
                 <div>
-                  <label className={labelCls}>
-                    Visa subclass{" "}
-                    {postType === "question" && (
-                      <span className="font-normal text-gray-text">(optional)</span>
-                    )}
-                  </label>
-                  <select
+                  <VisaPicker
                     value={subclass}
-                    onChange={(e) => setSubclass(e.target.value)}
-                    className={fieldCls}
-                  >
-                    <option value="">Select a visa…</option>
-                    {subclasses.map((s) => (
-                      <option key={s.slug} value={s.slug}>
-                        {s.code} · {s.name}
-                        {s.stream ? ` (${s.stream})` : ""}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={pickSubclass}
+                    size="md"
+                    visaLabel={
+                      postType === "question"
+                        ? "Visa subclass (optional)"
+                        : "Visa subclass"
+                    }
+                    required={postType === "timeline"}
+                  />
                 </div>
 
                 {postType === "timeline" ? (
                   <>
-                    {/* profile */}
+                    {/* Occupation gets the full width to itself. It is a
+                        searchable picker over 700+ grouped rows, and it was
+                        previously sharing a two-column grid with the state
+                        dropdown — half a row is not enough for a field this
+                        dense, and it is the field that makes cohort matching
+                        possible. */}
+                    {needsOccupation && (
+                      <OccupationPicker
+                        subclass={subclass}
+                        value={occupationSlug}
+                        onChange={setOccupationSlug}
+                        required
+                        error={!!error && !occupationSlug}
+                      />
+                    )}
+
+                    {/* profile — every field below is conditional on what the
+                        chosen visa actually needs, driven by reference data
+                        rather than a subclass check. Before this, a tourist
+                        applicant was asked for their ANZSCO occupation and
+                        whether their employer was an accredited sponsor. */}
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {needsState && (
+                        <div>
+                          <label className={labelCls}>State / territory</label>
+                          <select
+                            value={stateVal}
+                            onChange={(e) => setStateVal(e.target.value)}
+                            className={fieldCls}
+                          >
+                            {STATES.map((s) => (
+                              <option key={s}>{s}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      {needsRegion && (
+                        <div>
+                          <label className={labelCls}>Area</label>
+                          <Seg
+                            value={area}
+                            onChange={setArea}
+                            options={[
+                              { value: "metro", label: "Metro" },
+                              { value: "regional", label: "Regional" },
+                            ]}
+                          />
+                        </div>
+                      )}
+                      {needsSponsor && (
+                        <div>
+                          <label className={labelCls}>Sponsor type</label>
+                          <Seg
+                            value={sponsor}
+                            onChange={setSponsor}
+                            options={[
+                              { value: "accredited", label: "Accredited" },
+                              { value: "non_accredited", label: "Non-accred." },
+                            ]}
+                          />
+                        </div>
+                      )}
+                      {/* Asked of everyone: every visa is lodged from
+                          somewhere, and "Offshore" used to be smuggled into the
+                          state dropdown as if it were a state. */}
                       <div>
-                        <label className={labelCls}>Stream / pathway</label>
-                        <select
-                          value={stream}
-                          onChange={(e) => setStream(e.target.value)}
-                          className={fieldCls}
-                        >
-                          {STREAMS.map((s) => (
-                            <option key={s}>{s}</option>
-                          ))}
-                        </select>
+                        <label className={labelCls}>Lodged from</label>
+                        <Seg
+                          value={lodgedFrom}
+                          onChange={setLodgedFrom}
+                          options={[
+                            { value: "onshore", label: "Onshore" },
+                            { value: "offshore", label: "Offshore" },
+                          ]}
+                        />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Lodged by</label>
+                        <Seg
+                          value={lodgedVia}
+                          onChange={setLodgedVia}
+                          options={[
+                            { value: "self", label: "Myself" },
+                            { value: "agent", label: "Agent" },
+                          ]}
+                        />
                       </div>
                       <div>
                         <label className={labelCls}>
-                          Occupation{" "}
+                          Nationality{" "}
                           <span className="font-normal text-gray-text">
-                            (optional)
+                            (optional, never shown)
                           </span>
                         </label>
                         <input
                           className={fieldCls}
-                          value={occupation}
-                          onChange={(e) => setOccupation(e.target.value)}
-                          placeholder="e.g. Nurse, Developer"
-                          maxLength={80}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelCls}>State / territory</label>
-                        <select
-                          value={stateVal}
-                          onChange={(e) => setStateVal(e.target.value)}
-                          className={fieldCls}
-                        >
-                          {STATES.map((s) => (
-                            <option key={s}>{s}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className={labelCls}>Area</label>
-                        <Seg
-                          value={area}
-                          onChange={setArea}
-                          options={[
-                            { value: "metro", label: "Metro" },
-                            { value: "regional", label: "Regional" },
-                          ]}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelCls}>Sponsor type</label>
-                        <Seg
-                          value={sponsor}
-                          onChange={setSponsor}
-                          options={[
-                            { value: "accredited", label: "Accredited" },
-                            { value: "non_accredited", label: "Non-accred." },
-                          ]}
+                          value={nationality}
+                          onChange={(e) => setNationality(e.target.value)}
+                          placeholder="e.g. Indian"
+                          maxLength={60}
                         />
                       </div>
                       <div>
@@ -538,6 +624,31 @@ export function ShareJourney({
                         </button>
                       </div>
                     </div>
+
+                    {/* A positive claim, not an absent milestone. Roughly one
+                        timeline post in five says some version of "no CO
+                        contact, direct from received to finalised" — it is the
+                        densest thing in a skilled timeline, and until now an
+                        empty milestone list and a confirmed-clean run looked
+                        identical to us. */}
+                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-hair bg-paper px-3.5 py-3">
+                      <input
+                        type="checkbox"
+                        checked={directGrant}
+                        onChange={(e) => setDirectGrant(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-purple"
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-[13.5px] font-semibold text-ink">
+                          Direct grant — no case officer contact
+                        </span>
+                        <span className="mt-0.5 block text-[11.5px] leading-relaxed text-gray-text">
+                          Tick only if it ran straight through with no s56, no
+                          Form 80 and no further requests. Leaving it unticked
+                          says nothing either way.
+                        </span>
+                      </span>
+                    </label>
 
                     <div>
                       <label className={labelCls}>

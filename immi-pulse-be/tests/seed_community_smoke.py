@@ -37,6 +37,7 @@ async def main():
         await CommunityService.create_journey(
             db,
             CreateJourneyRequest(
+                publish=True,
                 post_type="timeline",
                 subclass_slug=slug,
                 outcome="granted",
@@ -59,6 +60,7 @@ async def main():
         await CommunityService.create_journey(
             db,
             CreateJourneyRequest(
+                publish=True,
                 post_type="timeline",
                 subclass_slug=slug,
                 outcome="waiting",
@@ -81,6 +83,7 @@ async def main():
         q = await CommunityService.create_journey(
             db,
             CreateJourneyRequest(
+                publish=True,
                 post_type="question",
                 subclass_slug=slug,
                 title="How long after medicals did your grant come through?",

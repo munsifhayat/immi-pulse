@@ -79,7 +79,23 @@ async def main():
         r = await c.get("/community/public/subclasses", headers=svc)
         subclasses = r.json()
         check("subclasses seeded", r.status_code == 200 and len(subclasses) > 0)
-        slug = subclasses[0]["slug"]
+        subclass = subclasses[0]
+        slug = subclass["slug"]
+
+        # Skilled subclasses require a coded occupation on every published
+        # timeline, and this file's first subclass is one. Resolved from the API
+        # rather than hardcoded so a change in sort order cannot silently turn
+        # these moderation checks into occupation checks.
+        occupation_slug = None
+        if subclass["requires_occupation"]:
+            r = await c.get(
+                "/community/public/occupations",
+                params={"subclass": slug, "limit": 1},
+                headers=svc,
+            )
+            rows = r.json()
+            check("an occupation is available for the chosen subclass", bool(rows))
+            occupation_slug = rows[0]["slug"] if rows else None
 
         def community_sample(processing_rows, s):
             for row in processing_rows:
@@ -112,8 +128,10 @@ async def main():
         lodged = (date.today() - timedelta(days=200)).isoformat()
         granted = (date.today() - timedelta(days=20)).isoformat()
         payload = {
+            "publish": True,
             "post_type": "timeline",
             "subclass_slug": slug,
+            "occupation_slug": occupation_slug,
             "outcome": "granted",
             "note": "Test timeline for moderation e2e.",
             "milestones": [

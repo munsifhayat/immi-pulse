@@ -13,6 +13,8 @@ import {
   type WaitTier,
 } from "@/lib/api/hooks/community";
 import { formatDays } from "@/lib/community/format";
+import { OccupationPicker } from "./occupation-picker";
+import { VisaPicker } from "./visa-picker";
 
 /* Tier → the one accent colour that the "you" marker + headline borrow. */
 const TIER_COLOR: Record<WaitTier, string> = {
@@ -342,12 +344,21 @@ function SaveAndShare({
   const publish = usePublishJourney();
   const [savedId, setSavedId] = useState<string | null>(null);
   const [published, setPublished] = useState(false);
+  const [occupationSlug, setOccupationSlug] = useState("");
+
+  // Driven by the visa, exactly as the share builder is — never a subclass
+  // check. A wait check on a 600 Tourist is publishable as it stands; one on a
+  // 189 is not, because those timelines are grouped by occupation.
+  const { data: subclasses = [] } = useVisaSubclasses();
+  const needsOccupation = !!subclasses.find((s) => s.slug === subclassSlug)
+    ?.requires_occupation;
 
   // A new check is a new thing to save — never leave the previous result's
   // "saved" state sitting under it.
   useEffect(() => {
     setSavedId(null);
     setPublished(false);
+    setOccupationSlug("");
     save.reset();
     publish.reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -363,7 +374,11 @@ function SaveAndShare({
 
   const onPublish = async () => {
     if (!savedId) return;
-    await publish.mutateAsync(savedId);
+    if (needsOccupation && !occupationSlug) return;
+    await publish.mutateAsync({
+      journeyId: savedId,
+      occupationSlug: occupationSlug || null,
+    });
     setPublished(true);
   };
 
@@ -394,9 +409,24 @@ function SaveAndShare({
           Sharing it is a separate choice — it would appear anonymously, under
           your handle, and help answer this same question for the next person.
         </p>
+        {/* Asked here rather than at save time. Saving is the frictionless act
+            — a subclass and a date, nothing else. The occupation only starts to
+            matter when the timeline joins the public figures, because that is
+            when it has to be poolable with people like them. */}
+        {needsOccupation && (
+          <div className="mt-3">
+            <OccupationPicker
+              subclass={subclassSlug}
+              value={occupationSlug}
+              onChange={setOccupationSlug}
+              required
+              error={publish.isError && !occupationSlug}
+            />
+          </div>
+        )}
         <button
           onClick={onPublish}
-          disabled={publish.isPending}
+          disabled={publish.isPending || (needsOccupation && !occupationSlug)}
           className="mt-3 inline-flex items-center gap-2 rounded-lg bg-ink px-3.5 py-2 text-[12.5px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {publish.isPending && (
@@ -438,7 +468,6 @@ function SaveAndShare({
 }
 
 export function WaitCheck() {
-  const { data: subclasses = [] } = useVisaSubclasses();
   const [subclass, setSubclass] = useState("");
   const [lodgedOn, setLodgedOn] = useState("");
   const today = new Date().toISOString().slice(0, 10);
@@ -460,20 +489,15 @@ export function WaitCheck() {
         </h3>
 
         <div className="mt-4 grid gap-2.5 sm:grid-cols-[1fr_168px]">
-          <select
+          {/* Two steps when the visa has streams — a 500 Non-Award wait and a
+              500 Vocational Education wait are 35x apart, so "500" alone cannot
+              answer the question this box asks. */}
+          <VisaPicker
             value={subclass}
-            onChange={(e) => setSubclass(e.target.value)}
-            className={fieldCls}
-            aria-label="Visa subclass"
-          >
-            <option value="">Select your visa…</option>
-            {subclasses.map((s) => (
-              <option key={s.slug} value={s.slug}>
-                {s.code} · {s.name}
-                {s.stream ? ` (${s.stream})` : ""}
-              </option>
-            ))}
-          </select>
+            onChange={setSubclass}
+            size="lg"
+            labels={false}
+          />
           <input
             type="date"
             max={today}

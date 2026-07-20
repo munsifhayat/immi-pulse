@@ -2,7 +2,6 @@
 
 import hashlib
 import logging
-import secrets
 import uuid
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
@@ -16,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.agents.immigration.community import antispam
 from app.agents.immigration.community import identity as identity_gen
 from app.agents.immigration.community import notifications, processing, tiers, trust
+from app.agents.immigration.community.accounts import unique_handle
 from app.agents.immigration.community.models import (
     CONTENT_ACTIVE,
     CONTENT_HELD,
@@ -32,6 +32,7 @@ from app.agents.immigration.community.models import (
     Journey,
     JourneyComment,
     JourneyMilestone,
+    Occupation,
     RateCounter,
     VisaSubclass,
 )
@@ -42,6 +43,7 @@ from app.agents.immigration.community.schemas import (
     CreateJourneyRequest,
     CreateThreadRequest,
     MilestoneIn,
+    OccupationOut,
     ReportRequest,
     SubmitTimelineRequest,
 )
@@ -834,6 +836,130 @@ class CommunityService:
         )
         return result.scalar_one_or_none()
 
+    # --- Occupations ---------------------------------------------------------
+
+    @staticmethod
+    async def list_occupations(
+        db: AsyncSession,
+        *,
+        subclass: Optional[str] = None,
+        q: Optional[str] = None,
+        limit: int = 1000,
+    ) -> tuple[list[Occupation], Optional[str]]:
+        """Occupations for a visa, optionally narrowed by a typeahead query.
+
+        Returns ``(rows, anzsco_version)``. The version is the caller's answer to
+        "which of the two codes do I store?" and is resolved here, from the
+        subclass row, because it is the one place that knows: 416 occupations
+        carry both a 2013 and a 2022 code, only 7 disagree, and a client that
+        guesses will be right 98% of the time and silently wrong forever on the
+        rest.
+
+        ``subclass`` accepts either a subclass slug (``186-direct-entry``) or a
+        bare subclass number (``186``). Both are in circulation — ``slug`` is
+        what the picker holds, ``cohort_key`` is often the bare number — and
+        rejecting one of them would be a trap rather than a contract.
+
+        Unfiltered, this returns all 714. That is deliberate: the client fetches
+        one subclass-filtered set and filters it locally as the member types, so
+        the typeahead never round-trips. ``q`` exists for callers that cannot
+        hold the list, and matches the name *or* either ANZSCO code — members
+        who know their code know it better than the department's phrasing of
+        their job title.
+        """
+        version: Optional[str] = None
+        stmt = select(Occupation).where(Occupation.is_active.is_(True))
+
+        if subclass:
+            row = await CommunityService.get_subclass(db, subclass)
+            code = row.code if row else subclass
+            if row is not None:
+                version = row.anzsco_version
+            if version is None:
+                # A bare number, or a subclass the occupation seeder has not
+                # flagged. Fall back to 2013 — the wider edition, and the one
+                # every subclass except 186/482 reads.
+                version = "2013"
+            stmt = stmt.where(Occupation.eligible_subclasses.any(code))
+
+        if q:
+            needle = f"%{q.strip()}%"
+            stmt = stmt.where(
+                or_(
+                    Occupation.name.ilike(needle),
+                    Occupation.anzsco_2013_code.ilike(needle),
+                    Occupation.anzsco_2022_code.ilike(needle),
+                )
+            )
+
+        stmt = stmt.order_by(
+            Occupation.major_group_code.asc(), Occupation.name.asc()
+        ).limit(limit)
+        result = await db.execute(stmt)
+        return list(result.scalars().all()), version
+
+    @staticmethod
+    def occupation_out(occ: Occupation, version: Optional[str]) -> OccupationOut:
+        return OccupationOut(
+            slug=occ.slug,
+            name=occ.name,
+            anzsco_code=occ.code_for_version(version),
+            anzsco_version=version,
+            anzsco_2013_code=occ.anzsco_2013_code,
+            anzsco_2022_code=occ.anzsco_2022_code,
+            major_group_code=occ.major_group_code,
+            major_group_name=occ.major_group_name,
+            lists=list(occ.lists or []),
+            eligible_subclasses=list(occ.eligible_subclasses or []),
+            assessing_authority=occ.assessing_authority,
+            authority_url=occ.authority_url,
+        )
+
+    @staticmethod
+    async def get_occupation(db: AsyncSession, slug: str) -> Optional[Occupation]:
+        result = await db.execute(
+            select(Occupation).where(Occupation.slug == slug)
+        )
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    def _publishable_conditions(subclass_slug: str) -> list:
+        """The WHERE clause that defines "counts toward a public figure".
+
+        Extracted so that every statistic drawn for a cohort is drawn from the
+        *same* population. It was duplicated before, and the copies had drifted:
+        the trend arrow was computed over every active granted row ever — no
+        window, no publication check, no provenance filter — while the
+        percentiles printed beside it honoured all three. That put an arrow
+        saying "getting faster" next to a median it disagreed with, built from
+        people who never published and from forum rows the operator had switched
+        off.
+
+        Callers still need the outer join to ``Journey`` themselves, because a
+        join belongs to the query, not to its predicate.
+        """
+        settings = get_settings()
+        window_start = date.today() - timedelta(
+            days=int(settings.community_stats_window_months * 30.44)
+        )
+        conditions = [
+            CommunityTimeline.subclass_slug == subclass_slug,
+            CommunityTimeline.status == "active",
+            CommunityTimeline.lodged_on >= window_start,
+            # NULL journey_id = a legacy direct submission with no feed post
+            # behind it; those have no publication state to respect.
+            or_(
+                CommunityTimeline.journey_id.is_(None),
+                and_(
+                    Journey.is_published.is_(True),
+                    Journey.status == "active",
+                ),
+            ),
+        ]
+        if not settings.community_stats_include_forum:
+            conditions.append(CommunityTimeline.source == TIMELINE_SOURCE_MEMBER)
+        return conditions
+
     @staticmethod
     async def _cohort_sample(db: AsyncSession, subclass_slug: str) -> dict:
         """The publishable cohort for one visa: durations, pending, provenance.
@@ -858,11 +984,6 @@ class CommunityService:
         Returns the counts split by provenance so every figure built from this
         can state what it is made of.
         """
-        settings = get_settings()
-        window_start = date.today() - timedelta(
-            days=int(settings.community_stats_window_months * 30.44)
-        )
-
         q = (
             select(
                 CommunityTimeline.lodged_on,
@@ -871,23 +992,8 @@ class CommunityService:
                 CommunityTimeline.source,
             )
             .outerjoin(Journey, Journey.id == CommunityTimeline.journey_id)
-            .where(
-                CommunityTimeline.subclass_slug == subclass_slug,
-                CommunityTimeline.status == "active",
-                CommunityTimeline.lodged_on >= window_start,
-                # NULL journey_id = a legacy direct submission with no feed post
-                # behind it; those have no publication state to respect.
-                or_(
-                    CommunityTimeline.journey_id.is_(None),
-                    and_(
-                        Journey.is_published.is_(True),
-                        Journey.status == "active",
-                    ),
-                ),
-            )
+            .where(*CommunityService._publishable_conditions(subclass_slug))
         )
-        if not settings.community_stats_include_forum:
-            q = q.where(CommunityTimeline.source == TIMELINE_SOURCE_MEMBER)
 
         result = await db.execute(q)
 
@@ -935,15 +1041,23 @@ class CommunityService:
 
     @staticmethod
     async def _trend_for(db: AsyncSession, subclass_slug: str) -> str:
-        """Compare recent grant medians to older ones → faster / slower / steady."""
+        """Compare recent grant medians to older ones → faster / slower / steady.
+
+        Drawn from exactly the population the percentiles are drawn from
+        (:meth:`_publishable_conditions`). It used to select every active
+        granted row regardless of window, publication state or provenance, so
+        the arrow and the median beside it described different groups of people
+        — and the arrow could move because somebody saved a private draft.
+        """
         result = await db.execute(
             select(
                 CommunityTimeline.lodged_on,
                 CommunityTimeline.decided_on,
                 CommunityTimeline.created_at,
-            ).where(
-                CommunityTimeline.subclass_slug == subclass_slug,
-                CommunityTimeline.status == "active",
+            )
+            .outerjoin(Journey, Journey.id == CommunityTimeline.journey_id)
+            .where(
+                *CommunityService._publishable_conditions(subclass_slug),
                 CommunityTimeline.outcome == "granted",
                 CommunityTimeline.decided_on.isnot(None),
             )
@@ -967,35 +1081,68 @@ class CommunityService:
         return "steady"
 
     @staticmethod
+    def cohort_key_of(sc: VisaSubclass) -> str:
+        """The statistics cohort a subclass row contributes to.
+
+        Falls back to the slug so a row seeded before ``cohort_key`` existed
+        still keys on something real rather than on NULL.
+        """
+        return sc.cohort_key or sc.slug
+
+    @staticmethod
     def _official_block(sc: VisaSubclass) -> dict:
         """The department's published bands, always with their as-at date.
 
-        ``as_at`` is hand-seeded (``VisaSubclass.official_updated``) — nothing in
-        this product ingests Home Affairs figures on a schedule, so nothing in it
-        may imply it does. Shipping the date beside the number is what keeps the
-        claim honest: a reader can see for themselves how stale it is.
+        These are now ingested from Home Affairs' own processing-times API
+        (``scripts/fetch_dha_taxonomy.py``) rather than hand-seeded, so ``as_at``
+        and ``counted_to`` are the department's own labels. Shipping them beside
+        the number is what keeps the claim honest: a reader can see for
+        themselves how stale it is.
+
+        ``is_live`` keys off ``dha_subclass_code`` — set only by the ingestion
+        script — rather than off the presence of a date. A hand-seeded row can
+        carry a date label too, and "live" has to mean "this came from the
+        department's feed", not "somebody typed a month".
         """
         return {
+            "p25_days": sc.official_p25_days,
             "p50_days": sc.official_p50_days,
+            "p75_days": sc.official_p75_days,
             "p90_days": sc.official_p90_days,
             "as_at": sc.official_updated,
+            "counted_to": sc.official_end_date,
             "source": "Department of Home Affairs",
-            "is_live": False,
+            "is_live": bool(sc.dha_subclass_code),
         }
 
     @staticmethod
     async def processing_board(db: AsyncSession) -> list[dict]:
-        """Official-vs-community board: one entry per active subclass."""
+        """Official-vs-community board: one entry per active subclass+stream.
+
+        Cohort samples are memoised by cohort key. The taxonomy went from 8 rows
+        to 76, and every pooled subclass (186's three streams, 485's two) shares
+        one cohort — recomputing it per row would run 152 queries to produce the
+        same handful of distinct answers.
+        """
         subclasses = await CommunityService.list_subclasses(db)
         board: list[dict] = []
+        by_cohort: dict[str, tuple[dict, str]] = {}
         for sc in subclasses:
-            cohort = await CommunityService._cohort_sample(db, sc.slug)
-            stats = CommunityService._stats_from_cohort(cohort)
-            trend = (
-                await CommunityService._trend_for(db, sc.slug)
-                if stats["sample_size"] >= 8
-                else "steady"
-            )
+            # Nomination/sponsorship stages are not visas anyone "waits on" in
+            # the sense this board means; they have their own clocks.
+            if sc.is_stage:
+                continue
+            key = CommunityService.cohort_key_of(sc)
+            if key not in by_cohort:
+                cohort = await CommunityService._cohort_sample(db, key)
+                stats = CommunityService._stats_from_cohort(cohort)
+                trend = (
+                    await CommunityService._trend_for(db, key)
+                    if stats["sample_size"] >= 8
+                    else "steady"
+                )
+                by_cohort[key] = (stats, trend)
+            stats, trend = by_cohort[key]
             board.append(
                 {
                     "slug": sc.slug,
@@ -1052,13 +1199,21 @@ class CommunityService:
     ) -> Optional[dict]:
         """Where an in-progress wait sits in the community distribution."""
         subclass = await CommunityService.get_subclass(db, subclass_slug)
-        if subclass is None:
+        # Nomination and sponsorship are lodgement stages, not visas a person
+        # waits on in the sense this question means. Treated as unknown so the
+        # read path agrees with the write path, which refuses them outright.
+        if subclass is None or subclass.is_stage:
             return None
 
         settings = get_settings()
         label = subclass.code + (f" {subclass.stream}" if subclass.stream else "")
         elapsed_days = max(0, (date.today() - lodged_on).days)
-        cohort = await CommunityService._cohort_sample(db, subclass_slug)
+        # Statistics pool on the cohort key, not the picked slug: a 186 Direct
+        # Entry member is answered from all three 186 streams (they sit within
+        # 10% of each other), while a 500 VET member is answered from VET alone
+        # (the sectors span 35x). Official figures below stay row-specific.
+        cohort_key = CommunityService.cohort_key_of(subclass)
+        cohort = await CommunityService._cohort_sample(db, cohort_key)
         room = CommunityService._stats_from_cohort(cohort)
 
         verdict = processing.wait_verdict(
@@ -1110,23 +1265,19 @@ class CommunityService:
     async def get_identity_by_token(
         db: AsyncSession, token: Optional[str]
     ) -> Optional[AnonIdentity]:
+        """The anonymous row a device token addresses, if any.
+
+        Cannot return an account: signup releases the account's device token
+        (see ``AnonIdentity``), so no row with a password is reachable this way.
+        That is the property the signed-out surfaces lean on — a visitor who
+        logged out is a stranger again rather than the previous member.
+        """
         if not token:
             return None
         result = await db.execute(
             select(AnonIdentity).where(AnonIdentity.device_token == token)
         )
         return result.scalar_one_or_none()
-
-    @staticmethod
-    async def _unique_handle(db: AsyncSession) -> str:
-        for _ in range(12):
-            handle = identity_gen.generate_handle()
-            taken = await db.scalar(
-                select(AnonIdentity.id).where(AnonIdentity.handle == handle)
-            )
-            if not taken:
-                return handle
-        return identity_gen.generate_handle() + secrets.token_hex(2)
 
     @staticmethod
     async def get_or_create_identity(
@@ -1136,7 +1287,9 @@ class CommunityService:
 
         Accepts a client-supplied ``token`` (the device id) — unknown tokens
         mint a fresh identity bound to that token, so a write never fails just
-        because the bootstrap call was skipped.
+        because the bootstrap call was skipped. This is also what makes signup's
+        token release self-healing: the browser keeps sending the token it
+        already had, and gets a brand-new anonymous row for it.
         """
         identity = await CommunityService.get_identity_by_token(db, token)
         if identity is not None:
@@ -1149,7 +1302,7 @@ class CommunityService:
         identity = AnonIdentity(
             id=uuid.uuid4(),
             device_token=token or identity_gen.generate_device_token(),
-            handle=await CommunityService._unique_handle(db),
+            handle=await unique_handle(db),
             color=identity_gen.generate_color(),
             ip_hash=ip_hash,
         )
@@ -1167,7 +1320,7 @@ class CommunityService:
             raise ValueError("Your handle locks once you've created an account.")
         if identity.user_id is not None or (identity.journeys_posted or 0) > 0:
             raise ValueError("Your handle locks once you've shared a timeline.")
-        identity.handle = await CommunityService._unique_handle(db)
+        identity.handle = await unique_handle(db)
         identity.color = identity_gen.generate_color()
         await db.flush()
         return identity
@@ -1219,13 +1372,74 @@ class CommunityService:
         return {s.slug: s for s in result.scalars().all()}
 
     @staticmethod
+    async def _resolve_occupation(
+        db: AsyncSession,
+        *,
+        occupation_slug: Optional[str],
+        subclass: Optional[VisaSubclass],
+        is_timeline: bool,
+        publish: bool,
+    ) -> tuple[Optional[str], Optional[str]]:
+        """-> (display name, ANZSCO code) for a new journey.
+
+        Three rules, in order:
+
+        1. **Not a timeline, or a visa with no nominated occupation: store
+           nothing.** ``requires_occupation`` false means *hidden*, not
+           optional. A 600 Tourist applicant has no ANZSCO occupation, and a
+           free-text guess pools their timeline into a cohort it does not belong
+           to — so an occupation sent for such a visa is dropped rather than
+           kept.
+
+        2. **A visa that does have one: the coded occupation is required**, and
+           only on the path that publishes. Occupation is what makes cohort
+           matching work, and free text made "Nurse", "nurse", "RN" and
+           "Registered Nurse (Medical)" four cohorts of one.
+
+           The draft path (``publish=False``, i.e. a saved wait check) is exempt
+           because it collects a subclass and a lodgement date and nothing else
+           — it has no field to put an occupation in. That leaves a real gap:
+           a draft saved that way can later be published without one. Closing it
+           needs the wait check to ask, which is the adaptive-form work, not
+           this phase's.
+
+        3. **The code is resolved server-side**, from the occupation's slug and
+           the subclass's ANZSCO edition. Clients send a slug, never a code, and
+           never choose between the two editions themselves.
+        """
+        if not is_timeline or subclass is None or not subclass.requires_occupation:
+            return None, None
+
+        if not occupation_slug:
+            if publish:
+                raise ValueError(
+                    f"Pick your nominated occupation — subclass {subclass.code} "
+                    "timelines are grouped by it."
+                )
+            return None, None
+
+        occ = await CommunityService.get_occupation(db, occupation_slug)
+        if occ is None:
+            raise ValueError(f"Unknown occupation '{occupation_slug}'")
+        # Eligibility is re-checked here rather than trusted from the picker.
+        # The picker filters by subclass, but the subclass can be changed after
+        # the occupation is chosen, and a 189 timeline carrying an occupation
+        # only a 482 can nominate is a cohort that means nothing.
+        if subclass.code not in (occ.eligible_subclasses or []):
+            raise ValueError(
+                f"'{occ.name}' is not on the skilled occupation list for "
+                f"subclass {subclass.code}."
+            )
+        return occ.name, occ.code_for_version(subclass.anzsco_version)
+
+    @staticmethod
     async def create_journey(
         db: AsyncSession,
         payload: CreateJourneyRequest,
         *,
         identity: AnonIdentity,
         ip_hash: str,
-        publish: bool = True,
+        publish: bool,
     ) -> Journey:
         """Create a feed post.
 
@@ -1235,6 +1449,12 @@ class CommunityService:
         here, at row creation, rather than at publication — so drafting cannot be
         used to hoard free writes, and publishing something already paid for
         costs nothing extra.
+
+        ``publish`` has **no default**. It used to default to True, which meant
+        every caller that did not think about consent published a member's visa
+        timeline to a public feed — and two of the three entry points did
+        exactly that while the third asked first. Making it a required argument
+        is what stops the next caller inheriting that mistake silently.
         """
         is_timeline = payload.post_type == "timeline"
         await consume_rate(
@@ -1244,7 +1464,13 @@ class CommunityService:
             identity=identity,
         )
 
-        if is_timeline and identity.user_id is None:
+        # "Claimed" must mean the same thing here as it does in ``identity_out``
+        # — a community account (password set) lifts the cap exactly like a
+        # portal account does. Gating on ``user_id`` alone let the serializer
+        # promise ``can_post_timeline: true`` to a signed-up member and then
+        # 409 them after they had filled in the whole builder.
+        is_claimed = identity.user_id is not None or bool(identity.password_hash)
+        if is_timeline and not is_claimed:
             if (identity.journeys_posted or 0) >= 1:
                 raise JourneyCapError(
                     "You've already shared a timeline. Sign in to add or edit more."
@@ -1267,14 +1493,34 @@ class CommunityService:
                 )
 
         category_slug = payload.category_slug
+        stream = payload.stream.strip() if payload.stream else None
+        subclass: Optional[VisaSubclass] = None
         if payload.subclass_slug:
             subclass = await CommunityService.get_subclass(db, payload.subclass_slug)
             if subclass is None:
                 raise ValueError(
                     f"Unknown visa subclass '{payload.subclass_slug}'"
                 )
+            if subclass.is_stage:
+                raise ValueError(
+                    f"'{payload.subclass_slug}' is a lodgement stage, not a visa "
+                    "stream — pick the visa you applied for."
+                )
             if not category_slug:
                 category_slug = subclass.category_slug
+            # The stream is implied by the subclass row the member chose, so
+            # snapshot it from reference data rather than trusting the client.
+            # The old form defaulted a free-text stream to "Direct Entry (DE)"
+            # for *every* visa, which quietly mislabelled most timelines.
+            stream = subclass.stream
+
+        occupation, occupation_code = await CommunityService._resolve_occupation(
+            db,
+            occupation_slug=payload.occupation_slug,
+            subclass=subclass,
+            is_timeline=is_timeline,
+            publish=publish,
+        )
 
         title = payload.title.strip() if payload.title else None
         note = payload.note.strip() if payload.note else None
@@ -1290,17 +1536,36 @@ class CommunityService:
         if screen.rejected:
             raise ContentGateError(trust.CONTACT_GATE_MESSAGE)
 
+        # Same contract as the occupation above: a field the visa does not ask
+        # for is *dropped*, not stored. The client already hides these, but the
+        # client is not the authority — a stale tab, an old build or a direct
+        # API call would otherwise write "Regional" onto a partner visa and pool
+        # that timeline into a distinction that does not exist for it.
+        applies = is_timeline and subclass is not None
+        state = payload.state if applies and subclass.requires_state_nomination else None
+        area = payload.area if applies and subclass.requires_region else None
+        sponsor_type = (
+            payload.sponsor_type if applies and subclass.requires_sponsor_type else None
+        )
+
         journey = Journey(
             id=uuid.uuid4(),
             identity_id=identity.id,
             post_type=payload.post_type,
             subclass_slug=payload.subclass_slug,
             category_slug=category_slug,
-            stream=payload.stream,
-            occupation=(payload.occupation.strip() if payload.occupation else None),
-            state=payload.state,
-            area=payload.area,
-            sponsor_type=payload.sponsor_type,
+            stream=stream,
+            occupation=occupation,
+            occupation_code=occupation_code,
+            state=state,
+            area=area,
+            sponsor_type=sponsor_type,
+            # Asked of everyone on a timeline: every visa is lodged from
+            # somewhere, and nationality/agent apply regardless of subclass.
+            lodgement_location=payload.lodgement_location if is_timeline else None,
+            nationality=payload.nationality if is_timeline else None,
+            lodged_via=payload.lodged_via if is_timeline else None,
+            direct_grant=payload.direct_grant if is_timeline else None,
             outcome=payload.outcome,
             title=title,
             note=note,
@@ -1397,11 +1662,19 @@ class CommunityService:
                 await db.flush()
             return None
 
+        # The spine stores the **cohort key**, not the slug the member picked.
+        # Keeping the resolution here means every statistics query stays a plain
+        # equality filter, and "which rows answer this question?" has one owner.
+        sc = await CommunityService.get_subclass(db, journey.subclass_slug)
+        cohort_key = (
+            CommunityService.cohort_key_of(sc) if sc else journey.subclass_slug
+        )
+
         source = TIMELINE_SOURCE_FORUM if journey.is_sample else TIMELINE_SOURCE_MEMBER
         if existing is None:
             existing = CommunityTimeline(
                 id=uuid.uuid4(),
-                subclass_slug=journey.subclass_slug,
+                subclass_slug=cohort_key,
                 journey_id=journey.id,
                 lodged_on=journey.lodged_on,
                 decided_on=journey.decided_on,
@@ -1412,7 +1685,7 @@ class CommunityService:
             )
             db.add(existing)
         else:
-            existing.subclass_slug = journey.subclass_slug
+            existing.subclass_slug = cohort_key
             existing.lodged_on = journey.lodged_on
             existing.decided_on = journey.decided_on
             existing.outcome = journey.outcome
@@ -1452,6 +1725,9 @@ class CommunityService:
             note=note,
             milestones=milestones
             or [MilestoneIn(milestone_type="Visa Lodged", occurred_on=lodged_on)],
+            # A saved wait check is private by definition — the member came to
+            # ask a question, not to post. Publishing is a separate decision.
+            publish=False,
         )
         return await CommunityService.create_journey(
             db, payload, identity=identity, ip_hash=ip_hash, publish=False
@@ -1478,15 +1754,53 @@ class CommunityService:
 
     @staticmethod
     async def publish_journey(
-        db: AsyncSession, journey: Journey, *, ip_hash: Optional[str] = None
+        db: AsyncSession,
+        journey: Journey,
+        *,
+        ip_hash: Optional[str] = None,
+        occupation_slug: Optional[str] = None,
     ) -> Journey:
         """Publish a draft to the feed — the second, explicit consent.
 
         Idempotent: publishing an already-public post is a no-op rather than an
         error, so a double-tapped button cannot produce a confusing failure.
+
+        The occupation requirement is enforced **here as well as at creation**.
+        A draft is allowed to be incomplete — that is what a draft is, and the
+        wait check mints one from nothing but a subclass and a date. But
+        publishing is the moment it starts counting toward a public statistic,
+        and an uncoded timeline on a visa that has a nominated occupation pools
+        into a cohort it cannot be matched within. Without this check the draft
+        route was a way in through the back door.
         """
         if journey.is_published:
             return journey
+
+        if journey.post_type == "timeline" and journey.subclass_slug:
+            subclass = await CommunityService.get_subclass(db, journey.subclass_slug)
+            if subclass is not None and subclass.requires_occupation:
+                # The member can supply it *at* publication. A wait check is
+                # saved from nothing but a subclass and a date — asking for an
+                # occupation to save something privately would put a question in
+                # front of the one action that should be frictionless. It
+                # belongs here instead, where it first starts to matter.
+                if occupation_slug and not journey.occupation_code:
+                    name, code = await CommunityService._resolve_occupation(
+                        db,
+                        occupation_slug=occupation_slug,
+                        subclass=subclass,
+                        is_timeline=True,
+                        publish=True,
+                    )
+                    journey.occupation = name
+                    journey.occupation_code = code
+
+                if not journey.occupation_code:
+                    raise ValueError(
+                        f"Add your nominated occupation before sharing — subclass "
+                        f"{subclass.code} timelines are grouped by it."
+                    )
+
         journey.is_published = True
         journey.published_at = datetime.now(timezone.utc)
         await db.flush()
@@ -1730,9 +2044,16 @@ class CommunityService:
             "category_name": sp.name if sp else None,
             "stream": j.stream,
             "occupation": j.occupation,
+            "occupation_code": j.occupation_code,
             "state": j.state,
             "area": j.area,
             "sponsor_type": j.sponsor_type,
+            "lodgement_location": j.lodgement_location,
+            "lodged_via": j.lodged_via,
+            "direct_grant": j.direct_grant,
+            # ``j.nationality`` is deliberately NOT emitted, here or anywhere
+            # else. It exists for cohort matching only. See the note on
+            # ``JourneyOut`` and ``tests/e2e_community_privacy.py``.
             "outcome": j.outcome,
             "title": j.title,
             "note": j.note,

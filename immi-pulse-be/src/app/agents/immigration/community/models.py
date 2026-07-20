@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import datetime, timezone
+from typing import Optional
 
 from sqlalchemy import (
     Boolean,
@@ -14,7 +15,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 
 from app.db.base import Base
 
@@ -97,7 +98,7 @@ TIMELINE_SOURCE_FORUM = "forum"
 
 
 class AnonIdentity(Base):
-    """A pseudonymous community member — device identity AND account, one row.
+    """A pseudonymous community member — a browser's anonymous identity, or an account.
 
     NAMING DEBT (accepted deliberately): the table is still called
     ``anon_identities`` because every ``Journey``/``JourneyComment``/
@@ -106,10 +107,19 @@ class AnonIdentity(Base):
     instead of a parallel ``community_accounts`` table being added beside it.
     Read "identity" as "community account" throughout.
 
-    Lifecycle, in one line: a visitor arrives → a row is minted against their
+    Lifecycle: a visitor arrives → a row is minted against their
     ``device_token`` with a generated unique ``handle`` + ``color`` → they read
-    freely → when they want to write they set a ``password_hash``, which claims
-    that same row as an account, keeping the handle and every prior post.
+    and write freely → when they sign up, that row is *adopted* as an account
+    (keeping the handle and every prior post) and its ``device_token`` is
+    released.
+
+    **A row is addressed by a device token OR by a session, never both.** The
+    invariant is: an account row never holds a ``device_token``. That is what
+    stops a browser resolving to somebody else's account after they log out —
+    the bug this split exists to close, where a signed-out visitor on a shared
+    computer wrote timelines under the previous member's pseudonym. Signup
+    releases the token; the browser re-bootstraps a fresh anonymous row on its
+    next call, and login touches neither.
 
     ``email`` is **optional** and exists for exactly two reasons: password
     recovery and reply notifications. It is never displayed, never public, and
@@ -121,7 +131,11 @@ class AnonIdentity(Base):
     __tablename__ = "anon_identities"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    device_token = Column(String, nullable=False, unique=True, index=True)
+    # Nullable since the account/device split: NULL means "no browser speaks for
+    # this row", which is the steady state of every account. Postgres permits
+    # any number of NULLs under a UNIQUE index, so uniqueness still holds for
+    # the rows that do carry one and ``uq_anon_identity_device_token`` stays.
+    device_token = Column(String, nullable=True, unique=True, index=True)
     handle = Column(String, nullable=False, unique=True, index=True)
     color = Column(String, nullable=False)
 
@@ -132,8 +146,21 @@ class AnonIdentity(Base):
     # into a durable, cross-device account. bcrypt-over-HMAC, same primitive as
     # the consultant console (core/jwt_auth.hash_password).
     password_hash = Column(String, nullable=True)
-    # Nullable + unique-when-present. Lowercased on write.
-    email = Column(String, nullable=True, unique=True, index=True)
+    # Email is split in two on purpose, and the difference is a security
+    # boundary rather than bookkeeping.
+    #
+    # ``email_pending`` is what a member typed. It is NOT unique, because we do
+    # not verify it: with one shared unique column, anyone could type a
+    # stranger's address at signup and permanently occupy it, locking the real
+    # owner out of ever attaching their own (account pre-hijacking —
+    # Sudhodanan & Paverd, USENIX Security 2022, found this in 35 of 75 popular
+    # services). An unverified claim must never be able to deny service.
+    #
+    # ``email_verified`` is proven ownership, and only it takes the unique slot.
+    # Recovery keys off it; a pending address can recover only while exactly one
+    # account claims it.
+    email_pending = Column(String, nullable=True, index=True)
+    email_verified = Column(String, nullable=True, unique=True, index=True)
     email_verified_at = Column(DateTime(timezone=True), nullable=True)
     last_login_at = Column(DateTime(timezone=True), nullable=True)
     # Login throttling — reset on success, checked before verifying a password.
@@ -373,10 +400,53 @@ class Journey(Base):
 
     # Coarse, non-identifying profile (timeline posts)
     stream = Column(String, nullable=True)        # DE | TRT | Labour Agreement | PT…
-    occupation = Column(String, nullable=True)    # free text, optional
-    state = Column(String, nullable=True)         # NSW… | Offshore
+    # The coded occupation — a 6-digit ANZSCO code from ``occupations``, in the
+    # edition the subclass reads (``VisaSubclass.anzsco_version``). This is what
+    # cohort matching uses; it is required for every subclass that has a
+    # nominated occupation and NULL for those that do not.
+    occupation_code = Column(String, nullable=True, index=True)
+    # Display snapshot of the occupation's name at the time of posting. Kept
+    # beside the code, not replaced by it, for two reasons: the feed renders it
+    # without a join, and it stays truthful if the department later renames or
+    # retires the occupation. Rows written before the picker existed carry free
+    # text here and a NULL code — that is history, not a bug to backfill, since
+    # "Nurse" cannot be resolved to one of the eleven coded nursing occupations.
+    occupation = Column(String, nullable=True)
+    # A state or territory only — "Offshore" used to live in here too, which
+    # conflated *where the applicant is* with *which state nominated them*. It
+    # moved to ``lodgement_location``; the migration rewrites the old rows.
+    state = Column(String, nullable=True)         # NSW | VIC | QLD…
     area = Column(String, nullable=True)          # metro | regional
     sponsor_type = Column(String, nullable=True)  # accredited | non_accredited | null
+
+    # Were they in Australia when they lodged? The single most-requested field
+    # on the competitor trackers, where members currently cram it into free
+    # text. It splits waits sharply on several subclasses and is asked of
+    # everyone, because every visa is lodged from somewhere.
+    lodgement_location = Column(String, nullable=True)  # onshore | offshore
+
+    # Nationality is collected for cohort matching and **never published**.
+    # Members on the public trackers self-organise into national sub-groups
+    # because processing genuinely differs, but a pseudonymous timeline plus a
+    # nationality plus a lodgement date is a re-identifying triple in a small
+    # cohort. It is excluded from every public serializer — see
+    # ``CommunityService.journey_out`` and the test that asserts its absence.
+    nationality = Column(String, nullable=True)
+
+    # Self-lodged or through a registered agent. A distinct column on the
+    # competitor's tracker, and the plausible explanation for a chunk of the
+    # variance we cannot otherwise account for.
+    lodged_via = Column(String, nullable=True)  # self | agent
+
+    # "No CO contact. Direct from received to finalised." Roughly one timeline
+    # post in five asserts an absence like this, and it is the densest claim in
+    # a skilled timeline — it says the case ran clean.
+    #
+    # This is a *positive assertion*, not an absent milestone: without it, a
+    # confirmed-clean run and a half-filled form are the same empty list. NULL
+    # means "not stated", which is different again from False ("there was
+    # contact") — hence a nullable Boolean rather than a default-false flag.
+    direct_grant = Column(Boolean, nullable=True)
 
     outcome = Column(String, nullable=False, default="waiting", index=True)
 
@@ -672,18 +742,30 @@ class CommunityReport(Base):
 
 
 class VisaSubclass(Base):
-    """Reference data for a visa subclass (+ stream), with official DHA bands.
+    """One row per visa subclass **+ stream** — the unit Home Affairs publishes.
 
-    Official percentile days come from the Department of Home Affairs global
-    processing-times publication (75th/90th percentile, updated monthly). They
-    are reference figures only; the community medians are computed live from
-    ``CommunityTimeline`` rows.
+    Home Affairs publishes processing times per (subclass, stream) pair, and so
+    do we: 43 subclasses expand to 76 rows. A member picks a subclass, then a
+    stream, and lands on exactly one row here. Rows are refreshed from the
+    department's own JSON API — see ``scripts/fetch_dha_taxonomy.py`` and
+    ``scripts/seed_visa_taxonomy.py``.
+
+    Two keys, and the difference matters:
+
+    ``slug``       what the member picked, e.g. ``186-direct-entry``. Stored on
+                   ``Journey.subclass_slug``. Selects the official figures.
+    ``cohort_key`` what the community statistics pool on. For 500 (7 streams
+                   spanning 35x) it equals ``slug`` — merging them would be
+                   malpractice. For 186 (3 streams within 10%) every stream
+                   shares ``186``, because splitting a scarce sample for no
+                   signal is the more expensive mistake. This is the value
+                   written to ``CommunityTimeline.subclass_slug``.
     """
 
     __tablename__ = "visa_subclasses"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    # Stable identifier used in URLs/queries, e.g. "189" or "482-core-skills".
+    # Stable identifier used in URLs/queries, e.g. "189-points-tested".
     slug = Column(String, nullable=False, unique=True, index=True)
     code = Column(String, nullable=False, index=True)  # e.g. "189", "482"
     name = Column(String, nullable=False)
@@ -691,15 +773,185 @@ class VisaSubclass(Base):
     # Links a subclass to its discussion space (community_spaces.slug).
     category_slug = Column(String, nullable=True, index=True)
 
+    # The statistics cohort this row contributes to (see class docstring).
+    cohort_key = Column(String, nullable=True, index=True)
+    # Home Affairs' own identifiers. ``dha_subclass_code`` is NOT an integer:
+    # "482-1", "858-3" (legacy Global Talent) and "858-4" (National Innovation)
+    # are all real, and 858 answers to two different programs.
+    dha_subclass_code = Column(String, nullable=True, index=True)
+    dha_stream_code = Column(String, nullable=True)
+    # 482/870 publish "Nomination" and "Sponsorship" as pseudo-streams. They are
+    # lodgement stages with their own clocks, never a "which stream are you on?"
+    # answer, so they are excluded from the picker.
+    is_stage = Column(Boolean, nullable=False, default=False, server_default="false")
+
+    # Does this visa have a *nominated occupation*? Populated by
+    # ``scripts/seed_occupations.py`` from the department's own skilled
+    # occupation list — a subclass no occupation is eligible for has no
+    # occupation to nominate.
+    #
+    # This drives whether the share form asks for one at all, and "no" means
+    # **hidden**, not "optional". A 600 Tourist or a partner-visa applicant has
+    # no ANZSCO occupation; offering the field anyway invites a guess, and a
+    # guessed occupation is worse than a null one because it pools that timeline
+    # into a cohort it does not belong to.
+    requires_occupation = Column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    # Which ANZSCO edition this subclass reads: "2022" for 186 and 482 (all of
+    # CSOL), "2013" for every other skilled subclass, NULL where no occupation
+    # applies. Home Affairs states this split verbatim on the occupation list
+    # page and runs both editions concurrently.
+    #
+    # It is a column rather than a constant because it is *their* rule and it
+    # will move: 416 occupations carry both codes and only 7 of them differ, so
+    # a wrong edition is invisible in testing and permanently wrong in the data.
+    # See ``Occupation.code_for_version``.
+    anzsco_version = Column(String, nullable=True)
+
+    # The rest of the "what does this visa actually need?" set. Same contract as
+    # ``requires_occupation`` above: false means the form does not ask, not that
+    # the answer is optional. Populated by ``scripts/seed_visa_taxonomy.py``.
+    #
+    # These are policy facts about the visa, not figures from the department's
+    # feed, which is why the seeder carries them rather than the fetcher — there
+    # is no DHA endpoint that says "190 needs a nominating state".
+    #
+    # Does a state or territory nominate this applicant? True for the points-
+    # tested nomination visas (190, 491) and for employer-sponsored visas, where
+    # the question means "which state is the job in".
+    requires_state_nomination = Column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    # Is metro-vs-regional a real distinction for this visa? Only the regional
+    # visas (190, 491, 494) turn on it. Asking a 482 applicant whether their
+    # employer is regional collects an answer that predicts nothing.
+    requires_region = Column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    # Does an accredited-sponsor status change the wait? Only 482 and 186 —
+    # accredited sponsorship is a priority-processing arrangement, and it exists
+    # nowhere else in the programme.
+    requires_sponsor_type = Column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+
+    # Does this programme's stream predict a materially different wait?
+    #
+    # This is the *reason* behind ``cohort_key``, and it used to exist only
+    # inside the fetch script — computed at fetch time, consumed once by the
+    # seeder, then thrown away. The conclusion (``cohort_key``) survived; the
+    # premise did not. That made the decision impossible to inspect and
+    # impossible to change without a network round-trip to Home Affairs.
+    #
+    # Stored per row so the pooling can be explained ("500's seven sectors range
+    # from 6 days to 7 months, so they are counted separately") and re-derived
+    # offline. Computed from the live spread at fetch time: a ≥1.5x range across
+    # the programme's non-stage streams at the 75th percentile, with a small
+    # pinned override list for the three where the spread is real but tiny.
+    cohort_split_by_stream = Column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+
+    official_p25_days = Column(Integer, nullable=True)
     official_p50_days = Column(Integer, nullable=True)
+    official_p75_days = Column(Integer, nullable=True)
     official_p90_days = Column(Integer, nullable=True)
-    official_updated = Column(String, nullable=True)  # human label, e.g. "Mar 2026"
+    official_updated = Column(String, nullable=True)  # human label, e.g. "26 June 2026"
+    official_end_date = Column(String, nullable=True)  # finalisations counted to
 
     sort_order = Column(Integer, nullable=False, default=100)
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+
+    @property
+    def group_key(self) -> str:
+        """What a picker groups streams under — one entry per *program*.
+
+        Not ``code``: subclass 858 covers both the legacy Global Talent visa and
+        the current National Innovation visa, and both are streamless, so
+        grouping on "858" would merge two programs whose waits differ by 3.5x
+        into one indistinguishable entry.
+        """
+        return self.dha_subclass_code or self.code
+
+
+class Occupation(Base):
+    """One ANZSCO occupation from the Home Affairs skilled occupation list.
+
+    714 rows, refreshed from the department's own page — see
+    ``scripts/fetch_dha_occupations.py`` and ``scripts/seed_occupations.py``.
+
+    This table exists to kill free text. Before it, ``Journey.occupation`` was an
+    80-character box with the placeholder "e.g. Nurse, Developer", which made
+    "Nurse", "nurse", "RN" and "Registered Nurse (Medical)" four separate
+    cohorts — four samples of one where there should have been one sample of
+    four. Occupation is the strongest predictor of a skilled-visa wait after the
+    subclass itself, and it is worthless unless it is coded.
+
+    **Two codes, not one.** Home Affairs runs two ANZSCO editions at once:
+    2022 for subclass 186 and 482, 2013 for every other skilled subclass. 416
+    occupations carry both and 409 of those agree, so storing one edition looks
+    correct right up until one of the seven that disagree — Arborist, Flower
+    Grower, Landscape Gardener, Management Consultant, Plumber (General),
+    Statistician, Zoologist — silently lands in the wrong cohort. Resolve with
+    ``code_for_version`` against ``VisaSubclass.anzsco_version``; never reach for
+    one of the columns directly.
+    """
+
+    __tablename__ = "occupations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # Natural key for the seeder, derived from the name. Occupation names are
+    # unique across all 714 rows, and unlike the ANZSCO codes they exist for
+    # every row — 255 occupations carry only a 2013 code and 43 only a 2022 one,
+    # so neither code column can serve as the match key on its own.
+    slug = Column(String, nullable=False, unique=True, index=True)
+    name = Column(String, nullable=False, index=True)
+
+    anzsco_2013_code = Column(String, nullable=True, index=True)
+    anzsco_2022_code = Column(String, nullable=True, index=True)
+
+    # First digit of the ANZSCO code. The picker groups on this: 714 rows (457
+    # of them eligible for subclass 186 alone) is an unreadable flat list, and
+    # the competing trackers ship exactly that, tagging every row "Other"
+    # because they never extracted the group.
+    major_group_code = Column(String, nullable=True, index=True)
+    major_group_name = Column(String, nullable=True)
+
+    # MLTSSL / STSOL / ROL / CSOL / "RSMS ROL" — an occupation is usually on
+    # more than one.
+    lists = Column(ARRAY(String), nullable=False, server_default="{}")
+    # Bare subclass numbers ("186", "482", "491"). The picker filters on this so
+    # a 189 applicant is never offered an occupation only a 482 can nominate.
+    eligible_subclasses = Column(ARRAY(String), nullable=False, server_default="{}")
+
+    # Stored, not yet surfaced. Whose positive skills assessment this occupation
+    # needs — "VETASSESS", "ACS", "Engineers Australia". 24 rows name none.
+    assessing_authority = Column(String, nullable=True)
+    authority_url = Column(String, nullable=True)
+
+    # Retired, never deleted — same contract as ``VisaSubclass``. A member's
+    # timeline must not lose its occupation because the department pruned a list.
+    is_active = Column(Boolean, nullable=False, default=True, server_default="true")
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    def code_for_version(self, version: Optional[str]) -> Optional[str]:
+        """The ANZSCO code this occupation answers to under a given edition.
+
+        Falls back to the other edition rather than returning NULL: 298 of 714
+        occupations are single-edition, and a 189 applicant picking one of the
+        43 that exist only under 2022 should still get a code stamped on their
+        timeline. A code from the wrong edition is recoverable — the pair is
+        stored — while a NULL is the free-text problem all over again.
+        """
+        if version == "2022":
+            return self.anzsco_2022_code or self.anzsco_2013_code
+        return self.anzsco_2013_code or self.anzsco_2022_code
 
 
 class CommunityTimeline(Base):

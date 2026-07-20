@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/lib/api/client";
 import { queryKeys } from "@/lib/api/hooks/query-keys";
 import {
+  clearDeviceToken,
   getDeviceToken,
   setDeviceToken,
   type CommunityIdentity,
@@ -50,12 +51,80 @@ export type TimelineOutcome = "waiting" | "granted" | "refused";
 export type Trend = "faster" | "slower" | "steady";
 export type WaitTier = "on_track" | "normal" | "longer" | "outlier" | "unknown";
 
+/**
+ * One selectable visa: a subclass **+ stream** pair, as Home Affairs publishes
+ * them. 43 programs across 76 rows.
+ *
+ * Group on `group_key`, never on `code`. Subclass 858 is two different programs
+ * — legacy Global Talent and the current National Innovation visa — whose waits
+ * differ by 3.5x, and both are streamless, so grouping on "858" would merge them
+ * into one entry a member could not tell apart.
+ */
 export interface VisaSubclassOut {
   slug: string;
   code: string;
   name: string;
+  /** Home Affairs' program discriminator: "189", "482-1", "858-3". Not a number. */
+  group_key: string;
   stream?: string | null;
   category_slug?: string | null;
+  /** 482/870 nomination + sponsorship: lodgement stages, never offered as streams. */
+  is_stage?: boolean;
+  /**
+   * Does this visa have a nominated occupation?
+   *
+   * Drives whether the occupation picker renders at all. False means **hidden**,
+   * not optional — a 600 Tourist or partner-visa applicant has no ANZSCO
+   * occupation, and a field they have to guess at pools their timeline into a
+   * cohort it does not belong to.
+   */
+  requires_occupation?: boolean;
+  /** "2013" | "2022" | null — which ANZSCO edition this subclass reads. */
+  anzsco_version?: string | null;
+  /**
+   * The rest of the adaptive-form contract, same rule as `requires_occupation`:
+   * false means **do not ask**, not "optional".
+   */
+  requires_state_nomination?: boolean;
+  /** Metro vs regional — only the regional visas (190, 491, 494). */
+  requires_region?: boolean;
+  /** Accredited sponsorship — only 482 and 186. */
+  requires_sponsor_type?: boolean;
+  /**
+   * Are this programme's streams counted separately, or pooled? Lets the UI
+   * explain a cohort instead of only presenting it.
+   */
+  cohort_split_by_stream?: boolean;
+  official_p50_days?: number | null;
+  official_p90_days?: number | null;
+  official_updated?: string | null;
+}
+
+/**
+ * One ANZSCO occupation from the Home Affairs skilled occupation list.
+ *
+ * `anzsco_code` is already resolved server-side for the subclass it was
+ * requested with — Home Affairs runs ANZSCO 2022 for subclass 186/482 and
+ * ANZSCO 2013 for every other skilled subclass. Never pick between
+ * `anzsco_2013_code` and `anzsco_2022_code` here: 416 occupations carry both,
+ * only 7 differ, so a client-side guess is right 98% of the time and silently
+ * wrong forever on the rest.
+ */
+export interface OccupationOut {
+  slug: string;
+  name: string;
+  anzsco_code?: string | null;
+  anzsco_version?: string | null;
+  anzsco_2013_code?: string | null;
+  anzsco_2022_code?: string | null;
+  /** First digit of the code — the picker groups on this. */
+  major_group_code?: string | null;
+  major_group_name?: string | null;
+  /** MLTSSL / STSOL / ROL / CSOL. */
+  lists: string[];
+  eligible_subclasses: string[];
+  assessing_authority?: string | null;
+  authority_url?: string | null;
 }
 
 /**
@@ -92,14 +161,22 @@ export interface CommunityDurationStats {
 /**
  * The Department of Home Affairs published bands.
  *
- * `as_at` is hand-seeded and `is_live` is always false — nothing ingests these
- * figures on a schedule, so no surface may imply they are checked daily. Render
- * the date with the number, every time.
+ * Ingested from the department's own processing-times feed, so `as_at` and
+ * `counted_to` are their labels — and they differ: a figure published on
+ * 26 June 2026 counts finalisations only to 31 May 2026. Render the date with
+ * the number, every time.
+ *
+ * `is_live` means "this row came from the feed", not "this row has a date" —
+ * a hand-seeded fixture can carry a date too.
  */
 export interface OfficialFigures {
+  p25_days: number | null;
   p50_days: number | null;
+  p75_days: number | null;
   p90_days: number | null;
   as_at: string | null;
+  /** Finalisations are counted only up to this date, which trails `as_at`. */
+  counted_to: string | null;
   source: string;
   is_live: boolean;
 }
@@ -197,6 +274,32 @@ export function useVisaSubclasses() {
   });
 }
 
+/**
+ * The skilled occupation list, filtered to one visa.
+ *
+ * Fetches the whole filtered set once (457 rows for subclass 186, 212 for 189)
+ * and lets the picker filter it locally as the member types. The endpoint also
+ * takes a `q`, but round-tripping every keystroke to Akamai-fronted data that
+ * changes quarterly would be slower and no more correct.
+ *
+ * Disabled until a subclass is chosen: the unfiltered list is all 714, which is
+ * exactly the flat catalogue this feature exists to replace.
+ */
+export function useOccupations(subclass?: string | null) {
+  return useQuery({
+    queryKey: queryKeys.community.occupations(subclass),
+    queryFn: async () => {
+      const { data } = await apiClient.get<OccupationOut[]>(
+        "/community/public/occupations",
+        { params: { subclass } }
+      );
+      return data;
+    },
+    enabled: !!subclass,
+    staleTime: 1000 * 60 * 30,
+  });
+}
+
 export function useProcessingStats() {
   return useQuery({
     queryKey: queryKeys.community.processing(),
@@ -265,10 +368,18 @@ export function useSaveWaitCheck() {
 export function usePublishJourney() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (journeyId: string) => {
+    mutationFn: async (
+      arg: string | { journeyId: string; occupationSlug?: string | null }
+    ) => {
+      // Accepts a bare id for the callers that have nothing to add, or an
+      // object when the draft still needs its occupation — a wait check is
+      // saved from a subclass and a date alone, so a timeline on a visa that
+      // nominates an occupation reaches this point uncoded.
+      const journeyId = typeof arg === "string" ? arg : arg.journeyId;
+      const occupationSlug = typeof arg === "string" ? null : arg.occupationSlug;
       const { data } = await apiClient.post<JourneyDetailOut>(
         `/community/public/journeys/${journeyId}/publish`,
-        { consent_public: true }
+        { consent_public: true, occupation_slug: occupationSlug ?? null }
       );
       return data;
     },
@@ -416,7 +527,10 @@ export interface JourneyOut {
   subclass_name?: string | null;
   category_name?: string | null;
   stream?: string | null;
+  /** Display name, snapshotted at posting time. */
   occupation?: string | null;
+  /** The 6-digit ANZSCO code — the cohort-matching key. */
+  occupation_code?: string | null;
   state?: string | null;
   area?: string | null;
   sponsor_type?: string | null;
@@ -503,14 +617,41 @@ export interface CreateJourneyPayload {
   subclass_slug?: string | null;
   category_slug?: string | null;
   stream?: string | null;
-  occupation?: string | null;
+  /**
+   * The occupation's slug from `useOccupations`. Required for every subclass
+   * whose `requires_occupation` is true; the server resolves the display name
+   * and the ANZSCO code from it. There is deliberately no free-text
+   * `occupation` field any more — it made "Nurse", "nurse" and "RN" three
+   * cohorts of one.
+   */
+  occupation_slug?: string | null;
   state?: string | null;
   area?: string | null;
   sponsor_type?: string | null;
+  /** Where they were when they lodged — asked of everyone. */
+  lodgement_location?: "onshore" | "offshore" | null;
+  /**
+   * Collected for cohort matching and **never rendered**. It is absent from
+   * every read type on purpose — the server does not return it.
+   */
+  nationality?: string | null;
+  lodged_via?: "self" | "agent" | null;
+  /**
+   * `true` asserts "no case officer contact". Send `null`, never `false`, when
+   * the member did not say — the two are different claims.
+   */
+  direct_grant?: boolean | null;
   outcome?: TimelineOutcome;
   title?: string | null;
   note?: string | null;
   milestones?: MilestonePayload[];
+  /**
+   * Required, with no default, and the server rejects a payload without it.
+   * Consent to publish is stated, never inferred: this used to default to true
+   * server-side, so a caller that simply forgot the field published someone's
+   * visa timeline to a public feed.
+   */
+  publish: boolean;
 }
 
 export interface JourneyFeedParams {
@@ -700,18 +841,30 @@ export interface CommunityAccount {
   last_login_at?: string | null;
 }
 
+/**
+ * A session, and nothing else.
+ *
+ * There is deliberately no `device_token` here any more. Every session issue
+ * used to echo the account's token and every caller wrote it to localStorage,
+ * which meant signing in *rebound the browser to the account* — two browsers
+ * logging into one account collapsed onto a single identity, and a browser that
+ * later signed out kept writing under the member's pseudonym. The browser's
+ * anonymous identity is now its own concern (`useIdentity`).
+ */
 export interface CommunitySessionOut {
   token: string;
   expires_at: string;
   account: CommunityAccount;
-  device_token?: string | null;
 }
 
 export interface SignupPayload {
   password: string;
-  email?: string;
-  /** Required when no email is given. The "this cannot be recovered" tick. */
-  accepted_no_recovery?: boolean;
+  /**
+   * Required. Deliberately unverified — the member is signed in immediately and
+   * there is no confirmation link. The client retypes it as a typo guard, which
+   * is the only protection an unverified address gets.
+   */
+  email: string;
 }
 
 export type NotificationType = "reply_to_post" | "reply_to_comment";
@@ -793,10 +946,17 @@ export function useCommunityAccount() {
 }
 
 /**
- * Claim this device's existing identity as an account.
+ * Turn this browser's identity into an account.
  *
- * Claiming, not creating: the handle and every post already made on this device
- * carry straight over, which is why the signup form never asks for a username.
+ * Where the browser's identity is unclaimed the server *adopts* it, so the
+ * handle and every post already made here carry straight over — which is why
+ * the signup form never asks for a username. Where it already belongs to
+ * somebody else a fresh account is minted beside it, so signing up on a shared
+ * computer works instead of returning the 409 it used to.
+ *
+ * Either way the browser's device token is left alone: the account has released
+ * its own, and the next `useIdentity` call re-bootstraps this browser as a
+ * fresh anonymous visitor behind the session.
  */
 export function useCommunitySignup() {
   const qc = useQueryClient();
@@ -814,7 +974,6 @@ export function useCommunitySignup() {
     },
     onSuccess: (session) => {
       setCommunityToken(session.token);
-      setDeviceToken(session.device_token);
       qc.setQueryData(queryKeys.community.account(), session.account);
       qc.invalidateQueries({ queryKey: queryKeys.community.all });
     },
@@ -837,7 +996,9 @@ export function useCommunityLogin() {
     },
     onSuccess: (session) => {
       setCommunityToken(session.token);
-      setDeviceToken(session.device_token);
+      // Deliberately does not touch the device token. Logging in says who you
+      // are, not whose browser this is; overwriting it here is what used to
+      // merge a second browser into the first one's identity.
       qc.setQueryData(queryKeys.community.account(), session.account);
       // Ownership cues (is_mine, viewer_voted) and the inbox all change the
       // moment the viewer does, so everything community-scoped is now stale.
@@ -890,7 +1051,6 @@ export function useCommunityResetPassword() {
     },
     onSuccess: (session) => {
       setCommunityToken(session.token);
-      setDeviceToken(session.device_token);
       qc.setQueryData(queryKeys.community.account(), session.account);
       qc.invalidateQueries({ queryKey: queryKeys.community.all });
     },
@@ -898,16 +1058,37 @@ export function useCommunityResetPassword() {
 }
 
 /**
- * Sign out of the community.
+ * Sign out, and become a stranger again.
  *
- * Clears the session but deliberately leaves the device token alone: the
- * browser is still the same browser, and wiping it would strand any drafts
- * held against it.
+ * This has to be a round-trip, which is why it is the one auth action that
+ * cannot be done client-side: the durable copy of the device token is an
+ * HttpOnly cookie that no script can reach, so clearing localStorage alone left
+ * the browser still resolving to the identity it just signed out of. On a
+ * shared computer that meant the next person's anonymous post was filed under
+ * the previous member's pseudonym.
+ *
+ * The server hands back a brand-new anonymous identity rather than nothing —
+ * signing out drops the account, it does not stop you reading and writing.
  */
 export function useCommunityLogout() {
   const qc = useQueryClient();
-  return () => {
+  return async () => {
+    // Local copies go first, so a failed round-trip still ends with this
+    // browser holding no session and no token of its own.
     clearCommunityToken();
+    clearDeviceToken();
+    try {
+      const { data } = await apiClient.post<CommunityIdentity>(
+        "/community/public/auth/logout"
+      );
+      setDeviceToken(data.device_token);
+      qc.setQueryData(queryKeys.community.identity(), data);
+    } catch {
+      // The cookie is the server's to clear, so if the call failed we cannot
+      // know who this browser now resolves to. Drop the cached identity so the
+      // next render bootstraps a fresh one instead of trusting a stale answer.
+      qc.removeQueries({ queryKey: queryKeys.community.identity() });
+    }
     qc.setQueryData(queryKeys.community.account(), null);
     qc.invalidateQueries({ queryKey: queryKeys.community.all });
   };

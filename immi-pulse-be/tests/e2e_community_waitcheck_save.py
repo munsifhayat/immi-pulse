@@ -84,7 +84,7 @@ async def _signup(client, svc):
     r = await client.post(
         "/community/public/auth/signup",
         headers={**svc, "X-Device-Token": device},
-        json={"password": PASSWORD, "accepted_no_recovery": True},
+        json={"password": PASSWORD, "email": f"wcsave-{uuid.uuid4().hex[:8]}@example.com"},
     )
     payload = r.json()
     return (
@@ -569,6 +569,17 @@ async def main():
             await db.execute(
                 sa.delete(CommunityTimeline).where(
                     CommunityTimeline.subclass_slug == slug
+                )
+            )
+            # Also clear anything attributed to this test's network. Step 12
+            # asserts that an anonymous visitor can still save, which the
+            # per-IP anonymous timeline cap will refuse once a couple of runs
+            # (or any unrelated dev data) have accumulated against the same
+            # hash — a self-cleaning run is the difference between a real
+            # assertion and a flake.
+            await db.execute(
+                sa.delete(CommunityTimeline).where(
+                    CommunityTimeline.author_ip_hash == hash_ip(TEST_CLIENT_IP)
                 )
             )
             await db.execute(sa.delete(Journey).where(Journey.subclass_slug == slug))

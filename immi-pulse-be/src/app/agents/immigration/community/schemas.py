@@ -27,6 +27,11 @@ TrendLiteral = Literal["faster", "slower", "steady"]
 WaitTierLiteral = Literal["on_track", "normal", "longer", "outlier", "unknown"]
 WaitBasisLiteral = Literal["community", "official", "none"]
 PostTypeLiteral = Literal["timeline", "question"]
+# Where the applicant was when they lodged — not where they are now, and not
+# which state nominated them. "Offshore" used to be smuggled into the state
+# enum, which made those three facts one field.
+LodgementLocationLiteral = Literal["onshore", "offshore"]
+LodgedViaLiteral = Literal["self", "agent"]
 NotificationTypeLiteral = Literal["reply_to_post", "reply_to_comment"]
 
 assert set(THREAD_STATUSES) == set(ThreadStatusLiteral.__args__)
@@ -177,15 +182,86 @@ class CommunityStatsOut(BaseModel):
 
 
 class VisaSubclassOut(BaseModel):
-    """Lightweight subclass reference for selectors."""
+    """One selectable visa: a subclass **+ stream** pair, as Home Affairs
+    publishes them.
+
+    The client builds its two-step picker by grouping on ``group_key`` — 43
+    groups across 76 rows. Group on ``code`` instead and you get 42, because
+    subclass 858 answers to two different programs: legacy Global Talent
+    (lodged before 6 Dec 2024, p50 426 days) and the current National Innovation
+    visa (p50 122 days). Both are streamless, so a member could not tell them
+    apart in a stream dropdown — they have to be separate groups.
+
+    ``is_stage`` rows (482/870 nomination and sponsorship) are lodgement stages
+    rather than answers to "which stream are you on?", so the picker filters
+    them out.
+    """
 
     slug: str
     code: str
     name: str
+    # Home Affairs' own program discriminator: "189", "482-1", "858-3", "858-4".
+    # Not an integer — never parse it as one.
+    group_key: str
     stream: Optional[str] = None
     category_slug: Optional[str] = None
+    is_stage: bool = False
+    # Does this visa have a nominated occupation? Drives whether the share form
+    # shows the occupation picker *at all*. False means hidden, not optional —
+    # a 600 Tourist applicant has no ANZSCO occupation, and a field they must
+    # guess at pools their timeline into a cohort it does not belong to.
+    requires_occupation: bool = False
+    # "2013" | "2022" | null. Which ANZSCO edition this subclass reads. Clients
+    # do not resolve codes themselves — the occupations endpoint returns the
+    # already-resolved ``anzsco_code`` — but this makes the choice visible.
+    anzsco_version: Optional[str] = None
+    # The rest of the adaptive-form contract. The client asks a question only
+    # when the visa says it applies — false means "do not ask", not "optional".
+    requires_state_nomination: bool = False
+    requires_region: bool = False
+    requires_sponsor_type: bool = False
+    # Whether this programme's streams are counted separately or pooled. Shipped
+    # so the client can *explain* a cohort rather than just present it — "500's
+    # sectors are counted apart because their waits range from 6 days to 7
+    # months" is a very different sentence from an unexplained number.
+    cohort_split_by_stream: bool = False
+    official_p50_days: Optional[int] = None
+    official_p90_days: Optional[int] = None
+    official_updated: Optional[str] = None
 
     model_config = {"from_attributes": True}
+
+
+class OccupationOut(BaseModel):
+    """One ANZSCO occupation, resolved against the visa that asked for it.
+
+    ``anzsco_code`` is the field to store and compare on. It is resolved
+    server-side from the subclass's ANZSCO edition — 2022 for subclass 186 and
+    482, 2013 for every other skilled subclass — because both editions travel
+    in the payload and picking the wrong one is silent: 416 occupations carry
+    both codes and only 7 disagree. Clients must never choose between the two
+    columns themselves.
+
+    Group on ``major_group_code`` when rendering. A flat list of 714 (457 for
+    subclass 186 alone) is the pattern the competing trackers ship and the one
+    to beat.
+    """
+
+    slug: str
+    name: str
+    # Already resolved for the requested subclass. Store this.
+    anzsco_code: Optional[str] = None
+    anzsco_version: Optional[str] = None
+    # Both editions travel so a client can show "221111 (2013) / 221111 (2022)"
+    # on the seven divergent occupations without a second request.
+    anzsco_2013_code: Optional[str] = None
+    anzsco_2022_code: Optional[str] = None
+    major_group_code: Optional[str] = None
+    major_group_name: Optional[str] = None
+    lists: list[str] = Field(default_factory=list)
+    eligible_subclasses: list[str] = Field(default_factory=list)
+    assessing_authority: Optional[str] = None
+    authority_url: Optional[str] = None
 
 
 class ProvenanceOut(BaseModel):
@@ -228,15 +304,25 @@ class CommunityDurationStats(BaseModel):
 class OfficialFiguresOut(BaseModel):
     """The Department of Home Affairs published bands, with their as-at date.
 
-    ``as_at`` is hand-seeded and ``is_live`` is hard-coded false: nothing in this
-    product ingests official figures on a schedule, so no surface may imply they
-    are checked daily. The date is what makes the figure honest, and it is a
-    required part of rendering one.
+    These are ingested from the department's own processing-times API, so
+    ``as_at`` and ``counted_to`` are their labels, not ours: "26 June 2026" and
+    "31 May 2026" respectively — a figure published in late June counts
+    finalisations only to the end of May, and saying so is what makes it honest.
+    ``is_live`` means "this row came from the department's feed", not "this row
+    has a date on it" — it keys off the ingestion-only ``dha_subclass_code``. A
+    hand-seeded row can carry a date label too, so a date is not evidence of
+    provenance.
+
+    All four percentiles travel because Home Affairs publishes all four, and the
+    25th/75th are what make a distribution legible rather than two lonely points.
     """
 
+    p25_days: Optional[int] = None
     p50_days: Optional[int] = None
+    p75_days: Optional[int] = None
     p90_days: Optional[int] = None
     as_at: Optional[str] = None
+    counted_to: Optional[str] = None
     source: str = "Department of Home Affairs"
     is_live: bool = False
 
@@ -373,6 +459,11 @@ class PublishJourneyRequest(BaseModel):
     """
 
     consent_public: bool = False
+    # Supplied here when the draft does not already carry one and the visa
+    # nominates an occupation. A wait check is saved from a subclass and a date
+    # alone — that save must stay frictionless — so the question is asked at the
+    # point it starts to matter, which is publication.
+    occupation_slug: Optional[str] = Field(default=None, max_length=120)
 
     @model_validator(mode="after")
     def _check(self) -> "PublishJourneyRequest":
@@ -388,6 +479,16 @@ class AddMilestonesRequest(BaseModel):
 
     milestones: list["MilestoneIn"] = Field(..., min_length=1)
     outcome: Optional[TimelineOutcomeLiteral] = None
+
+    @model_validator(mode="after")
+    def _check(self) -> "AddMilestonesRequest":
+        # Within this batch only, and deliberately so. Appending is how someone
+        # records a medical they forgot to add two months ago, so a new
+        # milestone dated *before* a stored one is legitimate —
+        # ``append_milestones`` re-sorts the merged set by date. What is never
+        # legitimate is one submission that contradicts itself.
+        _assert_monotonic(self.milestones)
+        return self
 
 
 # --- Community feed v2: identity, journeys, milestones, comments, votes ------
@@ -417,13 +518,16 @@ class CommunitySignupRequest(BaseModel):
 
     One password field, no confirm-password — a show-password toggle is the
     better affordance and confirmation fields add friction for no real gain.
-    Email is optional; skipping it requires acknowledging the consequence.
+
+    Email is **required** and deliberately unverified: the member types it and
+    is signed in immediately. The address is confirmed by retyping it on the
+    client (a typo guard, not a verification step), because an unverified
+    address that is also mistyped is silently unrecoverable. It lands in
+    ``email_pending`` until ownership is actually proven.
     """
 
     password: str = Field(min_length=8, max_length=128)
-    email: Optional[EmailStr] = None
-    # Must be True when no email is supplied: no email means no recovery.
-    accepted_no_recovery: bool = False
+    email: EmailStr
 
 
 class CommunityLoginRequest(BaseModel):
@@ -454,13 +558,18 @@ class CommunityAccountOut(BaseModel):
 
 
 class CommunitySessionOut(BaseModel):
-    """Issued on signup and login. ``device_token`` is echoed so a client that
-    cannot rely on the cookie (dev over http, cross-origin) still has it."""
+    """Issued on signup, login and password reset — a session, and nothing else.
+
+    Carries **no** device token on purpose. Echoing one made every client
+    overwrite the browser's identity with the account's, which merged two
+    browsers into one identity and left a signed-out visitor still writing as
+    the last member to use the machine. The browser's identity is now that
+    browser's own business (``/community/public/identity``).
+    """
 
     token: str
     expires_at: datetime
     account: CommunityAccountOut
-    device_token: Optional[str] = None
 
 
 class CommunityRecoverAcceptedOut(BaseModel):
@@ -490,6 +599,29 @@ SaveWaitCheckRequest.model_rebuild()
 AddMilestonesRequest.model_rebuild()
 
 
+def _assert_monotonic(milestones: list["MilestoneIn"]) -> None:
+    """A timeline must move forwards.
+
+    Real posts contain "EOI submitted: 06 Nov 2026" against a July 2026 grant,
+    and "RFI submitted 08/07/2027" — a transposed year or a mistyped month is
+    the single most common error in hand-written timelines, and unlike most
+    dirty data it is *observable*: a milestone dated before the one above it
+    is either a typo or a misordered entry, never a real sequence.
+
+    Checked in submission order rather than after sorting, because the order
+    the author entered them in is itself the claim being made. Equal dates pass
+    — several things genuinely happen on one day (lodged and acknowledged), and
+    rejecting that would push authors into inventing offsets.
+    """
+    for prev, cur in zip(milestones, milestones[1:]):
+        if cur.occurred_on < prev.occurred_on:
+            raise ValueError(
+                f"'{cur.milestone_type}' ({cur.occurred_on}) comes before "
+                f"'{prev.milestone_type}' ({prev.occurred_on}). "
+                "Check the dates — timelines run forwards."
+            )
+
+
 class MilestoneOut(BaseModel):
     id: UUID
     milestone_type: str
@@ -508,10 +640,34 @@ class CreateJourneyRequest(BaseModel):
 
     # Coarse profile (timeline posts)
     stream: Optional[str] = Field(default=None, max_length=60)
-    occupation: Optional[str] = Field(default=None, max_length=80)
+    # The occupation's slug from ``GET /public/occupations``. Required for every
+    # subclass whose ``requires_occupation`` is true — enforced in
+    # ``CommunityService.create_journey``, which is the only layer that can see
+    # the subclass row. The name and ANZSCO code are resolved server-side; a
+    # client cannot name its own occupation.
+    occupation_slug: Optional[str] = Field(default=None, max_length=120)
+    # NOTE: there is deliberately no free-text ``occupation`` field here any
+    # more. It was an 80-character box placeheld "e.g. Nurse, Developer", and
+    # it made "Nurse", "nurse", "RN" and "Registered Nurse (Medical)" four
+    # cohorts of one. Keeping it as a fallback would have kept the problem
+    # alive on exactly the visas the coded list matters most for.
+    # ``Journey.occupation`` still exists — as the display snapshot of the
+    # picked occupation's name, and as history on rows written before the
+    # picker.
     state: Optional[str] = Field(default=None, max_length=40)
     area: Optional[str] = Field(default=None, max_length=20)
     sponsor_type: Optional[str] = Field(default=None, max_length=40)
+
+    lodgement_location: Optional[LodgementLocationLiteral] = None
+    # Free text with a length cap rather than an enum: a country list is a
+    # political artefact we would then own, and members describe themselves in
+    # ways a dropdown loses. It is never published, so it does not have to
+    # normalise for display — only for cohort matching, done downstream.
+    nationality: Optional[str] = Field(default=None, max_length=60)
+    lodged_via: Optional[LodgedViaLiteral] = None
+    # Tri-state on purpose: None = "not stated", False = "there was contact",
+    # True = "no CO contact". Collapsing the first two loses the assertion.
+    direct_grant: Optional[bool] = None
 
     outcome: TimelineOutcomeLiteral = "waiting"
 
@@ -519,6 +675,19 @@ class CreateJourneyRequest(BaseModel):
     note: Optional[str] = Field(default=None, max_length=2000)
 
     milestones: list[MilestoneIn] = Field(default_factory=list)
+
+    # Consent is stated, never inferred. This used to be a service-layer default
+    # of ``publish=True``, which meant a caller that simply forgot the argument
+    # published someone's visa timeline to a public feed. Two of the three entry
+    # points did exactly that while the third asked first — the same object with
+    # two different consent stories.
+    #
+    # Required, with no default: a client cannot publish by omission. The
+    # wait-check passes False and publishes later as a separate act; the
+    # composer and the builder pass True because their submit button *is* the
+    # consent, and making them round-trip twice would add a failure mode without
+    # adding a decision.
+    publish: bool
 
     @model_validator(mode="after")
     def _check(self) -> "CreateJourneyRequest":
@@ -540,6 +709,7 @@ class CreateJourneyRequest(BaseModel):
                 # Tolerant: the derived span uses the last milestone as the
                 # decision date if no explicit "Visa Granted" was added.
                 pass
+            _assert_monotonic(self.milestones)
         return self
 
 
@@ -555,10 +725,27 @@ class JourneyOut(BaseModel):
     category_name: Optional[str] = None
 
     stream: Optional[str] = None
+    # Display name, as snapshotted at posting time. Rows written before the
+    # coded picker carry free text here with a null ``occupation_code``.
     occupation: Optional[str] = None
+    # The 6-digit ANZSCO code, in the edition the subclass reads. This is the
+    # cohort-matching key; ``occupation`` is for display only.
+    occupation_code: Optional[str] = None
     state: Optional[str] = None
     area: Optional[str] = None
     sponsor_type: Optional[str] = None
+    lodgement_location: Optional[LodgementLocationLiteral] = None
+    lodged_via: Optional[LodgedViaLiteral] = None
+    # True = the author asserted "no CO contact / direct grant". None = they did
+    # not say, which is not the same claim and must not render as a denial.
+    direct_grant: Optional[bool] = None
+    # NOTE: ``nationality`` is deliberately absent and must stay absent. It is
+    # collected for cohort matching only. A pseudonymous timeline plus a
+    # nationality plus a lodgement date re-identifies people in a small cohort,
+    # and this community is full of members whose visa status is not safe to
+    # attach to that. ``tests/e2e_community_privacy.py`` asserts it never
+    # appears in any public payload — if you add it here, that test fails, and
+    # it is right and you are wrong.
     outcome: TimelineOutcomeLiteral
 
     title: Optional[str] = None
